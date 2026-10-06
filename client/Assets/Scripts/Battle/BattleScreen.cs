@@ -605,6 +605,7 @@ namespace SanGuo.Client
             switch (intent.Type)
             {
                 case Intent.Kind.Attack: return $"攻擊→{intent.Target!.Name}";
+                case Intent.Kind.Heal: return $"治療→{intent.Target!.Name}";
                 case Intent.Kind.Move: return $"移動→第{intent.MoveTo!.Value.Lane + 1}路";
                 case Intent.Kind.Stunned: return "昏亂";
                 default: return "待機";

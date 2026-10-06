@@ -11,6 +11,9 @@ namespace SanGuo.Core
 
     public enum AttackType { Melee, Ranged }
 
+    /// <summary>敵人的特殊行動（其餘為普通攻擊）。Healer = 每回合治療血量比例最低的友軍。</summary>
+    public enum EnemyAbility { None, Healer }
+
     /// <summary>卡牌如何選出中心目標（見 docs/combat.md 4.1）。</summary>
     public enum TargetRule
     {

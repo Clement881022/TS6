@@ -80,6 +80,9 @@ namespace SanGuo.Core
         public Stats Base = new Stats();
         /// <summary>普通攻擊的攻擊力倍率。</summary>
         public double AttackMultiplier = 1.0;
+        public EnemyAbility Ability = EnemyAbility.None;
+        /// <summary>特殊行動的攻擊力倍率（Healer = 治療量）。</summary>
+        public double AbilityPower;
     }
 
     public sealed class HeroSlot

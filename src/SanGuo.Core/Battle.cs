@@ -51,6 +51,8 @@ namespace SanGuo.Core
             {
                 var unit = CreateUnit(slot.Def.Name, Side.Enemy, slot.Def.AttackType, slot.Def.Base.Clone(), slot.Pos);
                 unit.AttackMultiplier = slot.Def.AttackMultiplier;
+                unit.Ability = slot.Def.Ability;
+                unit.AbilityPower = slot.Def.AbilityPower;
                 unit.DefId = slot.Def.Id;
             }
 
@@ -140,6 +142,18 @@ namespace SanGuo.Core
         {
             if (!enemy.Alive) return new Intent { Type = Intent.Kind.None };
             if (enemy.Has(StatusType.Stun)) return new Intent { Type = Intent.Kind.Stunned };
+
+            if (enemy.Ability == EnemyAbility.Healer)
+            {
+                // 治療者：有受傷的友軍就治療血量比例最低的那位，否則照常攻擊。
+                Unit? hurt = null;
+                foreach (var ally in AliveUnits(Side.Enemy))
+                {
+                    if (ally.Hp >= ally.MaxHp) continue;
+                    if (hurt == null || (long)ally.Hp * hurt.MaxHp < (long)hurt.Hp * ally.MaxHp) hurt = ally;
+                }
+                if (hurt != null) return new Intent { Type = Intent.Kind.Heal, Target = hurt };
+            }
 
             Unit? forced = AliveUnits(Side.Player).FirstOrDefault(u => u.Has(StatusType.Taunt));
             if (forced != null)
@@ -273,6 +287,15 @@ namespace SanGuo.Core
                         Emit(EventType.EnemyAttack, enemy.Id, intent.Target!.Id, 0, "");
                         DealAttackDamage(enemy, intent.Target!, enemy.AttackMultiplier);
                         break;
+                    case Intent.Kind.Heal:
+                    {
+                        var ally = intent.Target!;
+                        int amount = DamageCalc.Scale(enemy.Stats.Atk, enemy.AbilityPower);
+                        int healed = Math.Min(amount, ally.MaxHp - ally.Hp);
+                        ally.Hp += healed;
+                        Emit(EventType.Heal, enemy.Id, ally.Id, healed, "");
+                        break;
+                    }
                     case Intent.Kind.Move:
                         RelocateEnemy(enemy, intent.MoveTo!.Value);
                         break;

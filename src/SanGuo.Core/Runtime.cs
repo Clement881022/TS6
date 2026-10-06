@@ -32,6 +32,8 @@ namespace SanGuo.Core
         public bool Alive = true;
         /// <summary>僅敵人使用：普通攻擊倍率。</summary>
         public double AttackMultiplier = 1.0;
+        public EnemyAbility Ability;
+        public double AbilityPower;
         public HeroDef? Hero;
         public Dictionary<StatusType, StatusState> Statuses = new Dictionary<StatusType, StatusState>();
 
@@ -90,7 +92,7 @@ namespace SanGuo.Core
 
     public sealed class Intent
     {
-        public enum Kind { Attack, Move, Stunned, None }
+        public enum Kind { Attack, Move, Stunned, Heal, None }
 
         public Kind Type;
         public Unit? Target;

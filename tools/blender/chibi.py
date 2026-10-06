@@ -247,6 +247,8 @@ ENEMIES = {
     "yt_archer": dict(robe=(0.55, 0.45, 0.3), headgear="yellow_turban", width=0.9, weapon="bow"),
     "yt_sharpshooter": dict(robe=(0.5, 0.2, 0.18), headgear="yellow_turban", width=0.95, pauldrons=(0.4, 0.3, 0.2),
                             weapon="bow"),
+    "yt_priest": dict(robe=(0.85, 0.75, 0.3), belt=(0.45, 0.3, 0.2), width=0.92, headgear="yellow_turban", beard="long",
+                      beard_color=(0.85, 0.85, 0.88), weapon="fan"),
     "yt_ironbrute": dict(robe=(0.4, 0.4, 0.45), skin=(0.8, 0.6, 0.45), beard="bushy", width=1.45,
                          headgear="helmet", hat_color=(0.45, 0.47, 0.52), pauldrons=(0.5, 0.52, 0.58), weapon="club"),
     "yt_brute": dict(robe=(0.5, 0.38, 0.22), skin=(0.8, 0.6, 0.45), beard="bushy", width=1.35,

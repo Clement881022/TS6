@@ -125,7 +125,7 @@ namespace SanGuo.Core
         {
             var shot = Basic("hz_attack", "穿雲箭", 1, TargetRule.EnemyBack, Dmg(1.2));
             var guard = Basic("hz_guard", "閃身", 1, TargetRule.Self, Armor(0.8));
-            var snipe = Card("hz_snipe", "百步穿楊", 2, TargetRule.EnemyBack, Shape.Single, CardKeywords.None, Dmg(2.0));
+            var snipe = Card("hz_snipe", "百步穿楊", 2, TargetRule.EnemyBack, Shape.Single, CardKeywords.Innate, Dmg(2.0));
             var pierce = Card("hz_pierce", "穿甲箭", 1, TargetRule.EnemyBack, Shape.Single, CardKeywords.Innate,
                 Dmg(0.6), Status(StatusType.ArmorBreak, 0.5, 4));
             var volley = Card("hz_volley", "箭雨", 3, TargetRule.EnemyBack, Shape.Column, CardKeywords.Exhaust, Dmg(1.8));
@@ -222,6 +222,14 @@ namespace SanGuo.Core
             Base = new Stats { Hp = 900, Atk = 220, Def = 400, Speed = 1, Crit = 0, CritDmg = 150 },
         };
 
+        /// <summary>第 4 關的妖道：脆皮，每回合治療血量比例最低的友軍；放在後排，要靠弓手才打得到。</summary>
+        public static EnemyDef YellowTurbanPriest() => new EnemyDef
+        {
+            Id = "yt_priest", Name = "黃巾妖道", AttackType = AttackType.Ranged, AttackMultiplier = 0.8,
+            Ability = EnemyAbility.Healer, AbilityPower = 1.5,
+            Base = new Stats { Hp = 300, Atk = 200, Def = 10, Speed = 1, Crit = 0, CritDmg = 150 },
+        };
+
         public static EnemyDef YellowTurbanBrute() => new EnemyDef
         {
             Id = "yt_brute", Name = "黃巾力士", AttackType = AttackType.Melee, AttackMultiplier = 1.3,
@@ -236,7 +244,7 @@ namespace SanGuo.Core
         };
 
         /// <summary>已實作的關卡數（其餘在地圖上顯示為尚未開放）。</summary>
-        public const int ChapterLevelCount = 3;
+        public const int ChapterLevelCount = 4;
 
         /// <summary>第一章「黃巾之亂」關卡（教學關：固定隊伍、不開放自動戰鬥）。</summary>
         public static BattleSetup Level(int level, ulong seed = 1)
@@ -258,6 +266,12 @@ namespace SanGuo.Core
                     setup.Heroes.Add(new HeroSlot(ZhangFei(), new Position(0, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaSoldier(), new Position(1, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaArcher(), new Position(1, 1)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
+                    break;
+                case 4: // 黃忠（百步穿楊・先登）專打後排的妖道
+                    setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaSoldier(), new Position(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(HuangZhong(), new Position(1, 1)));
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
                     break;
                 default: // 關羽（斷甲・先登）＋黃忠（穿甲箭・先登）
@@ -283,6 +297,12 @@ namespace SanGuo.Core
                     setup.Enemies.Add(new EnemySlot(YellowTurbanIronBrute(), new Position(0, 0)));
                     setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(0, 1)));
                     setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(3, 0)));
+                    break;
+                case 4: // 妖道作亂：妖道躲在後排持續治療，只有弓手打得到
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(0, 0)));
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(2, 0)));
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanPriest(), new Position(2, 1)));
                     break;
                 default:
                     throw new System.ArgumentOutOfRangeException(nameof(level));

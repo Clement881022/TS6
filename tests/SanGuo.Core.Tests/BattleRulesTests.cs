@@ -470,14 +470,21 @@ namespace SanGuo.Core.Tests
             c.Def.Effects.Any(e => e.Type == EffectType.ApplyStatus && e.Status == StatusType.Taunt);
 
         /// <summary>模擬「照教學打」：挑釁與破甲牌先出，再出其他牌。</summary>
+        private static bool HealerAlive(Battle b) => b.AliveUnits(Side.Enemy).Any(e => e.Ability == EnemyAbility.Healer);
+
+        private static bool IsBackShot(CardInstance c) =>
+            c.Def.Target == TargetRule.EnemyBack && c.Def.Effects.Any(e => e.Type == EffectType.Damage);
+
         private static int TutorialPriority(Battle battle, CardInstance c)
         {
+            if (IsBackShot(c) && HealerAlive(battle)) return 5; // 先用弓手打後排的治療者
             if (IsTaunt(c)) return battle.AliveUnits(Side.Player).Any(u => u.Has(StatusType.Taunt)) ? -1 : 4; // 已在挑釁中就不重複出
             return IsBreak(c) ? 3 : 0;
         }
 
         /// <summary>模擬「忽略教學」：不出挑釁、不出破甲，其他照出。</summary>
-        private static int IgnoreTutorialPriority(Battle battle, CardInstance c) => IsTaunt(c) || IsBreak(c) ? -1 : 0;
+        private static int IgnoreTutorialPriority(Battle battle, CardInstance c) =>
+            IsTaunt(c) || IsBreak(c) || (IsBackShot(c) && HealerAlive(battle)) ? -1 : 0;
 
         private sealed class LevelStats
         {
@@ -520,6 +527,40 @@ namespace SanGuo.Core.Tests
             Assert.True(smart.WinRate >= 99, $"照教學打勝率太低（目標 100%）：{smart}");
             Assert.True(ignore.WinRate <= 70, $"忽略教學勝率太高：{ignore}");
             Assert.True(smart.Alive / smart.Total >= ignore.Alive / ignore.Total + 1.5, "挑釁沒有明顯保住後排");
+        }
+
+        [Fact]
+        public void Level4_KillTheHealerLessonMatters()
+        {
+            var smart = RunLevel(4, TutorialPriority);
+            var ignore = RunLevel(4, IgnoreTutorialPriority);
+            _out.WriteLine($"第 4 關 照教學打 {smart}｜忽略教學 {ignore}");
+            Assert.True(smart.WinRate >= 99, $"照教學打勝率太低（目標 100%）：{smart}");
+            Assert.True(ignore.WinRate <= 50, $"忽略教學勝率太高：{ignore}");
+        }
+
+        [Fact]
+        public void HealerEnemy_HealsLowestHpAlly()
+        {
+            var healer = new EnemyDef
+            {
+                Id = "h", Name = "h", Ability = EnemyAbility.Healer, AbilityPower = 1.0,
+                Base = new Stats { Hp = 500, Atk = 100, Def = 0 },
+            };
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 99999), new Position(0, 0)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 500, atk: 1), new Position(0, 0)));
+            setup.Enemies.Add(new EnemySlot(healer, new Position(1, 1)));
+            var battle = new Battle(setup);
+            var ally = EnemyUnit(battle, "e");
+            var priest = EnemyUnit(battle, "h");
+
+            Assert.Equal(Intent.Kind.Attack, battle.GetIntent(priest).Type); // 沒人受傷 → 攻擊
+            ally.Hp = 300;
+            Assert.Equal(Intent.Kind.Heal, battle.GetIntent(priest).Type);
+            Assert.Same(ally, battle.GetIntent(priest).Target);
+            battle.EndTurn();
+            Assert.Equal(400, ally.Hp); // 治療 = 攻擊 100 × 1.0
         }
 
         [Fact]
