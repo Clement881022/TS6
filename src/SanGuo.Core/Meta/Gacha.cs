@@ -168,8 +168,9 @@ namespace SanGuo.Core.Meta
             outcome.Results = Roll(pool, state, count, rng);
             foreach (var r in outcome.Results)
             {
-                if (player.OwnedHeroes.Add(r.HeroId))
+                if (!player.Heroes.ContainsKey(r.HeroId))
                 {
+                    player.Heroes[r.HeroId] = new HeroState { HeroId = r.HeroId };
                     r.IsNew = true;
                 }
                 else

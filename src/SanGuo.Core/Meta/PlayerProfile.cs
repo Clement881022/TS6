@@ -38,10 +38,14 @@ namespace SanGuo.Core.Meta
         public int Gold;
         public StaminaClock Stamina = new StaminaClock();
         public HashSet<string> ClearedStages = new HashSet<string>();
-        public HashSet<string> OwnedHeroes = new HashSet<string>();
+        public Dictionary<string, HeroState> Heroes = new Dictionary<string, HeroState>();
         /// <summary>素材 / 碎片（例：「shard:guanyu」= 關羽突破素材）。</summary>
         public Dictionary<string, int> Materials = new Dictionary<string, int>();
         public Dictionary<string, PoolState> PoolStates = new Dictionary<string, PoolState>();
+
+        public int GetMaterial(string key) => Materials.TryGetValue(key, out int n) ? n : 0;
+
+        public void AddMaterial(string key, int amount) => Materials[key] = GetMaterial(key) + amount;
 
         public static PlayerProfile CreateNew(long now) => new PlayerProfile
         {
