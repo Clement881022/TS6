@@ -106,71 +106,111 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void StatScaling_IsIdentityAtLevel1_AndIgnoresStars()
+        public void StatScaling_IsIdentityAtLevel1_NoTable()
         {
             var b = new Stats { Hp = 1000, Atk = 100, Def = 50, Speed = 2, Crit = 5 };
             Assert.Equal(1000, HeroGrowth.ScaleStats(b, new HeroState()).Hp);
-            var s = HeroGrowth.ScaleStats(b, new HeroState { Level = 11, Stars = 5 });
-            Assert.Equal(1800, s.Hp);   // 1 + 0.08×10，星級不加數值
+            var s = HeroGrowth.ScaleStats(b, new HeroState { Level = 11, Stars = 5 }); // 沒給突破表：星級不加數值
+            Assert.Equal(1800, s.Hp);   // 1 + 0.08×10
             Assert.Equal(2, s.Speed);
             Assert.Equal(1000, b.Hp);
         }
 
-        // ---- 突破的獨特效果 ----
+        [Fact]
+        public void StatScaling_AppliesBreakthroughStatBonuses_Cumulatively()
+        {
+            var table = DemoBreakthroughs.Create();
+            var b = new Stats { Hp = 1000, Atk = 100, Def = 100, Speed = 2 };
+            var s1 = HeroGrowth.ScaleStats(b, new HeroState { HeroId = "zhangfei", Stars = 1 }, table);
+            Assert.Equal(1100, s1.Hp);              // 1★ 血量 +10%
+            Assert.Equal(100, s1.Atk);
+            var s3 = HeroGrowth.ScaleStats(b, new HeroState { HeroId = "zhangfei", Stars = 3 }, table);
+            Assert.Equal(1100, s3.Hp);              // 2★ 是特殊效果，不加屬性
+            Assert.Equal(110, s3.Atk);              // 3★ 攻擊 +10%
+            var s5 = HeroGrowth.ScaleStats(b, new HeroState { HeroId = "zhangfei", Stars = 5 }, table);
+            Assert.Equal(1250, s5.Hp);              // 血量加成相加：+10% +15%
+            Assert.Equal(125, s5.Atk);              // +10% +15%
+            Assert.Equal(115, s5.Def);              // 防禦只有 5★ +15%
+            Assert.Equal(2, s5.Speed);
+        }
+
+        // ---- 突破：屬性與特殊效果混搭 ----
 
         private static HeroDef ZhangFeiLike() => new HeroDef
         {
             Id = "zhangfei",
             Deck =
             {
-                new CardDef { Id = "zf_attack" }, new CardDef { Id = "zf_break" }, new CardDef { Id = "zf_taunt" },
-                new CardDef { Id = "zf_roar" }, new CardDef { Id = "zf_break" },
+                new CardDef { Id = "zf_attack" }, new CardDef { Id = "zf_taunt" },
+                new CardDef { Id = "zf_roar" }, new CardDef { Id = "zf_taunt" },
             },
         };
 
         [Fact]
-        public void Deck_Unchanged_AtZeroStars_AndOriginalNeverMutated()
-        {
-            var table = DemoBreakthroughs.Create();
-            var hero = ZhangFeiLike();
-            var deck = table.ResolveDeck(hero, 0);
-            Assert.Equal(hero.Deck.Select(c => c.Id), deck.Select(c => c.Id));
-            table.ResolveDeck(hero, 5);
-            Assert.Equal("zf_break", hero.Deck[1].Id);
-        }
-
-        [Fact]
-        public void Deck_UpgradeReplacesEveryCopy_AndAddAppends()
-        {
-            var table = DemoBreakthroughs.Create();
-            var hero = ZhangFeiLike();
-            var s1 = table.ResolveDeck(hero, 1).Select(c => c.Id).ToList();
-            Assert.Equal(new[] { "zf_attack", "zf_break_1", "zf_taunt", "zf_roar", "zf_break_1" }, s1);
-            var s2 = table.ResolveDeck(hero, 2).Select(c => c.Id).ToList();
-            Assert.Equal("zf_hold", s2.Last());
-            Assert.Equal(6, s2.Count);
-        }
-
-        [Fact]
-        public void Deck_FiveStars_AllUniqueEffectsApplied()
-        {
-            var table = DemoBreakthroughs.Create();
-            var ids = table.ResolveDeck(ZhangFeiLike(), 5).Select(c => c.Id).ToList();
-            Assert.Contains("zf_taunt_1", ids);
-            Assert.Contains("zf_roar_1", ids);
-            Assert.DoesNotContain("zf_taunt", ids);
-            Assert.Equal(new[] { "zf_taunt_guard" }, table.ActivePassives("zhangfei", 5));
-            Assert.Empty(table.ActivePassives("zhangfei", 3));
-        }
-
-        [Fact]
-        public void DemoBreakthroughs_EveryStarHasADescribedEffect_NotAStatBump()
+        public void EveryHeroGetsFiveStars_SpecialsOnlyAtDesignedSlots_StatsElsewhere()
         {
             var table = DemoBreakthroughs.Create();
             var effects = table.Get("zhangfei");
             Assert.Equal(new[] { 1, 2, 3, 4, 5 }, effects.Select(e => e.Stars));
+            Assert.Equal(
+                new[] { BreakthroughKind.StatBonus, BreakthroughKind.UpgradeCard, BreakthroughKind.StatBonus,
+                        BreakthroughKind.UpgradeCard, BreakthroughKind.StatBonus },
+                effects.Select(e => e.Kind));
             Assert.All(effects, e => Assert.False(string.IsNullOrEmpty(e.Description)));
+        }
+
+        [Fact]
+        public void Register_WithoutAnySpecial_FallsBackToStatTemplate()
+        {
+            var table = new BreakthroughTable();
+            table.RegisterStatOnly("plain");
+            var effects = table.Get("plain");
+            Assert.Equal(5, effects.Count);
+            Assert.All(effects, e => Assert.Equal(BreakthroughKind.StatBonus, e.Kind));
             Assert.Empty(table.Get("nobody"));
+            Assert.Equal((0, 0, 0), table.StatBonusPct("nobody", 5));
+        }
+
+        [Fact]
+        public void Deck_Unchanged_BeforeSpecialStar_AndOriginalNeverMutated()
+        {
+            var table = DemoBreakthroughs.Create();
+            var hero = ZhangFeiLike();
+            Assert.Equal(hero.Deck.Select(c => c.Id), table.ResolveDeck(hero, 1).Select(c => c.Id));
+            table.ResolveDeck(hero, 5);
+            Assert.Equal("zf_taunt", hero.Deck[1].Id);
+        }
+
+        [Fact]
+        public void Deck_UpgradeReplacesEveryCopy_AtItsStar()
+        {
+            var table = DemoBreakthroughs.Create();
+            var hero = ZhangFeiLike();
+            var s2 = table.ResolveDeck(hero, 2).Select(c => c.Id).ToList();
+            Assert.Equal(new[] { "zf_attack", "zf_taunt_1", "zf_roar", "zf_taunt_1" }, s2);
+            var s4 = table.ResolveDeck(hero, 4).Select(c => c.Id).ToList();
+            Assert.Equal(new[] { "zf_attack", "zf_taunt_1", "zf_roar_1", "zf_taunt_1" }, s4);
+        }
+
+        [Fact]
+        public void AddCard_AppendsToDeck_AndPassivesAreListed()
+        {
+            var table = new BreakthroughTable();
+            table.Register("h",
+                new BreakthroughEffect
+                {
+                    Stars = 2, Kind = BreakthroughKind.AddCard, Description = "新增牌",
+                    NewCard = new CardDef { Id = "extra" },
+                },
+                new BreakthroughEffect
+                {
+                    Stars = 4, Kind = BreakthroughKind.Passive, PassiveId = "p1", Description = "被動",
+                });
+            var hero = new HeroDef { Id = "h", Deck = { new CardDef { Id = "a" } } };
+            Assert.Equal(new[] { "a" }, table.ResolveDeck(hero, 1).Select(c => c.Id));
+            Assert.Equal(new[] { "a", "extra" }, table.ResolveDeck(hero, 2).Select(c => c.Id));
+            Assert.Empty(table.ActivePassives("h", 3));
+            Assert.Equal(new[] { "p1" }, table.ActivePassives("h", 4));
         }
 
         [Fact]

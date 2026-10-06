@@ -27,8 +27,7 @@ namespace SanGuo.Core.Meta
 
     /// <summary>
     /// 武將成長規則：等級、突破、卡牌強化（見 docs/progression.md）。數值皆為建議值。
-    /// 突破 = 重複抽到同一名武將（1–5 隻），每一星帶來獨特效果（見 <see cref="BreakthroughTable"/>），
-    /// 不提供單純的數值成長。
+    /// 突破 = 重複抽到同一名武將（1–5 隻），每一星給屬性加成或特殊效果（見 <see cref="BreakthroughTable"/>，兩者混搭）。
     /// </summary>
     public static class HeroGrowth
     {
@@ -54,14 +53,18 @@ namespace SanGuo.Core.Meta
         /// <summary>卡牌效果倍率加成：每強化 1 級 +15%。</summary>
         public static double CardEffectMultiplier(int cardLevel) => 1 + 0.15 * cardLevel;
 
-        /// <summary>依等級縮放基礎屬性（回傳新物件，不改原資料）。</summary>
-        public static Stats ScaleStats(Stats baseStats, HeroState hero)
+        /// <summary>
+        /// 依等級與突破的屬性加成縮放基礎屬性（血量 / 攻擊 / 防禦）：等級倍率 × (1 + 突破加成%)。
+        /// 回傳新物件，不改原資料；沒給突破表時只算等級。
+        /// </summary>
+        public static Stats ScaleStats(Stats baseStats, HeroState hero, BreakthroughTable? table = null)
         {
             var s = baseStats.Clone();
             double m = StatMultiplier(hero.Level);
-            s.Hp = (int)Math.Round(s.Hp * m);
-            s.Atk = (int)Math.Round(s.Atk * m);
-            s.Def = (int)Math.Round(s.Def * m);
+            var (hp, atk, def) = table == null ? (0, 0, 0) : table.StatBonusPct(hero.HeroId, hero.Stars);
+            s.Hp = (int)Math.Round(s.Hp * m * (1 + hp / 100.0));
+            s.Atk = (int)Math.Round(s.Atk * m * (1 + atk / 100.0));
+            s.Def = (int)Math.Round(s.Def * m * (1 + def / 100.0));
             return s;
         }
 
@@ -81,7 +84,7 @@ namespace SanGuo.Core.Meta
             return GrowthResult.Ok;
         }
 
-        /// <summary>突破：消耗一隻重複武將的碎片（<see cref="CopyShards"/>），解鎖下一星的獨特效果。</summary>
+        /// <summary>突破：消耗一隻重複武將的碎片（<see cref="CopyShards"/>），解鎖下一星的效果。</summary>
         public static GrowthResult Breakthrough(PlayerProfile p, string heroId)
         {
             if (!p.Heroes.TryGetValue(heroId, out var hero)) return GrowthResult.UnknownHero;
