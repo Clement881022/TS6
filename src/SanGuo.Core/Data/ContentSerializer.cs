@@ -1,0 +1,238 @@
+using System;
+using System.Collections.Generic;
+
+namespace SanGuo.Core.Data
+{
+    /// <summary>
+    /// 遊戲內容（武將、敵人、卡牌、關卡）&lt;-&gt; JSON。內容資料可以脫離程式碼，由編輯器匯出的 JSON 載入。
+    /// 列舉一律用名稱字串（不是數字），改列舉順序不會弄壞資料；缺少的欄位使用定義類別的預設值。
+    /// </summary>
+    public static class ContentSerializer
+    {
+        // ---- 寫出 ----
+
+        public static string HeroesToJson(IEnumerable<HeroDef> heroes, bool indent = true)
+        {
+            var list = new List<object?>();
+            foreach (var h in heroes) list.Add(HeroToObject(h));
+            return MiniJson.Write(new Dictionary<string, object?> { ["heroes"] = list }, indent);
+        }
+
+        public static string SetupToJson(BattleSetup setup, bool indent = true) =>
+            MiniJson.Write(SetupToObject(setup), indent);
+
+        public static Dictionary<string, object?> StatsToObject(Stats s) => new Dictionary<string, object?>
+        {
+            ["hp"] = (long)s.Hp, ["atk"] = (long)s.Atk, ["def"] = (long)s.Def, ["dodge"] = (long)s.Dodge,
+            ["speed"] = (long)s.Speed, ["crit"] = (long)s.Crit, ["critDmg"] = (long)s.CritDmg,
+        };
+
+        public static Dictionary<string, object?> CardToObject(CardDef c)
+        {
+            var effects = new List<object?>();
+            foreach (var e in c.Effects)
+            {
+                effects.Add(new Dictionary<string, object?>
+                {
+                    ["type"] = e.Type.ToString(),
+                    ["multiplier"] = e.Multiplier,
+                    ["status"] = e.Status.ToString(),
+                    ["amount"] = (long)e.Amount,
+                    ["onSelf"] = e.OnSelf,
+                });
+            }
+            return new Dictionary<string, object?>
+            {
+                ["id"] = c.Id, ["name"] = c.Name, ["basic"] = c.Basic, ["cost"] = (long)c.Cost,
+                ["keywords"] = c.Keywords.ToString(),
+                ["target"] = c.Target.ToString(), ["shape"] = c.Shape.ToString(),
+                ["effects"] = effects,
+            };
+        }
+
+        public static Dictionary<string, object?> HeroToObject(HeroDef h)
+        {
+            var deck = new List<object?>();
+            foreach (var c in h.Deck) deck.Add(CardToObject(c));
+            return new Dictionary<string, object?>
+            {
+                ["id"] = h.Id, ["name"] = h.Name, ["role"] = h.Role.ToString(), ["rarity"] = h.Rarity.ToString(),
+                ["attackType"] = h.AttackType.ToString(), ["base"] = StatsToObject(h.Base), ["deck"] = deck,
+            };
+        }
+
+        public static Dictionary<string, object?> EnemyToObject(EnemyDef e) => new Dictionary<string, object?>
+        {
+            ["id"] = e.Id, ["name"] = e.Name, ["attackType"] = e.AttackType.ToString(),
+            ["base"] = StatsToObject(e.Base), ["attackMultiplier"] = e.AttackMultiplier,
+            ["ability"] = e.Ability.ToString(),
+            ["summons"] = e.Summons == null ? null : EnemyToObject(e.Summons),
+            ["summonCap"] = (long)e.SummonCap, ["summonEvery"] = (long)e.SummonEvery,
+            ["stunGauge"] = (long)e.StunGauge, ["stunGrowth"] = e.StunGrowth, ["abilityPower"] = e.AbilityPower,
+        };
+
+        private static Dictionary<string, object?> PosToObject(Position p) =>
+            new Dictionary<string, object?> { ["lane"] = (long)p.Lane, ["row"] = (long)p.Row };
+
+        public static Dictionary<string, object?> SetupToObject(BattleSetup s)
+        {
+            var heroes = new List<object?>();
+            foreach (var h in s.Heroes)
+            {
+                heroes.Add(new Dictionary<string, object?>
+                {
+                    ["def"] = HeroToObject(h.Def), ["pos"] = PosToObject(h.Pos), ["level"] = (long)h.Level,
+                    ["protected"] = h.IsProtected, ["startHpPercent"] = (long)h.StartHpPercent,
+                });
+            }
+            var enemies = new List<object?>();
+            foreach (var e in s.Enemies)
+                enemies.Add(new Dictionary<string, object?> { ["def"] = EnemyToObject(e.Def), ["pos"] = PosToObject(e.Pos) });
+            var draw = new List<object?>();
+            foreach (var id in s.ScriptedDraw) draw.Add(id);
+            return new Dictionary<string, object?>
+            {
+                ["lanes"] = (long)s.Lanes, ["rows"] = (long)s.Rows, ["seed"] = (long)s.Seed,
+                ["handSize"] = (long)s.HandSize, ["costPerTurn"] = (long)s.CostPerTurn, ["costCap"] = (long)s.CostCap,
+                ["moveCost"] = (long)s.MoveCost, ["movesPerTurn"] = (long)s.MovesPerTurn,
+                ["turnLimit"] = (long)s.TurnLimit, ["autoAllowed"] = s.AutoAllowed,
+                ["formationLocked"] = s.FormationLocked, ["scriptedDraw"] = draw, ["noRandomness"] = s.NoRandomness,
+                ["heroes"] = heroes, ["enemies"] = enemies,
+            };
+        }
+
+        // ---- 讀入 ----
+
+        public static List<HeroDef> HeroesFromJson(string json)
+        {
+            var root = Obj(MiniJson.Parse(json), "根節點");
+            var result = new List<HeroDef>();
+            foreach (var h in List(root, "heroes")) result.Add(HeroFromObject(Obj(h, "heroes[]")));
+            return result;
+        }
+
+        public static BattleSetup SetupFromJson(string json) => SetupFromObject(Obj(MiniJson.Parse(json), "根節點"));
+
+        public static Stats StatsFromObject(Dictionary<string, object?> d)
+        {
+            var s = new Stats();
+            s.Hp = I(d, "hp", s.Hp); s.Atk = I(d, "atk", s.Atk); s.Def = I(d, "def", s.Def);
+            s.Dodge = I(d, "dodge", s.Dodge); s.Speed = I(d, "speed", s.Speed);
+            s.Crit = I(d, "crit", s.Crit); s.CritDmg = I(d, "critDmg", s.CritDmg);
+            return s;
+        }
+
+        public static CardDef CardFromObject(Dictionary<string, object?> d)
+        {
+            var c = new CardDef
+            {
+                Id = S(d, "id", ""), Name = S(d, "name", ""), Basic = B(d, "basic", false), Cost = I(d, "cost", 0),
+                Keywords = E(d, "keywords", CardKeywords.None), Target = E(d, "target", TargetRule.EnemyFront),
+                Shape = E(d, "shape", Shape.Single),
+            };
+            foreach (var eo in List(d, "effects"))
+            {
+                var ed = Obj(eo, "effects[]");
+                c.Effects.Add(new EffectDef
+                {
+                    Type = E(ed, "type", EffectType.Damage), Multiplier = Dbl(ed, "multiplier", 0),
+                    Status = E(ed, "status", StatusType.Burn), Amount = I(ed, "amount", 0), OnSelf = B(ed, "onSelf", false),
+                });
+            }
+            return c;
+        }
+
+        public static HeroDef HeroFromObject(Dictionary<string, object?> d)
+        {
+            var h = new HeroDef
+            {
+                Id = S(d, "id", ""), Name = S(d, "name", ""), Role = E(d, "role", Role.Warrior),
+                Rarity = E(d, "rarity", Rarity.R), AttackType = E(d, "attackType", AttackType.Melee),
+            };
+            if (d.TryGetValue("base", out var b) && b is Dictionary<string, object?> bd) h.Base = StatsFromObject(bd);
+            foreach (var c in List(d, "deck")) h.Deck.Add(CardFromObject(Obj(c, "deck[]")));
+            return h;
+        }
+
+        public static EnemyDef EnemyFromObject(Dictionary<string, object?> d)
+        {
+            var e = new EnemyDef
+            {
+                Id = S(d, "id", ""), Name = S(d, "name", ""), AttackType = E(d, "attackType", AttackType.Melee),
+                AttackMultiplier = Dbl(d, "attackMultiplier", 1.0), Ability = E(d, "ability", EnemyAbility.None),
+                SummonCap = I(d, "summonCap", 6), SummonEvery = I(d, "summonEvery", 1),
+                StunGauge = I(d, "stunGauge", 100), StunGrowth = Dbl(d, "stunGrowth", 0.5),
+                AbilityPower = Dbl(d, "abilityPower", 0),
+            };
+            if (d.TryGetValue("base", out var b) && b is Dictionary<string, object?> bd) e.Base = StatsFromObject(bd);
+            if (d.TryGetValue("summons", out var s) && s is Dictionary<string, object?> sd) e.Summons = EnemyFromObject(sd);
+            return e;
+        }
+
+        private static Position PosFromObject(Dictionary<string, object?> d, string key)
+        {
+            var p = Obj(d.TryGetValue(key, out var v) ? v : null, key);
+            return new Position(I(p, "lane", 0), I(p, "row", 0));
+        }
+
+        public static BattleSetup SetupFromObject(Dictionary<string, object?> d)
+        {
+            var s = new BattleSetup
+            {
+                Lanes = I(d, "lanes", 5), Rows = I(d, "rows", 2), Seed = (ulong)L(d, "seed", 1),
+                HandSize = I(d, "handSize", 5), CostPerTurn = I(d, "costPerTurn", 3), CostCap = I(d, "costCap", 10),
+                MoveCost = I(d, "moveCost", 1), MovesPerTurn = I(d, "movesPerTurn", 0),
+                TurnLimit = I(d, "turnLimit", 0), AutoAllowed = B(d, "autoAllowed", true),
+                FormationLocked = B(d, "formationLocked", false), NoRandomness = B(d, "noRandomness", false),
+            };
+            foreach (var id in List(d, "scriptedDraw"))
+                if (id is string str) s.ScriptedDraw.Add(str);
+            foreach (var ho in List(d, "heroes"))
+            {
+                var hd = Obj(ho, "heroes[]");
+                var def = HeroFromObject(Obj(hd.TryGetValue("def", out var dv) ? dv : null, "heroes[].def"));
+                s.Heroes.Add(new HeroSlot(def, PosFromObject(hd, "pos"), I(hd, "level", 1))
+                {
+                    IsProtected = B(hd, "protected", false),
+                    StartHpPercent = I(hd, "startHpPercent", 100),
+                });
+            }
+            foreach (var eo in List(d, "enemies"))
+            {
+                var ed = Obj(eo, "enemies[]");
+                var def = EnemyFromObject(Obj(ed.TryGetValue("def", out var dv) ? dv : null, "enemies[].def"));
+                s.Enemies.Add(new EnemySlot(def, PosFromObject(ed, "pos")));
+            }
+            return s;
+        }
+
+        // ---- 小工具 ----
+
+        private static Dictionary<string, object?> Obj(object? v, string what) =>
+            v as Dictionary<string, object?> ?? throw new FormatException(what + " 必須是物件");
+
+        private static List<object?> List(Dictionary<string, object?> d, string key) =>
+            d.TryGetValue(key, out var v) && v is List<object?> l ? l : new List<object?>();
+
+        private static string S(Dictionary<string, object?> d, string key, string fallback) =>
+            d.TryGetValue(key, out var v) && v is string s ? s : fallback;
+
+        private static bool B(Dictionary<string, object?> d, string key, bool fallback) =>
+            d.TryGetValue(key, out var v) && v is bool b ? b : fallback;
+
+        private static long L(Dictionary<string, object?> d, string key, long fallback) =>
+            d.TryGetValue(key, out var v) ? v switch { long l => l, double x => (long)x, _ => fallback } : fallback;
+
+        private static int I(Dictionary<string, object?> d, string key, int fallback) => (int)L(d, key, fallback);
+
+        private static double Dbl(Dictionary<string, object?> d, string key, double fallback) =>
+            d.TryGetValue(key, out var v) ? v switch { long l => l, double x => x, _ => fallback } : fallback;
+
+        private static T E<T>(Dictionary<string, object?> d, string key, T fallback) where T : struct
+        {
+            if (!d.TryGetValue(key, out var v) || !(v is string s)) return fallback;
+            if (Enum.TryParse<T>(s, out var parsed)) return parsed;
+            throw new FormatException($"未知的 {typeof(T).Name}：{s}");
+        }
+    }
+}
