@@ -4,6 +4,9 @@ namespace SanGuo.Core
 {
     public static class DamageCalc
     {
+        /// <summary>挑釁期間，挑釁者受到的傷害減免比例（讓「把火力集中到坦克」真的划算）。</summary>
+        public const double TauntDamageReduction = 0.3;
+
         /// <summary>
         /// 乘法減傷（類 LoL）：攻擊 × 倍率 × 100 / (100 + 防禦)，再套用爆擊。至少 1 點。
         /// 防禦傳入有效防禦（已套用破甲 / 防禦 buff）。

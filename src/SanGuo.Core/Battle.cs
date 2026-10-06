@@ -389,6 +389,8 @@ namespace SanGuo.Core
             bool crit = Rng.Roll(attacker.Stats.Crit);
             int dmg = DamageCalc.Compute(attacker.Stats.Atk, multiplier, target.EffectiveDef,
                 crit, attacker.Stats.CritDmg);
+            if (target.Has(StatusType.Taunt))
+                dmg = Math.Max(1, (int)Math.Round(dmg * (1.0 - DamageCalc.TauntDamageReduction), MidpointRounding.AwayFromZero));
             ApplyDamage(attacker, target, dmg, ignoreArmor: false, text: crit ? "crit" : "");
         }
 

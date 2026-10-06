@@ -390,6 +390,25 @@ namespace SanGuo.Core.Tests
             Assert.Equal("Tank", intent.Target!.Name);
         }
 
+        [Fact]
+        public void Taunt_ReducesDamageTakenByTaunter()
+        {
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("Tank", new[] { Attack() }, hp: 99999), new Position(0, 0)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 100), new Position(0, 0)));
+            var battle = new Battle(setup);
+            var tank = battle.Units[0];
+
+            battle.EndTurn();                       // 沒挑釁：吃 100
+            int normal = 99999 - tank.Hp;
+            tank.Hp = 99999;
+            tank.Statuses[StatusType.Taunt] = new StatusState { Turns = 2 };
+            battle.EndTurn();                       // 挑釁：吃 70
+            int taunted = 99999 - tank.Hp;
+            Assert.Equal(100, normal);
+            Assert.Equal(70, taunted);
+        }
+
         // ---- 勝負與完整對戰 ----
 
         [Fact]
@@ -492,8 +511,16 @@ namespace SanGuo.Core.Tests
             Assert.True(ignore.WinRate <= 50, $"忽略教學勝率太高：{ignore}");
         }
 
-        // TODO 第 2 關（挑釁）：目前照教學打 ~94%、忽略教學 ~82%，挑釁的價值在現行數值下不明顯，
-        // 尚未達成「照教學 100%、忽略教學會輸」，所以只在報表裡記錄，不做斷言。
+        [Fact]
+        public void Level2_TauntLessonMatters()
+        {
+            var smart = RunLevel(2, TutorialPriority);
+            var ignore = RunLevel(2, IgnoreTutorialPriority);
+            _out.WriteLine($"第 2 關 照教學打 {smart}｜忽略教學 {ignore}");
+            Assert.True(smart.WinRate >= 99, $"照教學打勝率太低（目標 100%）：{smart}");
+            Assert.True(ignore.WinRate <= 70, $"忽略教學勝率太高：{ignore}");
+            Assert.True(smart.Alive / smart.Total >= ignore.Alive / ignore.Total + 1.5, "挑釁沒有明顯保住後排");
+        }
 
         [Fact]
         public void Chapter1Levels_WinRateReport()

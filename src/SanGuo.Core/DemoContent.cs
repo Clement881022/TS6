@@ -212,7 +212,7 @@ namespace SanGuo.Core
         public static EnemyDef YellowTurbanSharpshooter() => new EnemyDef
         {
             Id = "yt_sharpshooter", Name = "黃巾神射", AttackType = AttackType.Ranged, AttackMultiplier = 1.0,
-            Base = new Stats { Hp = 450, Atk = 380, Def = 10, Speed = 1, Crit = 5, CritDmg = 150 },
+            Base = new Stats { Hp = 450, Atk = 470, Def = 10, Speed = 1, Crit = 5, CritDmg = 150 },
         };
 
         /// <summary>第 3 關用的鐵甲力士：防禦極高，不破甲幾乎打不動。</summary>
