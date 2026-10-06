@@ -68,6 +68,62 @@ namespace SanGuo.Core.Meta
             return s;
         }
 
+        /// <summary>
+        /// 把玩家的成長狀態套到武將定義上，回傳可直接入戰的新 <see cref="HeroDef"/>（不改原資料）：
+        /// 屬性依等級與突破縮放、套牌依突破換成強化版或加牌、卡牌依強化等級放大傷害 / 治療 / 護甲倍率。
+        /// 被動尚未接入戰鬥核心，這裡不處理。
+        /// </summary>
+        public static HeroDef BuildDef(HeroDef def, HeroState hero, BreakthroughTable? table = null)
+        {
+            var deckSource = table == null ? def.Deck : table.ResolveDeck(def, hero.Stars);
+            var deck = new List<CardDef>(deckSource.Count);
+            foreach (var card in deckSource)
+            {
+                hero.CardLevels.TryGetValue(card.Id, out int level);
+                deck.Add(level > 0 ? EnhanceCardDef(card, level) : card);
+            }
+            return new HeroDef
+            {
+                Id = def.Id,
+                Name = def.Name,
+                Role = def.Role,
+                Rarity = def.Rarity,
+                AttackType = def.AttackType,
+                Base = ScaleStats(def.Base, hero, table),
+                Deck = deck,
+            };
+        }
+
+        /// <summary>
+        /// 產生入戰用的武將格。屬性已在 <see cref="BuildDef"/> 縮放完，所以戰鬥內的等級固定為 1，避免重複成長。
+        /// </summary>
+        public static HeroSlot BuildSlot(HeroDef def, HeroState hero, Position pos, BreakthroughTable? table = null) =>
+            new HeroSlot(BuildDef(def, hero, table), pos);
+
+        private static CardDef EnhanceCardDef(CardDef card, int cardLevel)
+        {
+            double m = CardEffectMultiplier(cardLevel);
+            var effects = new List<EffectDef>(card.Effects.Count);
+            foreach (var e in card.Effects)
+            {
+                var copy = (EffectDef)e.Clone();
+                if (e.Type == EffectType.Damage || e.Type == EffectType.Heal || e.Type == EffectType.Armor)
+                    copy.Multiplier = e.Multiplier * m;
+                effects.Add(copy);
+            }
+            return new CardDef
+            {
+                Id = card.Id,
+                Name = card.Name,
+                Basic = card.Basic,
+                Cost = card.Cost,
+                Keywords = card.Keywords,
+                Target = card.Target,
+                Shape = card.Shape,
+                Effects = effects,
+            };
+        }
+
         /// <summary>武將等級不能超過帳號等級（帳號等級上限即為武將等級上限）。</summary>
         public static GrowthResult LevelUp(PlayerProfile p, string heroId)
         {

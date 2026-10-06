@@ -45,6 +45,8 @@ namespace SanGuo.Core
         public int Amount;
         /// <summary>true 時作用於施放者自己，而非卡牌的目標。</summary>
         public bool OnSelf;
+
+        public EffectDef Clone() => (EffectDef)MemberwiseClone();
     }
 
     public sealed class CardDef
