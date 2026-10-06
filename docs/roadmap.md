@@ -115,6 +115,16 @@ MVP 不含：競技場（後面再做）、營運活動（限購、通行證等�
 
 待辦：客戶端接線（大地圖與結算要碰 `BattleScreen.cs`，等關卡工作告一段落）。後端資料庫決定先用 SQLite。
 
+## 4.7 M3 進度：後端骨架（2026-10-07）
+
+`src/SanGuo.Server`（ASP.NET Core 最小 API，net9.0，直接引用 SanGuo.Core，規則只有一份）；`tests/SanGuo.Server.Tests` 用 WebApplicationFactory 做整合測試（13 個通過）。
+
+- 儲存：`IProfileStore` 抽象，**目前用 SQLite**（已決定；一帳號一列、整份存檔 JSON），上線前換 PostgreSQL 只需另寫一個實作。
+- 每個帳號同一時間只處理一個操作（讀 → 改 → 存），並行請求不會超花元寶（有測試）。
+- 端點：`POST /login`、`GET /profile`、`POST /gacha/pull`、`/hero/levelup`、`/hero/enhance`、`/hero/breakthrough`、`/stage/sweep`、`/dungeon/sweep`、`/quest/claim`、`/quest/milestone`；失敗回 400 與機器可讀的 `code`。抽卡亂數由伺服器產生。
+- 時間用 `TimeProvider`，測試可撥時間驗證換日。
+- **占位 / 未完成**：帳號辨識目前是 `X-Account` 標頭（正式版要真正的登入與 token）；**關卡通關結算尚未做**，必須由伺服器重播戰鬥驗證（核心是確定性的，客戶端回傳種子與操作紀錄即可），在那之前只有 `/dev/clear`（`Game:EnableDevEndpoints` 開啟才存在，預設關閉）；資源副本的「進入 / 通關」同理，目前只有掃蕩；沒有 Aspire AppHost（單一服務 + SQLite 暫時不需要，之後加服務再引入）；開局資源（`ServerOptions`）是開發用預設值。
+
 ## 5. 風險
 
 - 範圍：3D 武將、卡牌戰鬥、三條養成線、抽卡、後端，對單人是很大負擔 → 每階段都要能獨立驗證，不通過就不往下走。
