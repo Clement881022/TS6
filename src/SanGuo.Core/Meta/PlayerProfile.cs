@@ -57,6 +57,10 @@ namespace SanGuo.Core.Meta
         /// <summary>關卡最高星數（1–3）。</summary>
         public Dictionary<string, int> StageStars = new Dictionary<string, int>();
 
+        /// <summary>進行中的關卡（已扣體力、伺服器發了種子，等待戰鬥重播驗證）；沒有則為空字串。</summary>
+        public string PendingStageId = "";
+        public long PendingSeed;
+
         /// <summary>建立帳號的遊戲日（<see cref="DailyClock.DayIndex"/>），七日目標從這天起算。</summary>
         public long CreatedDay;
         /// <summary>每日資料所屬的遊戲日；換日時由 <see cref="EnsureDaily"/> 清空。</summary>

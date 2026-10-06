@@ -117,13 +117,14 @@ MVP 不含：競技場（後面再做）、營運活動（限購、通行證等�
 
 ## 4.7 M3 進度：後端骨架（2026-10-07）
 
-`src/SanGuo.Server`（ASP.NET Core 最小 API，net9.0，直接引用 SanGuo.Core，規則只有一份）；`tests/SanGuo.Server.Tests` 用 WebApplicationFactory 做整合測試（13 個通過）。
+`src/SanGuo.Server`（ASP.NET Core 最小 API，net9.0，直接引用 SanGuo.Core，規則只有一份）；`tests/SanGuo.Server.Tests` 用 WebApplicationFactory 做整合測試（18 個通過）。
 
 - 儲存：`IProfileStore` 抽象，**目前用 SQLite**（已決定；一帳號一列、整份存檔 JSON），上線前換 PostgreSQL 只需另寫一個實作。
 - 每個帳號同一時間只處理一個操作（讀 → 改 → 存），並行請求不會超花元寶（有測試）。
 - 端點：`POST /login`、`GET /profile`、`POST /gacha/pull`、`/hero/levelup`、`/hero/enhance`、`/hero/breakthrough`、`/stage/sweep`、`/dungeon/sweep`、`/quest/claim`、`/quest/milestone`；失敗回 400 與機器可讀的 `code`。抽卡亂數由伺服器產生。
 - 時間用 `TimeProvider`，測試可撥時間驗證換日。
-- **占位 / 未完成**：帳號辨識目前是 `X-Account` 標頭（正式版要真正的登入與 token）；**關卡通關結算尚未做**，必須由伺服器重播戰鬥驗證（核心是確定性的，客戶端回傳種子與操作紀錄即可），在那之前只有 `/dev/clear`（`Game:EnableDevEndpoints` 開啟才存在，預設關閉）；資源副本的「進入 / 通關」同理，目前只有掃蕩；沒有 Aspire AppHost（單一服務 + SQLite 暫時不需要，之後加服務再引入）；開局資源（`ServerOptions`）是開發用預設值。
+- **通關結算 = 戰鬥重播驗證**（反作弊）：`POST /stage/start` 檢查等級、扣體力並由**伺服器發亂數種子**（記為進行中的關卡）；客戶端用種子開戰，用 `ReplayRecorder`（`Data/Replay.cs`）錄下每個操作；`POST /stage/finish` 把操作紀錄交給伺服器，由 `ReplayVerifier` 在同一份設定上重播，**勝負與星數都由伺服器算**，客戶端無法自報。紀錄不合法（出不存在的牌、戰鬥結束後還有操作、過長）不給任何獎勵，進行中的關卡也會清掉，同一個種子不能重試。
+- **占位 / 未完成**：帳號辨識目前是 `X-Account` 標頭（正式版要真正的登入與 token）；`/dev/clear` 只在 `Game:EnableDevEndpoints` 開啟時存在，預設關閉；資源副本的「進入 / 通關」尚未接重播驗證，目前只有掃蕩；沒有 Aspire AppHost（單一服務 + SQLite 暫時不需要，之後加服務再引入）；開局資源（`ServerOptions`）是開發用預設值。
 
 ## 5. 風險
 

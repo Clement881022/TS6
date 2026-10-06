@@ -1,3 +1,5 @@
+using SanGuo.Core;
+using SanGuo.Core.Data;
 using SanGuo.Server;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,6 +41,23 @@ app.MapPost("/hero/enhance", (HttpRequest req, GameService g, EnhanceRequest bod
 app.MapPost("/hero/breakthrough", (HttpRequest req, GameService g, HeroRequest body) =>
     Handle(req, a => g.Breakthrough(a, body.HeroId)));
 
+app.MapPost("/stage/start", (HttpRequest req, GameService g, StageRequest body) =>
+    Handle(req, a => g.StartStage(a, body.StageId)));
+app.MapPost("/stage/finish", (HttpRequest req, GameService g, FinishRequest body) =>
+{
+    var actions = new List<ReplayAction>();
+    foreach (var d in body.Actions ?? new List<ReplayActionDto>())
+    {
+        switch (d.Kind)
+        {
+            case "play": actions.Add(ReplayAction.Play(d.CardId)); break;
+            case "move": actions.Add(ReplayAction.Move(d.UnitId, new Position(d.Lane, d.Row))); break;
+            case "end": actions.Add(ReplayAction.EndTurn()); break;
+            default: return Task.FromResult(Respond(ApiResult.Fail("bad_action")));
+        }
+    }
+    return Handle(req, a => g.FinishStage(a, body.StageId, actions));
+});
 app.MapPost("/stage/sweep", (HttpRequest req, GameService g, SweepRequest body) =>
     Handle(req, a => g.SweepStage(a, body.Id, body.Count)));
 app.MapPost("/dungeon/sweep", (HttpRequest req, GameService g, SweepRequest body) =>
@@ -55,6 +74,9 @@ app.MapPost("/dev/clear", (HttpRequest req, GameService g, DevClearRequest body)
 app.Run();
 
 public sealed record PullRequest(string PoolId, int Count);
+public sealed record StageRequest(string StageId);
+public sealed record ReplayActionDto(string Kind, int CardId = 0, int UnitId = 0, int Lane = 0, int Row = 0);
+public sealed record FinishRequest(string StageId, List<ReplayActionDto>? Actions);
 public sealed record HeroRequest(string HeroId);
 public sealed record EnhanceRequest(string HeroId, string CardId);
 public sealed record SweepRequest(string Id, int Count);

@@ -41,7 +41,16 @@ namespace SanGuo.Core.Meta
             Exp = 20 + 10 * level,
             Gold = 200 + 100 * level,
             FirstClearYuanbao = level == DemoContent.ChapterLevelCount ? 300 : 60,
+            StarTurnPar = 12,
         };
+
+        /// <summary>關卡 id（如 "1-3"）對應的戰鬥設定；種子由伺服器發放。</summary>
+        public static BattleSetup? BuildSetup(string stageId, ulong seed)
+        {
+            for (int level = 1; level <= DemoContent.ChapterLevelCount; level++)
+                if (StageId(1, level) == stageId) return DemoContent.Level(level, seed);
+            return null;
+        }
 
         public static StageReward? FindStage(string stageId)
         {

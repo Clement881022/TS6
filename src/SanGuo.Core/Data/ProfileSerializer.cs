@@ -56,6 +56,8 @@ namespace SanGuo.Core.Data
 
             return new Dictionary<string, object?>
             {
+                ["pendingStageId"] = p.PendingStageId,
+                ["pendingSeed"] = p.PendingSeed,
                 ["stageStars"] = IntMap(p.StageStars),
                 ["createdDay"] = p.CreatedDay,
                 ["dailyDay"] = p.DailyDay == long.MinValue ? (object?)null : p.DailyDay,
@@ -147,6 +149,8 @@ namespace SanGuo.Core.Data
                 }
             }
 
+            p.PendingStageId = root.TryGetValue("pendingStageId", out var psi) && psi is string psid ? psid : "";
+            p.PendingSeed = Int(root, "pendingSeed", 0);
             ReadIntMap(root, "stageStars", p.StageStars);
             p.CreatedDay = Int(root, "createdDay", 0);
             p.DailyDay = root.TryGetValue("dailyDay", out var dd) && dd != null ? ToLong(dd) : long.MinValue;

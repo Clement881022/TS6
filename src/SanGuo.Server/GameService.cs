@@ -19,6 +19,10 @@ public sealed class ServerOptions
 /// <summary>一次操作的結果。Ok = false 時，Code 是機器可讀的原因，客戶端據此顯示提示。</summary>
 public sealed record ApiResult(bool Ok, string Code, object? Data = null)
 {
+    /// <summary>失敗但仍要存檔（例如作弊的結算要清掉進行中的關卡）。</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool Persist { get; init; }
+
     public static ApiResult Success(object? data = null) => new(true, "ok", data);
     public static ApiResult Fail(string code) => new(false, code);
 }
@@ -66,7 +70,7 @@ public sealed class GameService
                 profile.Gold = _options.StartingGold;
             }
             var result = action(profile, now);
-            if (result.Ok) await _store.SaveAsync(accountId, profile);
+            if (result.Ok || result.Persist) await _store.SaveAsync(accountId, profile);
             return result;
         }
         finally
@@ -169,6 +173,49 @@ public sealed class GameService
     {
         var r = Quests.ClaimMilestone(p, points, now);
         return r == QuestClaimResult.Ok ? ApiResult.Success() : ApiResult.Fail(r.ToString());
+    });
+
+    /// <summary>
+    /// 開始關卡：檢查等級門檻、扣體力，伺服器發亂數種子並記為「進行中」。
+    /// 客戶端用這個種子建立戰鬥；再開始別的關卡會取代進行中的關卡（舊的體力不退）。
+    /// </summary>
+    public Task<ApiResult> StartStage(string accountId, string stageId) => Run(accountId, (p, now) =>
+    {
+        var stage = DemoMeta.FindStage(stageId);
+        if (stage == null) return ApiResult.Fail("unknown_stage");
+        var r = p.TryEnterStage(stage, now);
+        if (r != StageEntryResult.Ok) return ApiResult.Fail(r.ToString());
+        ulong seed = RandomSeed() & 0x7FFFFFFFFFFFFFFF; // 存成有號數字，不要溢位
+        p.PendingStageId = stageId;
+        p.PendingSeed = (long)seed;
+        return ApiResult.Success(new { stageId, seed = (long)seed });
+    });
+
+    /// <summary>
+    /// 結算關卡：用伺服器發的種子把客戶端的操作紀錄重播一次，由伺服器自己算出勝負與星數。
+    /// 客戶端無法自報結果；紀錄不合法就沒有任何獎勵，進行中的關卡也會被清掉。
+    /// </summary>
+    public Task<ApiResult> FinishStage(string accountId, string stageId, IReadOnlyList<ReplayAction> actions) => Run(accountId, (p, now) =>
+    {
+        if (p.PendingStageId == "" || p.PendingStageId != stageId) return ApiResult.Fail("no_pending_stage");
+        var stage = DemoMeta.FindStage(stageId);
+        var setup = DemoMeta.BuildSetup(stageId, (ulong)p.PendingSeed);
+        p.PendingStageId = "";
+        p.PendingSeed = 0;
+        if (stage == null || setup == null) return ApiResult.Fail("unknown_stage") with { Persist = true };
+
+        var replay = ReplayVerifier.Verify(setup, actions);
+        if (!replay.Valid) return ApiResult.Fail("invalid_replay") with { Persist = true };
+        if (replay.Result != BattleResult.Won)
+            return ApiResult.Success(new { won = false, result = replay.Result.ToString() });
+
+        int stars = StarRating.Rate(replay.Battle!, stage.StarTurnPar);
+        var clear = p.ClaimClear(stage, now, stars);
+        return ApiResult.Success(new
+        {
+            won = true, stars, firstClear = clear.FirstClear, exp = clear.ExpGained, gold = clear.GoldGained,
+            yuanbao = clear.YuanbaoGained, levelsGained = clear.LevelsGained,
+        });
     });
 
     /// <summary>

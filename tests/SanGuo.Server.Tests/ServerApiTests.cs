@@ -135,6 +135,97 @@ public sealed class ServerApiTests : IDisposable
         Assert.Equal(1400, ok.GetProperty("data").GetProperty("gold").GetInt32()); // 700 × 2
     }
 
+    /// <summary>扮演客戶端：向伺服器開始關卡、用伺服器給的種子自動打完並錄下操作。</summary>
+    private async Task<List<object>> PlayStageAuto(HttpClient c, string stageId)
+    {
+        var start = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId }));
+        Assert.True(start.GetProperty("ok").GetBoolean());
+        ulong seed = (ulong)start.GetProperty("data").GetProperty("seed").GetInt64();
+        var rec = new SanGuo.Core.Data.ReplayRecorder(new SanGuo.Core.Battle(SanGuo.Core.Meta.DemoMeta.BuildSetup(stageId, seed)!));
+        for (int i = 0; i < 100 && rec.Battle.Result == SanGuo.Core.BattleResult.Ongoing; i++) rec.PlayAuto();
+        return rec.Actions.Select(a => (object)new
+        {
+            kind = a.Kind == SanGuo.Core.Data.ReplayActionKind.Play ? "play" : a.Kind == SanGuo.Core.Data.ReplayActionKind.Move ? "move" : "end",
+            cardId = a.CardId, unitId = a.UnitId, lane = a.Lane, row = a.Row,
+        }).ToList();
+    }
+
+    [Fact]
+    public async Task Stage_StartThenFinish_VerifiedByReplay_GrantsRewards()
+    {
+        var c = Client();
+        await c.PostAsync("/login", null);
+        var actions = await PlayStageAuto(c, "1-1");
+
+        var done = await Json(await c.PostAsJsonAsync("/stage/finish", new { stageId = "1-1", actions }));
+        Assert.True(done.GetProperty("ok").GetBoolean());
+        var data = done.GetProperty("data");
+        Assert.True(data.GetProperty("won").GetBoolean());
+        Assert.True(data.GetProperty("firstClear").GetBoolean());
+        Assert.Equal(60, data.GetProperty("yuanbao").GetInt32());
+
+        var profile = await Json(await c.GetAsync("/profile"));
+        Assert.Equal(2060, profile.GetProperty("data").GetProperty("yuanbao").GetInt32());
+        Assert.True(profile.GetProperty("data").GetProperty("stageStars").GetProperty("1-1").GetInt32() >= 1);
+    }
+
+    [Fact]
+    public async Task Stage_Finish_WithoutStart_IsRejected()
+    {
+        var c = Client();
+        await c.PostAsync("/login", null);
+        var r = await c.PostAsJsonAsync("/stage/finish", new { stageId = "1-1", actions = new object[0] });
+        Assert.Equal("no_pending_stage", (await Json(r)).GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task Stage_TamperedReplay_GivesNothing_AndCannotBeRetried()
+    {
+        var c = Client();
+        await c.PostAsync("/login", null);
+        await PlayStageAuto(c, "1-1");
+
+        var bad = new object[] { new { kind = "play", cardId = 424242 } };
+        var r = await c.PostAsJsonAsync("/stage/finish", new { stageId = "1-1", actions = bad });
+        Assert.Equal("invalid_replay", (await Json(r)).GetProperty("code").GetString());
+
+        var profile = await Json(await c.GetAsync("/profile"));
+        Assert.Equal(2000, profile.GetProperty("data").GetProperty("yuanbao").GetInt32());
+
+        // 進行中的關卡已清掉：不能拿同一個種子再試
+        var again = await c.PostAsJsonAsync("/stage/finish", new { stageId = "1-1", actions = new object[0] });
+        Assert.Equal("no_pending_stage", (await Json(again)).GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task Stage_IncompleteReplay_IsALoss_NoRewards()
+    {
+        var c = Client();
+        await c.PostAsync("/login", null);
+        var actions = await PlayStageAuto(c, "1-1");
+        var half = actions.Take(actions.Count / 2).ToList();
+
+        var done = await Json(await c.PostAsJsonAsync("/stage/finish", new { stageId = "1-1", actions = half }));
+        Assert.True(done.GetProperty("ok").GetBoolean());
+        Assert.False(done.GetProperty("data").GetProperty("won").GetBoolean());
+        var profile = await Json(await c.GetAsync("/profile"));
+        Assert.Equal(2000, profile.GetProperty("data").GetProperty("yuanbao").GetInt32());
+    }
+
+    [Fact]
+    public async Task Stage_Start_SpendsStamina_AndChecksLevelGate()
+    {
+        var c = Client();
+        await c.PostAsync("/login", null);
+        var chapter1 = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId = "1-1" }));
+        Assert.True(chapter1.GetProperty("ok").GetBoolean());
+        var profile = await Json(await c.GetAsync("/profile"));
+        Assert.Equal(118, profile.GetProperty("data").GetProperty("stamina").GetProperty("current").GetInt32());
+
+        var unknown = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId = "7-1" }));
+        Assert.Equal("unknown_stage", unknown.GetProperty("code").GetString());
+    }
+
     [Fact]
     public async Task Sweep_UnknownStage_IsRejected()
     {
