@@ -1,0 +1,256 @@
+/* 戰鬥畫面樣式（橫式為主）。參考解析度 1920x1080。
+   戰場本身是 3D（45 度俯視），畫在 UI 後面；.root / .field 必須透明才看得到。 */
+
+.root {
+    flex-grow: 1;
+    color: rgb(235, 235, 240);
+    align-items: center;
+    -unity-font-style: normal;
+}
+
+.content {
+    width: 100%;
+    max-width: 1920px;
+    flex-grow: 1;
+}
+
+.header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    height: 60px;
+    padding: 0 24px;
+    background-color: rgba(24, 26, 34, 0.9);
+}
+.header-title { font-size: 34px; -unity-font-style: bold; }
+
+.btn {
+    background-color: rgb(58, 64, 86);
+    border-radius: 10px;
+    padding: 8px 22px;
+    margin-left: 10px;
+    font-size: 26px;
+    color: rgb(235, 235, 240);
+    border-width: 0;
+}
+.btn:hover { background-color: rgb(78, 86, 116); }
+.btn-primary { background-color: rgb(196, 120, 40); }
+.btn-primary:hover { background-color: rgb(222, 140, 56); }
+.btn-on { background-color: rgb(60, 140, 90); }
+.btn-disabled { opacity: 0.45; }
+
+/* ---- 戰場區：透明，3D 畫在後面；點擊用來選地磚 ---- */
+.field {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+/* ---- 角色頭上的資訊 ---- */
+.tag-layer {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+}
+.tag {
+    position: absolute;
+    background-color: rgba(18, 20, 28, 0.78);
+    border-radius: 8px;
+    border-width: 2px;
+    padding: 2px 6px;
+}
+.tag-hero { border-color: rgba(80, 130, 190, 0.9); }
+.tag-enemy { border-color: rgba(190, 80, 80, 0.9); }
+.tag-name { font-size: 19px; white-space: nowrap; -unity-font-style: bold; -unity-text-align: middle-center; }
+.tag-hp-bg { height: 18px; border-radius: 9px; background-color: rgb(20, 20, 26); margin: 1px 0; }
+.tag-hp-fill { height: 18px; border-radius: 9px; background-color: rgb(70, 170, 95); }
+.tag-hp-text {
+    position: absolute; left: 0; right: 0; top: -1px;
+    font-size: 15px; -unity-text-align: middle-center; color: white;
+    -unity-text-outline-width: 1px; -unity-text-outline-color: rgb(0, 0, 0);
+}
+.tag-hp-fill-enemy { background-color: rgb(220, 90, 90); }
+.tag-line { font-size: 16px; -unity-text-align: middle-center; color: rgb(220, 224, 236); }
+.tag-extra { font-size: 15px; -unity-text-align: middle-center; color: rgb(255, 200, 120); }
+.tag-intent { font-size: 18px; -unity-text-align: middle-center; -unity-font-style: bold; color: rgb(255, 220, 130); }
+
+/* ---- 右下角：上＝費用與按鈕（一列），下＝手牌；左下角：紀錄 ---- */
+.field {
+    margin-bottom: 0;   /* 戰場區延伸到整個畫面；UI 蓋在棋盤空著的右下角 */
+}
+
+.bottom {
+    position: absolute;
+    right: 20px;
+    bottom: 12px;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.info {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+.cost-label { font-size: 40px; -unity-font-style: bold; color: rgb(255, 214, 80); margin-right: 16px; }
+.pile-label { font-size: 18px; color: rgb(190, 194, 210); margin-right: 8px; white-space: nowrap; }
+
+.hand { flex-direction: row; align-items: flex-end; justify-content: flex-end; }
+
+.log {
+    position: absolute;
+    left: 20px;
+    bottom: 12px;
+    width: 340px;
+    height: 150px;
+    background-color: rgba(20, 22, 28, 0.78);
+    border-radius: 10px;
+    padding: 8px 12px;
+    justify-content: flex-end;
+}
+.log-line { font-size: 18px; color: rgb(190, 194, 210); white-space: normal; }
+
+/* ---- 手牌 ---- */
+.card {
+    width: 158px;
+    height: 232px;
+    margin: 0 4px;
+    border-radius: 12px;
+    background-color: rgb(236, 226, 200);
+    border-width: 3px;
+    border-color: rgb(120, 96, 60);
+    padding: 8px;
+    color: rgb(40, 32, 24);
+}
+.card:hover { border-color: rgb(255, 214, 80); translate: 0 -14px; }
+.card-disabled { opacity: 0.45; }
+.card-skill { background-color: rgb(246, 224, 168); border-color: rgb(190, 130, 30); }
+
+.card-art {
+    height: 96px;
+    border-radius: 8px;
+    background-color: rgba(60, 50, 40, 0.25);
+    -unity-background-scale-mode: scale-and-crop;
+    background-position: center top;
+}
+.card-top {
+    position: absolute;
+    left: 10px; right: 10px; top: 10px;
+    flex-direction: row; justify-content: space-between; align-items: center;
+}
+.card-tag { font-size: 16px; color: white; background-color: rgba(0, 0, 0, 0.45); border-radius: 6px; padding: 0 6px; }
+
+.card-cost {
+    width: 36px; height: 36px;
+    border-radius: 18px;
+    background-color: rgb(60, 90, 170);
+    color: white;
+    font-size: 26px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+.card-name { font-size: 22px; -unity-font-style: bold; margin-top: 4px; white-space: normal; }
+.card-owner { font-size: 16px; color: rgb(110, 90, 60); }
+.card-target { font-size: 16px; color: rgb(80, 70, 50); margin-top: 4px; white-space: normal; }
+.card-desc { font-size: 18px; margin-top: 4px; white-space: normal; }
+.card-kw { font-size: 16px; color: rgb(170, 60, 40); margin-top: auto; -unity-font-style: bold; }
+
+/* ---- 結果 / 提示 ---- */
+.overlay {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.72);
+    align-items: center;
+    justify-content: center;
+}
+.overlay-text { font-size: 96px; -unity-font-style: bold; margin-bottom: 40px; }
+
+/* ---- 戰前編隊 ---- */
+.formation-overlay { background-color: rgba(16, 18, 26, 0.97); }
+.formation-title { font-size: 52px; -unity-font-style: bold; margin-bottom: 8px; }
+.formation-hint { font-size: 24px; color: rgb(200, 200, 215); margin-bottom: 6px; }
+.formation-label { font-size: 26px; -unity-text-align: middle-center; color: rgb(220, 220, 230); }
+.formation-cell {
+    width: 260px;
+    height: 64px;
+    margin: 4px;
+    font-size: 26px;
+    -unity-text-align: middle-center;
+    border-radius: 10px;
+    border-width: 0;
+    background-color: rgb(58, 64, 86);
+    color: rgb(235, 235, 240);
+}
+.formation-cell:hover { background-color: rgb(78, 86, 116); }
+.formation-warn { color: rgb(255, 150, 90); }
+.formation-bench {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 1100px;
+}
+.formation-chip {
+    height: 52px;
+    margin: 4px;
+    padding: 0 18px;
+    font-size: 24px;
+    border-radius: 10px;
+    border-width: 0;
+    background-color: rgb(48, 54, 74);
+    color: rgb(235, 235, 240);
+}
+.formation-chip:hover { background-color: rgb(78, 86, 116); }
+
+/* ---- 大地圖 ---- */
+.map-field { position: relative; width: 1700px; height: 520px; margin-top: 10px; }
+.map-dot {
+    position: absolute;
+    width: 10px; height: 10px;
+    border-radius: 5px;
+    background-color: rgba(200, 200, 215, 0.5);
+}
+.map-node {
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    font-size: 40px;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+    border-width: 4px;
+    border-color: rgb(235, 235, 240);
+    color: rgb(255, 255, 255);
+}
+.map-node-open { background-color: rgb(196, 120, 40); }
+.map-node-open:hover { background-color: rgb(222, 140, 56); }
+.map-node-clear { background-color: rgb(60, 140, 90); }
+.map-node-lock { background-color: rgb(70, 72, 84); border-color: rgb(110, 112, 124); color: rgb(150, 150, 160); }
+.map-node-boss { border-color: rgb(255, 214, 80); }
+.map-caption {
+    position: absolute;
+    width: 160px;
+    font-size: 22px;
+    -unity-text-align: upper-center;
+    white-space: normal;
+    color: rgb(225, 225, 235);
+}
+.formation-cell-empty { background-color: rgba(58, 64, 86, 0.45); color: rgb(130, 130, 145); }
+.toast {
+    position: absolute;
+    left: 560px; right: 560px; top: 440px;
+    background-color: rgba(0, 0, 0, 0.8);
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 30px;
+    -unity-text-align: middle-center;
+    color: rgb(255, 214, 80);
+}
+
+/* ---- 演出 ---- */
+.fx-float {
+    position: absolute;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+    opacity: 1;
+    -unity-text-outline-width: 2px;
+    -unity-text-outline-color: rgb(0, 0, 0);
+    transition: translate 850ms ease-out, opacity 850ms ease-in;
+}
