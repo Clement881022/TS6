@@ -444,18 +444,21 @@ namespace SanGuo.Core.Tests
             }
         }
 
-        /// <summary>
-        /// 模擬「照教學打」：先出破甲牌；場上有高防禦敵人且還沒被破到一半以下時，傷害牌先留著
-        /// （費用可以存），等破甲到位再一口氣打。
-        /// </summary>
+        private static bool IsBreak(CardInstance c) =>
+            c.Def.Effects.Any(e => e.Type == EffectType.ApplyStatus && e.Status == StatusType.ArmorBreak);
+
+        private static bool IsTaunt(CardInstance c) =>
+            c.Def.Effects.Any(e => e.Type == EffectType.ApplyStatus && e.Status == StatusType.Taunt);
+
+        /// <summary>模擬「照教學打」：挑釁與破甲牌先出，再出其他牌。</summary>
         private static int TutorialPriority(Battle battle, CardInstance c)
         {
-            bool isBreak = c.Def.Effects.Any(e => e.Type == EffectType.ApplyStatus && e.Status == StatusType.ArmorBreak);
-            if (isBreak) return 3;
-            bool deals = c.Def.Effects.Any(e => e.Type == EffectType.Damage);
-            bool armoredFoe = battle.AliveUnits(Side.Enemy).Any(e => e.Stats.Def >= 300 && e.EffectiveDef > e.Stats.Def * 1.01);
-            return deals && armoredFoe ? -1 : 0;
+            if (IsTaunt(c)) return battle.AliveUnits(Side.Player).Any(u => u.Has(StatusType.Taunt)) ? -1 : 4; // 已在挑釁中就不重複出
+            return IsBreak(c) ? 3 : 0;
         }
+
+        /// <summary>模擬「忽略教學」：不出挑釁、不出破甲，其他照出。</summary>
+        private static int IgnoreTutorialPriority(Battle battle, CardInstance c) => IsTaunt(c) || IsBreak(c) ? -1 : 0;
 
         private sealed class LevelStats
         {
@@ -480,14 +483,17 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void Level3_RequiresArmorBreak()
+        public void Level3_ArmorBreakLessonMatters()
         {
-            var auto = RunLevel(3, null);
             var smart = RunLevel(3, TutorialPriority);
-            _out.WriteLine($"第 3 關 能出就出 {auto}｜照教學打 {smart}");
-            Assert.True(auto.WinRate <= 40, $"自動戰鬥勝率太高：{auto}");
-            Assert.True(smart.WinRate >= 90, $"照教學打勝率太低：{smart}");
+            var ignore = RunLevel(3, IgnoreTutorialPriority);
+            _out.WriteLine($"第 3 關 照教學打 {smart}｜忽略教學 {ignore}");
+            Assert.True(smart.WinRate >= 95, $"照教學打勝率太低（目標 100%）：{smart}");
+            Assert.True(ignore.WinRate <= 50, $"忽略教學勝率太高：{ignore}");
         }
+
+        // TODO 第 2 關（挑釁）：目前照教學打 ~94%、忽略教學 ~82%，挑釁的價值在現行數值下不明顯，
+        // 尚未達成「照教學 100%、忽略教學會輸」，所以只在報表裡記錄，不做斷言。
 
         [Fact]
         public void Chapter1Levels_WinRateReport()
@@ -496,7 +502,8 @@ namespace SanGuo.Core.Tests
             {
                 var auto = RunLevel(level, null);
                 var smart = RunLevel(level, TutorialPriority);
-                _out.WriteLine($"第 {level} 關 能出就出 {auto}｜照教學打 {smart}");
+                var ignore = RunLevel(level, IgnoreTutorialPriority);
+                _out.WriteLine($"第 {level} 關 能出就出 {auto}｜照教學打 {smart}｜忽略教學 {ignore}");
             }
         }
 

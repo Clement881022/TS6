@@ -53,6 +53,7 @@ namespace SanGuo.Client
         private Label _piles = null!;
         private Label _logLabel = null!;
         private Button _autoButton = null!;
+        private Button _formationButton = null!;
         private VisualElement? _overlay;
 
         public BattleScreen(VisualElement root, BattleStage stage, ulong seed)
@@ -86,7 +87,8 @@ namespace SanGuo.Client
             _autoButton = MakeButton("自動", ToggleAuto);
             buttons.Add(_autoButton);
             buttons.Add(MakeButton("地圖", OpenMap));
-            buttons.Add(MakeButton("編隊", OpenFormation));
+            _formationButton = MakeButton("編隊", OpenFormation);
+            buttons.Add(_formationButton);
             buttons.Add(MakeButton("重來", () => { _seed++; StartBattle(); }));
             header.Add(buttons);
             _content.Add(header);
@@ -176,14 +178,18 @@ namespace SanGuo.Client
             _mapPanel?.RemoveFromHierarchy();
             _mapPanel = null;
             StartBattle();
-            if (openFormation) OpenFormation();
+            if (openFormation && !_battle.Setup.FormationLocked) OpenFormation();
         }
 
         private void StartBattle()
         {
             var setup = DemoContent.Level(_level, _seed);
-            ApplyFormation(setup);
+            if (!setup.FormationLocked) ApplyFormation(setup);
             _battle = new Battle(setup);
+            // 教學關：隊伍固定、不開放自動戰鬥（之後再開放）。
+            _formationButton.style.display = setup.FormationLocked ? DisplayStyle.None : DisplayStyle.Flex;
+            _autoButton.style.display = setup.AutoAllowed ? DisplayStyle.Flex : DisplayStyle.None;
+            if (!setup.AutoAllowed) { _auto = false; _autoButton.EnableInClassList("btn-on", false); }
             _eventCursor = 0;
             _fx.Reset();
             _log.Clear();
@@ -678,7 +684,8 @@ namespace SanGuo.Client
             bool hasNext = won && _level < DemoContent.ChapterLevelCount;
             if (hasNext) _overlay.Add(MakeButton("下一關", () => ChangeLevel(_level + 1), primary: true));
             _overlay.Add(MakeButton("再打一次", () => { _seed++; StartBattle(); }, primary: !hasNext));
-            if (!won) _overlay.Add(MakeButton("調整編隊", () => { _seed++; StartBattle(); OpenFormation(); }));
+            if (!won && !_battle.Setup.FormationLocked)
+                _overlay.Add(MakeButton("調整編隊", () => { _seed++; StartBattle(); OpenFormation(); }));
             _overlay.Add(MakeButton("回地圖", OpenMap));
             _root.Add(_overlay);
         }

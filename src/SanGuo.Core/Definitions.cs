@@ -121,6 +121,10 @@ namespace SanGuo.Core
         public int MovesPerTurn = 0;
         /// <summary>0 = 無回合限制。</summary>
         public int TurnLimit;
+        /// <summary>是否開放自動戰鬥（教學關關閉，讓玩家親手體驗該關要教的機制）。</summary>
+        public bool AutoAllowed = true;
+        /// <summary>true = 隊伍與站位由關卡決定，玩家不能編隊（教學關）。</summary>
+        public bool FormationLocked;
         public List<HeroSlot> Heroes = new List<HeroSlot>();
         public List<EnemySlot> Enemies = new List<EnemySlot>();
     }

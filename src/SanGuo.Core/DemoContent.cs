@@ -45,8 +45,8 @@ namespace SanGuo.Core
         {
             var attack = Basic("zf_attack", "長矛突刺", 1, TargetRule.EnemyFront, Dmg(1.0));
             var guard = Basic("zf_guard", "鐵壁", 1, TargetRule.Self, Armor(1.5));
-            var taunt = Card("zf_taunt", "燕人怒吼", 1, TargetRule.Self, Shape.Single, CardKeywords.None,
-                Status(StatusType.Taunt, 0, 2, self: true), Armor(1.0));
+            var taunt = Card("zf_taunt", "燕人怒吼", 1, TargetRule.Self, Shape.Single, CardKeywords.Innate,
+                Status(StatusType.Taunt, 0, 3, self: true), Armor(3.0));
             var roar = Card("zf_roar", "當陽橋喝斷", 3, TargetRule.EnemyFront, Shape.Row, CardKeywords.Exhaust,
                 Dmg(1.4), Status(StatusType.Stun, 0, 1));
             var breakArmor = Card("zf_break", "蛇矛破陣", 1, TargetRule.EnemyFront, Shape.Single, CardKeywords.None,
@@ -55,7 +55,7 @@ namespace SanGuo.Core
             {
                 Id = "zhangfei", Name = "張飛", Role = Role.Tank, Rarity = Rarity.UR, AttackType = AttackType.Melee,
                 Base = new Stats { Hp = 1200, Atk = 135, Def = 70, Dodge = 0, Speed = 1, Crit = 5, CritDmg = 150 },
-                Deck = new List<CardDef> { attack, guard, guard, taunt, roar, breakArmor, breakArmor },
+                Deck = new List<CardDef> { attack, guard, guard, taunt, roar, breakArmor },
             };
         }
 
@@ -66,13 +66,13 @@ namespace SanGuo.Core
             var sweep = Card("gy_sweep", "偃月橫掃", 2, TargetRule.EnemyFront, Shape.Row, CardKeywords.None, Dmg(0.9));
             var duel = Card("gy_duel", "溫酒斬將", 3, TargetRule.EnemyFront, Shape.Single, CardKeywords.Exhaust,
                 Dmg(2.8), Status(StatusType.ArmorBreak, 0.25, 2));
-            var breakArmor = Card("gy_break", "斷甲", 1, TargetRule.EnemyFront, Shape.Single, CardKeywords.None,
+            var breakArmor = Card("gy_break", "斷甲", 1, TargetRule.EnemyFront, Shape.Single, CardKeywords.Innate,
                 Dmg(0.8), Status(StatusType.ArmorBreak, 0.5, 4));
             return new HeroDef
             {
                 Id = "guanyu", Name = "關羽", Role = Role.Warrior, Rarity = Rarity.UR, AttackType = AttackType.Melee,
                 Base = new Stats { Hp = 960, Atk = 195, Def = 45, Dodge = 5, Speed = 2, Crit = 15, CritDmg = 180 },
-                Deck = new List<CardDef> { attack, attack, guard, sweep, duel, breakArmor, breakArmor },
+                Deck = new List<CardDef> { attack, attack, guard, sweep, duel, breakArmor },
             };
         }
 
@@ -126,7 +126,7 @@ namespace SanGuo.Core
             var shot = Basic("hz_attack", "穿雲箭", 1, TargetRule.EnemyBack, Dmg(1.2));
             var guard = Basic("hz_guard", "閃身", 1, TargetRule.Self, Armor(0.8));
             var snipe = Card("hz_snipe", "百步穿楊", 2, TargetRule.EnemyBack, Shape.Single, CardKeywords.None, Dmg(2.0));
-            var pierce = Card("hz_pierce", "穿甲箭", 1, TargetRule.EnemyBack, Shape.Single, CardKeywords.None,
+            var pierce = Card("hz_pierce", "穿甲箭", 1, TargetRule.EnemyBack, Shape.Single, CardKeywords.Innate,
                 Dmg(0.6), Status(StatusType.ArmorBreak, 0.5, 4));
             var volley = Card("hz_volley", "箭雨", 3, TargetRule.EnemyBack, Shape.Column, CardKeywords.Exhaust, Dmg(1.8));
             return new HeroDef
@@ -212,14 +212,14 @@ namespace SanGuo.Core
         public static EnemyDef YellowTurbanSharpshooter() => new EnemyDef
         {
             Id = "yt_sharpshooter", Name = "黃巾神射", AttackType = AttackType.Ranged, AttackMultiplier = 1.0,
-            Base = new Stats { Hp = 800, Atk = 560, Def = 10, Speed = 1, Crit = 5, CritDmg = 150 },
+            Base = new Stats { Hp = 450, Atk = 380, Def = 10, Speed = 1, Crit = 5, CritDmg = 150 },
         };
 
         /// <summary>第 3 關用的鐵甲力士：防禦極高，不破甲幾乎打不動。</summary>
         public static EnemyDef YellowTurbanIronBrute() => new EnemyDef
         {
             Id = "yt_ironbrute", Name = "鐵甲力士", AttackType = AttackType.Melee, AttackMultiplier = 1.2,
-            Base = new Stats { Hp = 900, Atk = 220, Def = 800, Speed = 1, Crit = 0, CritDmg = 150 },
+            Base = new Stats { Hp = 900, Atk = 220, Def = 400, Speed = 1, Crit = 0, CritDmg = 150 },
         };
 
         public static EnemyDef YellowTurbanBrute() => new EnemyDef
@@ -238,15 +238,35 @@ namespace SanGuo.Core
         /// <summary>已實作的關卡數（其餘在地圖上顯示為尚未開放）。</summary>
         public const int ChapterLevelCount = 3;
 
-        /// <summary>第一章「黃巾之亂」關卡。我方預設張飛、關羽（前排）＋黃忠、劉備（後排）。</summary>
+        /// <summary>第一章「黃巾之亂」關卡（教學關：固定隊伍、不開放自動戰鬥）。</summary>
         public static BattleSetup Level(int level, ulong seed = 1)
         {
-            var setup = new BattleSetup { Seed = seed };
+            // 第一章每一關都是教學關：不開放自動戰鬥。
+            var setup = new BattleSetup { Seed = seed, AutoAllowed = false };
             if (level == 3) setup.TurnLimit = 11;
-            setup.Heroes.Add(new HeroSlot(ZhangFei(), new Position(0, 0)));
-            setup.Heroes.Add(new HeroSlot(GuanYu(), new Position(1, 0)));
-            setup.Heroes.Add(new HeroSlot(HuangZhong(), new Position(1, 1)));
-            setup.Heroes.Add(new HeroSlot(LiuBei(), new Position(2, 1)));
+            // 教學關：小兵湊數，只讓一兩名武將帶著該關要教的技能卡上場（編隊鎖定，之後再開放）。
+            setup.FormationLocked = true;
+            switch (level)
+            {
+                case 1: // 純小兵
+                    setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaSoldier(), new Position(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaArcher(), new Position(1, 1)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
+                    break;
+                case 2: // 張飛（燕人怒吼・先登）
+                    setup.Heroes.Add(new HeroSlot(ZhangFei(), new Position(0, 0)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaSoldier(), new Position(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaArcher(), new Position(1, 1)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
+                    break;
+                default: // 關羽（斷甲・先登）＋黃忠（穿甲箭・先登）
+                    setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
+                    setup.Heroes.Add(new HeroSlot(GuanYu(), new Position(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(HuangZhong(), new Position(1, 1)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
+                    break;
+            }
             switch (level)
             {
                 case 1: // 涿郡義勇：出牌與費用（教學）
@@ -254,10 +274,10 @@ namespace SanGuo.Core
                     setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(2, 0)));
                     setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(3, 0)));
                     break;
-                case 2: // 黃巾探子：弓手打後排，用挑釁與站位應對
+                case 2: // 黃巾探子：兩名神射手專打後排；要靠張飛的挑釁把火力拉到前排
                     setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(2, 0)));
                     setup.Enemies.Add(new EnemySlot(YellowTurbanSharpshooter(), new Position(2, 1)));
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanSharpshooter(), new Position(3, 1)));
                     break;
                 case 3: // 力士攔路：鐵甲力士擋在最上路，同路沒人時全隊火力都落在牠身上；要疊破甲才打得動
                     setup.Enemies.Add(new EnemySlot(YellowTurbanIronBrute(), new Position(0, 0)));
