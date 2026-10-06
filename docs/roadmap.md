@@ -111,9 +111,9 @@ MVP 不含：競技場（後面再做）、營運活動（限購、通行證等�
 - 抽卡規則（`Meta/Gacha.cs`，見 [gacha.md](gacha.md) 第 6 節）：卡池資料、單抽 / 十連、十連保底 SR、新手池首次十連保底 UR、UP 池（50% 不保底）、可選硬保底、扣款與重複轉素材；累計 23 個 Meta 測試通過。
 - 武將成長（`Meta/HeroGrowth.cs`、`Breakthrough.cs`，見 [progression.md](progression.md) 4.1）：等級、突破（重複武將 1–5 隻；1/3/4★ 屬性模板、2/5★ 特殊效果：強化版卡牌 / 新增專屬牌 / 被動）、卡牌強化、屬性縮放；累計 36 個 Meta 測試通過。
 
-已完成：成長倍率接進戰鬥（`HeroGrowth.BuildSlot`，見 progression.md 4.1）。
+已完成：存檔序列化（`Data/MiniJson.cs` 無依賴 JSON 讀寫、`Data/ProfileSerializer.cs` 帶版本號，客戶端與伺服器共用）；成長倍率接進戰鬥（`HeroGrowth.BuildSlot`，見 progression.md 4.1）。
 
-待辦：客戶端接線（大地圖與結算要碰 `BattleScreen.cs`，等關卡工作告一段落）、存檔序列化（隨資料驅動 JSON 一起做）、資源副本（每日輪替主題、每天固定次數）、掃蕩（三星通關才能掃蕩）、每日任務。後端資料庫決定先用 SQLite。
+待辦：客戶端接線（大地圖與結算要碰 `BattleScreen.cs`，等關卡工作告一段落）、資源副本（每日輪替主題、每天固定次數）、掃蕩（三星通關才能掃蕩）、每日任務。後端資料庫決定先用 SQLite。
 
 ## 5. 風險
 
