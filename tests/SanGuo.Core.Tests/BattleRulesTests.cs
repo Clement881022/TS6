@@ -470,13 +470,39 @@ namespace SanGuo.Core.Tests
             c.Def.Effects.Any(e => e.Type == EffectType.ApplyStatus && e.Status == StatusType.Taunt);
 
         /// <summary>模擬「照教學打」：挑釁與破甲牌先出，再出其他牌。</summary>
-        private static bool HealerAlive(Battle b) => b.AliveUnits(Side.Enemy).Any(e => e.Ability == EnemyAbility.Healer);
+        private static bool IsStun(CardInstance c) => c.Def.Effects.Any(e => e.Type == EffectType.StunGauge);
+
+        private static bool SummonerAlive(Battle b) => b.AliveUnits(Side.Enemy).Any(e => e.Ability.HasFlag(EnemyAbility.Summoner));
+
+        private static bool IsColumnPierce(CardInstance c) =>
+            c.Def.Shape == Shape.Column && c.Def.Target == TargetRule.EnemyFront && c.Def.Effects.Any(e => e.Type == EffectType.Damage);
+
+        private static bool IsDetonate(CardInstance c) => c.Def.Effects.Any(e => e.Type == EffectType.Detonate);
+
+        private static bool IsBurn(CardInstance c) =>
+            c.Def.Effects.Any(e => e.Type == EffectType.ApplyStatus && e.Status == StatusType.Burn);
+
+        private static bool AnyBurning(Battle b) => b.AliveUnits(Side.Enemy).Any(e => e.Has(StatusType.Burn));
+
+        private static bool IsShield(CardInstance c) =>
+            c.Def.Target == TargetRule.AllyLowestHp && c.Def.Effects.Any(e => e.Type == EffectType.Armor);
+
+        private static bool VipAlive(Battle b) => b.AliveUnits(Side.Player).Any(u => u.Protected);
+
+        private static bool ChargerAlive(Battle b) => b.AliveUnits(Side.Enemy).Any(e => e.Ability.HasFlag(EnemyAbility.Charger));
+
+        private static bool HealerAlive(Battle b) => b.AliveUnits(Side.Enemy).Any(e => e.Ability.HasFlag(EnemyAbility.Healer));
 
         private static bool IsBackShot(CardInstance c) =>
             c.Def.Target == TargetRule.EnemyBack && c.Def.Effects.Any(e => e.Type == EffectType.Damage);
 
         private static int TutorialPriority(Battle battle, CardInstance c)
         {
+            if (IsColumnPierce(c) && SummonerAlive(battle)) return 10; // 縱列穿透，一槍打到後排的召喚者
+            if (IsBurn(c)) return 9;                             // 先放火
+            if (IsDetonate(c)) return AnyBurning(battle) ? 8 : -1; // 有火再引爆
+            if (IsShield(c) && VipAlive(battle)) return 7;      // 先用護甲保護鄉民
+            if (IsStun(c) && ChargerAlive(battle)) return 6;    // 有蓄力的敵人：先把昏亂條打滿
             if (IsBackShot(c) && HealerAlive(battle)) return 5; // 先用弓手打後排的治療者
             if (IsTaunt(c)) return battle.AliveUnits(Side.Player).Any(u => u.Has(StatusType.Taunt)) ? -1 : 4; // 已在挑釁中就不重複出
             return IsBreak(c) ? 3 : 0;
@@ -484,7 +510,7 @@ namespace SanGuo.Core.Tests
 
         /// <summary>模擬「忽略教學」：不出挑釁、不出破甲，其他照出。</summary>
         private static int IgnoreTutorialPriority(Battle battle, CardInstance c) =>
-            IsTaunt(c) || IsBreak(c) || (IsBackShot(c) && HealerAlive(battle)) ? -1 : 0;
+            IsTaunt(c) || IsBreak(c) || IsDetonate(c) || (IsColumnPierce(c) && SummonerAlive(battle)) || (IsShield(c) && VipAlive(battle)) || (IsStun(c) && ChargerAlive(battle)) || (IsBackShot(c) && HealerAlive(battle)) ? -1 : 0;
 
         private sealed class LevelStats
         {
@@ -537,6 +563,167 @@ namespace SanGuo.Core.Tests
             _out.WriteLine($"第 4 關 照教學打 {smart}｜忽略教學 {ignore}");
             Assert.True(smart.WinRate >= 100, $"照教學打沒有 100%：{smart}");
             Assert.True(ignore.WinRate <= 10, $"忽略教學勝率太高：{ignore}");
+        }
+
+        [Fact]
+        public void Level5_InterruptTheChargeLessonMatters()
+        {
+            var smart = RunLevel(5, TutorialPriority);
+            var ignore = RunLevel(5, IgnoreTutorialPriority);
+            _out.WriteLine($"第 5 關 照教學打 {smart}｜忽略教學 {ignore}");
+            Assert.True(smart.WinRate >= 100, $"照教學打沒有 100%：{smart}");
+            Assert.True(ignore.WinRate <= 10, $"忽略教學勝率太高：{ignore}");
+        }
+
+        [Fact]
+        public void Level6_ProtectTheVillagerLessonMatters()
+        {
+            var smart = RunLevel(6, TutorialPriority);
+            var ignore = RunLevel(6, IgnoreTutorialPriority);
+            _out.WriteLine($"第 6 關 照教學打 {smart}｜忽略教學 {ignore}");
+            Assert.True(smart.WinRate >= 100, $"照教學打沒有 100%：{smart}");
+            Assert.True(ignore.WinRate <= 10, $"忽略教學勝率太高：{ignore}");
+        }
+
+        [Fact]
+        public void ProtectedUnitDying_LosesTheBattle()
+        {
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("Vip", new CardDef[0], hp: 10), new Position(0, 1)) { IsProtected = true });
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 99999), new Position(1, 0)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 999, type: AttackType.Ranged), new Position(0, 0)));
+            var battle = new Battle(setup);
+            battle.EndTurn();                       // 遠程敵人優先打後排的保護目標
+            Assert.Equal(BattleResult.Lost, battle.Result);
+            Assert.True(battle.Units.Any(u => u.Name == "H" && u.Alive)); // 其餘單位還活著也算輸
+        }
+
+        [Fact]
+        public void Level7_DetonateTheFireLessonMatters()
+        {
+            var smart = RunLevel(7, TutorialPriority);
+            var ignore = RunLevel(7, IgnoreTutorialPriority);
+            _out.WriteLine($"第 7 關 照教學打 {smart}｜忽略教學 {ignore}");
+            Assert.True(smart.WinRate >= 100, $"照教學打沒有 100%：{smart}");
+            Assert.True(ignore.WinRate <= 10, $"忽略教學勝率太高：{ignore}");
+        }
+
+        [Fact]
+        public void Detonate_SettlesBurnAndSpreadsToNeighbors()
+        {
+            var fire = new CardDef
+            {
+                Id = "fire", Name = "fire", Cost = 0, Target = TargetRule.EnemyFront, Shape = Shape.Single,
+                Effects = { new EffectDef { Type = EffectType.ApplyStatus, Status = StatusType.Burn, Multiplier = 1.0, Amount = 3 } },
+            };
+            var boom = new CardDef
+            {
+                Id = "boom", Name = "boom", Cost = 0, Target = TargetRule.EnemyFront, Shape = Shape.All,
+                Effects = { new EffectDef { Type = EffectType.Detonate, Status = StatusType.Burn, Amount = 2 } },
+            };
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { fire, boom }, atk: 100, hp: 99999), new Position(2, 0)));
+            setup.Enemies.Add(new EnemySlot(Enemy("left", hp: 1000, atk: 1), new Position(1, 0)));
+            setup.Enemies.Add(new EnemySlot(Enemy("mid", hp: 1000, atk: 1), new Position(2, 0)));
+            setup.Enemies.Add(new EnemySlot(Enemy("far", hp: 1000, atk: 1), new Position(4, 0)));
+            var battle = new Battle(setup);
+            var mid = EnemyUnit(battle, "mid");
+            var left = EnemyUnit(battle, "left");
+            var far = EnemyUnit(battle, "far");
+
+            battle.PlayCard(battle.Hand.First(c => c.Def.Id == "fire"));
+            Assert.True(mid.Has(StatusType.Burn));
+            battle.PlayCard(battle.Hand.First(c => c.Def.Id == "boom"));
+            Assert.Equal(1000 - 300, mid.Hp);                // 剩餘燒傷 100 × 3 回合 一次結算
+            Assert.False(mid.Has(StatusType.Burn));          // 引爆即消耗
+            Assert.True(left.Has(StatusType.Burn));          // 擴散給相鄰
+            Assert.Equal(2, left.Statuses[StatusType.Burn].Turns);
+            Assert.False(far.Has(StatusType.Burn));          // 不相鄰不擴散
+        }
+
+        [Fact]
+        public void Level8_SlayTheSummonerLessonMatters()
+        {
+            var smart = RunLevel(8, TutorialPriority);
+            var ignore = RunLevel(8, IgnoreTutorialPriority);
+            _out.WriteLine($"第 8 關 照教學打 {smart}｜忽略教學 {ignore}");
+            Assert.True(smart.WinRate >= 100, $"照教學打沒有 100%：{smart}");
+            Assert.True(ignore.WinRate <= 10, $"忽略教學勝率太高：{ignore}");
+        }
+
+        [Fact]
+        public void Summoner_FillsEmptyCells_UntilCap()
+        {
+            var minion = new EnemyDef { Id = "m", Name = "m", Base = new Stats { Hp = 10, Atk = 1, Def = 0 } };
+            var summoner = new EnemyDef
+            {
+                Id = "s", Name = "s", Ability = EnemyAbility.Summoner, Summons = minion, SummonCap = 3,
+                Base = new Stats { Hp = 99999, Atk = 1, Def = 0 },
+            };
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 99999), new Position(0, 0)));
+            setup.Enemies.Add(new EnemySlot(summoner, new Position(2, 1)));
+            var battle = new Battle(setup);
+
+            Assert.Equal(1, battle.AliveUnits(Side.Enemy).Count);
+            battle.EndTurn();
+            Assert.Equal(2, battle.AliveUnits(Side.Enemy).Count);
+            battle.EndTurn();
+            Assert.Equal(3, battle.AliveUnits(Side.Enemy).Count);
+            battle.EndTurn();                                    // 達到上限，不再召喚
+            Assert.Equal(3, battle.AliveUnits(Side.Enemy).Count);
+        }
+
+        [Fact]
+        public void Levels9And10_FinalExamsFollowTheLessons()
+        {
+            foreach (int level in new[] { 9, 10 })
+            {
+                var smart = RunLevel(level, TutorialPriority);
+                var ignore = RunLevel(level, IgnoreTutorialPriority);
+                _out.WriteLine($"第 {level} 關 照教學打 {smart}｜忽略教學 {ignore}");
+                Assert.True(smart.WinRate >= 100, $"第 {level} 關照教學打沒有 100%：{smart}");
+                Assert.True(ignore.WinRate <= 10, $"第 {level} 關忽略教學勝率太高：{ignore}");
+            }
+        }
+
+        [Fact]
+        public void StunGauge_FillsThenStuns_AndCapGrows_ChargeInterrupted()
+        {
+            var stunCard = new CardDef
+            {
+                Id = "stun", Name = "stun", Cost = 0, Target = TargetRule.EnemyFront,
+                Effects = { new EffectDef { Type = EffectType.StunGauge, Amount = 60 } },
+            };
+            var chief = new EnemyDef
+            {
+                Id = "c", Name = "c", Ability = EnemyAbility.Charger, AbilityPower = 5.0, StunGauge = 100, StunGrowth = 0.5,
+                Base = new Stats { Hp = 99999, Atk = 100, Def = 0 },
+            };
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { stunCard, stunCard, stunCard, Attack(), Attack() }, hp: 99999), new Position(0, 0)));
+            setup.Enemies.Add(new EnemySlot(chief, new Position(0, 0)));
+            var battle = new Battle(setup);
+            var boss = EnemyUnit(battle, "c");
+
+            Assert.Equal(Intent.Kind.Charge, battle.GetIntent(boss).Type);
+            battle.EndTurn();                                     // 敵方階段：蓄力
+            Assert.True(boss.Charging);
+            Assert.True(battle.GetIntent(boss).Big);
+
+            var stunCards = battle.Hand.Where(c => c.Def.Id == "stun").ToList();
+            battle.PlayCard(stunCards[0]);                        // 60 / 100
+            Assert.Equal(60, boss.StunGauge);
+            Assert.False(boss.Has(StatusType.Stun));
+            battle.PlayCard(stunCards[1]);                        // 120 → 滿 → 眩暈
+            Assert.True(boss.Has(StatusType.Stun));
+            Assert.Equal(0, boss.StunGauge);
+            Assert.Equal(150, boss.StunGaugeMax);                 // 上限 +50%
+
+            int hpBefore = battle.Units[0].Hp;
+            battle.EndTurn();                                     // 被打斷：不放大招
+            Assert.False(boss.Charging);
+            Assert.Equal(hpBefore, battle.Units[0].Hp);
         }
 
         [Fact]

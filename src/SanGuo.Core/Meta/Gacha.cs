@@ -63,7 +63,7 @@ namespace SanGuo.Core.Meta
         /// <summary>true = 由保底（十連保底 / 新手保底 / 硬保底）強制提升而來。</summary>
         public bool FromPity;
         public bool IsNew;
-        /// <summary>重複武將轉換出的突破素材（金額 / 數量），新武將為 0。</summary>
+        /// <summary>重複武將轉換出的突破碎片，新武將為 0。</summary>
         public int Shards;
     }
 
@@ -82,13 +82,8 @@ namespace SanGuo.Core.Meta
 
     public static class Gacha
     {
-        /// <summary>重複武將轉換的突破素材數（建議值，待 progression.md 定案）。</summary>
-        public static int DuplicateShards(Rarity rarity) => rarity switch
-        {
-            Rarity.UR => 20,
-            Rarity.SR => 10,
-            _ => 5,
-        };
+        /// <summary>重複武將轉換的碎片：一隻重複 = 一次突破的份量（任何稀有度皆同，見 progression.md）。</summary>
+        public static int DuplicateShards(Rarity rarity) => HeroGrowth.CopyShards;
 
         /// <summary>
         /// 抽卡（純規則，不扣款）：單抽或十連。<paramref name="state"/> 會被更新。

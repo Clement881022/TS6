@@ -109,7 +109,7 @@ MVP 不含：競技場（後面再做）、營運活動（限購、通行證等�
 - `PlayerProfile`：等級、貨幣、體力、關卡進度；入關檢查等級門檻與體力、勝利結算（經驗 / 金幣 / 首通元寶）、升級回滿體力。
 
 - 抽卡規則（`Meta/Gacha.cs`，見 [gacha.md](gacha.md) 第 6 節）：卡池資料、單抽 / 十連、十連保底 SR、新手池首次十連保底 UR、UP 池（50% 不保底）、可選硬保底、扣款與重複轉素材；累計 23 個 Meta 測試通過。
-- 武將成長（`Meta/HeroGrowth.cs`，見 [progression.md](progression.md) 4.1）：等級、突破、卡牌強化、屬性縮放；累計 32 個 Meta 測試通過。
+- 武將成長（`Meta/HeroGrowth.cs`、`Breakthrough.cs`，見 [progression.md](progression.md) 4.1）：等級、突破（重複武將 1–5 隻，每星獨特效果：強化版卡牌 / 新增專屬牌 / 被動）、卡牌強化、屬性縮放；累計 36 個 Meta 測試通過。
 
 待辦：客戶端接線（大地圖與結算要碰 `BattleScreen.cs`，等關卡工作告一段落）、存檔序列化（隨資料驅動 JSON 一起做）、把成長倍率接進戰鬥、資源副本、掃蕩、每日任務。
 

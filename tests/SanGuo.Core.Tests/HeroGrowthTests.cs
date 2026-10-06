@@ -1,3 +1,4 @@
+using System.Linq;
 using SanGuo.Core.Meta;
 using Xunit;
 
@@ -14,7 +15,6 @@ namespace SanGuo.Core.Tests
             p.Gold = 10_000_000;
             p.AddMaterial(HeroGrowth.ExpBook, 100_000);
             p.AddMaterial(HeroGrowth.CardMaterial, 100_000);
-            p.AddMaterial(HeroGrowth.ShardKey("h"), 100_000);
             p.Heroes["h"] = new HeroState { HeroId = "h" };
             return p;
         }
@@ -50,57 +50,49 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void LevelUp_StopsAtStarCap_ThenBreakthroughRaisesIt()
+        public void LevelUp_CapsAtPlayerLevel()
         {
-            var p = Rich();
-            int cap0 = HeroGrowth.LevelCap(0);
+            var p = Rich(playerLevel: 12);
             while (HeroGrowth.LevelUp(p, "h") == GrowthResult.Ok) { }
-            Assert.Equal(cap0, p.Heroes["h"].Level);
-            Assert.Equal(GrowthResult.AtCap, HeroGrowth.LevelUp(p, "h"));
-            Assert.Equal(GrowthResult.Ok, HeroGrowth.Breakthrough(p, "h"));
-            Assert.Equal(GrowthResult.Ok, HeroGrowth.LevelUp(p, "h"));
+            Assert.Equal(12, p.Heroes["h"].Level);
         }
 
         [Fact]
-        public void Breakthrough_RequiresFullLevel_AndShards()
+        public void Breakthrough_FiveDuplicatesReachFiveStars_NoGoldNoLevelRequirement()
         {
-            var p = Rich();
-            Assert.Equal(GrowthResult.NeedsFullLevel, HeroGrowth.Breakthrough(p, "h"));
-            p.Heroes["h"].Level = HeroGrowth.LevelCap(0);
-            p.Materials[HeroGrowth.ShardKey("h")] = HeroGrowth.BreakthroughShards(0) - 1;
-            Assert.Equal(GrowthResult.NotEnoughMaterial, HeroGrowth.Breakthrough(p, "h"));
-            p.AddMaterial(HeroGrowth.ShardKey("h"), 1);
-            Assert.Equal(GrowthResult.Ok, HeroGrowth.Breakthrough(p, "h"));
-            Assert.Equal(1, p.Heroes["h"].Stars);
-            Assert.Equal(0, p.GetMaterial(HeroGrowth.ShardKey("h")));
-        }
-
-        [Fact]
-        public void Breakthrough_StopsAtMaxStars()
-        {
-            var p = Rich();
-            var h = p.Heroes["h"];
-            for (int i = 0; i < HeroGrowth.MaxStars; i++)
+            var p = PlayerProfile.CreateNew(0);
+            p.Heroes["h"] = new HeroState { HeroId = "h" };
+            long gold = p.Gold;
+            for (int copy = 1; copy <= HeroGrowth.MaxStars; copy++)
             {
-                h.Level = HeroGrowth.LevelCap(h.Stars);
+                p.AddMaterial(HeroGrowth.ShardKey("h"), Gacha.DuplicateShards(Rarity.UR));
                 Assert.Equal(GrowthResult.Ok, HeroGrowth.Breakthrough(p, "h"));
+                Assert.Equal(copy, p.Heroes["h"].Stars);
             }
-            Assert.Equal(HeroGrowth.MaxStars, h.Stars);
+            p.AddMaterial(HeroGrowth.ShardKey("h"), HeroGrowth.CopyShards);
             Assert.Equal(GrowthResult.AtCap, HeroGrowth.Breakthrough(p, "h"));
-            Assert.Equal(PlayerLevelCurve.MaxLevel, HeroGrowth.LevelCap(HeroGrowth.MaxStars));
+            Assert.Equal(gold, p.Gold);
+            Assert.Equal(1, p.Heroes["h"].Level);
         }
 
         [Fact]
-        public void CardEnhance_UsesDedicatedMaterial_AndStarGatedCap()
+        public void Breakthrough_NeedsAFullCopy()
+        {
+            var p = PlayerProfile.CreateNew(0);
+            p.Heroes["h"] = new HeroState { HeroId = "h" };
+            p.AddMaterial(HeroGrowth.ShardKey("h"), HeroGrowth.CopyShards - 1);
+            Assert.Equal(GrowthResult.NotEnoughMaterial, HeroGrowth.Breakthrough(p, "h"));
+            Assert.Equal(0, p.Heroes["h"].Stars);
+        }
+
+        [Fact]
+        public void CardEnhance_UsesDedicatedMaterial_AndCapsAtFive()
         {
             var p = Rich();
-            Assert.Equal(GrowthResult.Ok, HeroGrowth.EnhanceCard(p, "h", "atk", Cards));
-            Assert.Equal(1, p.Heroes["h"].CardLevels["atk"]);
-            Assert.Equal(GrowthResult.AtCap, HeroGrowth.EnhanceCard(p, "h", "atk", Cards)); // 0 星上限 1
-            Assert.Equal(GrowthResult.UnknownCard, HeroGrowth.EnhanceCard(p, "h", "nope", Cards));
-            p.Heroes["h"].Stars = 4;
             for (int i = 0; i < 10; i++) HeroGrowth.EnhanceCard(p, "h", "atk", Cards);
             Assert.Equal(HeroGrowth.MaxCardLevel, p.Heroes["h"].CardLevels["atk"]);
+            Assert.Equal(GrowthResult.AtCap, HeroGrowth.EnhanceCard(p, "h", "atk", Cards));
+            Assert.Equal(GrowthResult.UnknownCard, HeroGrowth.EnhanceCard(p, "h", "nope", Cards));
         }
 
         [Fact]
@@ -114,28 +106,85 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void StatScaling_IsIdentityAtLevel1Star0_AndGrows()
+        public void StatScaling_IsIdentityAtLevel1_AndIgnoresStars()
         {
             var b = new Stats { Hp = 1000, Atk = 100, Def = 50, Speed = 2, Crit = 5 };
-            var s0 = HeroGrowth.ScaleStats(b, new HeroState());
-            Assert.Equal(1000, s0.Hp);
-            Assert.Equal(100, s0.Atk);
-            var s1 = HeroGrowth.ScaleStats(b, new HeroState { Level = 11, Stars = 1 });
-            Assert.Equal(1980, s1.Hp);  // (1+0.8)*1.1
-            Assert.Equal(2, s1.Speed);  // 速度 / 爆擊不隨成長
-            Assert.Equal(5, s1.Crit);
-            Assert.Equal(1000, b.Hp);   // 原資料不被修改
+            Assert.Equal(1000, HeroGrowth.ScaleStats(b, new HeroState()).Hp);
+            var s = HeroGrowth.ScaleStats(b, new HeroState { Level = 11, Stars = 5 });
+            Assert.Equal(1800, s.Hp);   // 1 + 0.08×10，星級不加數值
+            Assert.Equal(2, s.Speed);
+            Assert.Equal(1000, b.Hp);
+        }
+
+        // ---- 突破的獨特效果 ----
+
+        private static HeroDef ZhangFeiLike() => new HeroDef
+        {
+            Id = "zhangfei",
+            Deck =
+            {
+                new CardDef { Id = "zf_attack" }, new CardDef { Id = "zf_break" }, new CardDef { Id = "zf_taunt" },
+                new CardDef { Id = "zf_roar" }, new CardDef { Id = "zf_break" },
+            },
+        };
+
+        [Fact]
+        public void Deck_Unchanged_AtZeroStars_AndOriginalNeverMutated()
+        {
+            var table = DemoBreakthroughs.Create();
+            var hero = ZhangFeiLike();
+            var deck = table.ResolveDeck(hero, 0);
+            Assert.Equal(hero.Deck.Select(c => c.Id), deck.Select(c => c.Id));
+            table.ResolveDeck(hero, 5);
+            Assert.Equal("zf_break", hero.Deck[1].Id);
         }
 
         [Fact]
-        public void Gacha_DuplicateShards_FeedBreakthrough()
+        public void Deck_UpgradeReplacesEveryCopy_AndAddAppends()
+        {
+            var table = DemoBreakthroughs.Create();
+            var hero = ZhangFeiLike();
+            var s1 = table.ResolveDeck(hero, 1).Select(c => c.Id).ToList();
+            Assert.Equal(new[] { "zf_attack", "zf_break_1", "zf_taunt", "zf_roar", "zf_break_1" }, s1);
+            var s2 = table.ResolveDeck(hero, 2).Select(c => c.Id).ToList();
+            Assert.Equal("zf_hold", s2.Last());
+            Assert.Equal(6, s2.Count);
+        }
+
+        [Fact]
+        public void Deck_FiveStars_AllUniqueEffectsApplied()
+        {
+            var table = DemoBreakthroughs.Create();
+            var ids = table.ResolveDeck(ZhangFeiLike(), 5).Select(c => c.Id).ToList();
+            Assert.Contains("zf_taunt_1", ids);
+            Assert.Contains("zf_roar_1", ids);
+            Assert.DoesNotContain("zf_taunt", ids);
+            Assert.Equal(new[] { "zf_taunt_guard" }, table.ActivePassives("zhangfei", 5));
+            Assert.Empty(table.ActivePassives("zhangfei", 3));
+        }
+
+        [Fact]
+        public void DemoBreakthroughs_EveryStarHasADescribedEffect_NotAStatBump()
+        {
+            var table = DemoBreakthroughs.Create();
+            var effects = table.Get("zhangfei");
+            Assert.Equal(new[] { 1, 2, 3, 4, 5 }, effects.Select(e => e.Stars));
+            Assert.All(effects, e => Assert.False(string.IsNullOrEmpty(e.Description)));
+            Assert.Empty(table.Get("nobody"));
+        }
+
+        [Fact]
+        public void Gacha_Duplicates_FeedBreakthrough_OneCopyPerStar()
         {
             var p = PlayerProfile.CreateNew(0);
             p.Yuanbao = 100_000;
             var pool = new GachaPool { Id = "p", UrRateBp = 10000, UrHeroes = { "h" } };
             for (int i = 0; i < 3; i++) Gacha.Pull(p, pool, 1, new Rng((ulong)i + 1));
-            Assert.True(p.Heroes.ContainsKey("h"));
-            Assert.Equal(2 * Gacha.DuplicateShards(Rarity.UR), p.GetMaterial(HeroGrowth.ShardKey("h")));
+            // 抽 3 次 = 1 隻本體 + 2 隻重複 → 可突破 2 星
+            Assert.Equal(GrowthResult.Ok, HeroGrowth.Breakthrough(p, "h"));
+            Assert.Equal(GrowthResult.Ok, HeroGrowth.Breakthrough(p, "h"));
+            Assert.Equal(GrowthResult.NotEnoughMaterial, HeroGrowth.Breakthrough(p, "h"));
+            Assert.Equal(2, p.Heroes["h"].Stars);
         }
     }
 }
