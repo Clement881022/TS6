@@ -37,7 +37,7 @@ namespace SanGuo.Core.Meta
 
     /// <summary>
     /// 各武將的突破效果表（資料驅動，之後由 JSON 載入）。
-    /// 業界做法：屬性與特殊效果混搭。每名武將只需要設計少數幾星的特殊效果（預設 2★、4★），
+    /// 業界做法：屬性與特殊效果混搭。每名武將只需要設計少數幾星的特殊效果（預設 2★、5★），
     /// 其餘星級自動套用屬性模板（<see cref="DefaultStatEffect"/>），省下逐星設計的工。
     /// </summary>
     public sealed class BreakthroughTable
@@ -45,30 +45,39 @@ namespace SanGuo.Core.Meta
         private readonly Dictionary<string, List<BreakthroughEffect>> _byHero =
             new Dictionary<string, List<BreakthroughEffect>>();
 
-        /// <summary>屬性模板：1★ 血量 +10%、3★ 攻擊 +10%、5★ 全屬性 +15%；2★ / 4★ 預設留給特殊效果。</summary>
+        /// <summary>屬性模板：1★ 血量 +10%、3★ 攻擊 +10%、4★ 全屬性 +15%；2★ / 5★ 預設留給特殊效果。</summary>
         public static BreakthroughEffect? DefaultStatEffect(int stars) => stars switch
         {
             1 => new BreakthroughEffect { Stars = 1, Kind = BreakthroughKind.StatBonus, HpPct = 10, Description = "血量 +10%" },
             3 => new BreakthroughEffect { Stars = 3, Kind = BreakthroughKind.StatBonus, AtkPct = 10, Description = "攻擊 +10%" },
-            5 => new BreakthroughEffect { Stars = 5, Kind = BreakthroughKind.StatBonus, HpPct = 15, AtkPct = 15, DefPct = 15, Description = "血量 / 攻擊 / 防禦 +15%" },
+            4 => new BreakthroughEffect { Stars = 4, Kind = BreakthroughKind.StatBonus, HpPct = 15, AtkPct = 15, DefPct = 15, Description = "血量 / 攻擊 / 防禦 +15%" },
             _ => null,
         };
 
-        /// <summary>登錄武將的特殊效果（通常 2★、4★）；沒指定的星級自動補屬性模板，仍空缺的星級（如 2★ 沒有特殊效果）補血量 / 防禦加成。</summary>
+        /// <summary>登錄武將的特殊效果（通常 2★、5★）；沒指定的星級自動補屬性模板，仍空缺的星級（2★ / 5★ 沒有特殊效果）補替代的屬性加成：2★ 血量 / 防禦 +8%、5★ 全屬性 +10%。</summary>
         public void Register(string heroId, params BreakthroughEffect[] specials)
         {
             var list = specials.ToList();
             for (int star = 1; star <= HeroGrowth.MaxStars; star++)
             {
                 if (list.Any(e => e.Stars == star)) continue;
-                list.Add(DefaultStatEffect(star) ?? new BreakthroughEffect
-                {
-                    Stars = star, Kind = BreakthroughKind.StatBonus, HpPct = 8, DefPct = 8,
-                    Description = "血量 / 防禦 +8%（尚未設計特殊效果）",
-                });
+                list.Add(DefaultStatEffect(star) ?? FallbackStatEffect(star));
             }
             _byHero[heroId] = list.OrderBy(e => e.Stars).ToList();
         }
+
+        /// <summary>尚未設計特殊效果的 2★ / 5★ 所用的替代屬性加成。</summary>
+        private static BreakthroughEffect FallbackStatEffect(int star) => star == 5
+            ? new BreakthroughEffect
+            {
+                Stars = 5, Kind = BreakthroughKind.StatBonus, HpPct = 10, AtkPct = 10, DefPct = 10,
+                Description = "血量 / 攻擊 / 防禦 +10%（尚未設計特殊效果）",
+            }
+            : new BreakthroughEffect
+            {
+                Stars = star, Kind = BreakthroughKind.StatBonus, HpPct = 8, DefPct = 8,
+                Description = "血量 / 防禦 +8%（尚未設計特殊效果）",
+            };
 
         /// <summary>沒登錄的武將使用純屬性模板。</summary>
         public void RegisterStatOnly(string heroId) => Register(heroId);
@@ -115,7 +124,7 @@ namespace SanGuo.Core.Meta
             Unlocked(heroId, stars).Where(e => e.Kind == BreakthroughKind.Passive).Select(e => e.PassiveId).ToList();
     }
 
-    /// <summary>Demo 武將的突破效果（佔位示範；每名武將只設計 2★、4★ 兩個特殊效果，其餘為屬性）。</summary>
+    /// <summary>Demo 武將的突破效果（佔位示範；每名武將只設計 2★、5★ 兩個特殊效果，其餘為屬性）。</summary>
     public static class DemoBreakthroughs
     {
         public static BreakthroughTable Create()
@@ -140,7 +149,7 @@ namespace SanGuo.Core.Meta
                 },
                 new BreakthroughEffect
                 {
-                    Stars = 4, Kind = BreakthroughKind.UpgradeCard, TargetCardId = "zf_roar",
+                    Stars = 5, Kind = BreakthroughKind.UpgradeCard, TargetCardId = "zf_roar",
                     Description = "當陽橋喝斷 → 萬夫莫敵：範圍擴大為全場",
                     NewCard = new CardDef
                     {

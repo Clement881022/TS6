@@ -127,10 +127,12 @@ namespace SanGuo.Core.Tests
             var s3 = HeroGrowth.ScaleStats(b, new HeroState { HeroId = "zhangfei", Stars = 3 }, table);
             Assert.Equal(1100, s3.Hp);              // 2★ 是特殊效果，不加屬性
             Assert.Equal(110, s3.Atk);              // 3★ 攻擊 +10%
+            var s4 = HeroGrowth.ScaleStats(b, new HeroState { HeroId = "zhangfei", Stars = 4 }, table);
+            Assert.Equal(1250, s4.Hp);              // 血量加成相加：+10% +15%
+            Assert.Equal(125, s4.Atk);              // +10% +15%
+            Assert.Equal(115, s4.Def);              // 防禦只有 4★ +15%
             var s5 = HeroGrowth.ScaleStats(b, new HeroState { HeroId = "zhangfei", Stars = 5 }, table);
-            Assert.Equal(1250, s5.Hp);              // 血量加成相加：+10% +15%
-            Assert.Equal(125, s5.Atk);              // +10% +15%
-            Assert.Equal(115, s5.Def);              // 防禦只有 5★ +15%
+            Assert.Equal(s4.Hp, s5.Hp);             // 5★ 是特殊效果，不再加屬性
             Assert.Equal(2, s5.Speed);
         }
 
@@ -154,7 +156,7 @@ namespace SanGuo.Core.Tests
             Assert.Equal(new[] { 1, 2, 3, 4, 5 }, effects.Select(e => e.Stars));
             Assert.Equal(
                 new[] { BreakthroughKind.StatBonus, BreakthroughKind.UpgradeCard, BreakthroughKind.StatBonus,
-                        BreakthroughKind.UpgradeCard, BreakthroughKind.StatBonus },
+                        BreakthroughKind.StatBonus, BreakthroughKind.UpgradeCard },
                 effects.Select(e => e.Kind));
             Assert.All(effects, e => Assert.False(string.IsNullOrEmpty(e.Description)));
         }
@@ -169,6 +171,19 @@ namespace SanGuo.Core.Tests
             Assert.All(effects, e => Assert.Equal(BreakthroughKind.StatBonus, e.Kind));
             Assert.Empty(table.Get("nobody"));
             Assert.Equal((0, 0, 0), table.StatBonusPct("nobody", 5));
+        }
+
+        [Fact]
+        public void Register_PartialSpecials_FillsFallbackAtMissingSpecialSlot()
+        {
+            var table = new BreakthroughTable();
+            table.Register("h", new BreakthroughEffect
+            {
+                Stars = 2, Kind = BreakthroughKind.AddCard, NewCard = new CardDef { Id = "x" }, Description = "x",
+            });
+            // 5★ 沒設計特殊效果 → 補全屬性 +10%
+            // 血量 10(1★)+15(4★)+10(5★)、攻擊 10(3★)+15+10、防禦 15(4★)+10(5★)
+            Assert.Equal((35, 35, 25), table.StatBonusPct("h", 5));
         }
 
         [Fact]
@@ -188,8 +203,9 @@ namespace SanGuo.Core.Tests
             var hero = ZhangFeiLike();
             var s2 = table.ResolveDeck(hero, 2).Select(c => c.Id).ToList();
             Assert.Equal(new[] { "zf_attack", "zf_taunt_1", "zf_roar", "zf_taunt_1" }, s2);
-            var s4 = table.ResolveDeck(hero, 4).Select(c => c.Id).ToList();
-            Assert.Equal(new[] { "zf_attack", "zf_taunt_1", "zf_roar_1", "zf_taunt_1" }, s4);
+            Assert.Equal(s2, table.ResolveDeck(hero, 4).Select(c => c.Id).ToList());
+            var s5 = table.ResolveDeck(hero, 5).Select(c => c.Id).ToList();
+            Assert.Equal(new[] { "zf_attack", "zf_taunt_1", "zf_roar_1", "zf_taunt_1" }, s5);
         }
 
         [Fact]
@@ -204,13 +220,13 @@ namespace SanGuo.Core.Tests
                 },
                 new BreakthroughEffect
                 {
-                    Stars = 4, Kind = BreakthroughKind.Passive, PassiveId = "p1", Description = "被動",
+                    Stars = 5, Kind = BreakthroughKind.Passive, PassiveId = "p1", Description = "被動",
                 });
             var hero = new HeroDef { Id = "h", Deck = { new CardDef { Id = "a" } } };
             Assert.Equal(new[] { "a" }, table.ResolveDeck(hero, 1).Select(c => c.Id));
             Assert.Equal(new[] { "a", "extra" }, table.ResolveDeck(hero, 2).Select(c => c.Id));
-            Assert.Empty(table.ActivePassives("h", 3));
-            Assert.Equal(new[] { "p1" }, table.ActivePassives("h", 4));
+            Assert.Empty(table.ActivePassives("h", 4));
+            Assert.Equal(new[] { "p1" }, table.ActivePassives("h", 5));
         }
 
         [Fact]
