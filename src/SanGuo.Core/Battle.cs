@@ -43,17 +43,15 @@ namespace SanGuo.Core
             {
                 var unit = CreateUnit(slot.Def.Name, Side.Player, slot.Def.AttackType, ScaleForLevel(slot.Def.Base, slot.Level), slot.Pos);
                 unit.Hero = slot.Def;
+                unit.Protected = slot.IsProtected;
+                if (slot.StartHpPercent < 100) unit.Hp = Math.Max(1, unit.MaxHp * slot.StartHpPercent / 100);
                 unit.DefId = slot.Def.Id;
                 foreach (var cardDef in slot.Def.Deck)
                     allCards.Add(new CardInstance(_nextCardId++, cardDef, unit));
             }
             foreach (var slot in setup.Enemies)
             {
-                var unit = CreateUnit(slot.Def.Name, Side.Enemy, slot.Def.AttackType, slot.Def.Base.Clone(), slot.Pos);
-                unit.AttackMultiplier = slot.Def.AttackMultiplier;
-                unit.Ability = slot.Def.Ability;
-                unit.AbilityPower = slot.Def.AbilityPower;
-                unit.DefId = slot.Def.Id;
+                SpawnEnemy(slot.Def, slot.Pos);
             }
 
             if (setup.ScriptedDraw.Count > 0)
@@ -148,10 +146,33 @@ namespace SanGuo.Core
         /// <summary>預覽敵方本回合會做什麼（意圖顯示用）。</summary>
         public Intent GetIntent(Unit enemy)
         {
+            var intent = GetIntentCore(enemy);
+            if (enemy.Ability.HasFlag(EnemyAbility.Charger) && enemy.Charging && intent.Type == Intent.Kind.Attack)
+                intent.Big = true;
+            return intent;
+        }
+
+        private Intent GetIntentCore(Unit enemy)
+        {
             if (!enemy.Alive) return new Intent { Type = Intent.Kind.None };
             if (enemy.Has(StatusType.Stun)) return new Intent { Type = Intent.Kind.Stunned };
 
-            if (enemy.Ability == EnemyAbility.Healer)
+            if (enemy.Ability.HasFlag(EnemyAbility.Summoner) && enemy.SummonDef != null
+                && (enemy.Actions + 1) % Math.Max(1, enemy.SummonEvery) == 0
+                && !enemy.Charging
+                && AliveUnits(Side.Enemy).Count < enemy.SummonCap)
+            {
+                // 召喚：優先填前排的空格（由上往下），沒有再填後排。
+                for (int r = 0; r < Setup.Rows; r++)
+                    for (int l = 0; l < Setup.Lanes; l++)
+                        if (_enemyBoard[l, r] == null)
+                            return new Intent { Type = Intent.Kind.Summon, MoveTo = new Position(l, r) };
+            }
+
+            if (enemy.Ability.HasFlag(EnemyAbility.Charger) && !enemy.Charging)
+                return new Intent { Type = Intent.Kind.Charge };
+
+            if (enemy.Ability.HasFlag(EnemyAbility.Healer))
             {
                 // 治療者：有受傷的友軍就治療血量比例最低的那位，否則照常攻擊。
                 Unit? hurt = null;
@@ -292,8 +313,19 @@ namespace SanGuo.Core
                 switch (intent.Type)
                 {
                     case Intent.Kind.Attack:
-                        Emit(EventType.EnemyAttack, enemy.Id, intent.Target!.Id, 0, "");
-                        DealAttackDamage(enemy, intent.Target!, enemy.AttackMultiplier);
+                        Emit(EventType.EnemyAttack, enemy.Id, intent.Target!.Id, intent.Big ? 1 : 0, intent.Big ? "big" : "");
+                        DealAttackDamage(enemy, intent.Target!, intent.Big ? enemy.AbilityPower : enemy.AttackMultiplier);
+                        if (intent.Big) enemy.Charging = false;
+                        break;
+                    case Intent.Kind.Summon:
+                    {
+                        var spawned = SpawnEnemy(enemy.SummonDef!, intent.MoveTo!.Value);
+                        Emit(EventType.EnemySummon, enemy.Id, spawned.Id, 0, intent.MoveTo!.Value.ToString());
+                        break;
+                    }
+                    case Intent.Kind.Charge:
+                        enemy.Charging = true;
+                        Emit(EventType.EnemyCharge, enemy.Id, -1, 0, "");
                         break;
                     case Intent.Kind.Heal:
                     {
@@ -308,9 +340,11 @@ namespace SanGuo.Core
                         RelocateEnemy(enemy, intent.MoveTo!.Value);
                         break;
                     case Intent.Kind.Stunned:
+                        enemy.Charging = false; // 蓄力被昏亂打斷
                         Emit(EventType.EnemySkip, enemy.Id, -1, 0, "stun");
                         break;
                 }
+                if (intent.Type != Intent.Kind.Stunned && intent.Type != Intent.Kind.None) enemy.Actions++;
                 if (CheckEnd()) return;
             }
         }
@@ -396,6 +430,42 @@ namespace SanGuo.Core
                             };
                         }
                         Emit(EventType.StatusApplied, owner.Id, t.Id, effect.Amount, effect.Status.ToString());
+                    }
+                    break;
+                case EffectType.Detonate:
+                    // 引爆（火攻 / 瘟毒）：立刻結算剩餘持續傷害並移除狀態，再把同樣的狀態擴散給相鄰、尚未中招的敵人。
+                    // 只處理施放當下就在燃燒的敵人（剛擴散到的不會在同一次引爆裡連鎖）。
+                    foreach (var t in affected.Where(u => u.Alive && u.Has(effect.Status)).ToList())
+                    {
+                        if (!t.Alive || !t.Statuses.TryGetValue(effect.Status, out var dot)) continue;
+                        int total = dot.Power * dot.Turns;
+                        t.Statuses.Remove(effect.Status);
+                        ApplyDamage(owner, t, total, ignoreArmor: true, text: "detonate");
+                        foreach (var n in AliveUnits(t.Side))
+                        {
+                            if (n == t || n.Has(effect.Status)) continue;
+                            bool adjacent = (n.Pos.Row == t.Pos.Row && Math.Abs(n.Pos.Lane - t.Pos.Lane) == 1)
+                                         || (n.Pos.Lane == t.Pos.Lane && Math.Abs(n.Pos.Row - t.Pos.Row) == 1);
+                            if (!adjacent) continue;
+                            n.Statuses[effect.Status] = new StatusState { Power = dot.Power, Turns = Math.Max(1, effect.Amount) };
+                            Emit(EventType.StatusApplied, owner.Id, n.Id, effect.Amount, effect.Status.ToString());
+                        }
+                    }
+                    break;
+                case EffectType.StunGauge:
+                    foreach (var t in affected)
+                    {
+                        if (!t.Alive || t.Side != Side.Enemy) continue;
+                        t.StunGauge += effect.Amount;
+                        if (t.StunGauge >= t.StunGaugeMax)
+                        {
+                            // 昏亂條滿：眩暈 1 回合，條歸零，上限提高（越控越難控）。
+                            t.StunGauge = 0;
+                            t.StunGaugeMax = (int)Math.Round(t.StunGaugeMax * (1.0 + t.StunGrowth), MidpointRounding.AwayFromZero);
+                            t.Statuses[StatusType.Stun] = new StatusState { Turns = 1 };
+                            Emit(EventType.StatusApplied, owner.Id, t.Id, 1, StatusType.Stun.ToString());
+                        }
+                        Emit(EventType.StunGauge, owner.Id, t.Id, t.StunGauge, t.StunGaugeMax.ToString());
                     }
                     break;
                 case EffectType.Draw:
@@ -542,6 +612,21 @@ namespace SanGuo.Core
 
         // ---------------------------------------------------------------- 內部工具
 
+        private Unit SpawnEnemy(EnemyDef def, Position pos)
+        {
+            var unit = CreateUnit(def.Name, Side.Enemy, def.AttackType, def.Base.Clone(), pos);
+            unit.AttackMultiplier = def.AttackMultiplier;
+            unit.Ability = def.Ability;
+            unit.AbilityPower = def.AbilityPower;
+            unit.SummonDef = def.Summons;
+            unit.SummonCap = def.SummonCap;
+            unit.SummonEvery = def.SummonEvery;
+            unit.StunGaugeMax = def.StunGauge;
+            unit.StunGrowth = def.StunGrowth;
+            unit.DefId = def.Id;
+            return unit;
+        }
+
         private Unit CreateUnit(string name, Side side, AttackType attackType, Stats stats, Position pos)
         {
             if (!InBounds(pos)) throw new ArgumentException($"{name} 的位置 {pos} 超出棋盤");
@@ -630,7 +715,7 @@ namespace SanGuo.Core
             if (Result != BattleResult.Ongoing) return true;
             if (!Units.Any(u => u.Side == Side.Enemy && u.Alive))
                 Result = BattleResult.Won;
-            else if (!Units.Any(u => u.Side == Side.Player && u.Alive))
+            else if (!Units.Any(u => u.Side == Side.Player && u.Alive) || Units.Any(u => u.Protected && !u.Alive))
                 Result = BattleResult.Lost;
             else
                 return false;

@@ -143,7 +143,11 @@ namespace SanGuo.Client
         {
             _tagLayer.Clear();
             _tags.Clear();
-            foreach (var unit in _battle.Units)
+            foreach (var unit in _battle.Units) AddTag(unit);
+        }
+
+        private void AddTag(Unit unit)
+        {
             {
                 var tag = new UnitTag { Root = new VisualElement { pickingMode = PickingMode.Ignore } };
                 tag.Root.AddToClassList("tag");
@@ -563,18 +567,23 @@ namespace SanGuo.Client
 
         private void RefreshTags()
         {
+            // 戰鬥中新出現的單位（召喚）補上標籤。
+            foreach (var unit in _battle.Units)
+                if (!_tags.ContainsKey(unit.Id)) AddTag(unit);
             foreach (var unit in _battle.Units)
             {
                 if (!_tags.TryGetValue(unit.Id, out var tag)) continue;
                 tag.Root.style.display = unit.Alive ? DisplayStyle.Flex : DisplayStyle.None;
                 if (!unit.Alive) continue;
 
-                string sub = unit.Hero != null ? CardText.RoleName(unit.Hero.Role) : (unit.AttackType == AttackType.Ranged ? "遠程" : "近戰");
+                string sub = unit.Protected ? "保護目標" : unit.Hero != null ? CardText.RoleName(unit.Hero.Role) : (unit.AttackType == AttackType.Ranged ? "遠程" : "近戰");
                 tag.Name.text = unit.Hero != null ? $"{unit.Name} {sub}" : unit.Name;
                 float ratio = unit.MaxHp <= 0 ? 0 : Mathf.Clamp01(unit.Hp / (float)unit.MaxHp);
                 tag.HpFill.style.width = Length.Percent(ratio * 100f);
                 tag.HpText.text = $"{unit.Hp}/{unit.MaxHp}";
                 var extras = unit.Statuses.Select(s => $"{CardText.StatusName(s.Key)}{s.Value.Turns}").ToList();
+                if (unit.Side == Side.Enemy && unit.Ability.HasFlag(EnemyAbility.Charger))
+                    extras.Add($"昏亂條{unit.StunGauge}/{unit.StunGaugeMax}");
                 foreach (var b in unit.DefBreaks) extras.Add($"破甲{b.Percent * 100:0}%·{b.Turns}");
                 if (unit.Armor > 0) extras.Insert(0, $"護甲{unit.Armor}");
                 tag.Extra.text = string.Join(" ", extras);
@@ -604,7 +613,8 @@ namespace SanGuo.Client
             var intent = _battle.GetIntent(enemy);
             switch (intent.Type)
             {
-                case Intent.Kind.Attack: return $"攻擊→{intent.Target!.Name}";
+                case Intent.Kind.Attack: return intent.Big ? $"大招→{intent.Target!.Name}" : $"攻擊→{intent.Target!.Name}";
+                case Intent.Kind.Charge: return "蓄力中！";
                 case Intent.Kind.Heal: return $"治療→{intent.Target!.Name}";
                 case Intent.Kind.Move: return $"移動→第{intent.MoveTo!.Value.Lane + 1}路";
                 case Intent.Kind.Stunned: return "昏亂";
@@ -666,7 +676,9 @@ namespace SanGuo.Client
 
         private void RefreshHud()
         {
-            _title.text = $"第 {_level} 關　第 {_battle.Turn} 回合";
+            _title.text = _battle.Setup.TurnLimit > 0
+                ? $"第 {_level} 關　第 {_battle.Turn} / {_battle.Setup.TurnLimit} 回合"
+                : $"第 {_level} 關　第 {_battle.Turn} 回合";
             _cost.text = $"費用 {_battle.Cost}/{_battle.Setup.CostCap}";
             _piles.text = $"抽牌 {_battle.DrawPile.Count}　棄牌 {_battle.DiscardPile.Count}　破釜 {_battle.ExhaustPile.Count}";
             _logLabel.text = string.Join("\n", _log.Skip(Math.Max(0, _log.Count - 4)));
@@ -722,6 +734,9 @@ namespace SanGuo.Client
                 case EventType.GainCost: return $"獲得 {e.Value} 費";
                 case EventType.Move: return $"{NameOf(e.Source)} 移動 {e.Text}";
                 case EventType.EnemyMove: return $"{NameOf(e.Source)} 移動 {e.Text}";
+                case EventType.EnemySummon: return $"{NameOf(e.Source)} 召喚了 {NameOf(e.Target)}";
+                case EventType.EnemyCharge: return $"{NameOf(e.Source)} 開始蓄力！";
+                case EventType.StunGauge: return $"{NameOf(e.Target)} 昏亂條 {e.Value}/{e.Text}";
                 case EventType.EnemySkip: return $"{NameOf(e.Source)} 昏亂，無法行動";
                 case EventType.Death: return $"{NameOf(e.Target)} 倒下了";
                 case EventType.BattleEnd: return $"戰鬥結束：{e.Text}";

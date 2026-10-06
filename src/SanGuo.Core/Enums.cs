@@ -11,8 +11,9 @@ namespace SanGuo.Core
 
     public enum AttackType { Melee, Ranged }
 
-    /// <summary>敵人的特殊行動（其餘為普通攻擊）。Healer = 每回合治療血量比例最低的友軍。</summary>
-    public enum EnemyAbility { None, Healer }
+    /// <summary>敵人的特殊行動（其餘為普通攻擊）。Healer = 每回合治療血量比例最低的友軍；Charger = 蓄力一回合、下回合放大招（被昏亂會打斷）。</summary>
+    [Flags]
+    public enum EnemyAbility { None = 0, Healer = 1, Charger = 2, Summoner = 4 }
 
     /// <summary>卡牌如何選出中心目標（見 docs/combat.md 4.1）。</summary>
     public enum TargetRule
@@ -30,7 +31,7 @@ namespace SanGuo.Core
     /// <summary>以中心目標展開的範圍形狀。</summary>
     public enum Shape { Single, Row, Column, Cross, All }
 
-    public enum EffectType { Damage, Heal, Armor, ApplyStatus, Draw, GainCost }
+    public enum EffectType { Damage, Heal, Armor, ApplyStatus, Draw, GainCost, StunGauge, Detonate }
 
     public enum StatusType { Burn, Poison, Stun, ArmorBreak, Taunt }
 
@@ -76,6 +77,12 @@ namespace SanGuo.Core
         EnemyAttack,
         EnemyMove,
         EnemySkip,
+        /// <summary>敵人開始蓄力（意圖預告下回合大招）。</summary>
+        EnemyCharge,
+        /// <summary>敵人召喚了新單位（Source = 召喚者、Target = 新單位）。</summary>
+        EnemySummon,
+        /// <summary>昏亂條變動：Value = 目前值，Text = 上限。</summary>
+        StunGauge,
         BattleEnd,
     }
 }

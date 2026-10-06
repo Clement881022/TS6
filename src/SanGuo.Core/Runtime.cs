@@ -30,10 +30,23 @@ namespace SanGuo.Core
         public int Armor;
         public Position Pos;
         public bool Alive = true;
+        /// <summary>保護目標（陣亡即失敗）。</summary>
+        public bool Protected;
         /// <summary>僅敵人使用：普通攻擊倍率。</summary>
         public double AttackMultiplier = 1.0;
         public EnemyAbility Ability;
+        public EnemyDef? SummonDef;
+        public int SummonCap = 6;
+        /// <summary>每 N 次行動召喚一次（1 = 每次行動都召喚）。</summary>
+        public int SummonEvery = 1;
+        /// <summary>已執行的行動次數（被昏亂跳過的不算），用來排行動週期。</summary>
+        public int Actions;
         public double AbilityPower;
+        public int StunGauge;
+        public int StunGaugeMax = 100;
+        public double StunGrowth = 0.5;
+        /// <summary>敵人蓄力中：下一次行動放大招。</summary>
+        public bool Charging;
         public HeroDef? Hero;
         public Dictionary<StatusType, StatusState> Statuses = new Dictionary<StatusType, StatusState>();
 
@@ -92,9 +105,11 @@ namespace SanGuo.Core
 
     public sealed class Intent
     {
-        public enum Kind { Attack, Move, Stunned, Heal, None }
+        public enum Kind { Attack, Move, Stunned, Heal, Charge, Summon, None }
 
         public Kind Type;
+        /// <summary>true = 這次攻擊是蓄力後的大招。</summary>
+        public bool Big;
         public Unit? Target;
         public Position? MoveTo;
     }

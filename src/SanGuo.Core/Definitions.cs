@@ -81,6 +81,16 @@ namespace SanGuo.Core
         /// <summary>普通攻擊的攻擊力倍率。</summary>
         public double AttackMultiplier = 1.0;
         public EnemyAbility Ability = EnemyAbility.None;
+        /// <summary>召喚者每次召喚的單位。</summary>
+        public EnemyDef? Summons;
+        /// <summary>場上敵人達到這個數量就不再召喚。</summary>
+        public int SummonCap = 6;
+        /// <summary>每 N 次行動召喚一次（1 = 每次行動都召喚）。</summary>
+        public int SummonEvery = 1;
+        /// <summary>昏亂條上限（滿了才會眩暈）。</summary>
+        public int StunGauge = 100;
+        /// <summary>每次被眩暈後昏亂條上限增加的比例（0.5 = +50%），避免連續控制。</summary>
+        public double StunGrowth = 0.5;
         /// <summary>特殊行動的攻擊力倍率（Healer = 治療量）。</summary>
         public double AbilityPower;
     }
@@ -90,6 +100,10 @@ namespace SanGuo.Core
         public HeroDef Def;
         public Position Pos;
         public int Level = 1;
+        /// <summary>保護目標：這個單位陣亡就算失敗（護送關卡）。</summary>
+        public bool IsProtected;
+        /// <summary>開局血量百分比（100 = 滿血；護送關卡的傷者用）。</summary>
+        public int StartHpPercent = 100;
 
         public HeroSlot(HeroDef def, Position pos, int level = 1)
         {

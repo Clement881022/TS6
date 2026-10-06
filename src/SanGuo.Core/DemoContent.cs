@@ -16,6 +16,8 @@ namespace SanGuo.Core
         private static EffectDef Status(StatusType type, double power, int turns, bool self = false) =>
             new EffectDef { Type = EffectType.ApplyStatus, Status = type, Multiplier = power, Amount = turns, OnSelf = self };
         private static EffectDef Draw(int n) => new EffectDef { Type = EffectType.Draw, Amount = n, OnSelf = true };
+        private static EffectDef Detonate(StatusType type, int spreadTurns) => new EffectDef { Type = EffectType.Detonate, Status = type, Amount = spreadTurns };
+        private static EffectDef StunGauge(int n) => new EffectDef { Type = EffectType.StunGauge, Amount = n };
         private static EffectDef Gain(int n) => new EffectDef { Type = EffectType.GainCost, Amount = n, OnSelf = true };
 
         /// <summary>專屬技能牌。</summary>
@@ -47,15 +49,16 @@ namespace SanGuo.Core
             var guard = Basic("zf_guard", "鐵壁", 1, TargetRule.Self, Armor(1.5));
             var taunt = Card("zf_taunt", "燕人怒吼", 1, TargetRule.Self, Shape.Single, CardKeywords.Innate,
                 Status(StatusType.Taunt, 0, 3, self: true), Armor(3.0));
-            var roar = Card("zf_roar", "當陽橋喝斷", 3, TargetRule.EnemyFront, Shape.Row, CardKeywords.Exhaust,
-                Dmg(1.4), Status(StatusType.Stun, 0, 1));
+            var roar = Card("zf_roar", "當陽橋喝斷", 3, TargetRule.EnemyFront, Shape.Row, CardKeywords.Innate | CardKeywords.Retain,
+                Dmg(1.4), StunGauge(60));
+            var howl = Card("zf_howl", "虎吼", 1, TargetRule.EnemyFront, Shape.Single, CardKeywords.Innate, StunGauge(40));
             var breakArmor = Card("zf_break", "蛇矛破陣", 1, TargetRule.EnemyFront, Shape.Single, CardKeywords.None,
                 Dmg(0.6), Status(StatusType.ArmorBreak, 0.5, 4));
             return new HeroDef
             {
                 Id = "zhangfei", Name = "張飛", Role = Role.Tank, Rarity = Rarity.UR, AttackType = AttackType.Melee,
                 Base = new Stats { Hp = 1200, Atk = 135, Def = 70, Dodge = 0, Speed = 1, Crit = 5, CritDmg = 150 },
-                Deck = new List<CardDef> { attack, guard, guard, taunt, roar, breakArmor },
+                Deck = new List<CardDef> { attack, guard, guard, taunt, roar, breakArmor, howl },
             };
         }
 
@@ -79,7 +82,8 @@ namespace SanGuo.Core
         public static HeroDef LiuBei()
         {
             var attack = Basic("lb_attack", "雙股劍", 1, TargetRule.EnemyFront, Dmg(0.9));
-            var guard = Basic("lb_guard", "仁者護佑", 1, TargetRule.AllyLowestHp, Armor(1.8, self: false));
+            var guard = Card("lb_guard", "仁者護佑", 1, TargetRule.AllyLowestHp, Shape.Single, CardKeywords.Innate, Armor(1.8, self: false));
+            guard.Basic = true;
             var heal = Basic("lb_heal", "撫慰", 1, TargetRule.AllyLowestHp, Heal(1.5));
             var virtue = Card("lb_virtue", "仁德", 2, TargetRule.AllyLowestHp, Shape.Single, CardKeywords.None, Heal(3.0));
             var rally = Card("lb_rally", "桃園結義", 3, TargetRule.AllAllies, Shape.All, CardKeywords.Exhaust,
@@ -96,15 +100,17 @@ namespace SanGuo.Core
         {
             var staff = Basic("zgl_attack", "羽扇輕搖", 1, TargetRule.EnemyBack, Dmg(1.0));
             var guard = Basic("zgl_guard", "八卦護身", 1, TargetRule.Self, Armor(0.9));
-            var fire = Card("zgl_fire", "火計", 2, TargetRule.EnemyFront, Shape.Cross, CardKeywords.None,
-                Dmg(0.7), Status(StatusType.Burn, 0.4, 3));
+            var fire = Card("zgl_fire", "火計", 2, TargetRule.EnemyFront, Shape.Cross, CardKeywords.Innate,
+                Dmg(0.7), Status(StatusType.Burn, 1.0, 3));
+            var inferno = Card("zgl_inferno", "火燒連營", 1, TargetRule.EnemyFront, Shape.All, CardKeywords.Innate,
+                Detonate(StatusType.Burn, 2));
             var plan = Card("zgl_plan", "錦囊妙計", 0, TargetRule.Self, Shape.Single, CardKeywords.Exhaust, Draw(2));
             var tempo = Card("zgl_tempo", "運籌帷幄", 0, TargetRule.Self, Shape.Single, CardKeywords.Exhaust, Gain(2));
             return new HeroDef
             {
                 Id = "zhugeliang", Name = "諸葛亮", Role = Role.Strategist, Rarity = Rarity.UR, AttackType = AttackType.Ranged,
                 Base = new Stats { Hp = 680, Atk = 165, Def = 25, Dodge = 10, Speed = 1, Crit = 10, CritDmg = 150 },
-                Deck = new List<CardDef> { staff, staff, guard, fire, plan, tempo },
+                Deck = new List<CardDef> { staff, staff, guard, fire, plan, tempo, inferno },
             };
         }
 
@@ -112,7 +118,7 @@ namespace SanGuo.Core
         {
             var strike = Basic("zy_attack", "龍膽突刺", 1, TargetRule.EnemyFront, Dmg(1.3));
             var guard = Basic("zy_guard", "游龍身法", 1, TargetRule.Self, Armor(0.8));
-            var ult = Card("zy_ult", "七進七出", 3, TargetRule.EnemyFront, Shape.Column, CardKeywords.Exhaust, Dmg(2.0));
+            var ult = Card("zy_ult", "七進七出", 3, TargetRule.EnemyFront, Shape.Column, CardKeywords.Innate | CardKeywords.Retain, Dmg(2.0));
             return new HeroDef
             {
                 Id = "zhaoyun", Name = "趙雲", Role = Role.Warrior, Rarity = Rarity.UR, AttackType = AttackType.Melee,
@@ -187,6 +193,14 @@ namespace SanGuo.Core
             };
         }
 
+        /// <summary>第 6 關的保護目標「鄉民」：沒有牌，只能被保護。</summary>
+        public static HeroDef Villager() => new HeroDef
+        {
+            Id = "r_villager", Name = "鄉民", Role = Role.Tank, Rarity = Rarity.R, AttackType = AttackType.Melee,
+            Base = new Stats { Hp = 500, Atk = 0, Def = 0, Speed = 1, Crit = 0, CritDmg = 150 },
+            Deck = new List<CardDef>(),
+        };
+
         /// <summary>所有可上場武將（編隊用），依稀有度與登場順序排列。</summary>
         public static List<HeroDef> Roster() => new List<HeroDef>
         {
@@ -205,7 +219,7 @@ namespace SanGuo.Core
         public static EnemyDef YellowTurbanArcher() => new EnemyDef
         {
             Id = "yt_archer", Name = "黃巾弓手", AttackType = AttackType.Ranged, AttackMultiplier = 1.0,
-            Base = new Stats { Hp = 200, Atk = 180, Def = 10, Speed = 1, Crit = 5, CritDmg = 150 },
+            Base = new Stats { Hp = 200, Atk = 165, Def = 10, Speed = 1, Crit = 5, CritDmg = 150 },
         };
 
         /// <summary>第 2 關用的精準弓手：攻擊高、血量中等，每回合都會重創後排。</summary>
@@ -230,6 +244,40 @@ namespace SanGuo.Core
             Base = new Stats { Hp = 300, Atk = 200, Def = 10, Speed = 1, Crit = 0, CritDmg = 150 },
         };
 
+        /// <summary>精英「黃巾渠帥」：蓄力一回合、下回合放大招；被昏亂（昏亂條滿）會打斷蓄力。</summary>
+        public static EnemyDef YellowTurbanChief() => new EnemyDef
+        {
+            Id = "yt_chief", Name = "黃巾渠帥", AttackType = AttackType.Melee, AttackMultiplier = 1.0,
+            Ability = EnemyAbility.Charger, AbilityPower = 8.0, StunGauge = 100, StunGrowth = 0.5,
+            Base = new Stats { Hp = 800, Atk = 220, Def = 40, Speed = 1, Crit = 0, CritDmg = 150 },
+        };
+
+        /// <summary>第 8 關的符水術士：躲在後排，每回合召喚一名黃巾兵。</summary>
+        public static EnemyDef YellowTurbanWarlock() => new EnemyDef
+        {
+            Id = "yt_warlock", Name = "符水術士", AttackType = AttackType.Ranged, AttackMultiplier = 0.8,
+            Ability = EnemyAbility.Summoner, Summons = YellowTurbanSoldier(), SummonCap = 7,
+            Base = new Stats { Hp = 300, Atk = 160, Def = 10, Speed = 1, Crit = 0, CritDmg = 150 },
+        };
+
+        /// <summary>第 9 關的副將：和渠帥一樣蓄力大招，但昏亂條較短（60）。</summary>
+        public static EnemyDef YellowTurbanLieutenant() => new EnemyDef
+        {
+            Id = "yt_lieutenant", Name = "黃巾副將", AttackType = AttackType.Melee, AttackMultiplier = 1.0,
+            Ability = EnemyAbility.Charger, AbilityPower = 8.0, StunGauge = 60, StunGrowth = 0.5,
+            Base = new Stats { Hp = 500, Atk = 220, Def = 40, Speed = 1, Crit = 0, CritDmg = 150 },
+        };
+
+        /// <summary>第 10 關 BOSS「張角」：蓄力 → 大招 → 召喚 輪流，昏亂條很長。</summary>
+        public static EnemyDef ZhangJiao() => new EnemyDef
+        {
+            Id = "yt_zhangjiao", Name = "張角", AttackType = AttackType.Ranged, AttackMultiplier = 1.0,
+            Ability = EnemyAbility.Charger | EnemyAbility.Summoner, AbilityPower = 8.0,
+            Summons = YellowTurbanSoldier(), SummonEvery = 3, SummonCap = 5,
+            StunGauge = 100, StunGrowth = 0.5,
+            Base = new Stats { Hp = 1800, Atk = 220, Def = 40, Speed = 1, Crit = 0, CritDmg = 150 },
+        };
+
         public static EnemyDef YellowTurbanBrute() => new EnemyDef
         {
             Id = "yt_brute", Name = "黃巾力士", AttackType = AttackType.Melee, AttackMultiplier = 1.3,
@@ -244,7 +292,7 @@ namespace SanGuo.Core
         };
 
         /// <summary>已實作的關卡數（其餘在地圖上顯示為尚未開放）。</summary>
-        public const int ChapterLevelCount = 4;
+        public const int ChapterLevelCount = 10;
 
         /// <summary>教學關寫死的起手牌序（每次抽牌堆重建時，這幾張排最前面）。</summary>
         private static List<string> TutorialDraw(int level)
@@ -254,6 +302,12 @@ namespace SanGuo.Core
                 case 2: return new List<string> { "zf_taunt", "r_mil_attack", "r_arc_attack", "zf_attack", "r_hlr_heal" };
                 case 3: return new List<string> { "gy_break", "hz_pierce", "gy_attack", "hz_attack", "r_hlr_heal" };
                 case 4: return new List<string> { "hz_snipe", "r_mil_attack", "r_shd_attack", "hz_attack", "r_hlr_heal" };
+                case 5: return new List<string> { "zf_howl", "zf_roar", "r_hlr_heal", "r_arc_attack", "zf_attack" };
+                case 6: return new List<string> { "lb_guard", "r_arc_attack", "lb_attack", "r_shd_attack", "lb_heal" };
+                case 9: return new List<string> { "zf_howl", "hz_snipe", "zf_roar", "r_shd_attack", "r_hlr_heal" };
+                case 10: return new List<string> { "zf_howl", "zf_roar", "zy_ult", "hz_snipe", "lb_guard" };
+                case 8: return new List<string> { "zy_ult", "r_mil_attack", "zy_attack", "r_shd_attack", "r_hlr_heal" };
+                case 7: return new List<string> { "zgl_fire", "zgl_inferno", "r_mil_attack", "r_shd_attack", "r_hlr_heal" };
                 default: return new List<string>();
             }
         }
@@ -264,6 +318,8 @@ namespace SanGuo.Core
             // 第一章每一關都是教學關：不開放自動戰鬥。
             var setup = new BattleSetup { Seed = seed, AutoAllowed = false };
             if (level == 3) setup.TurnLimit = 11;
+            if (level == 7) setup.TurnLimit = 4;
+            if (level == 8) setup.TurnLimit = 2; // 援軍源源不絕：兩回合內不斬首術士就守不住
             // 教學關：小兵湊數，只讓一兩名武將帶著該關要教的技能卡上場（編隊鎖定，之後再開放）。
             setup.FormationLocked = true;
             // 教學關：牌序寫死、沒有爆擊閃避，結果完全可重現（每次抽牌堆重建，教學卡都排在最前面）。
@@ -287,6 +343,44 @@ namespace SanGuo.Core
                     setup.Heroes.Add(new HeroSlot(MilitiaSoldier(), new Position(1, 0)));
                     setup.Heroes.Add(new HeroSlot(HuangZhong(), new Position(1, 1)));
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
+                    break;
+                case 5: // 張飛（虎吼 / 當陽橋喝斷・先登）：用昏亂條打斷渠帥的蓄力大招
+                    setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
+                    setup.Heroes.Add(new HeroSlot(ZhangFei(), new Position(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaArcher(), new Position(1, 1)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
+                    break;
+                case 6: // 劉備（仁者護佑・先登）：用護甲保護後排的鄉民（鄉民受傷（60% 血），所以是「血量比例最低的隊友」）
+                {
+                    setup.Heroes.Add(new HeroSlot(Villager(), new Position(0, 1)) { IsProtected = true, StartHpPercent = 60 });
+                    setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
+                    setup.Heroes.Add(new HeroSlot(LiuBei(), new Position(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaArcher(), new Position(1, 1)));
+                    break;
+                }
+                case 7: // 諸葛亮（火計 / 火燒連營・先登）：先放火再引爆，火勢蔓延整排敵人
+                    setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaSoldier(), new Position(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(ZhugeLiang(), new Position(1, 1)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
+                    break;
+                case 8: // 趙雲（七進七出・先登）：縱列穿透，一槍連前排帶後排的術士
+                    setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
+                    setup.Heroes.Add(new HeroSlot(ZhaoYun(), new Position(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaSoldier(), new Position(2, 0)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(1, 1)));
+                    break;
+                case 9: // 綜合：張飛（昏亂）＋ 黃忠（後排）＋小兵；雙渠帥蓄力、妖道治療
+                    setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
+                    setup.Heroes.Add(new HeroSlot(ZhangFei(), new Position(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(HuangZhong(), new Position(1, 1)));
+                    setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
+                    break;
+                case 10: // BOSS：四名武將齊上
+                    setup.Heroes.Add(new HeroSlot(ZhangFei(), new Position(0, 0)));
+                    setup.Heroes.Add(new HeroSlot(ZhaoYun(), new Position(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(HuangZhong(), new Position(1, 1)));
+                    setup.Heroes.Add(new HeroSlot(LiuBei(), new Position(2, 1)));
                     break;
                 default: // 關羽（斷甲・先登）＋黃忠（穿甲箭・先登）
                     setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
@@ -318,6 +412,34 @@ namespace SanGuo.Core
                     setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(1, 0)));
                     setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(2, 0)));
                     setup.Enemies.Add(new EnemySlot(YellowTurbanPriest(), new Position(2, 1)));
+                    break;
+                case 5: // 渠帥來襲：蓄力 → 大招；昏亂條滿才能打斷
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanChief(), new Position(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(0, 0)));
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(2, 0)));
+                    break;
+                case 6: // 護送鄉民：兩名弓手專打後排的鄉民，鄉民陣亡即失敗
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(0, 0)));
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanArcher(), new Position(1, 1)));
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanArcher(), new Position(3, 1)));
+                    break;
+                case 7: // 火燒連營：五名黃巾兵擠成一排，單打太慢，要靠火勢蔓延
+                    for (int lane = 0; lane < 5; lane++)
+                        setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(lane, 0)));
+                    break;
+                case 8: // 符水妖術：術士每回合召喚黃巾兵，不處理就會被淹沒
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanWarlock(), new Position(1, 1)));
+                    break;
+                case 9: // 雙渠帥：兩名蓄力的將領，加一名後排治療的妖道
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanChief(), new Position(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanLieutenant(), new Position(3, 0)));
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanPriest(), new Position(2, 1)));
+                    break;
+                case 10: // 黃巾之首：張角蓄力 → 大招 → 召喚，兩側各一名黃巾兵
+                    setup.Enemies.Add(new EnemySlot(ZhangJiao(), new Position(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(0, 0)));
+                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), new Position(3, 0)));
                     break;
                 default:
                     throw new System.ArgumentOutOfRangeException(nameof(level));
