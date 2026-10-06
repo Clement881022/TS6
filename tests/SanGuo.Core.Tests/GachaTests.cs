@@ -6,7 +6,7 @@ namespace SanGuo.Core.Tests
 {
     public class GachaTests
     {
-        private static GachaPool Pool(string up = "", int hardPity = 0, bool newbie = false) => new GachaPool
+        private static GachaPool Pool(string up = "", int hardPity = 80, bool newbie = false) => new GachaPool
         {
             Id = newbie ? "newbie" : "std",
             UrHeroes = { "ur1", "ur2", "ur3" },
@@ -21,6 +21,7 @@ namespace SanGuo.Core.Tests
         public void Rates_MatchDisclosed_OverManySingles()
         {
             var pool = Pool();
+            pool.HardPityUr = 0; // 看基礎機率
             var state = new PoolState();
             var rng = new Rng(1);
             int n = 200_000;
@@ -81,9 +82,10 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void UpPool_UrIsUpAboutHalf_WithoutPityCarry()
+        public void UpPool_WithoutGuarantee_UrIsUpAboutHalf_NoCarry()
         {
             var pool = Pool(up: "ur1");
+            pool.UpGuarantee = false;
             pool.UrRateBp = 10000; // 每抽都是 UR，方便統計 UP 比例
             var state = new PoolState();
             var rng = new Rng(11);
@@ -122,14 +124,86 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void HardPity_DisabledByDefault()
+        public void HardPity_CanBeDisabled()
         {
             var pool = Pool();
+            pool.HardPityUr = 0;
             pool.UrRateBp = 0;
             var state = new PoolState();
             var rng = new Rng(5);
             for (int i = 0; i < 500; i++)
                 Assert.NotEqual(Rarity.UR, Gacha.Roll(pool, state, 1, rng)[0].Rarity);
+        }
+
+        [Fact]
+        public void Defaults_HardPity80_AndUpGuaranteeOn()
+        {
+            var pool = new GachaPool();
+            Assert.Equal(80, pool.HardPityUr);
+            Assert.True(pool.UpGuarantee);
+        }
+
+        [Fact]
+        public void UpGuarantee_AfterMiss_NextUrIsAlwaysUp()
+        {
+            var pool = Pool(up: "ur1");
+            pool.UrRateBp = 10000;
+            var state = new PoolState();
+            var rng = new Rng(21);
+            bool prevMiss = false;
+            int misses = 0;
+            for (int i = 0; i < 20_000; i++)
+            {
+                var r = Gacha.Roll(pool, state, 1, rng)[0];
+                if (prevMiss)
+                {
+                    Assert.True(r.IsUp);
+                    Assert.True(r.FromPity);
+                }
+                if (!r.IsUp) misses++;
+                prevMiss = !r.IsUp;
+            }
+            Assert.True(misses > 0);
+        }
+
+        [Fact]
+        public void UpGuarantee_CostsAbout1Point5UrPerUp()
+        {
+            var pool = Pool(up: "ur1");
+            pool.UrRateBp = 10000;
+            var state = new PoolState();
+            var rng = new Rng(33);
+            int n = 60_000, up = 0;
+            for (int i = 0; i < n; i++) if (Gacha.Roll(pool, state, 1, rng)[0].IsUp) up++;
+            Assert.InRange(n / (double)up, 1.45, 1.55);
+        }
+
+        [Fact]
+        public void HardPity80_RaisesEffectiveUrRateTo_AboutOnePer30()
+        {
+            var pool = Pool();
+            var state = new PoolState();
+            var rng = new Rng(8);
+            int n = 300_000, ur = 0, maxGap = 0, gap = 0;
+            for (int i = 0; i < n; i++)
+            {
+                var r = Gacha.Roll(pool, state, 1, rng)[0];
+                gap++;
+                if (r.Rarity == Rarity.UR) { ur++; maxGap = System.Math.Max(maxGap, gap); gap = 0; }
+            }
+            Assert.InRange(n / (double)ur, 29.5, 31.3); // 理論 30.4
+            Assert.True(maxGap <= 80);
+        }
+
+        [Fact]
+        public void PityDescription_MentionsActiveRules()
+        {
+            var text = Pool(up: "ur1").PityDescription();
+            Assert.Contains("80", text);
+            Assert.Contains("UP", text);
+            Assert.Contains("十連", text);
+            Assert.DoesNotContain("首次十連必定", text);
+            Assert.Contains("首次十連必定", Pool(newbie: true).PityDescription());
         }
 
         [Fact]

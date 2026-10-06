@@ -18,9 +18,12 @@ namespace SanGuo.Core.Meta
         public List<string> SrHeroes = new List<string>();
         public List<string> RHeroes = new List<string>();
 
-        /// <summary>UP 的 UR（空 = 常駐池）。出 UR 時有 <see cref="UpRateBp"/> 機率為 UP，未中不保底。</summary>
+        /// <summary>UP 的 UR（空 = 常駐池）。出 UR 時有 <see cref="UpRateBp"/> 機率為 UP；未中時依 <see cref="UpGuarantee"/> 決定下一隻 UR 是否必為 UP（大小保底）。</summary>
         public string UpUr = "";
         public int UpRateBp = 5000;
+
+        /// <summary>大小保底：上一隻 UR 沒中 UP，下一隻 UR 必為 UP（2026-10-07 採用，見 gacha.md 第 7 節）。</summary>
+        public bool UpGuarantee = true;
 
         public int SingleCost = 200;
         public int TenCost = 2000;
@@ -28,11 +31,26 @@ namespace SanGuo.Core.Meta
         /// <summary>十連至少 1 張 SR（含以上）。</summary>
         public bool TenPullGuaranteesSr = true;
 
-        /// <summary>硬保底：連續這麼多抽未出 UR 時下一抽必出 UR；0 = 停用（目前暫無，之後可調）。</summary>
-        public int HardPityUr;
+        /// <summary>硬保底：連續這麼多抽未出 UR 時下一抽必出 UR；0 = 停用。預設 80（2026-10-07 採用）。</summary>
+        public int HardPityUr = 80;
 
         /// <summary>新手池：玩家在本池的第一次十連至少 1 張 UR。</summary>
         public bool FirstTenGuaranteesUr;
+
+        /// <summary>保底規則公示文字（機率公示須同時說明保底，合規要求與實際一致）。</summary>
+        public string PityDescription()
+        {
+            var parts = new List<string>();
+            if (TenPullGuaranteesSr) parts.Add("十連至少獲得 1 名 SR 以上武將");
+            if (HardPityUr > 0) parts.Add($"連續 {HardPityUr} 次未獲得 UR，第 {HardPityUr} 次必定獲得 UR");
+            if (!string.IsNullOrEmpty(UpUr))
+            {
+                parts.Add($"獲得 UR 時有 {UpRateBp / 100.0:0.##}% 機率為 UP 武將");
+                if (UpGuarantee) parts.Add("上一名 UR 未獲得 UP 武將時，下一名 UR 必定為 UP 武將");
+            }
+            if (FirstTenGuaranteesUr) parts.Add("首次十連必定獲得 1 名 UR");
+            return string.Join("；", parts);
+        }
 
         /// <summary>每個稀有度的機率公示（合規：公示值必須與實際一致，所以由同一份資料產生）。</summary>
         public Dictionary<Rarity, double> DisclosedRates()
@@ -51,6 +69,8 @@ namespace SanGuo.Core.Meta
     public sealed class PoolState
     {
         public int PullsSinceUr;
+        /// <summary>true = 上一隻 UR 沒中 UP，下一隻 UR 必為 UP（大小保底）。</summary>
+        public bool UpGuaranteed;
         public int TotalPulls;
         public int TenPulls;
     }
@@ -124,8 +144,8 @@ namespace SanGuo.Core.Meta
                     fromPity = true;
                 }
 
-                var res = Pick(pool, rarity, rng);
-                res.FromPity = fromPity;
+                var res = Pick(pool, state, rarity, rng);
+                res.FromPity = res.FromPity || fromPity;
                 results.Add(res);
 
                 state.TotalPulls++;
@@ -187,7 +207,7 @@ namespace SanGuo.Core.Meta
             return Rarity.R;
         }
 
-        private static PullResult Pick(GachaPool pool, Rarity rarity, Rng rng)
+        private static PullResult Pick(GachaPool pool, PoolState state, Rarity rarity, Rng rng)
         {
             var res = new PullResult { Rarity = rarity };
             if (rarity == Rarity.UR)
@@ -195,8 +215,11 @@ namespace SanGuo.Core.Meta
                 if (!string.IsNullOrEmpty(pool.UpUr))
                 {
                     var others = pool.UrHeroes.Where(h => h != pool.UpUr).ToList();
-                    bool up = others.Count == 0 || rng.Next(10000) < pool.UpRateBp;
+                    bool guaranteed = pool.UpGuarantee && state.UpGuaranteed;
+                    bool up = others.Count == 0 || guaranteed || rng.Next(10000) < pool.UpRateBp;
                     res.IsUp = up;
+                    if (guaranteed) res.FromPity = true;
+                    state.UpGuaranteed = pool.UpGuarantee && !up;
                     res.HeroId = up ? pool.UpUr : others[rng.Next(others.Count)];
                 }
                 else
