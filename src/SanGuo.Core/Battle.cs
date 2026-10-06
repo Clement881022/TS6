@@ -56,10 +56,18 @@ namespace SanGuo.Core
                 unit.DefId = slot.Def.Id;
             }
 
-            Shuffle(allCards);
-            // 先登：開局必在起手牌，穩定地排到抽牌堆最前面。
-            DrawPile.AddRange(allCards.Where(c => (c.Def.Keywords & CardKeywords.Innate) != 0));
-            DrawPile.AddRange(allCards.Where(c => (c.Def.Keywords & CardKeywords.Innate) == 0));
+            if (setup.ScriptedDraw.Count > 0)
+            {
+                DrawPile.AddRange(allCards);
+                OrderByScript(DrawPile);
+            }
+            else
+            {
+                Shuffle(allCards);
+                // 先登：開局必在起手牌，穩定地排到抽牌堆最前面。
+                DrawPile.AddRange(allCards.Where(c => (c.Def.Keywords & CardKeywords.Innate) != 0));
+                DrawPile.AddRange(allCards.Where(c => (c.Def.Keywords & CardKeywords.Innate) == 0));
+            }
 
             StartPlayerTurn();
         }
@@ -404,12 +412,12 @@ namespace SanGuo.Core
 
         private void DealAttackDamage(Unit attacker, Unit target, double multiplier)
         {
-            if (Rng.Roll(target.Stats.Dodge))
+            if (!Setup.NoRandomness && Rng.Roll(target.Stats.Dodge))
             {
                 Emit(EventType.Dodge, attacker.Id, target.Id, 0, "");
                 return;
             }
-            bool crit = Rng.Roll(attacker.Stats.Crit);
+            bool crit = !Setup.NoRandomness && Rng.Roll(attacker.Stats.Crit);
             int dmg = DamageCalc.Compute(attacker.Stats.Atk, multiplier, target.EffectiveDef,
                 crit, attacker.Stats.CritDmg);
             if (target.Has(StatusType.Taunt))
@@ -487,7 +495,8 @@ namespace SanGuo.Core
                 if (DiscardPile.Count == 0) return false;
                 DrawPile.AddRange(DiscardPile);
                 DiscardPile.Clear();
-                Shuffle(DrawPile);
+                if (Setup.ScriptedDraw.Count > 0) OrderByScript(DrawPile);
+                else Shuffle(DrawPile);
             }
             var card = DrawPile[0];
             DrawPile.RemoveAt(0);
@@ -501,6 +510,23 @@ namespace SanGuo.Core
                 ExhaustPile.Add(card);
             else
                 DiscardPile.Add(card);
+        }
+
+        /// <summary>依 ScriptedDraw 排序：腳本裡的卡牌 id 依序排最前面，其餘維持原順序。</summary>
+        private void OrderByScript(List<CardInstance> list)
+        {
+            var rest = new List<CardInstance>(list);
+            var ordered = new List<CardInstance>();
+            foreach (var id in Setup.ScriptedDraw)
+            {
+                var card = rest.FirstOrDefault(c => c.Def.Id == id);
+                if (card == null) continue;
+                ordered.Add(card);
+                rest.Remove(card);
+            }
+            ordered.AddRange(rest);
+            list.Clear();
+            list.AddRange(ordered);
         }
 
         private void Shuffle(List<CardInstance> list)

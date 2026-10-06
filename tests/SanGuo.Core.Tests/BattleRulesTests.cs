@@ -514,8 +514,8 @@ namespace SanGuo.Core.Tests
             var smart = RunLevel(3, TutorialPriority);
             var ignore = RunLevel(3, IgnoreTutorialPriority);
             _out.WriteLine($"第 3 關 照教學打 {smart}｜忽略教學 {ignore}");
-            Assert.True(smart.WinRate >= 95, $"照教學打勝率太低（目標 100%）：{smart}");
-            Assert.True(ignore.WinRate <= 50, $"忽略教學勝率太高：{ignore}");
+            Assert.True(smart.WinRate >= 100, $"照教學打沒有 100%：{smart}");
+            Assert.True(ignore.WinRate <= 10, $"忽略教學勝率太高：{ignore}");
         }
 
         [Fact]
@@ -524,8 +524,8 @@ namespace SanGuo.Core.Tests
             var smart = RunLevel(2, TutorialPriority);
             var ignore = RunLevel(2, IgnoreTutorialPriority);
             _out.WriteLine($"第 2 關 照教學打 {smart}｜忽略教學 {ignore}");
-            Assert.True(smart.WinRate >= 99, $"照教學打勝率太低（目標 100%）：{smart}");
-            Assert.True(ignore.WinRate <= 70, $"忽略教學勝率太高：{ignore}");
+            Assert.True(smart.WinRate >= 100, $"照教學打沒有 100%：{smart}");
+            Assert.True(ignore.WinRate <= 10, $"忽略教學勝率太高：{ignore}");
             Assert.True(smart.Alive / smart.Total >= ignore.Alive / ignore.Total + 1.5, "挑釁沒有明顯保住後排");
         }
 
@@ -535,8 +535,8 @@ namespace SanGuo.Core.Tests
             var smart = RunLevel(4, TutorialPriority);
             var ignore = RunLevel(4, IgnoreTutorialPriority);
             _out.WriteLine($"第 4 關 照教學打 {smart}｜忽略教學 {ignore}");
-            Assert.True(smart.WinRate >= 99, $"照教學打勝率太低（目標 100%）：{smart}");
-            Assert.True(ignore.WinRate <= 50, $"忽略教學勝率太高：{ignore}");
+            Assert.True(smart.WinRate >= 100, $"照教學打沒有 100%：{smart}");
+            Assert.True(ignore.WinRate <= 10, $"忽略教學勝率太高：{ignore}");
         }
 
         [Fact]

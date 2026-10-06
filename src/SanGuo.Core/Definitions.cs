@@ -128,6 +128,13 @@ namespace SanGuo.Core
         public bool AutoAllowed = true;
         /// <summary>true = 隊伍與站位由關卡決定，玩家不能編隊（教學關）。</summary>
         public bool FormationLocked;
+        /// <summary>
+        /// 教學關用的寫死牌序：每次抽牌堆重建（開局與重洗）時，這些卡牌 id 依序排在最前面，
+        /// 其餘維持套牌順序，不隨機洗牌。空 = 一般隨機洗牌。
+        /// </summary>
+        public List<string> ScriptedDraw = new List<string>();
+        /// <summary>true = 沒有爆擊與閃避（教學關：結果完全可重現）。</summary>
+        public bool NoRandomness;
         public List<HeroSlot> Heroes = new List<HeroSlot>();
         public List<EnemySlot> Enemies = new List<EnemySlot>();
     }

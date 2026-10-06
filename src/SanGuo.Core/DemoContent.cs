@@ -212,7 +212,7 @@ namespace SanGuo.Core
         public static EnemyDef YellowTurbanSharpshooter() => new EnemyDef
         {
             Id = "yt_sharpshooter", Name = "黃巾神射", AttackType = AttackType.Ranged, AttackMultiplier = 1.0,
-            Base = new Stats { Hp = 450, Atk = 470, Def = 10, Speed = 1, Crit = 5, CritDmg = 150 },
+            Base = new Stats { Hp = 450, Atk = 540, Def = 10, Speed = 1, Crit = 5, CritDmg = 150 },
         };
 
         /// <summary>第 3 關用的鐵甲力士：防禦極高，不破甲幾乎打不動。</summary>
@@ -246,6 +246,18 @@ namespace SanGuo.Core
         /// <summary>已實作的關卡數（其餘在地圖上顯示為尚未開放）。</summary>
         public const int ChapterLevelCount = 4;
 
+        /// <summary>教學關寫死的起手牌序（每次抽牌堆重建時，這幾張排最前面）。</summary>
+        private static List<string> TutorialDraw(int level)
+        {
+            switch (level)
+            {
+                case 2: return new List<string> { "zf_taunt", "r_mil_attack", "r_arc_attack", "zf_attack", "r_hlr_heal" };
+                case 3: return new List<string> { "gy_break", "hz_pierce", "gy_attack", "hz_attack", "r_hlr_heal" };
+                case 4: return new List<string> { "hz_snipe", "r_mil_attack", "r_shd_attack", "hz_attack", "r_hlr_heal" };
+                default: return new List<string>();
+            }
+        }
+
         /// <summary>第一章「黃巾之亂」關卡（教學關：固定隊伍、不開放自動戰鬥）。</summary>
         public static BattleSetup Level(int level, ulong seed = 1)
         {
@@ -254,6 +266,8 @@ namespace SanGuo.Core
             if (level == 3) setup.TurnLimit = 11;
             // 教學關：小兵湊數，只讓一兩名武將帶著該關要教的技能卡上場（編隊鎖定，之後再開放）。
             setup.FormationLocked = true;
+            // 教學關：牌序寫死、沒有爆擊閃避，結果完全可重現（每次抽牌堆重建，教學卡都排在最前面）。
+            setup.NoRandomness = true;
             switch (level)
             {
                 case 1: // 純小兵
@@ -281,6 +295,7 @@ namespace SanGuo.Core
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
                     break;
             }
+            setup.ScriptedDraw = TutorialDraw(level);
             switch (level)
             {
                 case 1: // 涿郡義勇：出牌與費用（教學）
