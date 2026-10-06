@@ -56,6 +56,14 @@ namespace SanGuo.Core.Data
 
             return new Dictionary<string, object?>
             {
+                ["stageStars"] = IntMap(p.StageStars),
+                ["createdDay"] = p.CreatedDay,
+                ["dailyDay"] = p.DailyDay == long.MinValue ? (object?)null : p.DailyDay,
+                ["dailyCounters"] = IntMap(p.DailyCounters),
+                ["dailyTaskProgress"] = IntMap(p.DailyTaskProgress),
+                ["dailyTaskClaimed"] = SortedList(p.DailyTaskClaimed),
+                ["sevenDayProgress"] = IntMap(p.SevenDayProgress),
+                ["sevenDayClaimed"] = SortedList(p.SevenDayClaimed),
                 ["version"] = (long)CurrentVersion,
                 ["level"] = (long)p.Level,
                 ["exp"] = (long)p.Exp,
@@ -139,7 +147,43 @@ namespace SanGuo.Core.Data
                 }
             }
 
+            ReadIntMap(root, "stageStars", p.StageStars);
+            p.CreatedDay = Int(root, "createdDay", 0);
+            p.DailyDay = root.TryGetValue("dailyDay", out var dd) && dd != null ? ToLong(dd) : long.MinValue;
+            ReadIntMap(root, "dailyCounters", p.DailyCounters);
+            ReadIntMap(root, "dailyTaskProgress", p.DailyTaskProgress);
+            ReadStringSet(root, "dailyTaskClaimed", p.DailyTaskClaimed);
+            ReadIntMap(root, "sevenDayProgress", p.SevenDayProgress);
+            ReadStringSet(root, "sevenDayClaimed", p.SevenDayClaimed);
+
             return p;
+        }
+
+        private static Dictionary<string, object?> IntMap(Dictionary<string, int> map)
+        {
+            var d = new Dictionary<string, object?>();
+            foreach (var kv in map) d[kv.Key] = (long)kv.Value;
+            return d;
+        }
+
+        private static List<object?> SortedList(HashSet<string> set)
+        {
+            var l = new List<string>(set);
+            l.Sort(StringComparer.Ordinal);
+            return l.ConvertAll<object?>(s => s);
+        }
+
+        private static void ReadIntMap(Dictionary<string, object?> root, string key, Dictionary<string, int> target)
+        {
+            if (root.TryGetValue(key, out var v) && v is Dictionary<string, object?> d)
+                foreach (var kv in d) target[kv.Key] = (int)ToLong(kv.Value);
+        }
+
+        private static void ReadStringSet(Dictionary<string, object?> root, string key, HashSet<string> target)
+        {
+            if (root.TryGetValue(key, out var v) && v is List<object?> l)
+                foreach (var x in l)
+                    if (x is string s) target.Add(s);
         }
 
         private static long Int(Dictionary<string, object?> d, string key, long fallback) =>
