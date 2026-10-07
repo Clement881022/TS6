@@ -25,11 +25,12 @@ namespace SanGuo.Client
 
         protected override void BuildBody(VisualElement body)
         {
-            var tabs = UiKit.Row("row-center");
+            var tabs = new VisualElement();
+            tabs.AddToClassList("tabs");
             foreach (var p in _pools)
             {
                 var pool = p;
-                tabs.Add(UiKit.Btn(pool.Name, () => { _poolId = pool.Id; _last = null; Rebuild(); }, on: pool.Id == _poolId));
+                tabs.Add(UiKit.Tab(pool.Name, () => { _poolId = pool.Id; _last = null; Rebuild(); }, pool.Id == _poolId));
             }
             body.Add(tabs);
 
@@ -37,38 +38,58 @@ namespace SanGuo.Client
             GameSession.View.Pools.TryGetValue(current.Id, out var state);
 
             var info = UiKit.Panel();
+            info.Add(UiKit.Text("機率公示", "txt-sub"));
             // 機率公示：與實際機率由同一份資料產生。
-            var rates = current.DisclosedRates();
-            info.Add(UiKit.Text("機率公示：" + string.Join("　", rates.Where(kv => kv.Value > 0).Select(kv => $"{kv.Key} {kv.Value:0.##}%"))));
+            var rates = new VisualElement();
+            rates.AddToClassList("gacha-rates");
+            foreach (var kv in current.DisclosedRates().Where(kv => kv.Value > 0))
+            {
+                var chip = new VisualElement();
+                chip.AddToClassList("rate-chip");
+                chip.Add(UiKit.Badge(kv.Key.ToString(), "badge-" + UiKit.RarityClass(kv.Key)));
+                chip.Add(UiKit.Text($"{kv.Value:0.##}%", "txt-gold"));
+                rates.Add(chip);
+            }
+            info.Add(rates);
             string pity = current.PityDescription();
             if (pity.Length > 0) info.Add(UiKit.Text("保底：" + pity, "txt-dim"));
             if (current.HardPityUr > 0)
-                info.Add(UiKit.Text($"距離硬保底還有 {current.HardPityUr - (state?.PullsSinceUr ?? 0)} 抽（累計 {state?.TotalPulls ?? 0} 抽）", "txt-dim"));
+            {
+                int since = state?.PullsSinceUr ?? 0;
+                info.Add(UiKit.Text($"距離硬保底還有 {current.HardPityUr - since} 抽（累計 {state?.TotalPulls ?? 0} 抽）", "txt-dim"));
+                info.Add(UiKit.Bar(100f * since / current.HardPityUr, "bar-gold bar-slim"));
+            }
             if (current.FirstTenGuaranteesUr && (state?.TenPulls ?? 0) == 0)
                 info.Add(UiKit.Text("首次十連必定獲得 1 名 UR", "txt-warn"));
             body.Add(info);
 
-            var row = UiKit.Row("row-center");
-            row.Add(UiKit.Btn($"單抽（{current.SingleCost} 元寶）", () => _ = Pull(1)));
-            row.Add(UiKit.Btn($"十連（{current.TenCost} 元寶）", () => _ = Pull(10), primary: true));
+            var row = new VisualElement();
+            row.AddToClassList("pull-row");
+            row.Add(UiKit.Btn($"單抽　{current.SingleCost} 元寶", () => _ = Pull(1)).WithClass("btn-wide"));
+            row.Add(UiKit.Btn($"十連　{current.TenCost} 元寶", () => _ = Pull(10), primary: true).WithClass("btn-wide"));
             body.Add(row);
 
             if (_last != null)
             {
-                body.Add(UiKit.Text("本次結果", "txt-sub"));
-                var list = UiKit.Row("row-center");
+                body.Add(UiKit.Section("本次結果"));
+                var grid = new VisualElement();
+                grid.AddToClassList("pull-grid");
                 foreach (var r in _last)
                 {
-                    string label = $"{r.Rarity} {NameOf(r.HeroId)}";
-                    if (r.IsNew) label += "　NEW";
-                    else if (r.Shards > 0) label += $"　碎片 +{r.Shards}";
-                    if (r.IsUp) label += "　UP";
-                    var chip = UiKit.Btn(label, () => { });
-                    chip.AddToClassList("formation-chip");
-                    if (r.Rarity == Rarity.UR) chip.AddToClassList("btn-primary");
-                    list.Add(chip);
+                    string rc = UiKit.RarityClass(r.Rarity);
+                    var card = new VisualElement();
+                    card.AddToClassList("pull-card");
+                    card.AddToClassList("pull-card-" + rc);
+                    card.Add(UiKit.Text(r.Rarity.ToString(), "pull-rarity pull-rarity-" + rc));
+                    card.Add(UiKit.Text(NameOf(r.HeroId), "pull-card-name"));
+                    var tags = UiKit.Row("row-center");
+                    if (r.IsNew) tags.Add(UiKit.Badge("NEW", "badge-new"));
+                    else if (r.Shards > 0) tags.Add(UiKit.Text($"碎片 +{r.Shards}", "pull-card-sub"));
+                    if (r.IsUp) tags.Add(UiKit.Badge("UP", "badge-up"));
+                    card.Add(tags);
+                    grid.Add(card);
                 }
-                body.Add(list);
+                body.Add(grid);
             }
         }
 

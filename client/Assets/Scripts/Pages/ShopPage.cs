@@ -16,7 +16,7 @@ namespace SanGuo.Client
         {
             var v = GameSession.View;
             var p = v.Raw;
-            body.Add(UiKit.Text("目前為測試付款：按「購買」會直接模擬付款成功，不會真的扣款。", "txt-warn"));
+            body.Add(UiKit.Hint("目前為測試付款：按「購買」會直接模擬付款成功，不會真的扣款。", warn: true));
 
             foreach (var product in Shop.Products())
             {
@@ -26,21 +26,21 @@ namespace SanGuo.Client
                 {
                     int left = Shop.MonthCardDaysLeft(p, pr.Id, v.Now);
                     bool claimed = Shop.MonthCardClaimedToday(p, pr.Id, v.Now);
-                    card.Add(UiKit.Text($"{pr.Name}　¥{pr.PriceCny}", "txt-sub"));
+                    card.Add(ProductHead(pr.Name, pr.PriceCny));
                     card.Add(UiKit.Text($"購買即得 {pr.ImmediateYuanbao} 元寶，每日領 {pr.DailyYuanbao}（{pr.Days} 天）　" +
                         (left > 0 ? $"剩餘 {left} 天" : "未持有"), "txt-dim"));
                     var row = UiKit.Row();
                     row.Add(UiKit.Btn(left > 0 ? "續購" : "購買", () => _ = Act(() => GameSession.Backend.BuyWithTestPayment(pr.Id), "購買成功")));
                     if (left > 0)
                     {
-                        if (claimed) row.Add(UiKit.Btn("今日已領", () => { }));
+                        if (claimed) row.Add(UiKit.DoneBtn("今日已領"));
                         else row.Add(UiKit.Btn($"領取每日 {pr.DailyYuanbao} 元寶", () => _ = Act(() => GameSession.Backend.ClaimMonthCard(pr.Id), "已領取"), primary: true));
                     }
                     card.Add(row);
                 }
                 else
                 {
-                    card.Add(UiKit.Text($"{pr.Name}　¥{pr.PriceCny}", "txt-sub"));
+                    card.Add(ProductHead(pr.Name, pr.PriceCny));
                     card.Add(UiKit.Text($"依帳號等級分階段領取，合計 {Shop.GrowthFundTiers().Sum(t => t.Yuanbao)} 元寶　" +
                         (p.GrowthFundOwned ? "已購買" : "未購買"), "txt-dim"));
                     if (!p.GrowthFundOwned)
@@ -51,22 +51,38 @@ namespace SanGuo.Client
                     }
                     else
                     {
-                        var tiers = UiKit.Row();
+                        var tiers = new VisualElement();
+                        tiers.AddToClassList("tier-row");
                         foreach (var t in Shop.GrowthFundTiers())
                         {
                             int level = t.PlayerLevel;
                             bool claimed = p.GrowthFundClaimed.Contains(level);
                             bool ready = v.Level >= level;
-                            string label = $"Lv.{level}：{t.Yuanbao} 元寶";
-                            if (claimed) tiers.Add(UiKit.Btn(label + "（已領）", () => { }));
-                            else tiers.Add(UiKit.Btn(label + (ready ? "　領取" : ""),
-                                () => _ = Act(() => GameSession.Backend.ClaimGrowthFund(level), "已領取"), primary: ready));
+                            var tier = new VisualElement();
+                            tier.AddToClassList("tier");
+                            if (claimed) tier.AddToClassList("tier-claimed");
+                            else if (ready) tier.AddToClassList("tier-ready");
+                            tier.Add(UiKit.Text($"Lv.{level}", "tier-title"));
+                            tier.Add(UiKit.Text($"{t.Yuanbao} 元寶", "tier-value"));
+                            if (claimed) tier.Add(UiKit.DoneBtn("已領"));
+                            else if (ready) tier.Add(UiKit.Btn("領取", () => _ = Act(() => GameSession.Backend.ClaimGrowthFund(level), "已領取"), primary: true));
+                            else tier.Add(UiKit.DoneBtn("未達成"));
+                            tiers.Add(tier);
                         }
                         card.Add(tiers);
                     }
                 }
                 body.Add(card);
             }
+        }
+
+        private static VisualElement ProductHead(string name, int priceCny)
+        {
+            var head = UiKit.Row();
+            head.AddToClassList("panel-row");
+            head.Add(UiKit.Text(name, "txt-sub"));
+            head.Add(UiKit.Text($"¥{priceCny}", "product-price"));
+            return head;
         }
     }
 }

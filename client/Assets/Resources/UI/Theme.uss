@@ -1,0 +1,141 @@
+/* 藍色主題（參考 TS6Client 設計稿，貼圖取自 Resources/UiSkin）。
+   在 Pages.uss 之後載入，覆寫其中的暖色配色，並把按鈕 / 分頁 / 導覽換成貼圖。 */
+
+.page-host { background-color: rgb(24, 48, 98); }
+
+.topbar {
+    height: 92px;
+    background-color: rgb(18, 36, 80);
+    border-bottom-width: 2px;
+    border-bottom-color: rgb(150, 182, 240);
+}
+.topbar-seal {
+    width: 40px; height: 40px;
+    margin-right: 16px;
+    border-radius: 0;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("../UiSkin/diamond.png");
+    -unity-background-scale-mode: scale-to-fit;
+}
+.topbar-title { color: white; }
+
+.pill { background-color: rgba(10, 22, 56, 0.7); border-width: 0; }
+.pill-text, .pill-gold .pill-text, .pill-yuanbao .pill-text, .pill-stamina .pill-text { color: white; }
+
+/* ---- 底部導覽 ---- */
+.nav { background-color: rgb(18, 36, 80); border-top-width: 2px; border-top-color: rgb(150, 182, 240); }
+.nav-tab { background-color: rgba(40, 70, 140, 0.55); border-color: rgb(70, 104, 178); border-radius: 14px; }
+.nav-tab:hover { background-color: rgba(70, 108, 196, 0.8); border-color: rgb(170, 200, 255); }
+.nav-tab-on { background-color: rgb(52, 98, 196); border-color: rgb(255, 214, 120); }
+.nav-tab-on:hover { background-color: rgb(64, 112, 214); }
+.nav-icon { width: 58px; height: 58px; -unity-background-scale-mode: scale-to-fit; opacity: 0.8; }
+.nav-tab-on .nav-icon { opacity: 1; }
+.nav-label { color: rgb(200, 216, 250); font-size: 24px; }
+.nav-icon-home { background-image: url("../UiSkin/nav_home.png"); }
+.nav-icon-map { background-image: url("../UiSkin/nav_map.png"); }
+.nav-icon-heroes { background-image: url("../UiSkin/nav_heroes.png"); }
+.nav-icon-gacha { background-image: url("../UiSkin/nav_gacha.png"); }
+.nav-icon-dungeons { background-image: url("../UiSkin/nav_dungeons.png"); }
+.nav-icon-quests { background-image: url("../UiSkin/nav_quests.png"); }
+.nav-icon-shop { background-image: url("../UiSkin/nav_shop.png"); }
+
+/* ---- 文字 / 面板 ---- */
+.txt-sub, .section-text, .popup-title, .banner-eyebrow { color: rgb(255, 230, 160); }
+.txt-dim, .tile-desc, .hero-item-sub, .stat-label, .card-row-desc, .tier-title, .pull-card-sub { color: rgb(176, 196, 232); }
+.section-line { background-color: rgba(150, 182, 240, 0.4); }
+
+.hint { background-color: rgba(10, 22, 56, 0.55); border-left-color: rgb(255, 190, 80); color: rgb(204, 220, 250); }
+
+.panel {
+    border-radius: 14px;
+    border-width: 2px;
+    border-color: rgb(84, 120, 200);
+    border-top-color: rgb(120, 156, 230);
+    background-color: rgba(14, 30, 72, 0.82);
+}
+.panel-good, .quest-done { border-color: rgb(110, 214, 150); }
+.popup { background-color: rgb(20, 40, 90); border-color: rgb(255, 214, 120); border-width: 3px; }
+.banner { background-color: rgba(20, 44, 104, 0.9); border-color: rgb(255, 214, 120); }
+.banner-title { color: white; }
+.bar-bg { background-color: rgb(8, 16, 42); border-color: rgb(60, 92, 170); }
+
+/* ---- 按鈕：橘（主要）／藍（一般）／灰（已完成），9 宮格貼圖 ---- */
+.page-host .btn, .page-host .btn-primary, .page-host .btn-on, .page-host .btn-done,
+.page-host .btn:hover, .page-host .btn-primary:hover, .page-host .btn-on:hover, .page-host .btn-done:hover {
+    min-height: 68px;
+    margin: 4px 8px 4px 0;
+    padding: 6px 34px;
+    border-width: 0;
+    border-radius: 0;
+    background-color: rgba(0, 0, 0, 0);
+    -unity-slice-left: 38; -unity-slice-right: 38; -unity-slice-top: 30; -unity-slice-bottom: 30;
+    -unity-background-image-tint-color: rgb(232, 238, 255);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    color: white;
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: rgba(10, 20, 60, 0.55);
+}
+.page-host .btn { background-image: url("../UiSkin/btn_blue.png"); }
+.page-host .btn-primary, .page-host .btn-on { background-image: url("../UiSkin/btn_orange.png"); }
+.page-host .btn-done { background-image: url("../UiSkin/btn_grey.png"); color: rgb(210, 214, 224); }
+.page-host .btn:hover, .page-host .btn-primary:hover, .page-host .btn-on:hover { -unity-background-image-tint-color: white; }
+.page-host .btn:active, .page-host .btn-primary:active { -unity-background-image-tint-color: rgb(170, 182, 214); }
+.page-host .btn-wide { padding: 10px 70px; font-size: 32px; min-height: 84px; }
+
+/* ---- 分頁籤：未選＝藍、選中＝橘 ---- */
+.page-host .tab, .page-host .tab:hover, .page-host .tab-on, .page-host .tab-on:hover {
+    min-height: 68px;
+    margin: 0 8px;
+    padding: 6px 44px;
+    border-width: 0;
+    border-radius: 0;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("../UiSkin/btn_blue.png");
+    -unity-slice-left: 38; -unity-slice-right: 38; -unity-slice-top: 30; -unity-slice-bottom: 30;
+    -unity-background-image-tint-color: rgb(180, 192, 230);
+    color: rgb(220, 230, 255);
+    -unity-font-style: bold;
+}
+.page-host .tab:hover { -unity-background-image-tint-color: white; }
+.page-host .tab-on, .page-host .tab-on:hover { background-image: url("../UiSkin/btn_orange.png"); -unity-background-image-tint-color: white; color: white; }
+
+/* ---- 主城入口 ---- */
+.tile { background-color: rgba(14, 30, 72, 0.82); border-color: rgb(84, 120, 200); }
+.tile:hover { background-color: rgba(40, 72, 150, 0.9); border-color: rgb(255, 214, 120); }
+.tile-icon, .tile-hot .tile-icon {
+    width: 112px; height: 112px;
+    margin: 0 20px 0 24px;
+    border-width: 0;
+    border-radius: 0;
+    background-color: rgba(0, 0, 0, 0);
+    -unity-background-scale-mode: scale-to-fit;
+}
+.tile-hot { border-color: rgb(255, 190, 80); }
+.tile-ico-heroes { background-image: url("../UiSkin/nav_heroes.png"); }
+.tile-ico-gacha { background-image: url("../UiSkin/nav_gacha.png"); }
+.tile-ico-dungeons { background-image: url("../UiSkin/nav_dungeons.png"); }
+.tile-ico-quests { background-image: url("../UiSkin/nav_quests.png"); }
+.tile-ico-shop { background-image: url("../UiSkin/nav_shop.png"); }
+.tile-ico-map { background-image: url("../UiSkin/nav_map.png"); }
+
+/* ---- 武將 / 商店 / 任務 ---- */
+.hero-item { background-color: rgba(14, 30, 72, 0.82); border-color: rgb(70, 104, 178); }
+.hero-item:hover { background-color: rgba(40, 72, 150, 0.9); }
+.hero-item-on { background-color: rgba(52, 98, 196, 0.85); border-color: rgb(255, 214, 120); }
+.stat { background-color: rgba(8, 18, 48, 0.7); }
+.stat-value { color: white; }
+.card-row { background-color: rgba(8, 18, 48, 0.55); border-left-color: rgb(120, 156, 230); }
+.pip { background-color: rgb(40, 62, 120); }
+.pip-on { background-color: rgb(255, 196, 70); }
+.tier { background-color: rgba(8, 18, 48, 0.6); border-color: rgb(70, 104, 178); }
+.tier-ready { background-color: rgba(80, 56, 20, 0.7); border-color: rgb(255, 214, 120); }
+
+/* ---- 編隊 ---- */
+.page-host .formation-cell, .page-host .formation-chip { background-color: rgba(40, 72, 150, 0.7); border-color: rgb(110, 146, 220); }
+.page-host .formation-cell:hover, .page-host .formation-chip:hover { background-color: rgba(70, 108, 196, 0.85); border-color: white; }
+.page-host .formation-cell-empty { background-color: rgba(8, 18, 48, 0.55); border-color: rgb(50, 76, 140); color: rgb(110, 130, 180); }
+.page-host .formation-cell.btn-on, .page-host .formation-chip.btn-on { background-color: rgb(200, 120, 30); border-color: rgb(255, 224, 140); background-image: none; }
+.formation-label { color: rgb(255, 230, 160); }
+
+.page-container .toast { background-color: rgba(10, 22, 56, 0.95); border-color: rgb(255, 214, 120); }

@@ -5,7 +5,7 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>主城：帳號概況、繼續征戰、各功能入口。</summary>
+    /// <summary>主城：章節橫幅、帳號概況、各功能入口。</summary>
     public sealed class HomePage : PageBase
     {
         protected override Page Id => Page.Home;
@@ -21,48 +21,55 @@ namespace SanGuo.Client
             for (int i = 1; i <= total; i++)
                 if (v.ClearedStages.Contains(GameSession.StageIdOf(i))) cleared++;
             var banner = UiKit.Panel("banner");
+            banner.Add(UiKit.Text("目前章節", "banner-eyebrow"));
             banner.Add(UiKit.Text("第一章　黃巾之亂", "banner-title"));
-            banner.Add(UiKit.Text($"章節進度 {cleared}/{total}", "txt-dim"));
-            var bar = new VisualElement();
-            bar.AddToClassList("bar-bg");
-            var fill = new VisualElement();
-            fill.AddToClassList("bar-fill");
-            fill.style.width = Length.Percent(total == 0 ? 0 : 100f * cleared / total);
-            bar.Add(fill);
-            banner.Add(bar);
-            banner.Add(UiKit.Btn("繼續征戰", () => Nav.Go(Page.Map), primary: true));
+            var meta = new VisualElement();
+            meta.AddToClassList("banner-meta");
+            meta.Add(UiKit.Text($"章節進度 {cleared}/{total}", "txt-gold"));
+            meta.Add(UiKit.Text(cleared >= total ? "章節已通關" : $"下一關：{DemoContent.LevelNames[System.Math.Min(cleared, total - 1)]}", "txt-dim"));
+            banner.Add(meta);
+            banner.Add(UiKit.Bar(total == 0 ? 0 : 100f * cleared / total, "bar-gold"));
+            banner.Add(UiKit.Btn("繼續征戰", () => Nav.Go(Page.Map), primary: true).WithClass("btn-wide"));
             body.Add(banner);
 
             // 帳號經驗
             var account = UiKit.Panel();
-            account.Add(UiKit.Text($"帳號 Lv.{v.Level}　經驗 {v.Exp}/{v.ExpToNext}", "txt"));
-            var expBar = new VisualElement();
-            expBar.AddToClassList("bar-bg");
-            var expFill = new VisualElement();
-            expFill.AddToClassList("bar-fill");
-            expFill.style.width = Length.Percent(v.ExpToNext <= 0 ? 0 : 100f * v.Exp / v.ExpToNext);
-            expBar.Add(expFill);
-            account.Add(expBar);
-            account.Add(UiKit.Text($"目前連線：{GameSession.Backend.Name}　擁有武將 {v.Heroes.Count} 名", "txt-dim"));
+            var head = UiKit.Row();
+            head.AddToClassList("panel-row");
+            head.Add(UiKit.Text($"帳號 Lv.{v.Level}", "txt-sub"));
+            head.Add(UiKit.Text($"經驗 {v.Exp}/{v.ExpToNext}", "txt-dim"));
+            account.Add(head);
+            account.Add(UiKit.Bar(v.ExpToNext <= 0 ? 0 : 100f * v.Exp / v.ExpToNext));
+            account.Add(UiKit.Text($"擁有武將 {v.Heroes.Count} 名　連線：{GameSession.Backend.Name}", "txt-dim"));
             body.Add(account);
 
             // 功能入口
+            body.Add(UiKit.Section("功能"));
             var grid = new VisualElement();
             grid.AddToClassList("tile-grid");
-            grid.Add(Tile("武將", "升級、突破、強化卡牌", Page.Heroes));
-            grid.Add(Tile("招募", "抽取新武將", Page.Gacha));
-            grid.Add(Tile("副本", "每日資源副本與掃蕩", Page.Dungeons));
-            grid.Add(Tile("任務", "每日任務與七日目標", Page.Quests));
-            grid.Add(Tile("商店", "月卡、成長基金", Page.Shop));
+            grid.Add(Tile("heroes", "武將", "升級、突破、強化卡牌", Page.Heroes));
+            grid.Add(Tile("gacha", "招募", "抽取新武將", Page.Gacha, hot: true));
+            grid.Add(Tile("dungeons", "副本", "每日資源副本與掃蕩", Page.Dungeons));
+            grid.Add(Tile("quests", "任務", "每日任務與七日目標", Page.Quests));
+            grid.Add(Tile("shop", "商店", "月卡、成長基金", Page.Shop));
+            grid.Add(Tile("map", "征戰", "章節地圖與關卡", Page.Map));
             body.Add(grid);
         }
 
-        private static VisualElement Tile(string title, string desc, Page target)
+        private static VisualElement Tile(string iconName, string title, string desc, Page target, bool hot = false)
         {
             var tile = new Button(() => Nav.Go(target));
             tile.AddToClassList("tile");
-            tile.Add(UiKit.Text(title, "tile-title"));
-            tile.Add(UiKit.Text(desc, "txt-dim"));
+            if (hot) tile.AddToClassList("tile-hot");
+            var icon = new VisualElement { pickingMode = PickingMode.Ignore };
+            icon.AddToClassList("tile-icon");
+            icon.AddToClassList("tile-ico-" + iconName);
+            tile.Add(icon);
+            var text = new VisualElement { pickingMode = PickingMode.Ignore };
+            text.AddToClassList("tile-text");
+            text.Add(new Label(title) { pickingMode = PickingMode.Ignore }.WithClass("tile-title"));
+            text.Add(new Label(desc) { pickingMode = PickingMode.Ignore }.WithClass("tile-desc"));
+            tile.Add(text);
             return tile;
         }
     }

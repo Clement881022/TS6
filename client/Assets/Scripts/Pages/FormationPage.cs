@@ -34,12 +34,14 @@ namespace SanGuo.Client
             var formation = GameSession.Formation;
 
             var foes = level.Enemies.GroupBy(e => e.Def.Name).Select(g => g.Count() > 1 ? $"{g.Key}×{g.Count()}" : g.Key);
-            body.Add(UiKit.Text("敵方：" + string.Join("、", foes)));
+            var enemyPanel = UiKit.Panel();
+            enemyPanel.Add(UiKit.Text("敵方：" + string.Join("、", foes), "txt-gold"));
+            body.Add(enemyPanel);
             body.Add(_message.Length > 0
-                ? UiKit.Text(_message, "txt-warn")
-                : UiKit.Text("同路沒有對手時，攻擊會落在最上方（第 1 路）；點武將再點格子可移動 / 換位，最多上場 4 人", "txt-dim"));
+                ? UiKit.Hint(_message, warn: true)
+                : UiKit.Hint("同路沒有對手時，攻擊會落在最上方（第 1 路）；點武將再點格子可移動 / 換位，最多上場 4 人"));
 
-            var board = UiKit.Panel();
+            var board = UiKit.Panel("formation-board");
             var head = new VisualElement { style = { flexDirection = FlexDirection.Row } };
             head.Add(FormLabel("", 120));
             head.Add(FormLabel("後排", 260));
@@ -63,7 +65,8 @@ namespace SanGuo.Client
             }
             body.Add(board);
 
-            body.Add(UiKit.Text("待命武將（點選後再點上方格子上場；先點場上武將再點這裡可下場）", "txt-dim"));
+            body.Add(UiKit.Section("待命武將"));
+            body.Add(UiKit.Text("點選後再點上方格子上場；先點場上武將再點這裡可下場", "txt-dim"));
             var bench = UiKit.Row("row-center");
             foreach (var def in GameSession.Roster.Where(d => !formation.ContainsKey(d.Id)))
             {
@@ -76,12 +79,12 @@ namespace SanGuo.Client
             body.Add(bench);
 
             var buttons = UiKit.Row("row-center");
-            buttons.Add(UiKit.Btn("回地圖", () => Nav.Go(Page.Map)));
+            buttons.Add(UiKit.Btn("回地圖", () => Nav.Go(Page.Map)).WithClass("btn-wide"));
             buttons.Add(UiKit.Btn("開戰", () =>
             {
                 if (formation.Count == 0) { _message = "至少要有 1 名武將上場"; Rebuild(); return; }
                 _ = StartBattle(GameSession.StageIdOf(levelNo));
-            }, primary: true));
+            }, primary: true).WithClass("btn-wide"));
             body.Add(buttons);
         }
 

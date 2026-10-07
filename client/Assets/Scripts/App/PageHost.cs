@@ -42,6 +42,7 @@ namespace SanGuo.Client
             _root.AddToClassList("page-root");
             AddSheet(_root, "UI/Battle");
             AddSheet(_root, "UI/Pages");
+            AddSheet(_root, "UI/Theme");
             ApplyCjkFont(_root);
 
             Show(startPage);

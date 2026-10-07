@@ -18,8 +18,9 @@ namespace SanGuo.Client
         protected override void BuildBody(VisualElement body)
         {
             var v = GameSession.View;
-            body.Add(UiKit.Text("打贏一關才會開啟下一關；三星通關後可掃蕩", "txt-dim"));
+            body.Add(UiKit.Hint("打贏一關才會開啟下一關；三星通關後可掃蕩"));
 
+            var mapPanel = UiKit.Panel("map-card");
             var field = new VisualElement();
             field.AddToClassList("map-field");
             int total = DemoContent.LevelNames.Length;
@@ -67,7 +68,8 @@ namespace SanGuo.Client
                 caption.style.top = centers[i].y + size / 2 + 4;
                 field.Add(caption);
             }
-            body.Add(field);
+            mapPanel.Add(field);
+            body.Add(mapPanel);
         }
 
         // ---- 關卡資訊（挑戰 / 掃蕩）----
@@ -82,11 +84,12 @@ namespace SanGuo.Client
             overlay.AddToClassList("overlay");
             var panel = UiKit.Panel("popup");
             panel.Add(UiKit.Text($"第 {level} 關　{DemoContent.LevelNames[level - 1]}", "popup-title"));
-            panel.Add(UiKit.Text($"最高星數 {UiText.Stars(stars)}　　消耗體力 {stage.StaminaCost}（現有 {v.Stamina}）"));
+            panel.Add(UiKit.Text(UiText.Stars(stars), "star-text"));
+            panel.Add(UiKit.Text($"消耗體力 {stage.StaminaCost}（現有 {v.Stamina}）", v.Stamina >= stage.StaminaCost ? "txt" : "txt-warn"));
             panel.Add(UiKit.Text($"獎勵：經驗 {stage.Exp}　金幣 {stage.Gold}" +
-                (v.ClearedStages.Contains(stage.StageId) ? "" : $"　首通元寶 {stage.FirstClearYuanbao}")));
-            string par = stage.StarTurnPar > 0 ? $"　三星：{stage.StarTurnPar} 回合內" : "";
-            panel.Add(UiKit.Text("★ 通關　★★ 無武將陣亡" + par, "txt-dim"));
+                (v.ClearedStages.Contains(stage.StageId) ? "" : $"　首通元寶 {stage.FirstClearYuanbao}"), "txt-gold"));
+            string par = stage.StarTurnPar > 0 ? $"　★★★ {stage.StarTurnPar} 回合內" : "";
+            panel.Add(UiKit.Hint("★ 通關　★★ 無武將陣亡" + par));
 
             var row = UiKit.Row("row-center");
             row.Add(UiKit.Btn("挑戰", () => EnterLevel(level), primary: true));

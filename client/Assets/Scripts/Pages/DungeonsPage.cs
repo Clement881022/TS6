@@ -19,7 +19,7 @@ namespace SanGuo.Client
         protected override void BuildBody(VisualElement body)
         {
             var v = GameSession.View;
-            body.Add(UiKit.Text($"體力 {v.Stamina}/{v.StaminaCap}　每日輪替、每天固定次數；通關一次後可掃蕩", "txt-dim"));
+            body.Add(UiKit.Hint($"體力 {v.Stamina}/{v.StaminaCap}　每日輪替、每天固定次數；通關一次後可掃蕩"));
 
             foreach (var d in _dungeons)
             {
@@ -31,20 +31,31 @@ namespace SanGuo.Client
 
                 var card = UiKit.Panel();
                 if (!open) card.AddToClassList("panel-dim");
-                card.Add(UiKit.Text(d.Name, "txt-sub"));
-                card.Add(UiKit.Text($"{days}　{(open ? "今日開放" : "今日未開放")}　剩餘 {left}/{d.DailyLimit}　體力 {d.StaminaCost}　需帳號 Lv.{d.MinPlayerLevel}", "txt-dim"));
+                var head = UiKit.Row();
+                head.AddToClassList("panel-row");
+                head.Add(UiKit.Text(d.Name, "txt-sub"));
+                var tags = UiKit.Row();
+                tags.Add(UiKit.Badge(open ? "今日開放" : "今日未開放", open ? "badge-up" : ""));
+                tags.Add(UiKit.Badge(days, "badge-role"));
+                head.Add(tags);
+                card.Add(head);
+                card.Add(UiKit.Text($"剩餘 {left}/{d.DailyLimit}　體力 {d.StaminaCost}　需帳號 Lv.{d.MinPlayerLevel}", "txt-dim"));
+                card.Add(UiKit.Bar(d.DailyLimit == 0 ? 0 : 100f * left / d.DailyLimit, "bar-gold bar-slim"));
                 var row = UiKit.Row();
-                row.Add(UiKit.Text("獎勵：" + UiText.RewardText(d.Reward)));
+                row.AddToClassList("panel-row");
+                row.Add(UiKit.Text("獎勵：" + UiText.RewardText(d.Reward), "reward-text").WithClass("grow"));
+                var btns = UiKit.Row();
                 if (open)
                 {
-                    row.Add(UiKit.Btn("挑戰", () => _ = StartBattle(dungeon.Id), primary: true));
+                    btns.Add(UiKit.Btn("挑戰", () => _ = StartBattle(dungeon.Id), primary: true));
                     if (cleared)
                     {
-                        row.Add(UiKit.Btn("掃蕩 ×1", () => _ = Act(() => GameSession.Backend.SweepDungeon(dungeon.Id, 1), "掃蕩完成")));
-                        row.Add(UiKit.Btn($"掃蕩 ×{ResourceDungeons.MaxSweepCount}",
+                        btns.Add(UiKit.Btn("掃蕩 ×1", () => _ = Act(() => GameSession.Backend.SweepDungeon(dungeon.Id, 1), "掃蕩完成")));
+                        btns.Add(UiKit.Btn($"掃蕩 ×{ResourceDungeons.MaxSweepCount}",
                             () => _ = Act(() => GameSession.Backend.SweepDungeon(dungeon.Id, ResourceDungeons.MaxSweepCount), "掃蕩完成")));
                     }
                 }
+                row.Add(btns);
                 card.Add(row);
                 body.Add(card);
             }
