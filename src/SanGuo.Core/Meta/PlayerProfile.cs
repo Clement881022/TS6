@@ -12,6 +12,8 @@ namespace SanGuo.Core.Meta
         public int Exp;
         public int Gold;
         public int FirstClearYuanbao;
+        /// <summary>首通贈送的武將 id（空字串 = 不送）；已擁有就轉成突破碎片。</summary>
+        public string FirstClearHero = "";
         /// <summary>第三星的回合數門檻（0 = 不限，第三星只看是否存活）。</summary>
         public int StarTurnPar;
     }
@@ -39,6 +41,8 @@ namespace SanGuo.Core.Meta
         public int GoldGained;
         public int YuanbaoGained;
         public int LevelsGained;
+        /// <summary>首通獲得的武將 id（沒有則空字串；已擁有的重複武將仍會回報，實際轉成碎片）。</summary>
+        public string HeroGained = "";
     }
 
     /// <summary>玩家存檔的純資料與規則（不含 I/O）：帳號等級、貨幣、體力、關卡進度。</summary>
@@ -153,6 +157,11 @@ namespace SanGuo.Core.Meta
             {
                 Yuanbao += stage.FirstClearYuanbao;
                 result.YuanbaoGained = stage.FirstClearYuanbao;
+                if (stage.FirstClearHero != "")
+                {
+                    Grant(new Reward().WithHero(stage.FirstClearHero), now);
+                    result.HeroGained = stage.FirstClearHero;
+                }
             }
             result.LevelsGained = AddExp(stage.Exp, now);
             Quests.Report(this, Quests.Events.StageClear, 1, now);

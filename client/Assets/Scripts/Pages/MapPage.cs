@@ -12,7 +12,7 @@ namespace SanGuo.Client
     public sealed class MapPage : PageBase
     {
         protected override Page Id => Page.Map;
-        protected override string Title => "第一章　黃巾之亂";
+        protected override string Title => "第零章　涿縣盜匪";
 
         protected override void BuildBody(VisualElement body)
         {

@@ -69,6 +69,8 @@ namespace SanGuo.Client
         public int Gold;
         public int Yuanbao;
         public int LevelsGained;
+        /// <summary>首通獲得的武將 id（沒有則空字串）。</summary>
+        public string HeroGained = "";
         /// <summary>資源副本掉落的素材。</summary>
         public Dictionary<string, int> Materials = new Dictionary<string, int>();
     }

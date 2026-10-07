@@ -32,7 +32,7 @@ namespace SanGuo.Core.Meta
 
         public static string StageId(int chapter, int level) => $"{chapter}-{level}";
 
-        /// <summary>第一章關卡獎勵：教學關（1–4）2 點體力、其餘 8 點（見 days-1-7.md 6）。</summary>
+        /// <summary>第零章關卡獎勵（關卡 id 沿用 "1-N"）：教學關（1–4）2 點體力、其餘 8 點；第 1–3 關首通依序送劉備、張飛、關羽。</summary>
         public static StageReward Chapter1Stage(int level) => new StageReward
         {
             StageId = StageId(1, level),
@@ -42,6 +42,7 @@ namespace SanGuo.Core.Meta
             Gold = 200 + 100 * level,
             FirstClearYuanbao = level == DemoContent.ChapterLevelCount ? 300 : 60,
             StarTurnPar = 12,
+            FirstClearHero = level == 1 ? "liubei" : level == 2 ? "zhangfei" : level == 3 ? "guanyu" : "",
         };
 
         public static ResourceDungeonDef? FindDungeon(string id) =>
@@ -119,23 +120,23 @@ namespace SanGuo.Core.Meta
             switch (dungeonId)
             {
                 case "res_exp": // 校場操練：鐵甲力士擋路，後排妖道持續治療
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanIronBrute(), DemoContent.EnemyPos(2, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), DemoContent.EnemyPos(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), DemoContent.EnemyPos(3, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanPriest(), DemoContent.EnemyPos(2, 1)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditIronBrute(), DemoContent.EnemyPos(2, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(3, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditShaman(), DemoContent.EnemyPos(2, 1)));
                     break;
                 case "res_card": // 兵器鋪：渠帥與副將蓄力，要靠昏亂或集火打斷
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanChief(), DemoContent.EnemyPos(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanLieutenant(), DemoContent.EnemyPos(3, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), DemoContent.EnemyPos(2, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), DemoContent.EnemyPos(0, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditSecondChief(), DemoContent.EnemyPos(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditDeputy(), DemoContent.EnemyPos(3, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(2, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(0, 0)));
                     break;
                 default: // res_gold 糧倉護衛：黃巾兵衝陣，兩名弓手在後排放箭
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), DemoContent.EnemyPos(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), DemoContent.EnemyPos(2, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), DemoContent.EnemyPos(3, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanArcher(), DemoContent.EnemyPos(1, 1)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanArcher(), DemoContent.EnemyPos(3, 1)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(2, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(3, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditArcher(), DemoContent.EnemyPos(1, 1)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditArcher(), DemoContent.EnemyPos(3, 1)));
                     break;
             }
             return setup;

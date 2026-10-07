@@ -277,8 +277,11 @@ namespace SanGuo.Client
         {
             if (_busy || level < 1 || level > DemoContent.ChapterLevelCount) return;
             GameSession.SelectedLevel = level;
-            if (GameSession.FormationLocked(level)) _ = BeginStageId(GameSession.StageIdOf(level));
-            else { GameSession.FormationStageId = GameSession.StageIdOf(level); Nav.Go(Page.Formation); }
+            StoryPlayer.ShowBefore(_root, level, () =>
+            {
+                if (GameSession.FormationLocked(level)) _ = BeginStageId(GameSession.StageIdOf(level));
+                else { GameSession.FormationStageId = GameSession.StageIdOf(level); Nav.Go(Page.Formation); }
+            });
         }
 
         /// <summary>向後端開始關卡 / 副本（檢查條件、扣體力、取得種子），成功才開打並開始錄操作。</summary>
@@ -1225,9 +1228,13 @@ namespace SanGuo.Client
                 }
                 card.Add(stars);
                 if (result.FirstClear) AddInfo(card, "首次通關");
+                if (result.HeroGained != "") AddInfo(card, "獲得武將：" + (DemoContent.Roster().Find(h => h.Id == result.HeroGained)?.Name ?? result.HeroGained));
                 AddInfo(card, $"經驗 +{result.Exp}　金幣 +{result.Gold}" + (result.Yuanbao > 0 ? $"　元寶 +{result.Yuanbao}" : ""));
                 if (result.LevelsGained > 0) AddInfo(card, $"帳號升級！Lv.{GameSession.View.Level}（體力已回滿）");
             }
+
+            if (result.Won && result.FirstClear && dungeon == null && _level >= 1 && _level <= DemoContent.ChapterLevelCount)
+                StoryPlayer.Show(_root, $"第 {_level} 關　{DemoContent.LevelNames[_level - 1]}", DemoStory.After(_level));
 
             if (dungeon != null)
             {

@@ -203,7 +203,7 @@ public sealed class GameService
         return ApiResult.Success(new
         {
             won = true, stars = r.Stars, firstClear = r.FirstClear, exp = r.Exp, gold = r.Gold,
-            yuanbao = r.Yuanbao, levelsGained = r.LevelsGained, materials = r.Materials,
+            yuanbao = r.Yuanbao, levelsGained = r.LevelsGained, heroGained = r.HeroGained, materials = r.Materials,
         });
     });
 

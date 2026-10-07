@@ -29,7 +29,7 @@ namespace SanGuo.Client
             if (GameSession.View.ClearedStages.Count > 0) return;
             Tutorial.Show(Host, "home", "歡迎，主公！", new[]
             {
-                "嗨嗨，主公！我是巴豆妖，負責帶你熟悉三國亂世。你要帶領劉備、關羽、張飛等武將，從黃巾之亂一路打下去。",
+                "嗨嗨，主公！我是巴豆妖，負責帶你熟悉三國亂世。你要運籌帷幄，帶領劉備、關羽、張飛等英雄，從涿縣起兵一路打下去。",
                 "「征戰」推進主線關卡；「招募」抽取新武將；「武將」升級與強化；「副本」和「任務」能取得養成素材。",
                 "先從第一關開始，教學會一步步帶你熟悉出牌。",
             }, "前往征戰", () => Nav.Go(Page.Map), speaker: "巴豆妖", model: "badou");
@@ -149,7 +149,7 @@ namespace SanGuo.Client
             plate.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-diamond"));
             var text = new VisualElement { pickingMode = PickingMode.Ignore };
             text.AddToClassList("home-chapter-text");
-            text.Add(new Label("第一章　黃巾之亂") { pickingMode = PickingMode.Ignore }.WithClass("home-chapter-title"));
+            text.Add(new Label("第零章　涿縣盜匪") { pickingMode = PickingMode.Ignore }.WithClass("home-chapter-title"));
             text.Add(new Label($"{next}　{cleared}/{total}") { pickingMode = PickingMode.Ignore }.WithClass("home-chapter-sub"));
             plate.Add(text);
             plate.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-diamond"));
@@ -206,7 +206,7 @@ namespace SanGuo.Client
             if (cleared == 0) return "主公，先從第一關開始吧！";
             if (cleared < total && v.Stamina >= v.StaminaCap) return "體力滿了，快去征戰！";
             if (v.Heroes.Count < 5) return "多招募幾位武將，隊伍才強！";
-            return cleared >= total ? "第一章通關了，真厲害！" : "繼續推進主線吧，主公！";
+            return cleared >= total ? "第零章通關了，黃巾之亂就要來了！" : "繼續推進主線吧，主公！";
         }
     }
 }

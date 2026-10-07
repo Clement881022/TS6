@@ -90,7 +90,7 @@ namespace SanGuo.Client
             return Task.FromResult(new FinishStageResult
             {
                 Ok = r.Ok, Code = r.Code, Won = r.Won, Stars = r.Stars, FirstClear = r.FirstClear,
-                Exp = r.Exp, Gold = r.Gold, Yuanbao = r.Yuanbao, LevelsGained = r.LevelsGained, Materials = r.Materials,
+                Exp = r.Exp, Gold = r.Gold, Yuanbao = r.Yuanbao, LevelsGained = r.LevelsGained, HeroGained = r.HeroGained, Materials = r.Materials,
             });
         }
 

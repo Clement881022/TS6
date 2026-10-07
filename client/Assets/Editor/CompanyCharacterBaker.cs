@@ -56,6 +56,16 @@ namespace SanGuo.Client.Editor
             ["yt_priest"] = new Look(1, 10, 20003, 20005, bodyMat: 6, cosmetic: 10006, weapon: 14),
             ["yt_sharpshooter"] = new Look(2, 2, 20001, 20005, bodyMat: 3, cosmetic: 20004),
             ["yt_warlock"] = new Look(1, 12, 20004, 20004, bodyMat: 6, cosmetic: 10003, weapon: 20),
+            // 第零章盜匪 / 山賊：先沿用黃巾雜兵的外觀（之後換成沒有黃巾頭飾的專屬外觀）
+            ["bandit_grunt"] = new Look(1, 1, 10002, 10005, bodyMat: 6, cosmetic: 10006, weapon: 11),
+            ["bandit_archer"] = new Look(1, 6, 20001, 20001, cosmetic: 10003),
+            ["bandit_marksman"] = new Look(2, 2, 20001, 20005, bodyMat: 3, cosmetic: 20004),
+            ["bandit_ironbrute"] = new Look(2, 10, 20003, 20001, bodyMat: 5, cosmetic: 10006, weapon: 10),
+            ["bandit_shaman"] = new Look(1, 10, 20003, 20005, bodyMat: 6, cosmetic: 10006, weapon: 14),
+            ["bandit_second"] = new Look(1, 12, 20004, 20004, bodyMat: 6, cosmetic: 10003, weapon: 12),
+            ["bandit_deputy"] = new Look(1, 7, 20002, 20003, cosmetic: 10006, weapon: 7),
+            ["bandit_drummer"] = new Look(1, 12, 20004, 20004, bodyMat: 6, cosmetic: 10003, weapon: 20),
+            ["bandit_king"] = new Look(2, 5, 5, 5, cosmetic: 5, weapon: 6),
         };
 
         private const string HandBone = "Bip001 R Hand";
@@ -72,6 +82,21 @@ namespace SanGuo.Client.Editor
             AssetDatabase.Refresh();
             Debug.Log("巴豆妖烘焙：" + (ok ? "成功" : "失敗"));
             if (Application.isBatchMode) EditorApplication.Exit(ok ? 0 : 1);
+        }
+
+        /// <summary>只烘焙第零章盜匪（bandit_*），不動其他已烘焙的角色。</summary>
+        [MenuItem("SanGuo/烘焙盜匪")]
+        public static void BakeBandits()
+        {
+            Directory.CreateDirectory(OutDir);
+            var bandits = Looks.Where(kv => kv.Key.StartsWith("bandit_")).ToList();
+            int ok = 0;
+            foreach (var kv in bandits)
+                if (Bake(kv.Key, kv.Value)) ok++;
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log($"盜匪烘焙完成：{ok}/{bandits.Count}");
+            if (Application.isBatchMode) EditorApplication.Exit(ok == bandits.Count ? 0 : 1);
         }
 
         [MenuItem("SanGuo/烘焙公司角色")]

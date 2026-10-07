@@ -202,10 +202,10 @@ namespace SanGuo.Core
         public static HeroDef MilitiaHealer() => Hero("r_healer", "鄉勇醫士", "r_hlr", Role.Healer, Rarity.R, AttackType.Melee,
             new Stats { Hp = 450, Atk = 35, Int = 70, Def = 15, Dodge = 5, Move = 2, Crit = 0, CritDmg = 150 });
 
-        /// <summary>第 6 關的保護目標「鄉民」：沒有牌，只能被保護。</summary>
+        /// <summary>第 6 關的保護目標「馬商張世平」（演義中資助劉備的馬商）：沒有牌，只能被保護。</summary>
         public static HeroDef Villager() => new HeroDef
         {
-            Id = "r_villager", Name = "鄉民", Role = Role.Tank, Rarity = Rarity.R, AttackType = AttackType.Melee,
+            Id = "r_villager", Name = "馬商張世平", Role = Role.Tank, Rarity = Rarity.R, AttackType = AttackType.Melee,
             Base = new Stats { Hp = 800, Atk = 0, Def = 0, Move = 1, Crit = 0, CritDmg = 150 },
             Deck = new List<CardDef>(),
         };
@@ -294,11 +294,54 @@ namespace SanGuo.Core
             Base = new Stats { Hp = 700, Atk = 200, Def = 50, Move = 1, Crit = 0, CritDmg = 150 },
         };
 
-        /// <summary>第一章關卡總數與名稱（見 docs/demo-chapter1.md）。</summary>
+        // ---- 第零章敵人（盜匪 / 山賊）：數值與能力沿用黃巾版本，只換 id 與名稱；黃巾留給第一章 ----
+
+        private static EnemyDef Reskin(EnemyDef def, string id, string name)
+        {
+            def.Id = id;
+            def.Name = name;
+            return def;
+        }
+
+        public static EnemyDef BanditGrunt() => Reskin(YellowTurbanSoldier(), "bandit_grunt", "山賊嘍囉");
+
+        public static EnemyDef BanditArcher() => Reskin(YellowTurbanArcher(), "bandit_archer", "山賊弓手");
+
+        /// <summary>第 2 關：專打後排的獵戶出身山賊。</summary>
+        public static EnemyDef BanditMarksman() => Reskin(YellowTurbanSharpshooter(), "bandit_marksman", "獵戶山賊");
+
+        /// <summary>第 3 關：身披搶來鐵甲的悍匪，防禦極高。</summary>
+        public static EnemyDef BanditIronBrute() => Reskin(YellowTurbanIronBrute(), "bandit_ironbrute", "披甲悍匪");
+
+        /// <summary>第 4 關：後排治療同夥的野巫醫。</summary>
+        public static EnemyDef BanditShaman() => Reskin(YellowTurbanPriest(), "bandit_shaman", "土匪巫醫");
+
+        /// <summary>第 5 關與資源副本：蓄力大招的二當家。</summary>
+        public static EnemyDef BanditSecondChief() => Reskin(YellowTurbanChief(), "bandit_second", "二當家");
+
+        public static EnemyDef BanditDeputy() => Reskin(YellowTurbanLieutenant(), "bandit_deputy", "副寨主");
+
+        /// <summary>第 8 關：敲鼓召集小弟的鼓手。</summary>
+        public static EnemyDef BanditDrummer()
+        {
+            var def = Reskin(YellowTurbanWarlock(), "bandit_drummer", "擊鼓匪");
+            def.Summons = BanditGrunt();
+            return def;
+        }
+
+        /// <summary>第 10 關 BOSS：占山為王的山大王（名字暫定）。</summary>
+        public static EnemyDef BanditKing()
+        {
+            var def = Reskin(ZhangJiao(), "bandit_king", "鎮山虎");
+            def.Summons = BanditGrunt();
+            return def;
+        }
+
+        /// <summary>第零章關卡名稱（機制藍圖見 docs/demo-chapter1.md，劇情見 docs/chapter0.md）。</summary>
         public static readonly string[] LevelNames =
         {
-            "涿郡義勇", "黃巾探子", "力士攔路", "妖道作亂", "渠帥來襲",
-            "護送鄉民", "火燒連營", "符水妖術", "雙渠帥", "黃巾之首",
+            "涿縣村口", "山賊探子", "披甲悍匪", "野巫醫", "二當家",
+            "護送馬商", "火燒山寨", "鼓聲召匪", "雙寨主", "鎮山虎",
         };
 
         /// <summary>已實作的關卡數（其餘在地圖上顯示為尚未開放）。</summary>
@@ -336,11 +379,11 @@ namespace SanGuo.Core
             setup.NoRandomness = true;
             switch (level)
             {
-                case 1: // 純小兵
+                case 1: // 劉備（治療）帶著鄉勇小兵：第一場純出牌與費用
                     setup.Heroes.Add(new HeroSlot(MilitiaShield(), HeroPos(0, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaSoldier(), HeroPos(1, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaArcher(), HeroPos(1, 1)));
-                    setup.Heroes.Add(new HeroSlot(MilitiaHealer(), HeroPos(2, 1)));
+                    setup.Heroes.Add(new HeroSlot(LiuBei(), HeroPos(2, 1)));
                     break;
                 case 2: // 張飛（嘲諷 + 防禦姿態）
                     setup.Heroes.Add(new HeroSlot(ZhangFei(), HeroPos(0, 0)));
@@ -402,54 +445,54 @@ namespace SanGuo.Core
             setup.ScriptedDraw = TutorialDraw(level);
             switch (level)
             {
-                case 1: // 涿郡義勇：出牌與費用（教學）
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(2, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(3, 0)));
+                case 1: // 涿縣村口：出牌與費用（教學）
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(2, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(3, 0)));
                     break;
-                case 2: // 黃巾探子：兩名神射手專打後排；要靠張飛的挑釁把火力拉到前排
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSharpshooter(), EnemyPos(2, 1)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSharpshooter(), EnemyPos(3, 1)));
+                case 2: // 山賊探子：兩名神射手專打後排；要靠張飛的挑釁把火力拉到前排
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditMarksman(), EnemyPos(2, 1)));
+                    setup.Enemies.Add(new EnemySlot(BanditMarksman(), EnemyPos(3, 1)));
                     break;
-                case 3: // 力士攔路：鐵甲力士擋在最上路，同路沒人時全隊火力都落在牠身上；要疊破甲才打得動
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanIronBrute(), EnemyPos(0, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(0, 1)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(3, 0)));
+                case 3: // 披甲悍匪：鐵甲力士擋在最上路，同路沒人時全隊火力都落在牠身上；要疊破甲才打得動
+                    setup.Enemies.Add(new EnemySlot(BanditIronBrute(), EnemyPos(0, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(0, 1)));
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(3, 0)));
                     break;
-                case 4: // 妖道作亂：妖道躲在後排持續治療，只有弓手打得到
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(0, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(2, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanPriest(), EnemyPos(2, 1)));
+                case 4: // 野巫醫：妖道躲在後排持續治療，只有弓手打得到
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(0, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(2, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditShaman(), EnemyPos(2, 1)));
                     break;
-                case 5: // 渠帥來襲：蓄力 → 大招；昏亂條滿才能打斷
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanChief(), EnemyPos(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(0, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(2, 0)));
+                case 5: // 二當家：蓄力 → 大招；昏亂條滿才能打斷
+                    setup.Enemies.Add(new EnemySlot(BanditSecondChief(), EnemyPos(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(0, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(2, 0)));
                     break;
-                case 6: // 護送鄉民：兩名弓手專打後排的鄉民，鄉民陣亡即失敗
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(4, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanArcher(), EnemyPos(1, 1)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanArcher(), EnemyPos(3, 1)));
+                case 6: // 護送馬商：兩名弓手專打後排的鄉民，鄉民陣亡即失敗
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(4, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditArcher(), EnemyPos(1, 1)));
+                    setup.Enemies.Add(new EnemySlot(BanditArcher(), EnemyPos(3, 1)));
                     break;
-                case 7: // 火燒連營：五名黃巾兵擠成一排，單打太慢，要靠火勢蔓延
+                case 7: // 火燒山寨：五名山賊嘍囉擠成一排，單打太慢，要靠火勢蔓延
                     for (int lane = 0; lane < 5; lane++)
-                        setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(lane, 0)));
+                        setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(lane, 0)));
                     break;
-                case 8: // 符水妖術：術士每回合召喚黃巾兵，不處理就會被淹沒
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanWarlock(), EnemyPos(1, 1)));
+                case 8: // 鼓聲召匪：術士每回合召喚山賊嘍囉，不處理就會被淹沒
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditDrummer(), EnemyPos(1, 1)));
                     break;
-                case 9: // 雙渠帥：兩名蓄力的將領，加一名後排治療的妖道
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanChief(), EnemyPos(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanLieutenant(), EnemyPos(3, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanPriest(), EnemyPos(2, 1)));
+                case 9: // 雙寨主：兩名蓄力的將領，加一名後排治療的妖道
+                    setup.Enemies.Add(new EnemySlot(BanditSecondChief(), EnemyPos(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditDeputy(), EnemyPos(3, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditShaman(), EnemyPos(2, 1)));
                     break;
-                case 10: // 黃巾之首：張角蓄力 → 大招 → 召喚，兩側各一名黃巾兵
-                    setup.Enemies.Add(new EnemySlot(ZhangJiao(), EnemyPos(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(0, 0)));
-                    setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(3, 0)));
+                case 10: // 鎮山虎：山大王蓄力 → 大招 → 召喚，兩側各一名山賊嘍囉
+                    setup.Enemies.Add(new EnemySlot(BanditKing(), EnemyPos(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(0, 0)));
+                    setup.Enemies.Add(new EnemySlot(BanditGrunt(), EnemyPos(3, 0)));
                     break;
                 default:
                     throw new System.ArgumentOutOfRangeException(nameof(level));

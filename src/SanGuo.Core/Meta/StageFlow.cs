@@ -23,6 +23,8 @@ namespace SanGuo.Core.Meta
         public int Gold;
         public int Yuanbao;
         public int LevelsGained;
+        /// <summary>首通獲得的武將 id（沒有則空字串）。</summary>
+        public string HeroGained = "";
         /// <summary>資源副本掉落的素材（主線關卡為空）。</summary>
         public Dictionary<string, int> Materials = new Dictionary<string, int>();
     }
@@ -99,7 +101,7 @@ namespace SanGuo.Core.Meta
             {
                 Ok = true, Won = true, Stars = stars, FirstClear = clear.FirstClear,
                 Exp = clear.ExpGained, Gold = clear.GoldGained, Yuanbao = clear.YuanbaoGained,
-                LevelsGained = clear.LevelsGained,
+                LevelsGained = clear.LevelsGained, HeroGained = clear.HeroGained,
             };
         }
     }
