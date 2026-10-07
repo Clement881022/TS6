@@ -1,5 +1,7 @@
 #nullable enable
 using UnityEngine;
+using UnityEngine.Animations;
+using UnityEngine.Playables;
 
 namespace SanGuo.Client
 {
@@ -28,9 +30,21 @@ namespace SanGuo.Client
         private float _attackT = -1f, _castT = -1f, _hitT = -1f, _dieT = -1f;
         private float _hitSign = 1f;
 
+        // 骨架動畫模式（模型帶有 CharacterClipSet 時）：以 Playables 播放公司動作 clip。
+        private enum Clip { Idle, Attack, Cast, Hit, Die }
+        private CharacterClipSet? _clips;
+        private PlayableGraph _graph;
+        private AnimationMixerPlayable _mixer;
+        private readonly AnimationClip?[] _clipOf = new AnimationClip?[5];
+        private Clip _oneShot = Clip.Idle;
+        private float _oneShotT = -1f;
+        private float _fade = 1f;
+
         public bool IsDead => _dieT >= 0f;
         /// <summary>倒下動畫播完（可隱藏）。</summary>
-        public bool Finished => _dieT >= DieDuration;
+        public bool Finished => _clips != null
+            ? _oneShot == Clip.Die && _oneShotT >= (_clipOf[(int)Clip.Die]?.length ?? DieDuration) + 0.35f
+            : _dieT >= DieDuration;
 
         public void Init(Transform model)
         {
@@ -38,6 +52,8 @@ namespace SanGuo.Client
             _baseRot = model.localRotation;
             _baseScale = model.localScale;
             _phase = Random.value * 6.28f;
+            _clips = model.GetComponent<CharacterClipSet>();
+            if (_clips != null) { InitClips(); return; }
             _torso = Find("pivot_torso");
             _head = Find("pivot_head");
             _armR = Find("pivot_arm_R");
@@ -88,12 +104,13 @@ namespace SanGuo.Client
 
         // ------------------------------------------------------------ 觸發
 
-        public void Attack() { if (!IsDead) { _attackT = 0f; _castT = -1f; } }
-        public void Cast() { if (!IsDead && _attackT < 0f) _castT = 0f; }
+        public void Attack() { if (!IsDead) { _attackT = 0f; _castT = -1f; PlayOneShot(Clip.Attack); } }
+        public void Cast() { if (!IsDead && _attackT < 0f) { _castT = 0f; PlayOneShot(Clip.Cast); } }
 
         public void Hit()
         {
             if (IsDead) return;
+            if (_clips != null && _oneShotT < 0f) PlayOneShot(Clip.Hit);
             _hitT = 0f;
             _hitSign = -_hitSign;
         }
@@ -103,6 +120,81 @@ namespace SanGuo.Client
             if (IsDead) return;
             _dieT = 0f;
             _attackT = _castT = _hitT = -1f;
+            PlayOneShot(Clip.Die);
+        }
+
+        // ------------------------------------------------------------ 骨架動畫
+
+        private void InitClips()
+        {
+            var set = _clips!;
+            _clipOf[(int)Clip.Idle] = set.Idle;
+            _clipOf[(int)Clip.Attack] = set.Attack;
+            _clipOf[(int)Clip.Cast] = set.Cast;
+            _clipOf[(int)Clip.Hit] = set.Hit;
+            _clipOf[(int)Clip.Die] = set.Die;
+
+            var animator = _model.GetComponentInChildren<Animator>();
+            if (animator == null) { Debug.LogWarning("角色缺少 Animator：" + _model.name); return; }
+            animator.applyRootMotion = false;
+
+            _graph = PlayableGraph.Create("Character_" + _model.name);
+            _graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
+            _mixer = AnimationMixerPlayable.Create(_graph, _clipOf.Length);
+            for (int i = 0; i < _clipOf.Length; i++)
+            {
+                if (_clipOf[i] == null) continue;
+                var cp = AnimationClipPlayable.Create(_graph, _clipOf[i]);
+                _graph.Connect(cp, 0, _mixer, i);
+            }
+            AnimationPlayableOutput.Create(_graph, "Anim", animator).SetSourcePlayable(_mixer);
+            _graph.Play();
+            _mixer.SetInputWeight((int)Clip.Idle, 1f);
+        }
+
+        private void PlayOneShot(Clip clip)
+        {
+            if (_clips == null || _clipOf[(int)clip] == null) return;
+            if (_oneShot == Clip.Die && _oneShotT >= 0f) return;   // 倒下後不再被其他動作覆蓋
+            _oneShot = clip;
+            _oneShotT = 0f;
+            _fade = 0f;
+        }
+
+        private void OnDestroy()
+        {
+            if (_graph.IsValid()) _graph.Destroy();
+        }
+
+        private void TickClips(float dt, Vector3 facing, Vector3 basePos)
+        {
+            _model.position = basePos;
+            _model.rotation = Quaternion.LookRotation(facing, Vector3.up) * ModelYawFix;
+
+            if (!_graph.IsValid()) return;
+            var idle = _clipOf[(int)Clip.Idle];
+            if (idle != null)
+                _mixer.GetInput((int)Clip.Idle).SetTime((Time.time + _phase) % Mathf.Max(0.01f, idle.length));
+
+            float oneShotWeight = 0f;
+            if (_oneShotT >= 0f)
+            {
+                var c = _clipOf[(int)_oneShot]!;
+                _oneShotT += dt;
+                _fade = Mathf.Min(1f, _fade + dt / 0.1f);
+                bool isDie = _oneShot == Clip.Die;
+                float t = isDie ? Mathf.Min(_oneShotT, c.length) : _oneShotT;
+                if (!isDie && _oneShotT >= c.length) { _oneShotT = -1f; }
+                else
+                {
+                    _mixer.GetInput((int)_oneShot).SetTime(t);
+                    oneShotWeight = _fade;
+                }
+            }
+            for (int i = 1; i < _clipOf.Length; i++)
+                _mixer.SetInputWeight(i, _oneShotT >= 0f && i == (int)_oneShot ? oneShotWeight : 0f);
+            _mixer.SetInputWeight((int)Clip.Idle, 1f - oneShotWeight);
+            _graph.Evaluate(0f);
         }
 
         // ------------------------------------------------------------ 每幀
@@ -112,6 +204,7 @@ namespace SanGuo.Client
         /// <param name="basePos">這一幀模型的基準世界位置（腳底）。</param>
         public void Tick(float dt, Vector3 facing, float scale, Vector3 basePos)
         {
+            if (_clips != null) { TickClips(dt, facing, basePos); return; }
             float t = Time.time + _phase;
             // 擺動軸：讓正角度 = 手臂向前揮。
             Vector3 axis = Vector3.Cross(facing, Vector3.up).normalized;

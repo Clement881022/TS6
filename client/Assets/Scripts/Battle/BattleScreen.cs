@@ -2,7 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using SanGuo.Core;
+using SanGuo.Core.Data;
+using SanGuo.Core.Meta;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Position = SanGuo.Core.Position;
@@ -35,9 +38,18 @@ namespace SanGuo.Client
         private readonly Dictionary<int, UnitTag> _tags = new Dictionary<int, UnitTag>();
         private readonly List<string> _log = new List<string>();
 
+        private readonly IGameBackend _backend;
+        private ProfileView _view = new ProfileView();
         private Battle _battle = null!;
+        /// <summary>null = 只是地圖後面的預覽戰場（沒有開始關卡），不能操作。</summary>
+        private ReplayRecorder? _recorder;
+        private MetaScreens _meta = null!;
+        private bool _busy;
         private ulong _seed;
         private int _level = 1;
+        private string _stageId = "1-1";
+        /// <summary>目前進行的是資源副本時不為 null（主線關卡為 null）。</summary>
+        private ResourceDungeonDef? _dungeon;
         private int _eventCursor;
         private bool _auto;
         private readonly Dictionary<string, Position> _formation = new Dictionary<string, Position>();
@@ -56,14 +68,16 @@ namespace SanGuo.Client
         private Button _formationButton = null!;
         private VisualElement? _overlay;
 
-        public BattleScreen(VisualElement root, BattleStage stage, ulong seed)
+        public BattleScreen(VisualElement root, BattleStage stage, IGameBackend backend)
         {
             _root = root;
             _stage = stage;
-            _seed = seed;
-            LoadProgress();
+            _backend = backend;
+            _seed = 1;
+            LoadRoster();
             BuildStatic();
-            StartBattle();
+            _meta = new MetaScreens(_root, backend, () => _view, RefreshProfile, Toast, OpenMap, EnterDungeon);
+            StartBattle(recording: false);
             _root.schedule.Execute(AutoStep).Every(650);
             _root.schedule.Execute(UpdateTagPositions).Every(16);
         }
@@ -89,7 +103,7 @@ namespace SanGuo.Client
             buttons.Add(MakeButton("地圖", OpenMap));
             _formationButton = MakeButton("編隊", OpenFormation);
             buttons.Add(_formationButton);
-            buttons.Add(MakeButton("重來", () => { _seed++; StartBattle(); }));
+            buttons.Add(MakeButton("重來", () => { _ = BeginStageId(_stageId); }));
             header.Add(buttons);
             _content.Add(header);
 
@@ -174,22 +188,109 @@ namespace SanGuo.Client
 
         // ------------------------------------------------------------ 流程
 
-        private void ChangeLevel(int level, bool openFormation = true)
+        private static string StageIdOf(int level) => DemoMeta.StageId(1, level);
+
+        /// <summary>進入關卡：可編隊的關卡先開編隊畫面（開戰才扣體力）；鎖定編隊的直接開戰。</summary>
+        private void EnterLevel(int level)
         {
-            if (level < 1 || level > DemoContent.ChapterLevelCount) return;
+            if (_busy || level < 1 || level > DemoContent.ChapterLevelCount) return;
+            if (DemoContent.Level(level, 1).FormationLocked) { _ = BeginStage(level); return; }
             _level = level;
-            _seed++;
-            _mapPanel?.RemoveFromHierarchy();
-            _mapPanel = null;
-            StartBattle();
-            if (openFormation && !_battle.Setup.FormationLocked) OpenFormation();
+            OpenFormation();
         }
 
-        private void StartBattle()
+        private Task BeginStage(int level) => BeginStageId(StageIdOf(level));
+
+        /// <summary>開始資源副本戰鬥（由招募 / 武將以外的「資源副本」畫面呼叫）。</summary>
+        public void EnterDungeon(string dungeonId)
         {
-            var setup = DemoContent.Level(_level, _seed);
+            if (_busy) return;
+            _meta.Close();
+            _ = BeginStageId(dungeonId);
+        }
+
+        /// <summary>向後端開始關卡 / 副本（檢查條件、扣體力、取得種子），成功才開打並開始錄操作。</summary>
+        private async Task BeginStageId(string stageId)
+        {
+            if (_busy) return;
+            _busy = true;
+            try
+            {
+                var r = await _backend.StartStage(stageId);
+                if (!r.Ok) { Toast(ExplainBackend(r.Code)); return; }
+                _stageId = stageId;
+                _dungeon = DemoMeta.FindDungeon(stageId);
+                if (_dungeon == null && int.TryParse(stageId.Substring(stageId.IndexOf('-') + 1), out int level)) _level = level;
+                _seed = r.Seed;
+                _mapPanel?.RemoveFromHierarchy();
+                _mapPanel = null;
+                _formationPanel?.RemoveFromHierarchy();
+                _formationPanel = null;
+                StartBattle(recording: true);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                Toast(ExplainBackend("network"));
+            }
+            finally
+            {
+                _busy = false;
+            }
+        }
+
+        internal static string MaterialName(string key)
+        {
+            switch (key)
+            {
+                case HeroGrowth.ExpBook: return "經驗書";
+                case HeroGrowth.CardMaterial: return "卡牌強化素材";
+                default: return key.StartsWith("shard:") ? "突破碎片" : key;
+            }
+        }
+
+        internal static string ExplainBackend(string code)
+        {
+            switch (code)
+            {
+                case "NotEnoughStamina": return "體力不足";
+                case "LevelTooLow": return "帳號等級不足";
+                case "NotThreeStars": return "三星通關才能掃蕩";
+                case "InvalidCount": return "掃蕩次數不合法";
+                case "NotEnoughYuanbao": return "元寶不足";
+                case "NotEnoughGold": return "金幣不足";
+                case "NotEnoughMaterial": return "素材不足";
+                case "NeedsPlayerLevel": return "武將等級不能超過帳號等級";
+                case "AtCap": return "已達上限";
+                case "NotOpenToday": return "今天不開放";
+                case "LimitReached": return "今日次數已用完";
+                case "NotCleared": return "尚未通關，無法掃蕩";
+                case "NotComplete": return "尚未達成";
+                case "AlreadyClaimed": return "已經領取過了";
+                case "NotUnlocked": return "尚未開放";
+                case "unknown_dungeon": return "沒有這個副本";
+                case "AlreadyOwned": return "已經購買過了";
+                case "NotPaid": return "尚未購買";
+                case "NotActive": return "月卡尚未生效或已到期";
+                case "AlreadyClaimedToday": return "今天已經領過了";
+                case "UnknownProduct": return "沒有這個商品";
+                case "UnknownOrder": return "找不到訂單";
+                case "disabled": return "測試付款未開啟";
+                case "unknown_stage": return "沒有這個關卡";
+                case "no_pending_stage": return "沒有進行中的關卡";
+                case "invalid_replay": return "操作紀錄驗證失敗，本局無效";
+                case "network": return "連線失敗，請稍後再試";
+                default: return "失敗：" + code;
+            }
+        }
+
+        private void StartBattle(bool recording)
+        {
+            var setup = _dungeon != null ? DemoMeta.DungeonSetup(_seed) : DemoContent.Level(_level, _seed);
             if (!setup.FormationLocked) ApplyFormation(setup);
             _battle = new Battle(setup);
+            _recorder = recording ? new ReplayRecorder(_battle) : null;
+            _finishing = false;
             // 教學關：隊伍固定、不開放自動戰鬥（之後再開放）。
             _formationButton.style.display = setup.FormationLocked ? DisplayStyle.None : DisplayStyle.Flex;
             _autoButton.style.display = setup.AutoAllowed ? DisplayStyle.Flex : DisplayStyle.None;
@@ -208,32 +309,40 @@ namespace SanGuo.Client
         // ------------------------------------------------------------ 戰前編隊與大地圖
 
         private const int MaxTeamSize = 4;
-        private const string ClearedKey = "sanguo_cleared_levels";
 
         private readonly List<HeroDef> _rosterList = DemoContent.Roster();
         private readonly Dictionary<string, HeroDef> _roster = new Dictionary<string, HeroDef>();
-        private readonly HashSet<int> _cleared = new HashSet<int>();
+        private bool _finishing;
         private VisualElement? _formationPanel;
         private VisualElement? _mapPanel;
         private string? _formationPick;
         private string _formationMessage = "";
 
-        private bool Blocked => _formationPanel != null || _mapPanel != null;
+        private VisualElement? _stagePanel;
 
-        private void LoadProgress()
+        private bool Blocked => _recorder == null || _busy || _formationPanel != null || _mapPanel != null || _stagePanel != null || _meta.IsOpen;
+
+        private void LoadRoster()
         {
             foreach (var h in _rosterList) _roster[h.Id] = h;
-            foreach (var part in PlayerPrefs.GetString(ClearedKey, "").Split(','))
-                if (int.TryParse(part, out int n)) _cleared.Add(n);
         }
 
-        private void SaveProgress()
+        private bool IsUnlocked(int level) => level == 1 || _view.ClearedStages.Contains(StageIdOf(level - 1));
+
+        private async Task RefreshProfile()
         {
-            PlayerPrefs.SetString(ClearedKey, string.Join(",", _cleared));
-            PlayerPrefs.Save();
+            try
+            {
+                var v = await _backend.GetProfile();
+                if (v != null) _view = v;
+                else Toast(ExplainBackend("network"));
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                Toast(ExplainBackend("network"));
+            }
         }
-
-        private bool IsUnlocked(int level) => level == 1 || _cleared.Contains(level - 1);
 
         /// <summary>把玩家排好的隊伍與站位套用到關卡設定；第一次使用關卡的預設隊伍。</summary>
         private void ApplyFormation(BattleSetup setup)
@@ -336,9 +445,7 @@ namespace SanGuo.Client
             buttons.Add(MakeButton("開戰", () =>
             {
                 if (_formation.Count == 0) { _formationMessage = "至少要有 1 名武將上場"; BuildFormationContent(); return; }
-                _formationPanel?.RemoveFromHierarchy();
-                _formationPanel = null;
-                StartBattle();
+                _ = BeginStageId(StageIdOf(_level));
             }, primary: true));
             panel.Add(buttons);
         }
@@ -404,10 +511,24 @@ namespace SanGuo.Client
 
         // ---- 大地圖 ----
 
-        public void OpenMap()
+        public void OpenMap() => _ = ShowMap();
+
+        private static string Stars(int n) => new string('★', n) + new string('☆', 3 - n);
+
+        private string ProfileLine() =>
+            $"Lv.{_view.Level}　經驗 {_view.Exp}/{_view.ExpToNext}　體力 {_view.Stamina}/{_view.StaminaCap}　金幣 {_view.Gold}　元寶 {_view.Yuanbao}　[{_backend.Name}]";
+
+        private async Task ShowMap()
         {
+            if (_busy) return;
+            _busy = true;
+            try { await RefreshProfile(); }
+            finally { _busy = false; }
+
             _formationPanel?.RemoveFromHierarchy();
             _formationPanel = null;
+            _stagePanel?.RemoveFromHierarchy();
+            _stagePanel = null;
             _mapPanel?.RemoveFromHierarchy();
             _mapPanel = new VisualElement();
             _mapPanel.AddToClassList("overlay");
@@ -416,9 +537,19 @@ namespace SanGuo.Client
             var title = new Label("第一章　黃巾之亂");
             title.AddToClassList("formation-title");
             _mapPanel.Add(title);
-            var hint = new Label("打贏一關才會開啟下一關；點選關卡進入編隊");
+            var profile = new Label(ProfileLine());
+            profile.AddToClassList("formation-hint");
+            _mapPanel.Add(profile);
+            var hint = new Label("打贏一關才會開啟下一關；三星通關後可掃蕩");
             hint.AddToClassList("formation-hint");
             _mapPanel.Add(hint);
+            var menu = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+            menu.Add(MakeButton("招募", () => { _mapPanel?.RemoveFromHierarchy(); _mapPanel = null; _meta.OpenGacha(); }));
+            menu.Add(MakeButton("武將", () => { _mapPanel?.RemoveFromHierarchy(); _mapPanel = null; _meta.OpenHeroes(); }));
+            menu.Add(MakeButton("副本", () => { _mapPanel?.RemoveFromHierarchy(); _mapPanel = null; _meta.OpenDungeons(); }));
+            menu.Add(MakeButton("任務", () => { _mapPanel?.RemoveFromHierarchy(); _mapPanel = null; _meta.OpenQuests(); }));
+            menu.Add(MakeButton("商店", () => { _mapPanel?.RemoveFromHierarchy(); _mapPanel = null; _meta.OpenShop(); }));
+            _mapPanel.Add(menu);
 
             var field = new VisualElement();
             field.AddToClassList("map-field");
@@ -443,12 +574,13 @@ namespace SanGuo.Client
             {
                 int level = i + 1;
                 bool implemented = level <= DemoContent.ChapterLevelCount;
-                bool cleared = _cleared.Contains(level);
+                int stars = _view.StarsOf(StageIdOf(level));
+                bool cleared = _view.ClearedStages.Contains(StageIdOf(level));
                 bool open = implemented && IsUnlocked(level);
                 bool boss = level == total;
                 float size = boss ? 118 : 92;
 
-                var node = new Button(() => { if (open) ChangeLevel(level); }) { text = level.ToString() };
+                var node = new Button(() => { if (open) OpenStageDetail(level); }) { text = level.ToString() };
                 node.AddToClassList("map-node");
                 node.AddToClassList(cleared ? "map-node-clear" : open ? "map-node-open" : "map-node-lock");
                 if (boss) node.AddToClassList("map-node-boss");
@@ -459,7 +591,7 @@ namespace SanGuo.Client
                 node.style.top = centers[i].y - size / 2;
                 field.Add(node);
 
-                string status = cleared ? "已通關" : !implemented ? "未開放" : open ? "可挑戰" : "未解鎖";
+                string status = cleared ? Stars(stars) : !implemented ? "未開放" : open ? "可挑戰" : "未解鎖";
                 var caption = new Label($"{DemoContent.LevelNames[i]}\n{status}") { pickingMode = PickingMode.Ignore };
                 caption.AddToClassList("map-caption");
                 caption.style.left = centers[i].x - 80;
@@ -470,10 +602,78 @@ namespace SanGuo.Client
             _root.Add(_mapPanel);
         }
 
+        // ---- 關卡資訊（挑戰 / 掃蕩）----
+
+        private void OpenStageDetail(int level)
+        {
+            _stagePanel?.RemoveFromHierarchy();
+            var stage = DemoMeta.Chapter1Stage(level);
+            int stars = _view.StarsOf(stage.StageId);
+            _stagePanel = new VisualElement();
+            _stagePanel.AddToClassList("overlay");
+
+            var title = new Label($"第 {level} 關　{DemoContent.LevelNames[level - 1]}");
+            title.AddToClassList("overlay-text");
+            _stagePanel.Add(title);
+            AddInfo(_stagePanel, $"最高星數 {Stars(stars)}　　消耗體力 {stage.StaminaCost}（現有 {_view.Stamina}）");
+            AddInfo(_stagePanel, $"獎勵：經驗 {stage.Exp}　金幣 {stage.Gold}" + (_view.ClearedStages.Contains(stage.StageId) ? "" : $"　首通元寶 {stage.FirstClearYuanbao}"));
+            string par = stage.StarTurnPar > 0 ? $"　三星：{stage.StarTurnPar} 回合內" : "";
+            AddInfo(_stagePanel, "★ 通關　★★ 無武將陣亡" + par);
+
+            var row = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+            row.Add(MakeButton("挑戰", () => { CloseStageDetail(); EnterLevel(level); }, primary: true));
+            if (stars >= 3)
+            {
+                row.Add(MakeButton("掃蕩 ×1", () => _ = SweepStage(level, 1)));
+                row.Add(MakeButton("掃蕩 ×10", () => _ = SweepStage(level, PlayerProfile.MaxSweepCount)));
+            }
+            row.Add(MakeButton("返回", CloseStageDetail));
+            _stagePanel.Add(row);
+            _root.Add(_stagePanel);
+        }
+
+        private void CloseStageDetail()
+        {
+            _stagePanel?.RemoveFromHierarchy();
+            _stagePanel = null;
+        }
+
+        private static void AddInfo(VisualElement parent, string text)
+        {
+            var l = new Label(text);
+            l.AddToClassList("formation-hint");
+            parent.Add(l);
+        }
+
+        private async Task SweepStage(int level, int count)
+        {
+            if (_busy) return;
+            _busy = true;
+            try
+            {
+                var r = await _backend.Sweep(StageIdOf(level), count);
+                if (!r.Ok) { Toast(ExplainBackend(r.Code)); return; }
+                await RefreshProfile();
+                Toast($"掃蕩 ×{count}：經驗 +{r.Exp}　金幣 +{r.Gold}" + (r.LevelsGained > 0 ? $"　升 {r.LevelsGained} 級！" : ""));
+                CloseStageDetail();
+                _busy = false;
+                await ShowMap();
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                Toast(ExplainBackend("network"));
+            }
+            finally
+            {
+                _busy = false;
+            }
+        }
+
         private void EndTurn()
         {
-            if (_battle.Result != BattleResult.Ongoing) return;
-            _battle.EndTurn();
+            if (_battle.Result != BattleResult.Ongoing || Blocked) return;
+            _recorder!.EndTurn();
             PumpEvents();
             Refresh();
         }
@@ -489,8 +689,8 @@ namespace SanGuo.Client
             if (!_auto || _battle.Result != BattleResult.Ongoing || Blocked) return;
             if (_fx.PendingSeconds > 0.05f) return; // 等上一段演出播完
             var card = _battle.Hand.FirstOrDefault(c => _battle.CanPlay(c) == PlayResult.Ok);
-            if (card != null) _battle.PlayCard(card);
-            else _battle.EndTurn();
+            if (card != null) _recorder!.Play(card);
+            else _recorder!.EndTurn();
             PumpEvents();
             Refresh();
         }
@@ -500,7 +700,7 @@ namespace SanGuo.Client
         private void OnCardClicked(CardInstance card)
         {
             if (_battle.Result != BattleResult.Ongoing || Blocked) return;
-            var result = _battle.PlayCard(card);
+            var result = _recorder!.Play(card);
             if (result != PlayResult.Ok) { Toast(Explain(result)); Refresh(); return; }
             _previewTargets.Clear();
             PumpEvents();
@@ -540,7 +740,7 @@ namespace SanGuo.Client
             var toast = new Label(message);
             toast.AddToClassList("toast");
             toast.pickingMode = PickingMode.Ignore;
-            _content.Add(toast);
+            _root.Add(toast);
             toast.schedule.Execute(() => toast.RemoveFromHierarchy()).StartingIn(1300);
         }
 
@@ -676,9 +876,10 @@ namespace SanGuo.Client
 
         private void RefreshHud()
         {
+            string where = _dungeon != null && _recorder != null ? _dungeon.Name : $"第 {_level} 關";
             _title.text = _battle.Setup.TurnLimit > 0
-                ? $"第 {_level} 關　第 {_battle.Turn} / {_battle.Setup.TurnLimit} 回合"
-                : $"第 {_level} 關　第 {_battle.Turn} 回合";
+                ? $"{where}　第 {_battle.Turn} / {_battle.Setup.TurnLimit} 回合"
+                : $"{where}　第 {_battle.Turn} 回合";
             _cost.text = $"費用 {_battle.Cost}/{_battle.Setup.CostCap}";
             _piles.text = $"抽牌 {_battle.DrawPile.Count}　棄牌 {_battle.DiscardPile.Count}　破釜 {_battle.ExhaustPile.Count}";
             _logLabel.text = string.Join("\n", _log.Skip(Math.Max(0, _log.Count - 4)));
@@ -686,21 +887,74 @@ namespace SanGuo.Client
 
         private void RefreshOverlay()
         {
-            if (_battle.Result == BattleResult.Ongoing || _overlay != null) return;
+            if (_battle.Result == BattleResult.Ongoing || _overlay != null || _recorder == null || _finishing) return;
+            _finishing = true;
             _overlay = new VisualElement();
             _overlay.AddToClassList("overlay");
-            var text = new Label(_battle.Result == BattleResult.Won ? "勝利" : "敗北");
-            text.AddToClassList("overlay-text");
-            _overlay.Add(text);
-            bool won = _battle.Result == BattleResult.Won;
-            if (won) { _cleared.Add(_level); SaveProgress(); }
-            bool hasNext = won && _level < DemoContent.ChapterLevelCount;
-            if (hasNext) _overlay.Add(MakeButton("下一關", () => ChangeLevel(_level + 1), primary: true));
-            _overlay.Add(MakeButton("再打一次", () => { _seed++; StartBattle(); }, primary: !hasNext));
-            if (!won && !_battle.Setup.FormationLocked)
-                _overlay.Add(MakeButton("調整編隊", () => { _seed++; StartBattle(); OpenFormation(); }));
-            _overlay.Add(MakeButton("回地圖", OpenMap));
+            var wait = new Label("結算中…");
+            wait.AddToClassList("overlay-text");
+            _overlay.Add(wait);
             _root.Add(_overlay);
+            _ = FinishStage(_overlay, _stageId, _recorder.Actions.ToList());
+        }
+
+        /// <summary>把操作紀錄交給後端結算（勝負與星數由後端自己重播算出），再顯示結果。</summary>
+        private async Task FinishStage(VisualElement overlay, string stageId, List<ReplayAction> actions)
+        {
+            FinishStageResult result;
+            try
+            {
+                result = await _backend.FinishStage(stageId, actions);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                result = new FinishStageResult { Code = "network" };
+            }
+            if (_overlay != overlay) return; // 期間已離開這一局
+            try { await RefreshProfile(); } catch { /* 已在內部處理 */ }
+            if (_overlay != overlay) return;
+
+            overlay.Clear();
+            if (!result.Ok)
+            {
+                var err = new Label(ExplainBackend(result.Code));
+                err.AddToClassList("overlay-text");
+                overlay.Add(err);
+                overlay.Add(MakeButton("回地圖", OpenMap, primary: true));
+                return;
+            }
+
+            var text = new Label(result.Won ? "勝利" : "敗北");
+            text.AddToClassList("overlay-text");
+            overlay.Add(text);
+            var dungeon = DemoMeta.FindDungeon(stageId);
+            if (result.Won && dungeon != null)
+            {
+                var gains = new List<string>();
+                if (result.Gold > 0) gains.Add($"金幣 +{result.Gold}");
+                if (result.Yuanbao > 0) gains.Add($"元寶 +{result.Yuanbao}");
+                foreach (var m in result.Materials) gains.Add($"{MaterialName(m.Key)} +{m.Value}");
+                AddInfo(overlay, "獎勵：" + string.Join("　", gains));
+            }
+            else if (result.Won)
+            {
+                AddInfo(overlay, Stars(result.Stars) + (result.FirstClear ? "　首次通關" : ""));
+                AddInfo(overlay, $"經驗 +{result.Exp}　金幣 +{result.Gold}" + (result.Yuanbao > 0 ? $"　元寶 +{result.Yuanbao}" : ""));
+                if (result.LevelsGained > 0) AddInfo(overlay, $"帳號升級！Lv.{_view.Level}（體力已回滿）");
+            }
+
+            if (dungeon != null)
+            {
+                overlay.Add(MakeButton("再打一次", () => _ = BeginStageId(stageId), primary: true));
+                overlay.Add(MakeButton("回地圖", OpenMap));
+                return;
+            }
+            int level = _level;
+            bool hasNext = result.Won && level < DemoContent.ChapterLevelCount;
+            if (hasNext) overlay.Add(MakeButton("下一關", () => EnterLevel(level + 1), primary: true));
+            overlay.Add(MakeButton("再打一次", () => EnterLevel(level), primary: !hasNext));
+            overlay.Add(MakeButton("回地圖", OpenMap));
         }
 
         // ------------------------------------------------------------ 戰鬥紀錄
@@ -751,7 +1005,7 @@ namespace SanGuo.Client
 
         // ------------------------------------------------------------ 截圖 / 除錯用
 
-        public void DebugSetLevel(int level) => ChangeLevel(level, openFormation: false);
+        public void DebugSetLevel(int level) => EnterLevel(level);
 
         public void DebugPlayFirstPlayable()
         {
@@ -761,6 +1015,22 @@ namespace SanGuo.Client
 
         public void DebugOpenFormation() => OpenFormation();
         public void DebugOpenMap() => OpenMap();
+
+        /// <summary>截圖用：開啟養成 / 商店畫面（gacha、heroes、dungeons、quests、shop）；gacha 會先抽一次十連。</summary>
+        public async void DebugOpenMeta(string name)
+        {
+            _mapPanel?.RemoveFromHierarchy();
+            _mapPanel = null;
+            await RefreshProfile();
+            switch (name)
+            {
+                case "gacha": _meta.OpenGacha(); await _meta.DebugTenPull(); break;
+                case "heroes": _meta.OpenHeroes(); break;
+                case "dungeons": _meta.OpenDungeons(); break;
+                case "quests": _meta.OpenQuests(); break;
+                case "shop": _meta.OpenShop(); break;
+            }
+        }
 
         public void DebugPreviewFirstCard()
         {

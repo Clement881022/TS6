@@ -13,6 +13,19 @@
       "created": "2026-10-07",
       "replace_by": "專業 3D 美術（共用骨架、手繪貼圖）",
       "notes": "由基本幾何形體拼成的 Q 版武將，僅用於驗證戰鬥與演出。"
+    },
+    {
+      "id": "model3d.heroes.company",
+      "file": "client/Assets/Resources/Characters/*.prefab（由 CompanyCharacterBaker 烘焙）",
+      "kind": "model3d",
+      "status": "placeholder",
+      "shippable": false,
+      "source": "company",
+      "tool": "TS6Client unityclient Arts/Models（Avatar + Body/Hair/Face）+ CGCharacter shader (URP)",
+      "model_license": "公司內部資源，使用者已授權於本專案自由取用；上線前需確認公司授權範圍",
+      "created": "2026-10-07",
+      "replace_by": "視上線授權決定",
+      "notes": "取代 Blender 程式化占位模型；骨架動畫，外觀以 Body/Hair/Face 組合區分武將。"
     }
   ]
 }

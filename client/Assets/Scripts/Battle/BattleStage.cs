@@ -115,6 +115,7 @@ namespace SanGuo.Client
                         tag.Side = side;
                         tag.Pos = pos;
                         tag.Renderer = tile.GetComponent<Renderer>();
+                        if (TileShader != null) tag.Renderer.sharedMaterial = new Material(TileShader);
                         bool alt = (lane + row) % 2 == 0;
                         tag.BaseColor = side == Side.Player
                             ? (alt ? new Color(0.20f, 0.29f, 0.42f) : new Color(0.17f, 0.25f, 0.37f))
@@ -190,6 +191,9 @@ namespace SanGuo.Client
         }
 
         // ------------------------------------------------------------ 模型
+
+        // URP 專案裡 CreatePrimitive 的預設材質是 Built-in Standard（會變粉紅），地磚改用 URP/Lit。
+        private static Shader? TileShader => Shader.Find("Universal Render Pipeline/Lit");
 
         private UnitView? Ensure(Unit unit)
         {

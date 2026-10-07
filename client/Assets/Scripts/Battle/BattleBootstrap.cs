@@ -37,7 +37,12 @@ namespace SanGuo.Client
             ApplyCjkFont(root);
 
             var stage = gameObject.AddComponent<BattleStage>();
-            _screen = new BattleScreen(root, stage, 1);
+            // 有 -sanguoServer <網址> 就連伺服器（-sanguoAccount 指定帳號），否則用單機存檔。
+            string? server = CommandLineValue("-sanguoServer");
+            IGameBackend backend = server != null
+                ? new RemoteBackend(server, CommandLineValue("-sanguoAccount") ?? "dev-" + SystemInfo.deviceUniqueIdentifier)
+                : new LocalBackend();
+            _screen = new BattleScreen(root, stage, backend);
 
             string? levelArg = CommandLineValue("-sanguoLevel");
             if (levelArg != null && int.TryParse(levelArg, out int level)) _screen.DebugSetLevel(level);
@@ -47,13 +52,21 @@ namespace SanGuo.Client
             else _screen.OpenMap();
         }
 
-        /// <summary>原型階段先借用系統中文字型；正式版需內嵌字型（手機沒有 Windows 字型）。</summary>
+        /// <summary>
+        /// 中文字型：優先用 Resources/Fonts/CjkFont（.ttf / .otf，放進去即可，手機也能用）；
+        /// 沒有就借用系統中文字型（只有 Windows 等桌面有，手機沒有，上線前必須內嵌字型）。
+        /// </summary>
         private static void ApplyCjkFont(VisualElement root)
         {
             try
             {
-                var font = Font.CreateDynamicFontFromOSFont(
-                    new[] { "Microsoft JhengHei UI", "Microsoft JhengHei", "Microsoft YaHei UI", "Noto Sans CJK TC" }, 32);
+                var font = Resources.Load<Font>("Fonts/CjkFont");
+                if (font == null)
+                {
+                    Debug.LogWarning("沒有內嵌中文字型（Resources/Fonts/CjkFont），改用系統字型；手機上會顯示不出中文。");
+                    font = Font.CreateDynamicFontFromOSFont(
+                        new[] { "Microsoft JhengHei UI", "Microsoft JhengHei", "Microsoft YaHei UI", "Noto Sans CJK TC" }, 32);
+                }
                 var asset = FontAsset.CreateFontAsset(font);
                 root.style.unityFontDefinition = new StyleFontDefinition(FontDefinition.FromSDFFont(asset));
             }
@@ -97,9 +110,18 @@ namespace SanGuo.Client
             yield return new WaitForSecondsRealtime(0.5f);
 
             _screen.DebugOpenMap();
-            yield return new WaitForSecondsRealtime(0.3f);
+            yield return new WaitForSecondsRealtime(0.6f);
             Shot(Path.Combine(dir, "5-map.png"));
-            yield return new WaitForSecondsRealtime(0.8f);
+            yield return new WaitForSecondsRealtime(0.5f);
+
+            int n = 6;
+            foreach (string meta in new[] { "gacha", "heroes", "dungeons", "quests", "shop" })
+            {
+                _screen.DebugOpenMeta(meta);
+                yield return new WaitForSecondsRealtime(0.8f);
+                Shot(Path.Combine(dir, $"{n++}-{meta}.png"));
+                yield return new WaitForSecondsRealtime(0.4f);
+            }
             Application.Quit();
         }
 
