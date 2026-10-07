@@ -77,6 +77,8 @@ namespace SanGuo.Client
         private Label _title = null!;
         private VisualElement _cost = null!;
         private VisualElement _piles = null!;
+        private Button _drawButton = null!, _discardButton = null!;
+        private VisualElement? _pileView;
         private Label _logLabel = null!;
         private VisualElement _logBox = null!;
         private Button _autoButton = null!;
@@ -156,8 +158,14 @@ namespace SanGuo.Client
             _cost.AddToClassList("bl-cost");
             top.Add(_cost);
             left.Add(top);
-            _piles = new VisualElement { pickingMode = PickingMode.Ignore };
+            _piles = new VisualElement();
             _piles.AddToClassList("bl-piles");
+            _drawButton = new Button(() => ShowPile(PileKind.Draw));
+            _drawButton.AddToClassList("bl-pile-btn");
+            _discardButton = new Button(() => ShowPile(PileKind.Discard));
+            _discardButton.AddToClassList("bl-pile-btn");
+            _piles.Add(_drawButton);
+            _piles.Add(_discardButton);
             left.Add(_piles);
             _hand = new VisualElement();
             _hand.AddToClassList("bl-list");
@@ -954,6 +962,93 @@ namespace SanGuo.Client
             return chip;
         }
 
+        // ------------------------------------------------------------ 牌堆檢視（抽牌堆 / 棄牌堆，仿殺戮尖塔）
+
+        private enum PileKind { Draw, Discard }
+
+        private void ShowPile(PileKind kind)
+        {
+            ClosePile();
+            var overlay = new VisualElement();
+            overlay.AddToClassList("pv-overlay");
+            overlay.RegisterCallback<ClickEvent>(e => { if (e.target == overlay) ClosePile(); });
+
+            var panel = new VisualElement();
+            panel.AddToClassList("pv-panel");
+            var title = new VisualElement { pickingMode = PickingMode.Ignore };
+            title.AddToClassList("pv-title-row");
+            string name = kind == PileKind.Draw ? "抽牌堆" : "棄牌堆";
+            string note = kind == PileKind.Draw ? "（抽完不會重洗，順序不公開）" : "（用過的牌不會回到牌堆）";
+            title.Add(new Label(name).WithClass("pv-title"));
+            title.Add(new Label(note).WithClass("pv-note"));
+            var close = new Button(ClosePile) { text = "關閉" };
+            close.AddToClassList("pv-close");
+            title.Add(close);
+            panel.Add(title);
+
+            var scroll = new ScrollView(ScrollViewMode.Vertical);
+            scroll.AddToClassList("pv-scroll");
+            scroll.contentContainer.AddToClassList("pv-grid");
+
+            var cards = kind == PileKind.Draw ? _battle.DrawPile : _battle.DiscardPile;
+            AddPileGroup(scroll, cards, "");
+            if (kind == PileKind.Discard && _battle.ExhaustPile.Count > 0)
+            {
+                scroll.Add(new Label($"已消耗（{_battle.ExhaustPile.Count}）").WithClass("pv-section"));
+                AddPileGroup(scroll, _battle.ExhaustPile, "消耗");
+            }
+            if (kind == PileKind.Draw ? cards.Count == 0 : cards.Count == 0 && _battle.ExhaustPile.Count == 0)
+                scroll.Add(new Label(kind == PileKind.Draw ? "抽牌堆已空" : "還沒有用過的牌").WithClass("pv-empty"));
+            panel.Add(scroll);
+            overlay.Add(panel);
+            _content.Add(overlay);
+            _pileView = overlay;
+        }
+
+        private void ClosePile()
+        {
+            if (_pileView == null) return;
+            _pileView.RemoveFromHierarchy();
+            _pileView = null;
+        }
+
+        /// <summary>同一張牌（同武將、同名）合併成一格並標 ×N；依武將、名稱排序，所以抽牌堆看不出實際順序。</summary>
+        private void AddPileGroup(VisualElement parent, List<CardInstance> cards, string tag)
+        {
+            foreach (var g in cards
+                .GroupBy(c => (Owner: c.Owner?.Name ?? "", c.Def.Id))
+                .OrderBy(g => g.Key.Owner == "" ? 1 : 0).ThenBy(g => g.Key.Owner).ThenBy(g => g.First().Def.Cost).ThenBy(g => g.First().Def.Name))
+            {
+                var card = g.First();
+                var tile = new VisualElement { pickingMode = PickingMode.Ignore };
+                tile.AddToClassList("pv-card");
+                if (card.Def.Target == TargetRule.MoveDest) tile.AddToClassList("pv-card-move");
+                else if (!card.Def.Basic) tile.AddToClassList("pv-card-skill");
+
+                var head = new VisualElement { pickingMode = PickingMode.Ignore };
+                head.AddToClassList("pv-card-head");
+                head.Add(Face(card.Owner, "pv-card-face"));
+                var titles = new VisualElement { pickingMode = PickingMode.Ignore };
+                titles.AddToClassList("pv-card-titles");
+                titles.Add(new Label(card.Def.Name).WithClass("pv-card-name"));
+                titles.Add(new Label(card.Owner == null ? "全隊通用" : card.Owner.Name).WithClass("pv-card-owner"));
+                head.Add(titles);
+                var cost = new Label(card.Def.Cost.ToString()) { pickingMode = PickingMode.Ignore };
+                cost.AddToClassList("bl-row-cost");
+                var costIcon = UiIcons.Get("cost");
+                if (costIcon != null) cost.style.backgroundImage = new StyleBackground(costIcon);
+                head.Add(cost);
+                tile.Add(head);
+
+                string desc = CardText.Description(card.Def);
+                tile.Add(new Label(CardText.Target(card.Def)).WithClass("pv-card-target"));
+                if (desc.Length > 0) tile.Add(new Label(desc).WithClass("pv-card-desc"));
+                if (g.Count() > 1) tile.Add(new Label("×" + g.Count()).WithClass("pv-count"));
+                if (tag.Length > 0) tile.Add(new Label(tag).WithClass("pv-tag"));
+                parent.Add(tile);
+            }
+        }
+
         /// <summary>底部武將資訊列：頭像、生命、主要屬性（攻擊 / 謀略 / 防禦 / 移動力）與增減益；移動卡選武將時可以點這裡。</summary>
         private void RefreshHeroBar()
         {
@@ -1030,8 +1125,8 @@ namespace SanGuo.Client
             _cost.Add(orb);
             _cost.Add(new Label($"{_battle.Cost}") { pickingMode = PickingMode.Ignore }.WithClass("bl-cost-num"));
             _cost.Add(new Label($"/ {_battle.Setup.CostCap}") { pickingMode = PickingMode.Ignore }.WithClass("bl-cost-cap"));
-            _piles.Clear();
-            _piles.Add(new Label($"抽牌堆 {_battle.DrawPile.Count}（不重洗）　手牌 {_battle.Hand.Count}/{Battle.MaxHandSize}") { pickingMode = PickingMode.Ignore }.WithClass("bl-pile-text"));
+            _drawButton.text = $"抽牌堆 {_battle.DrawPile.Count}";
+            _discardButton.text = $"棄牌堆 {_battle.DiscardPile.Count + _battle.ExhaustPile.Count}";
             _logLabel.text = string.Join("\n", _log.Skip(Math.Max(0, _log.Count - 4)));
             _logBox.style.display = _log.Count == 0 ? DisplayStyle.None : DisplayStyle.Flex;
         }

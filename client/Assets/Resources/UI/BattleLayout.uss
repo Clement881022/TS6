@@ -166,3 +166,61 @@
 .tag-name { font-size: 24px; }
 .tag-hp-text { font-size: 19px; }
 .tag-hero .tag-hp-text { font-size: 18px; }
+
+/* ---- 牌堆按鈕 ---- */
+.bl-piles { flex-direction: row; margin-bottom: 6px; }
+.bl-pile-btn {
+    flex-grow: 1;
+    height: 46px;
+    margin: 0 6px 0 0;
+    border-radius: 8px;
+    border-width: 2px; border-color: rgba(120, 150, 210, 0.6);
+    background-color: rgba(14, 22, 48, 0.88);
+    font-size: 26px; -unity-font-style: bold; color: rgb(236, 242, 255);
+    -unity-text-outline-width: 1.5px; -unity-text-outline-color: rgb(8, 10, 22);
+}
+.bl-pile-btn:hover { background-color: rgba(40, 60, 120, 0.95); border-color: rgb(190, 214, 255); }
+
+/* ---- 牌堆檢視（全螢幕卡片格，仿殺戮尖塔）---- */
+.pv-overlay {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    background-color: rgba(4, 6, 14, 0.82);
+    align-items: center; justify-content: center;
+}
+.pv-panel {
+    width: 1500px; height: 860px;
+    padding: 20px 28px;
+    border-radius: 14px;
+    border-width: 3px; border-color: rgba(150, 176, 230, 0.8);
+    background-color: rgba(16, 22, 44, 0.97);
+}
+.pv-title-row { flex-direction: row; align-items: center; margin-bottom: 10px; }
+.pv-title { font-size: 46px; -unity-font-style: bold; color: rgb(255, 240, 200); }
+.pv-note { font-size: 24px; color: rgb(170, 184, 220); margin-left: 18px; flex-grow: 1; }
+.pv-close { height: 54px; padding: 0 28px; border-radius: 10px; border-width: 0; font-size: 28px; color: white; background-color: rgb(196, 90, 50); }
+.pv-close:hover { background-color: rgb(224, 112, 66); }
+.pv-scroll { flex-grow: 1; }
+.pv-grid { flex-direction: row; flex-wrap: wrap; }
+.pv-section { width: 100%; font-size: 30px; color: rgb(255, 200, 120); margin: 14px 0 6px 0; -unity-font-style: bold; }
+.pv-empty { font-size: 34px; color: rgb(150, 162, 196); margin: 60px 0 0 40px; }
+.pv-card {
+    width: 300px; min-height: 190px;
+    margin: 0 14px 14px 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border-width: 2px; border-color: rgba(120, 150, 210, 0.6);
+    background-color: rgba(30, 40, 78, 0.95);
+}
+.pv-card-skill { border-color: rgba(230, 170, 70, 0.9); }
+.pv-card-move { border-color: rgba(90, 200, 130, 0.85); }
+.pv-card-head { flex-direction: row; align-items: center; }
+.pv-card-face { width: 60px; height: 60px; border-radius: 30px; background-color: rgba(0, 0, 0, 0.35); -unity-background-scale-mode: scale-and-crop; }
+.pv-card-titles { flex-grow: 1; margin-left: 10px; }
+.pv-card-name { font-size: 30px; -unity-font-style: bold; color: rgb(250, 251, 255); }
+.pv-card-owner { font-size: 21px; color: rgb(176, 190, 226); }
+.pv-card-target { font-size: 21px; color: rgb(190, 202, 235); white-space: normal; margin-top: 6px; }
+.pv-card-desc { font-size: 25px; -unity-font-style: bold; color: rgb(246, 246, 250); white-space: normal; margin-top: 4px; }
+.pv-count { position: absolute; right: 10px; bottom: 6px; font-size: 34px; -unity-font-style: bold; color: rgb(255, 224, 120); }
+.pv-tag { position: absolute; right: 10px; top: 6px; font-size: 20px; color: rgb(255, 150, 110); }
+.pv-card Label, .pv-panel Label { -unity-text-outline-width: 1.5px; -unity-text-outline-color: rgb(8, 10, 22); }
