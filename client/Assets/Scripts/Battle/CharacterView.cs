@@ -12,10 +12,10 @@ namespace SanGuo.Client
     /// </summary>
     public sealed class CharacterView : MonoBehaviour
     {
-        private const float AttackDuration = 0.50f;
-        private const float CastDuration = 0.38f;
-        private const float HitDuration = 0.32f;
-        private const float DieDuration = 0.75f;
+        private const float AttackDuration = 0.85f;
+        private const float CastDuration = 0.65f;
+        private const float HitDuration = 0.55f;
+        private const float DieDuration = 1.1f;
 
         private Transform _model = null!;
         private Quaternion _baseRot = Quaternion.identity;   // 匯入後模型根節點自帶的旋轉（Z-up → Y-up 轉換）

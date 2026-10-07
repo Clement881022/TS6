@@ -109,7 +109,9 @@ namespace SanGuo.Client
                     font = Font.CreateDynamicFontFromOSFont(
                         new[] { "Microsoft JhengHei UI", "Microsoft JhengHei", "Microsoft YaHei UI", "Noto Sans CJK TC" }, 32);
                 }
-                var asset = FontAsset.CreateFontAsset(font);
+                // 取樣字級 80、padding 8、大圖集（多張自動擴充）：比預設值的 SDF 更銳利，中文筆畫多時也不糊。
+                var asset = FontAsset.CreateFontAsset(font, 80, 8, UnityEngine.TextCore.LowLevel.GlyphRenderMode.SDFAA, 2048, 2048,
+                    UnityEngine.TextCore.Text.AtlasPopulationMode.Dynamic, true);
                 root.style.unityFontDefinition = new StyleFontDefinition(FontDefinition.FromSDFFont(asset));
             }
             catch (Exception e)

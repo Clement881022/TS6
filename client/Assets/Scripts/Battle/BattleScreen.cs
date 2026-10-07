@@ -30,6 +30,7 @@ namespace SanGuo.Client
             public Label HpText = null!;
             public VisualElement Extra = null!;
             public VisualElement Intent = null!;
+            public float LastLeft = float.NaN, LastTop = float.NaN;
         }
 
         private const float TagWidth = 150f;
@@ -78,6 +79,7 @@ namespace SanGuo.Client
         private VisualElement _cost = null!;
         private VisualElement _piles = null!;
         private Button _drawButton = null!, _discardButton = null!;
+        private Label _drawCount = null!, _discardCount = null!;
         private VisualElement? _pileView;
         private Label _logLabel = null!;
         private VisualElement _logBox = null!;
@@ -160,10 +162,8 @@ namespace SanGuo.Client
             left.Add(top);
             _piles = new VisualElement();
             _piles.AddToClassList("bl-piles");
-            _drawButton = new Button(() => ShowPile(PileKind.Draw));
-            _drawButton.AddToClassList("bl-pile-btn");
-            _discardButton = new Button(() => ShowPile(PileKind.Discard));
-            _discardButton.AddToClassList("bl-pile-btn");
+            _drawButton = PileButton("pile_draw", PileKind.Draw, out _drawCount);
+            _discardButton = PileButton("pile_discard", PileKind.Discard, out _discardCount);
             _piles.Add(_drawButton);
             _piles.Add(_discardButton);
             left.Add(_piles);
@@ -797,9 +797,14 @@ namespace SanGuo.Client
                 var p = unit.Alive ? (below ? _stage.UnitFootPanel(unit) : _stage.UnitHeadPanel(unit)) : null;
                 if (p == null) { tag.Root.style.visibility = Visibility.Hidden; continue; }
                 var local = _tagLayer.WorldToLocal(p.Value);
+                float left = local.x - (below ? HeroTagWidth : TagWidth) * 0.5f;
+                float top = below ? local.y + 2f : local.y - TagHeight;
                 tag.Root.style.visibility = Visibility.Visible;
-                tag.Root.style.left = local.x - (below ? HeroTagWidth : TagWidth) * 0.5f;
-                tag.Root.style.top = below ? local.y + 2f : local.y - TagHeight;
+                // 位置沒變就不要重設 style（每次設定都會觸發版面重算，是戰鬥畫面卡頓的來源之一）。
+                if (Mathf.Abs(tag.LastLeft - left) < 0.5f && Mathf.Abs(tag.LastTop - top) < 0.5f) continue;
+                tag.LastLeft = left; tag.LastTop = top;
+                tag.Root.style.left = left;
+                tag.Root.style.top = top;
             }
         }
 
@@ -953,7 +958,7 @@ namespace SanGuo.Client
         {
             var chip = new VisualElement { pickingMode = PickingMode.Ignore };
             chip.AddToClassList("bl-stat-chip");
-            chip.Add(UiIcons.Icon(icon, main ? "bl-stat-icon-main" : "bl-stat-icon"));
+            chip.Add(UiIcons.Icon(icon, "bl-stat-icon"));
             var l = new Label(effective.ToString()) { pickingMode = PickingMode.Ignore };
             l.AddToClassList(main ? "bl-stat-main" : "bl-stat");
             if (effective > baseValue) l.AddToClassList("ui-up");
@@ -965,6 +970,18 @@ namespace SanGuo.Client
         // ------------------------------------------------------------ 牌堆檢視（抽牌堆 / 棄牌堆，仿殺戮尖塔）
 
         private enum PileKind { Draw, Discard }
+
+        /// <summary>牌堆按鈕：圖示 + 張數（點開檢視內容）。</summary>
+        private Button PileButton(string icon, PileKind kind, out Label count)
+        {
+            var b = new Button(() => ShowPile(kind));
+            b.AddToClassList("bl-pile-btn");
+            b.Add(UiIcons.Icon(icon, "bl-pile-icon"));
+            count = new Label("0") { pickingMode = PickingMode.Ignore };
+            count.AddToClassList("bl-pile-count");
+            b.Add(count);
+            return b;
+        }
 
         private void ShowPile(PileKind kind)
         {
@@ -1086,12 +1103,9 @@ namespace SanGuo.Client
                 // 法系把「謀略」放在最前面，其餘把「攻擊」放最前面（與傷害 / 治療實際吃的屬性一致）。
                 var stats = new VisualElement { pickingMode = PickingMode.Ignore };
                 stats.AddToClassList("bl-stats");
-                var atkStat = ("stat_atk", unit.EffectiveAtk, unit.Stats.Atk);
-                var intStat = ("stat_int", unit.EffectiveInt, unit.Stats.Int);
-                var first = unit.IsCaster ? intStat : atkStat;
-                var second = unit.IsCaster ? atkStat : intStat;
-                stats.Add(StatChip(first.Item1, first.Item2, first.Item3, main: true));
-                stats.Add(StatChip(second.Item1, second.Item2, second.Item3));
+                // 順序固定（攻擊、謀略、防禦、移動力），大小一致；該職業實際吃的屬性（法系 = 謀略）用金色標出。
+                stats.Add(StatChip("stat_atk", unit.EffectiveAtk, unit.Stats.Atk, main: !unit.IsCaster));
+                stats.Add(StatChip("stat_int", unit.EffectiveInt, unit.Stats.Int, main: unit.IsCaster));
                 stats.Add(StatChip("stat_def", (int)Math.Round(unit.EffectiveDef), unit.Stats.Def));
                 stats.Add(StatChip("stat_move", unit.Stats.Move, unit.Stats.Move));
                 col.Add(stats);
@@ -1125,8 +1139,8 @@ namespace SanGuo.Client
             _cost.Add(orb);
             _cost.Add(new Label($"{_battle.Cost}") { pickingMode = PickingMode.Ignore }.WithClass("bl-cost-num"));
             _cost.Add(new Label($"/ {_battle.Setup.CostCap}") { pickingMode = PickingMode.Ignore }.WithClass("bl-cost-cap"));
-            _drawButton.text = $"抽牌堆 {_battle.DrawPile.Count}";
-            _discardButton.text = $"棄牌堆 {_battle.DiscardPile.Count + _battle.ExhaustPile.Count}";
+            _drawCount.text = _battle.DrawPile.Count.ToString();
+            _discardCount.text = (_battle.DiscardPile.Count + _battle.ExhaustPile.Count).ToString();
             _logLabel.text = string.Join("\n", _log.Skip(Math.Max(0, _log.Count - 4)));
             _logBox.style.display = _log.Count == 0 ? DisplayStyle.None : DisplayStyle.Flex;
         }

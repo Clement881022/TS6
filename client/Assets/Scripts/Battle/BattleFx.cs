@@ -14,7 +14,7 @@ namespace SanGuo.Client
     /// </summary>
     public sealed class BattleFx
     {
-        private const float StepSeconds = 0.26f;
+        private const float StepSeconds = 0.62f;   // 每個演出步驟的間隔（原 0.26，一閃而過）
 
         private readonly VisualElement _layer;
         private readonly Func<Side, Position, Vector2> _headPoint;
@@ -49,7 +49,7 @@ namespace SanGuo.Client
                         AudioManager.PlaySfx(crit ? Sfx.Crit : Sfx.Hit);
                         Float(e.TargetSide, e.TargetPos, crit ? $"-{e.Value}!" : $"-{e.Value}",
                             crit ? new Color(1f, 0.85f, 0.25f) : new Color(1f, 0.45f, 0.45f), crit ? 52 : 40);
-                    }, e.Source >= 0 ? 0.2f : 0f, advance: true);
+                    }, e.Source >= 0 ? 0.45f : 0f, advance: true);
                     break;
                 case EventType.Dodge:
                     Enqueue(() => { AudioManager.PlaySfx(Sfx.Dodge); Float(e.TargetSide, e.TargetPos, "閃避", new Color(0.85f, 0.88f, 0.95f), 36); }, 0f, advance: true);
@@ -70,7 +70,7 @@ namespace SanGuo.Client
                         _viewOf(e.Target)?.Die();
                         AudioManager.PlaySfx(Sfx.Death);
                         Float(e.TargetSide, e.TargetPos, "倒下", new Color(0.8f, 0.8f, 0.85f), 40);
-                    }, 0.1f, advance: true);
+                    }, 0.25f, advance: true);
                     break;
                 case EventType.BattleEnd:
                     Enqueue(() => AudioManager.PlaySfx(e.Text == nameof(BattleResult.Won) ? Sfx.Win : Sfx.Lose), 0.3f);
@@ -109,10 +109,10 @@ namespace SanGuo.Client
 
             label.schedule.Execute(() =>
             {
-                label.style.translate = new Translate(0, -80);
+                label.style.translate = new Translate(0, -110);
                 label.style.opacity = 0f;
             }).StartingIn(30);
-            label.schedule.Execute(() => label.RemoveFromHierarchy()).StartingIn(1000);
+            label.schedule.Execute(() => label.RemoveFromHierarchy()).StartingIn(1700);
         }
     }
 }
