@@ -11,7 +11,7 @@ namespace SanGuo.Core.Tests
 
         private static readonly Dictionary<Role, string[]> Skills = new Dictionary<Role, string[]>
         {
-            [Role.Tank] = new[] { "防禦姿態", "嘲諷" },
+            [Role.Tank] = new[] { "嘲諷", "防禦姿態" },
             [Role.Warrior] = new[] { "旋風斬", "豎劈斬" },
             [Role.Healer] = new[] { "治療", "上盾" },
             [Role.Strategist] = new[] { "攻擊鼓舞", "暴擊鼓舞" },
@@ -52,7 +52,7 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void EveryRole_IsRepresentedInTheRoster()
         {
-            var roles = DemoContent.Roster().Where(h => h.Rarity == Rarity.UR).Select(h => h.Role).Distinct();
+            var roles = DemoContent.Roster().Where(h => h.Rarity == Rarity.UR || h.Rarity == Rarity.SR).Select(h => h.Role).Distinct();
             Assert.Equal(System.Enum.GetValues(typeof(Role)).Length, roles.Count());
         }
 

@@ -80,9 +80,9 @@ namespace SanGuo.Core
                 case Role.Tank:
                     return new List<CardDef>
                     {
-                        Basic(p + "_stance", "防禦姿態", 1, TargetRule.Self, 0, Status(StatusType.DefUp, 1.0, 2, self: true)),
                         Card(p + "_taunt", "嘲諷", 1, TargetRule.Self, 0, Shape.Single, CardKeywords.Innate,
                             Status(StatusType.Taunt, 0, 3, self: true), Status(StatusType.DefUp, 0.3, 3, self: true)),
+                        Basic(p + "_stance", "防禦姿態", 1, TargetRule.Self, 0, Status(StatusType.DefUp, 1.0, 2, self: true)),
                     };
                 case Role.Warrior:
                     return new List<CardDef>
@@ -139,10 +139,10 @@ namespace SanGuo.Core
         }
 
         private static HeroDef Hero(string id, string name, string prefix, Role role, Rarity rarity,
-            AttackType attackType, Stats stats) => new HeroDef
+            AttackType attackType, Stats stats, Rarity? deckRarity = null) => new HeroDef
         {
             Id = id, Name = name, Role = role, Rarity = rarity, AttackType = attackType, Base = stats,
-            Deck = BuildDeck(prefix, role, rarity),
+            Deck = BuildDeck(prefix, role, deckRarity ?? rarity),
         };
 
         /// <summary>教學關借牌：把套牌裡的普通攻擊換成指定的教學牌（只用在教學關，正式套牌仍照 <see cref="BuildDeck"/>）。</summary>
@@ -156,14 +156,17 @@ namespace SanGuo.Core
             return hero;
         }
 
-        public static HeroDef ZhangFei() => Hero("zhangfei", "張飛", "zf", Role.Tank, Rarity.UR, AttackType.Melee,
-            new Stats { Hp = 1200, Atk = 135, Def = 70, Dodge = 0, Move = 1, Crit = 5, CritDmg = 150 });
+        public static HeroDef ZhangFei(bool tutorial = false) => Hero("zhangfei", "張飛", "zf", Role.Tank, Rarity.SR, AttackType.Melee,
+            new Stats { Hp = 1200, Atk = 135, Def = 70, Dodge = 0, Move = 1, Crit = 5, CritDmg = 150 },
+            tutorial ? Rarity.UR : Rarity.SR);
 
-        public static HeroDef GuanYu() => Hero("guanyu", "關羽", "gy", Role.Warrior, Rarity.UR, AttackType.Melee,
-            new Stats { Hp = 960, Atk = 195, Def = 45, Dodge = 5, Move = 2, Crit = 15, CritDmg = 180 });
+        public static HeroDef GuanYu(bool tutorial = false) => Hero("guanyu", "關羽", "gy", Role.Warrior, Rarity.SR, AttackType.Melee,
+            new Stats { Hp = 960, Atk = 195, Def = 45, Dodge = 5, Move = 2, Crit = 15, CritDmg = 180 },
+            tutorial ? Rarity.UR : Rarity.SR);
 
-        public static HeroDef LiuBei() => Hero("liubei", "劉備", "lb", Role.Healer, Rarity.UR, AttackType.Melee,
-            new Stats { Hp = 800, Atk = 70, Int = 120, Def = 35, Dodge = 5, Move = 2, Crit = 5, CritDmg = 150 });
+        public static HeroDef LiuBei(bool tutorial = false) => Hero("liubei", "劉備", "lb", Role.Healer, Rarity.SR, AttackType.Melee,
+            new Stats { Hp = 800, Atk = 70, Int = 120, Def = 35, Dodge = 5, Move = 2, Crit = 5, CritDmg = 150 },
+            tutorial ? Rarity.UR : Rarity.SR);
 
         public static HeroDef ZhugeLiang() => Hero("zhugeliang", "諸葛亮", "zgl", Role.Strategist, Rarity.UR, AttackType.Ranged,
             new Stats { Hp = 680, Atk = 60, Int = 165, Def = 25, Dodge = 10, Move = 1, Crit = 10, CritDmg = 150 });
@@ -383,10 +386,10 @@ namespace SanGuo.Core
                     setup.Heroes.Add(new HeroSlot(MilitiaShield(), HeroPos(0, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaSoldier(), HeroPos(1, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaArcher(), HeroPos(1, 1)));
-                    setup.Heroes.Add(new HeroSlot(LiuBei(), HeroPos(2, 1)));
+                    setup.Heroes.Add(new HeroSlot(LiuBei(true), HeroPos(2, 1)));
                     break;
                 case 2: // 張飛（嘲諷 + 防禦姿態）
-                    setup.Heroes.Add(new HeroSlot(ZhangFei(), HeroPos(0, 0)));
+                    setup.Heroes.Add(new HeroSlot(ZhangFei(true), HeroPos(0, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaSoldier(), HeroPos(1, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaArcher(), HeroPos(1, 1)));
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), HeroPos(2, 1)));
@@ -399,7 +402,7 @@ namespace SanGuo.Core
                     break;
                 case 5: // 張飛借牌（虎吼 / 當陽橋喝斷・先登）：用昏亂條打斷渠帥的蓄力大招
                     setup.Heroes.Add(new HeroSlot(MilitiaShield(), HeroPos(0, 0)));
-                    setup.Heroes.Add(new HeroSlot(WithLoan(ZhangFei(), Howl(), Roar()), HeroPos(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(WithLoan(ZhangFei(true), Howl(), Roar()), HeroPos(1, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaArcher(), HeroPos(1, 1)));
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), HeroPos(2, 1)));
                     break;
@@ -407,7 +410,7 @@ namespace SanGuo.Core
                 {
                     setup.Heroes.Add(new HeroSlot(Villager(), HeroPos(0, 1)) { IsProtected = true, StartHpPercent = 60 });
                     setup.Heroes.Add(new HeroSlot(MilitiaShield(), HeroPos(0, 0)));
-                    setup.Heroes.Add(new HeroSlot(LiuBei(), HeroPos(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(LiuBei(true), HeroPos(1, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaArcher(), HeroPos(2, 0)));
                     break;
                 }
@@ -425,19 +428,19 @@ namespace SanGuo.Core
                     break;
                 case 9: // 綜合：張飛借牌（昏亂）＋ 黃忠（後排）＋小兵；雙渠帥蓄力、妖道治療
                     setup.Heroes.Add(new HeroSlot(MilitiaShield(), HeroPos(0, 0)));
-                    setup.Heroes.Add(new HeroSlot(WithLoan(ZhangFei(), Howl(), Roar()), HeroPos(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(WithLoan(ZhangFei(true), Howl(), Roar()), HeroPos(1, 0)));
                     setup.Heroes.Add(new HeroSlot(HuangZhong(), HeroPos(1, 1)));
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), HeroPos(2, 1)));
                     break;
                 case 10: // BOSS：四名武將齊上（張飛借昏亂牌）
-                    setup.Heroes.Add(new HeroSlot(WithLoan(ZhangFei(), Howl(), Roar()), HeroPos(0, 0)));
+                    setup.Heroes.Add(new HeroSlot(WithLoan(ZhangFei(true), Howl(), Roar()), HeroPos(0, 0)));
                     setup.Heroes.Add(new HeroSlot(ZhaoYun(), HeroPos(1, 0)));
                     setup.Heroes.Add(new HeroSlot(HuangZhong(), HeroPos(1, 1)));
-                    setup.Heroes.Add(new HeroSlot(LiuBei(), HeroPos(2, 1)));
+                    setup.Heroes.Add(new HeroSlot(LiuBei(true), HeroPos(2, 1)));
                     break;
                 default: // 關羽借牌（斷甲・先登）＋黃忠（破甲箭）
                     setup.Heroes.Add(new HeroSlot(MilitiaShield(), HeroPos(0, 0)));
-                    setup.Heroes.Add(new HeroSlot(WithLoan(GuanYu(), GuanYuBreak()), HeroPos(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(WithLoan(GuanYu(true), GuanYuBreak()), HeroPos(1, 0)));
                     setup.Heroes.Add(new HeroSlot(HuangZhong(), HeroPos(1, 1)));
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), HeroPos(2, 1)));
                     break;
@@ -534,9 +537,9 @@ namespace SanGuo.Core
         public static BattleSetup SampleBattle(ulong seed = 1)
         {
             var setup = new BattleSetup { Seed = seed };
-            setup.Heroes.Add(new HeroSlot(ZhangFei(), HeroPos(1, 0)));
-            setup.Heroes.Add(new HeroSlot(GuanYu(), HeroPos(2, 0)));
-            setup.Heroes.Add(new HeroSlot(LiuBei(), HeroPos(3, 1)));
+            setup.Heroes.Add(new HeroSlot(ZhangFei(true), HeroPos(1, 0)));
+            setup.Heroes.Add(new HeroSlot(GuanYu(true), HeroPos(2, 0)));
+            setup.Heroes.Add(new HeroSlot(LiuBei(true), HeroPos(3, 1)));
             setup.Heroes.Add(new HeroSlot(ZhugeLiang(), HeroPos(2, 1)));
             setup.Enemies.Add(new EnemySlot(YellowTurbanSoldier(), EnemyPos(1, 0)));
             setup.Enemies.Add(new EnemySlot(YellowTurbanBrute(), EnemyPos(2, 0)));

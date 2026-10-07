@@ -38,7 +38,7 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void BuildDef_CardEnhancement_ScalesDamageOnlyForEnhancedCard()
         {
-            var zf = DemoContent.ZhangFei();
+            var zf = DemoContent.ZhangFei(tutorial: true); // 教學版（UR 套牌）才有防禦姿態
             var state = new HeroState { HeroId = "zhangfei" };
             state.CardLevels["zf_attack"] = 2;
 

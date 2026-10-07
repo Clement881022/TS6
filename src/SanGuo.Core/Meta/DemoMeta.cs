@@ -75,7 +75,7 @@ namespace SanGuo.Core.Meta
             switch (stageId)
             {
                 case "res_gold": return (35, 35);
-                case "res_exp": return (30, 35);
+                case "res_exp": return (22, 26); // 劉關張改 SR 後我方弱一點，同步放低
                 case "res_card": return (63, 63);
                 case "1-9": return (50, 50);
                 case "1-10": return (45, 45);

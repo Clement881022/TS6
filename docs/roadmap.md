@@ -156,7 +156,8 @@ MVP 不含：競技場（後面再做）、營運活動（限購、通行證等�
 - 新增 [worldbuilding.md](worldbuilding.md)（世界觀草案）與 [chapter0.md](chapter0.md)（10 關盜匪教學）。原黃巾 10 關的機制與牌序整段保留，敵人換成盜匪（`DemoContent.Bandit*`，id `bandit_*`），驗證勝率不變。
 - 首通發將：`StageReward.FirstClearHero`（1→劉備、2→張飛、3→關羽），`PlayerProfile.ClaimClear` 發放並回報 `HeroGained`，伺服器與客戶端結算畫面都帶回。第 1 關改由劉備上場。
 - 劇情：`Data/DemoStory.cs`（每關戰前 / 首通後對白）與客戶端 `StoryPlayer`；測試 `Chapter0Tests`。
-- 未完成：盜匪專屬外觀、劉關張 SR 化、第一章黃巾關卡重新設計。
+- 劉關張已改 SR（教學關用教學版 UR 套牌，勝率驗證不變）；坦克高級牌順序改為嘲諷在前。
+- 未完成：盜匪專屬外觀、第一章黃巾關卡重新設計、卡池 SR 名單、張飛 5★ 對 SR 無效的突破設計。
 
 ## 5. 風險
 
