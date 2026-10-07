@@ -24,10 +24,11 @@ namespace SanGuo.Client
         {
             public VisualElement Root = null!;
             public Label Name = null!;
+            public VisualElement Role = null!;
             public VisualElement HpFill = null!;
             public Label HpText = null!;
-            public Label Extra = null!;
-            public Label Intent = null!;
+            public VisualElement Extra = null!;
+            public VisualElement Intent = null!;
         }
 
         private const float TagWidth = 132f;
@@ -61,8 +62,8 @@ namespace SanGuo.Client
         private BattleFx _fx = null!;
         private VisualElement _hand = null!;
         private Label _title = null!;
-        private Label _cost = null!;
-        private Label _piles = null!;
+        private VisualElement _cost = null!;
+        private VisualElement _piles = null!;
         private Label _logLabel = null!;
         private Button _autoButton = null!;
         private Button _formationButton = null!;
@@ -118,9 +119,9 @@ namespace SanGuo.Client
 
             var info = new VisualElement();
             info.AddToClassList("info");
-            _cost = new Label();
+            _cost = new VisualElement();
             _cost.AddToClassList("cost-label");
-            _piles = new Label();
+            _piles = new VisualElement();
             _piles.AddToClassList("pile-label");
             info.Add(_cost);
             info.Add(_piles);
@@ -175,9 +176,12 @@ namespace SanGuo.Client
                 // 血量數字直接放在血條裡，省一行高度。
                 tag.HpText = new Label { pickingMode = PickingMode.Ignore }; tag.HpText.AddToClassList("tag-hp-text");
                 hpBg.Add(tag.HpText);
-                tag.Extra = new Label(); tag.Extra.AddToClassList("tag-extra");
-                tag.Intent = new Label(); tag.Intent.AddToClassList("tag-intent");
-                tag.Root.Add(tag.Name);
+                tag.Extra = new VisualElement { pickingMode = PickingMode.Ignore }; tag.Extra.AddToClassList("tag-extra");
+                tag.Intent = new VisualElement { pickingMode = PickingMode.Ignore }; tag.Intent.AddToClassList("tag-intent");
+                tag.Role = new VisualElement { pickingMode = PickingMode.Ignore }; tag.Role.AddToClassList("tag-role");
+                var nameRow = new VisualElement { pickingMode = PickingMode.Ignore }; nameRow.AddToClassList("tag-name-row");
+                nameRow.Add(tag.Role); nameRow.Add(tag.Name);
+                tag.Root.Add(nameRow);
                 tag.Root.Add(hpBg);
                 tag.Root.Add(tag.Extra);
                 tag.Root.Add(tag.Intent);
@@ -776,19 +780,24 @@ namespace SanGuo.Client
                 tag.Root.style.display = unit.Alive ? DisplayStyle.Flex : DisplayStyle.None;
                 if (!unit.Alive) continue;
 
-                string sub = unit.Protected ? "保護目標" : unit.Hero != null ? CardText.RoleName(unit.Hero.Role) : (unit.AttackType == AttackType.Ranged ? "遠程" : "近戰");
-                tag.Name.text = unit.Hero != null ? $"{unit.Name} {sub}" : unit.Name;
+                tag.Name.text = unit.Protected ? $"{unit.Name} 保護目標" : unit.Name;
+                tag.Role.Clear();
+                string roleIcon = unit.Hero != null ? UiIcons.RoleIcon(unit.Hero.Role) : unit.AttackType == AttackType.Ranged ? "role_archer" : "role_warrior";
+                tag.Role.Add(UiIcons.Icon(roleIcon, "icon-sm"));
                 float ratio = unit.MaxHp <= 0 ? 0 : Mathf.Clamp01(unit.Hp / (float)unit.MaxHp);
                 tag.HpFill.style.width = Length.Percent(ratio * 100f);
                 tag.HpText.text = $"{unit.Hp}/{unit.MaxHp}";
-                var extras = unit.Statuses.Select(s => $"{CardText.StatusName(s.Key)}{s.Value.Turns}").ToList();
+
+                tag.Extra.Clear();
+                if (unit.Armor > 0) tag.Extra.Add(UiIcons.Chip("armor", unit.Armor.ToString()));
+                foreach (var st in unit.Statuses) tag.Extra.Add(UiIcons.Chip(UiIcons.Status(st.Key), st.Value.Turns.ToString()));
+                foreach (var br in unit.DefBreaks) tag.Extra.Add(UiIcons.Chip("status_armorbreak", $"{br.Percent * 100:0}%·{br.Turns}"));
                 if (unit.Side == Side.Enemy && unit.Ability.HasFlag(EnemyAbility.Charger))
-                    extras.Add($"昏亂條{unit.StunGauge}/{unit.StunGaugeMax}");
-                foreach (var b in unit.DefBreaks) extras.Add($"破甲{b.Percent * 100:0}%·{b.Turns}");
-                if (unit.Armor > 0) extras.Insert(0, $"護甲{unit.Armor}");
-                tag.Extra.text = string.Join(" ", extras);
-                tag.Extra.style.display = tag.Extra.text.Length > 0 ? DisplayStyle.Flex : DisplayStyle.None;
-                tag.Intent.text = unit.Side == Side.Enemy ? IntentText(unit) : "";
+                    tag.Extra.Add(UiIcons.Chip("status_stun", $"{unit.StunGauge}/{unit.StunGaugeMax}"));
+                tag.Extra.style.display = tag.Extra.childCount > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+
+                tag.Intent.Clear();
+                if (unit.Side == Side.Enemy) FillIntent(tag.Intent, unit);
                 tag.Intent.style.display = unit.Side == Side.Enemy ? DisplayStyle.Flex : DisplayStyle.None;
             }
         }
@@ -808,17 +817,35 @@ namespace SanGuo.Client
             }
         }
 
-        private string IntentText(Unit enemy)
+        private void FillIntent(VisualElement host, Unit enemy)
         {
             var intent = _battle.GetIntent(enemy);
             switch (intent.Type)
             {
-                case Intent.Kind.Attack: return intent.Big ? $"大招→{intent.Target!.Name}" : $"攻擊→{intent.Target!.Name}";
-                case Intent.Kind.Charge: return "蓄力中！";
-                case Intent.Kind.Heal: return $"治療→{intent.Target!.Name}";
-                case Intent.Kind.Move: return $"移動→第{intent.MoveTo!.Value.Lane + 1}路";
-                case Intent.Kind.Stunned: return "昏亂";
-                default: return "待機";
+                case Intent.Kind.Attack: host.Add(UiIcons.Chip(intent.Big ? "charge" : "damage", intent.Target!.Name)); break;
+                case Intent.Kind.Charge: host.Add(UiIcons.Chip("charge")); break;
+                case Intent.Kind.Heal: host.Add(UiIcons.Chip("heal", intent.Target!.Name)); break;
+                case Intent.Kind.Move: host.Add(UiIcons.Chip("draw", (intent.MoveTo!.Value.Lane + 1).ToString())); break;
+                case Intent.Kind.Stunned: host.Add(UiIcons.Chip("status_stun")); break;
+            }
+        }
+
+        private static void FillCardEffects(VisualElement host, CardDef def)
+        {
+            foreach (var e in def.Effects)
+            {
+                string pct = $"{e.Multiplier * 100:0}%";
+                switch (e.Type)
+                {
+                    case EffectType.Damage: host.Add(UiIcons.Chip("damage", pct)); break;
+                    case EffectType.Heal: host.Add(UiIcons.Chip("heal", pct)); break;
+                    case EffectType.Armor: host.Add(UiIcons.Chip("armor", pct)); break;
+                    case EffectType.ApplyStatus:
+                        host.Add(UiIcons.Chip(UiIcons.Status(e.Status), e.Multiplier > 0 ? $"{pct}·{e.Amount}" : e.Amount.ToString()));
+                        break;
+                    case EffectType.Draw: host.Add(UiIcons.Chip("draw", e.Amount.ToString())); break;
+                    case EffectType.GainCost: host.Add(UiIcons.Chip("cost", "+" + e.Amount)); break;
+                }
             }
         }
 
@@ -835,8 +862,9 @@ namespace SanGuo.Client
 
                 var cost = new Label(card.Def.Cost.ToString());
                 cost.AddToClassList("card-cost");
-                var tag = new Label(card.Def.Basic ? "基礎" : "技能");
-                tag.AddToClassList("card-tag");
+                var costIcon = UiIcons.Get("cost");
+                if (costIcon != null) cost.style.backgroundImage = new StyleBackground(costIcon);
+                var tag = UiIcons.Icon(card.Def.Basic ? "damage" : "charge", "card-tag");
                 var top = new VisualElement { pickingMode = PickingMode.Ignore };
                 top.AddToClassList("card-top");
                 top.Add(cost);
@@ -853,10 +881,14 @@ namespace SanGuo.Client
                 owner.AddToClassList("card-owner");
                 var target = new Label(CardText.Target(card.Def));
                 target.AddToClassList("card-target");
-                var desc = new Label(CardText.Description(card.Def));
+                var desc = new VisualElement { pickingMode = PickingMode.Ignore };
                 desc.AddToClassList("card-desc");
-                var kw = new Label(CardText.Keywords(card.Def.Keywords));
+                FillCardEffects(desc, card.Def);
+                var kw = new VisualElement { pickingMode = PickingMode.Ignore };
                 kw.AddToClassList("card-kw");
+                if (card.Def.Keywords.HasFlag(CardKeywords.Exhaust)) kw.Add(UiIcons.Chip("kw_exhaust"));
+                if (card.Def.Keywords.HasFlag(CardKeywords.Retain)) kw.Add(UiIcons.Chip("kw_retain"));
+                if (card.Def.Keywords.HasFlag(CardKeywords.Innate)) kw.Add(UiIcons.Chip("kw_innate"));
 
                 el.Add(art);
                 el.Add(top);
@@ -880,8 +912,12 @@ namespace SanGuo.Client
             _title.text = _battle.Setup.TurnLimit > 0
                 ? $"{where}　第 {_battle.Turn} / {_battle.Setup.TurnLimit} 回合"
                 : $"{where}　第 {_battle.Turn} 回合";
-            _cost.text = $"費用 {_battle.Cost}/{_battle.Setup.CostCap}";
-            _piles.text = $"抽牌 {_battle.DrawPile.Count}　棄牌 {_battle.DiscardPile.Count}　破釜 {_battle.ExhaustPile.Count}";
+            _cost.Clear();
+            _cost.Add(UiIcons.Chip("cost", $"{_battle.Cost}/{_battle.Setup.CostCap}", "chip-big"));
+            _piles.Clear();
+            _piles.Add(UiIcons.Chip("draw", _battle.DrawPile.Count.ToString()));
+            _piles.Add(UiIcons.Chip("kw_retain", _battle.DiscardPile.Count.ToString()));
+            _piles.Add(UiIcons.Chip("kw_exhaust", _battle.ExhaustPile.Count.ToString()));
             _logLabel.text = string.Join("\n", _log.Skip(Math.Max(0, _log.Count - 4)));
         }
 

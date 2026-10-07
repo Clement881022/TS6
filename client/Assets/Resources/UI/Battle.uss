@@ -69,8 +69,10 @@
 }
 .tag-hp-fill-enemy { background-color: rgb(220, 90, 90); }
 .tag-line { font-size: 16px; -unity-text-align: middle-center; color: rgb(220, 224, 236); }
-.tag-extra { font-size: 15px; -unity-text-align: middle-center; color: rgb(255, 200, 120); }
-.tag-intent { font-size: 18px; -unity-text-align: middle-center; -unity-font-style: bold; color: rgb(255, 220, 130); }
+.tag-extra { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+.tag-intent { flex-direction: row; justify-content: center; }
+.tag-name-row { flex-direction: row; align-items: center; justify-content: center; }
+.tag-role { margin-right: 3px; }
 
 /* ---- 右下角：上＝費用與按鈕（一列），下＝手牌；左下角：紀錄 ---- */
 .field {
@@ -91,8 +93,8 @@
     justify-content: flex-end;
     margin-bottom: 8px;
 }
-.cost-label { font-size: 40px; -unity-font-style: bold; color: rgb(255, 214, 80); margin-right: 16px; }
-.pile-label { font-size: 18px; color: rgb(190, 194, 210); margin-right: 8px; white-space: nowrap; }
+.cost-label { margin-right: 16px; }
+.pile-label { flex-direction: row; margin-right: 8px; }
 
 .hand { flex-direction: row; align-items: flex-end; justify-content: flex-end; }
 
@@ -137,13 +139,16 @@
     left: 10px; right: 10px; top: 10px;
     flex-direction: row; justify-content: space-between; align-items: center;
 }
-.card-tag { font-size: 16px; color: white; background-color: rgba(0, 0, 0, 0.45); border-radius: 6px; padding: 0 6px; }
+.card-tag { width: 28px; height: 28px; background-color: rgba(0, 0, 0, 0.45); border-radius: 6px; }
 
 .card-cost {
     width: 36px; height: 36px;
     border-radius: 18px;
-    background-color: rgb(60, 90, 170);
+    background-color: rgba(0, 0, 0, 0);
+    background-size: 100% 100%;
     color: white;
+    -unity-text-outline-width: 2px;
+    -unity-text-outline-color: rgb(20, 30, 70);
     font-size: 26px;
     -unity-font-style: bold;
     -unity-text-align: middle-center;
@@ -151,8 +156,8 @@
 .card-name { font-size: 22px; -unity-font-style: bold; margin-top: 4px; white-space: normal; }
 .card-owner { font-size: 16px; color: rgb(110, 90, 60); }
 .card-target { font-size: 16px; color: rgb(80, 70, 50); margin-top: 4px; white-space: normal; }
-.card-desc { font-size: 18px; margin-top: 4px; white-space: normal; }
-.card-kw { font-size: 16px; color: rgb(170, 60, 40); margin-top: auto; -unity-font-style: bold; }
+.card-desc { flex-direction: row; flex-wrap: wrap; margin-top: 4px; }
+.card-kw { flex-direction: row; margin-top: auto; }
 
 /* ---- 結果 / 提示 ---- */
 .overlay {
@@ -254,3 +259,20 @@
     -unity-text-outline-color: rgb(0, 0, 0);
     transition: translate 850ms ease-out, opacity 850ms ease-in;
 }
+
+/* ---- 養成 / 商店畫面（MetaScreens） ---- */
+.meta-panel .formation-hint { white-space: normal; max-width: 1500px; -unity-text-align: middle-center; }
+.meta-sub { font-size: 30px; -unity-font-style: bold; color: white; margin-top: 10px; margin-bottom: 4px; white-space: normal; max-width: 1500px; -unity-text-align: middle-center; }
+.meta-row { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; max-width: 1500px; }
+.meta-row .formation-chip { white-space: nowrap; }
+.formation-chip.btn-on { background-color: rgb(60, 140, 90); }
+.formation-chip.btn-primary { background-color: rgb(196, 120, 40); }
+
+/* ---- 圖示 ---- */
+.icon { width: 24px; height: 24px; background-size: 100% 100%; }
+.icon-sm { width: 20px; height: 20px; background-size: 100% 100%; }
+.chip { flex-direction: row; align-items: center; margin: 1px 3px; }
+.chip-text { font-size: 17px; -unity-font-style: bold; color: white; margin-left: 2px; -unity-text-outline-width: 1px; -unity-text-outline-color: rgb(0, 0, 0); white-space: nowrap; }
+.chip-big { flex-direction: row; align-items: center; }
+.chip-big .icon { width: 44px; height: 44px; }
+.chip-big .chip-text { font-size: 38px; color: rgb(255, 214, 80); margin-left: 6px; }

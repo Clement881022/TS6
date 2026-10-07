@@ -27,13 +27,14 @@ namespace SanGuo.Client
     {
         public const float CameraPitchDegrees = 50f;   // 俯視角（等角視角約 45–55）
         public const float BoardLeftBias = 0.05f;
+        private const float BoardZoom = 1.2f;         // >1 讓棋盤略大於 field，邊角蓋在 UI 底下，場面更滿
         public const float CameraYawDegrees = 45f;     // 左右旋轉 45° = 等角視角，地磚變菱形（0 = 正面平視棋盤）
-        private const float TilePitch = 1.25f;     // 路與路之間
-        private const float TilePitchX = 1.25f;    // 排與排之間
-        private const float CenterGap = 0.8f;
+        private const float TilePitch = 1.5f;      // 路與路之間（參考 TS6Client 角色間距 1.5）
+        private const float TilePitchX = 1.5f;     // 排與排之間
+        private const float CenterGap = 2.0f;       // 兩陣營間距（參考 TS6Client CampSpacing 2）
         private const float TileTop = 0.08f;
-        private const float ModelScale = 0.85f;
-        private const float UnitHeadHeight = 1.2f;
+        private const float ModelScale = 1.1f;
+        private const float UnitHeadHeight = 1.9f;
         private const float ViewYawDegrees = 38f;      // 面向對手的同時微微轉向鏡頭
 
         private sealed class UnitView
@@ -287,8 +288,8 @@ namespace SanGuo.Client
                     }
                 }
             }
-            float needW = maxX - minX + 0.4f;
-            float needH = maxY - minY + 0.3f;
+            float needW = (maxX - minX) / BoardZoom + 0.4f;
+            float needH = (maxY - minY) / BoardZoom + 0.3f;
             float worldPerPx = Mathf.Max(needH / fieldH, needW / fieldW);
             _camera.orthographicSize = worldPerPx * Screen.height * 0.5f;
 
