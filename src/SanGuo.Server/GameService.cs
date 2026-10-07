@@ -11,6 +11,9 @@ public sealed class ServerOptions
     /// <summary>新帳號的開局資源（開發用預設值；正式的新手紅利尚待設計，見 days-1-7.md）。</summary>
     public int StartingYuanbao { get; set; } = 2000;
     public int StartingGold { get; set; } = 5000;
+    /// <summary>開發用起始素材（資源副本的客戶端介面完成前，升級與卡牌強化無從測試）。</summary>
+    public int StartingExpBooks { get; set; } = 30;
+    public int StartingCardMaterials { get; set; } = 40;
 
     /// <summary>開發用端點（直接標記通關等）。預設關閉；沒有戰鬥重播驗證前，正式環境不可開。</summary>
     public bool EnableDevEndpoints { get; set; }
@@ -68,6 +71,8 @@ public sealed class GameService
                 profile = PlayerProfile.CreateNew(now);
                 profile.Yuanbao = _options.StartingYuanbao;
                 profile.Gold = _options.StartingGold;
+                profile.AddMaterial(HeroGrowth.ExpBook, _options.StartingExpBooks);
+                profile.AddMaterial(HeroGrowth.CardMaterial, _options.StartingCardMaterials);
             }
             var result = action(profile, now);
             if (result.Ok || result.Persist) await _store.SaveAsync(accountId, profile);
@@ -181,40 +186,23 @@ public sealed class GameService
     /// </summary>
     public Task<ApiResult> StartStage(string accountId, string stageId) => Run(accountId, (p, now) =>
     {
-        var stage = DemoMeta.FindStage(stageId);
-        if (stage == null) return ApiResult.Fail("unknown_stage");
-        var r = p.TryEnterStage(stage, now);
-        if (r != StageEntryResult.Ok) return ApiResult.Fail(r.ToString());
-        ulong seed = RandomSeed() & 0x7FFFFFFFFFFFFFFF; // 存成有號數字，不要溢位
-        p.PendingStageId = stageId;
-        p.PendingSeed = (long)seed;
-        return ApiResult.Success(new { stageId, seed = (long)seed });
+        var r = StageFlow.Start(p, stageId, now, RandomSeed());
+        return r.Ok ? ApiResult.Success(new { stageId, seed = (long)r.Seed }) : ApiResult.Fail(r.Code);
     });
 
     /// <summary>
-    /// 結算關卡：用伺服器發的種子把客戶端的操作紀錄重播一次，由伺服器自己算出勝負與星數。
+    /// 結算關卡（主線或資源副本）：用伺服器發的種子把客戶端的操作紀錄重播一次，由伺服器自己算出勝負與星數。
     /// 客戶端無法自報結果；紀錄不合法就沒有任何獎勵，進行中的關卡也會被清掉。
     /// </summary>
     public Task<ApiResult> FinishStage(string accountId, string stageId, IReadOnlyList<ReplayAction> actions) => Run(accountId, (p, now) =>
     {
-        if (p.PendingStageId == "" || p.PendingStageId != stageId) return ApiResult.Fail("no_pending_stage");
-        var stage = DemoMeta.FindStage(stageId);
-        var setup = DemoMeta.BuildSetup(stageId, (ulong)p.PendingSeed);
-        p.PendingStageId = "";
-        p.PendingSeed = 0;
-        if (stage == null || setup == null) return ApiResult.Fail("unknown_stage") with { Persist = true };
-
-        var replay = ReplayVerifier.Verify(setup, actions);
-        if (!replay.Valid) return ApiResult.Fail("invalid_replay") with { Persist = true };
-        if (replay.Result != BattleResult.Won)
-            return ApiResult.Success(new { won = false, result = replay.Result.ToString() });
-
-        int stars = StarRating.Rate(replay.Battle!, stage.StarTurnPar);
-        var clear = p.ClaimClear(stage, now, stars);
+        var r = StageFlow.Finish(p, stageId, actions, now);
+        if (!r.Ok) return ApiResult.Fail(r.Code) with { Persist = r.Persist };
+        if (!r.Won) return ApiResult.Success(new { won = false, result = BattleResult.Lost.ToString() });
         return ApiResult.Success(new
         {
-            won = true, stars, firstClear = clear.FirstClear, exp = clear.ExpGained, gold = clear.GoldGained,
-            yuanbao = clear.YuanbaoGained, levelsGained = clear.LevelsGained,
+            won = true, stars = r.Stars, firstClear = r.FirstClear, exp = r.Exp, gold = r.Gold,
+            yuanbao = r.Yuanbao, levelsGained = r.LevelsGained, materials = r.Materials,
         });
     });
 
@@ -229,6 +217,39 @@ public sealed class GameService
         if (stage == null) return ApiResult.Fail("unknown_stage");
         p.ClaimClear(stage, now, stars);
         return ApiResult.Success(new { stars = p.StageStars[stageId] });
+    });
+
+    // ---- 商店（M4）：訂單 → 付款回呼（冪等發貨）→ 月卡 / 成長基金領取 ----
+
+    /// <summary>建立訂單（待付款），回傳訂單 id；付款前不發任何東西。</summary>
+    public Task<ApiResult> CreateOrder(string accountId, string productId) => Run(accountId, (p, now) =>
+    {
+        string orderId = Guid.NewGuid().ToString("N");
+        var r = Shop.CreateOrder(p, productId, orderId);
+        return r == ShopResult.Ok ? ApiResult.Success(new { orderId, productId }) : ApiResult.Fail(r.ToString());
+    });
+
+    /// <summary>
+    /// 開發用的「模擬付款成功」：正式版這一步由支付平台的伺服器通知觸發並驗簽，
+    /// 在串接真正的支付渠道之前只在 <see cref="ServerOptions.EnableDevEndpoints"/> 開啟時存在。
+    /// </summary>
+    public Task<ApiResult> DevPay(string accountId, string orderId) => Run(accountId, (p, now) =>
+    {
+        if (!_options.EnableDevEndpoints) return ApiResult.Fail("disabled");
+        var r = Shop.Fulfill(p, orderId, now);
+        return r == ShopResult.Ok ? ApiResult.Success() : ApiResult.Fail(r.ToString());
+    });
+
+    public Task<ApiResult> ClaimMonthCard(string accountId, string cardId) => Run(accountId, (p, now) =>
+    {
+        var r = Shop.ClaimMonthCardDaily(p, cardId, now);
+        return r == ShopResult.Ok ? ApiResult.Success(new { yuanbao = p.Yuanbao }) : ApiResult.Fail(r.ToString());
+    });
+
+    public Task<ApiResult> ClaimGrowthFund(string accountId, int level) => Run(accountId, (p, now) =>
+    {
+        var r = Shop.ClaimGrowthFund(p, level);
+        return r == ShopResult.Ok ? ApiResult.Success(new { yuanbao = p.Yuanbao }) : ApiResult.Fail(r.ToString());
     });
 
     private static ulong RandomSeed()

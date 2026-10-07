@@ -144,7 +144,7 @@ namespace SanGuo.Core.Tests
             Deck =
             {
                 new CardDef { Id = "zf_attack" }, new CardDef { Id = "zf_taunt" },
-                new CardDef { Id = "zf_roar" }, new CardDef { Id = "zf_taunt" },
+                new CardDef { Id = "zf_stance" }, new CardDef { Id = "zf_taunt" },
             },
         };
 
@@ -202,10 +202,10 @@ namespace SanGuo.Core.Tests
             var table = DemoBreakthroughs.Create();
             var hero = ZhangFeiLike();
             var s2 = table.ResolveDeck(hero, 2).Select(c => c.Id).ToList();
-            Assert.Equal(new[] { "zf_attack", "zf_taunt_1", "zf_roar", "zf_taunt_1" }, s2);
+            Assert.Equal(new[] { "zf_attack", "zf_taunt_1", "zf_stance", "zf_taunt_1" }, s2);
             Assert.Equal(s2, table.ResolveDeck(hero, 4).Select(c => c.Id).ToList());
             var s5 = table.ResolveDeck(hero, 5).Select(c => c.Id).ToList();
-            Assert.Equal(new[] { "zf_attack", "zf_taunt_1", "zf_roar_1", "zf_taunt_1" }, s5);
+            Assert.Equal(new[] { "zf_attack", "zf_taunt_1", "zf_stance_1", "zf_taunt_1" }, s5);
         }
 
         [Fact]

@@ -134,31 +134,29 @@ namespace SanGuo.Core.Meta
                 new BreakthroughEffect
                 {
                     Stars = 2, Kind = BreakthroughKind.UpgradeCard, TargetCardId = "zf_taunt",
-                    Description = "燕人怒吼 → 燕人怒吼・威：護甲提高並抽 1 張牌",
+                    Description = "嘲諷 → 嘲諷・威：防禦加成提高並抽 1 張牌",
                     NewCard = new CardDef
                     {
-                        Id = "zf_taunt_1", Name = "燕人怒吼・威", Cost = 1, Target = TargetRule.Self,
-                        Keywords = CardKeywords.Innate,
+                        Id = "zf_taunt_1", Name = "嘲諷・威", Cost = 1, Target = TargetRule.Self,
                         Effects =
                         {
                             new EffectDef { Type = EffectType.ApplyStatus, Status = StatusType.Taunt, Amount = 3, OnSelf = true },
-                            new EffectDef { Type = EffectType.Armor, Multiplier = 4.5, OnSelf = true },
+                            new EffectDef { Type = EffectType.ApplyStatus, Status = StatusType.DefUp, Multiplier = 0.5, Amount = 3, OnSelf = true },
                             new EffectDef { Type = EffectType.Draw, Amount = 1, OnSelf = true },
                         },
                     },
                 },
                 new BreakthroughEffect
                 {
-                    Stars = 5, Kind = BreakthroughKind.UpgradeCard, TargetCardId = "zf_roar",
-                    Description = "當陽橋喝斷 → 萬夫莫敵：範圍擴大為全場",
+                    Stars = 5, Kind = BreakthroughKind.UpgradeCard, TargetCardId = "zf_stance",
+                    Description = "防禦姿態 → 不動如山：防禦加成提高到 +150% 並附帶護甲",
                     NewCard = new CardDef
                     {
-                        Id = "zf_roar_1", Name = "當陽橋喝斷・萬夫莫敵", Cost = 3, Target = TargetRule.EnemyFront,
-                        Shape = Shape.All, Keywords = CardKeywords.Innate | CardKeywords.Retain,
+                        Id = "zf_stance_1", Name = "不動如山", Basic = true, Cost = 1, Target = TargetRule.Self,
                         Effects =
                         {
-                            new EffectDef { Type = EffectType.Damage, Multiplier = 1.4 },
-                            new EffectDef { Type = EffectType.StunGauge, Amount = 60 },
+                            new EffectDef { Type = EffectType.ApplyStatus, Status = StatusType.DefUp, Multiplier = 1.5, Amount = 2, OnSelf = true },
+                            new EffectDef { Type = EffectType.Armor, Multiplier = 2.0, OnSelf = true },
                         },
                     },
                 });

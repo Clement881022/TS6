@@ -44,9 +44,24 @@ namespace SanGuo.Core.Meta
             StarTurnPar = 12,
         };
 
-        /// <summary>關卡 id（如 "1-3"）對應的戰鬥設定；種子由伺服器發放。</summary>
+        public static ResourceDungeonDef? FindDungeon(string id) =>
+            DemoResourceDungeons.Create().Find(d => d.Id == id);
+
+        /// <summary>
+        /// 資源副本的戰鬥設定。<b>占位</b>：暫時沿用第 1 關的敵我配置（開放自動戰鬥），
+        /// 各副本的正式敵人配置尚待設計。
+        /// </summary>
+        public static BattleSetup DungeonSetup(ulong seed)
+        {
+            var setup = DemoContent.Level(1, seed);
+            setup.AutoAllowed = true;
+            return setup;
+        }
+
+        /// <summary>關卡 id（如 "1-3"）或資源副本 id 對應的戰鬥設定；種子由伺服器發放。</summary>
         public static BattleSetup? BuildSetup(string stageId, ulong seed)
         {
+            if (FindDungeon(stageId) != null) return DungeonSetup(seed);
             for (int level = 1; level <= DemoContent.ChapterLevelCount; level++)
                 if (StageId(1, level) == stageId) return DemoContent.Level(level, seed);
             return null;

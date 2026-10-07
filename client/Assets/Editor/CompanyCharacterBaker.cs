@@ -32,6 +32,7 @@ namespace SanGuo.Client.Editor
             ["zhaoyun"] = new Look(2, 1, 2, 1),
             ["huangzhong"] = new Look(2, 4, 4, 2),
             ["zhugeliang"] = new Look(3, 2, 1, 3),
+            ["pangtong"] = new Look(3, 1, 2, 2),
             ["zhangjiao"] = new Look(3, 5, 5, 4),
             ["r_militia"] = new Look(4, 1, 3, 1),
             ["r_villager"] = new Look(4, 2, 4, 2),
@@ -54,7 +55,7 @@ namespace SanGuo.Client.Editor
         private static readonly Dictionary<string, int> Weapons = new Dictionary<string, int>
         {
             ["liubei"] = 12, ["guanyu"] = 21, ["zhangfei"] = 8, ["zhaoyun"] = 2, ["huangzhong"] = 14,
-            ["zhugeliang"] = 30, ["zhangjiao"] = 18,
+            ["zhugeliang"] = 30, ["pangtong"] = 30, ["zhangjiao"] = 18,
             ["r_militia"] = 11, ["r_villager"] = 17, ["r_shield"] = 15, ["r_healer"] = 4,
             ["yt_soldier"] = 10, ["yt_brute"] = 16, ["yt_ironbrute"] = 5, ["yt_lieutenant"] = 13,
             ["yt_chief"] = 32, ["yt_priest"] = 19, ["yt_warlock"] = 20, ["yt_zhangjiao"] = 31,

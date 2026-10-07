@@ -4,7 +4,7 @@ namespace SanGuo.Core
 {
     public sealed class StatusState
     {
-        /// <summary>每回合持續傷害（Burn / Poison）的數值，其餘狀態未使用。</summary>
+        /// <summary>Burn / Poison：每回合持續傷害；DefUp / AtkUp / CritUp：加成百分比（30 = +30%）；其餘狀態未使用。</summary>
         public int Power;
         public int Turns;
     }
@@ -57,16 +57,24 @@ namespace SanGuo.Core
         /// <summary>破甲清單（不是層數）：每一筆有自己的百分比與持續回合。</summary>
         public List<DefBreak> DefBreaks = new List<DefBreak>();
 
-        /// <summary>有效防禦：基礎防禦 × 每一筆破甲剩餘比例（1 - 百分比）連乘。</summary>
+        /// <summary>有效防禦：基礎防禦 × 防禦增益 × 每一筆破甲剩餘比例（1 - 百分比）連乘。</summary>
         public double EffectiveDef
         {
             get
             {
-                double def = Stats.Def;
+                double def = Stats.Def * (1.0 + BuffPercent(StatusType.DefUp) / 100.0);
                 foreach (var b in DefBreaks) def *= 1.0 - b.Percent;
                 return def;
             }
         }
+
+        /// <summary>有效攻擊力：基礎攻擊 × 攻擊增益。傷害 / 治療 / 護甲 / 狀態威力都以它計算。</summary>
+        public int EffectiveAtk => (int)System.Math.Round(Stats.Atk * (1.0 + BuffPercent(StatusType.AtkUp) / 100.0), System.MidpointRounding.AwayFromZero);
+
+        /// <summary>有效爆擊率（百分比）：基礎爆擊 + 爆擊增益。</summary>
+        public int EffectiveCrit => Stats.Crit + BuffPercent(StatusType.CritUp);
+
+        private int BuffPercent(StatusType type) => Statuses.TryGetValue(type, out var s) ? s.Power : 0;
 
         public override string ToString() => $"{Name}#{Id}@{Pos}";
     }

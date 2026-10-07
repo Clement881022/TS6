@@ -66,6 +66,11 @@ namespace SanGuo.Core.Data
                 ["dailyTaskClaimed"] = SortedList(p.DailyTaskClaimed),
                 ["sevenDayProgress"] = IntMap(p.SevenDayProgress),
                 ["sevenDayClaimed"] = SortedList(p.SevenDayClaimed),
+                ["monthCardExpiry"] = LongMap(p.MonthCardExpiry),
+                ["monthCardClaimedDay"] = LongMap(p.MonthCardClaimedDay),
+                ["growthFundOwned"] = p.GrowthFundOwned,
+                ["growthFundClaimed"] = SortedInts(p.GrowthFundClaimed),
+                ["orders"] = StringMap(p.Orders),
                 ["version"] = (long)CurrentVersion,
                 ["level"] = (long)p.Level,
                 ["exp"] = (long)p.Exp,
@@ -159,6 +164,14 @@ namespace SanGuo.Core.Data
             ReadStringSet(root, "dailyTaskClaimed", p.DailyTaskClaimed);
             ReadIntMap(root, "sevenDayProgress", p.SevenDayProgress);
             ReadStringSet(root, "sevenDayClaimed", p.SevenDayClaimed);
+            ReadLongMap(root, "monthCardExpiry", p.MonthCardExpiry);
+            ReadLongMap(root, "monthCardClaimedDay", p.MonthCardClaimedDay);
+            p.GrowthFundOwned = root.TryGetValue("growthFundOwned", out var gfo) && gfo is bool gb && gb;
+            if (root.TryGetValue("growthFundClaimed", out var gfc) && gfc is List<object?> gl)
+                foreach (var x in gl) p.GrowthFundClaimed.Add((int)ToLong(x));
+            if (root.TryGetValue("orders", out var ord) && ord is Dictionary<string, object?> od)
+                foreach (var kv in od)
+                    if (kv.Value is string os) p.Orders[kv.Key] = os;
 
             return p;
         }
@@ -168,6 +181,33 @@ namespace SanGuo.Core.Data
             var d = new Dictionary<string, object?>();
             foreach (var kv in map) d[kv.Key] = (long)kv.Value;
             return d;
+        }
+
+        private static Dictionary<string, object?> LongMap(Dictionary<string, long> map)
+        {
+            var d = new Dictionary<string, object?>();
+            foreach (var kv in map) d[kv.Key] = kv.Value;
+            return d;
+        }
+
+        private static Dictionary<string, object?> StringMap(Dictionary<string, string> map)
+        {
+            var d = new Dictionary<string, object?>();
+            foreach (var kv in map) d[kv.Key] = kv.Value;
+            return d;
+        }
+
+        private static List<object?> SortedInts(HashSet<int> set)
+        {
+            var l = new List<int>(set);
+            l.Sort();
+            return l.ConvertAll<object?>(i => (long)i);
+        }
+
+        private static void ReadLongMap(Dictionary<string, object?> root, string key, Dictionary<string, long> target)
+        {
+            if (root.TryGetValue(key, out var v) && v is Dictionary<string, object?> d)
+                foreach (var kv in d) target[kv.Key] = ToLong(kv.Value);
         }
 
         private static List<object?> SortedList(HashSet<string> set)

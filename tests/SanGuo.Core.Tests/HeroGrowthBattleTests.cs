@@ -48,8 +48,8 @@ namespace SanGuo.Core.Tests
             Assert.Equal(1.0 * HeroGrowth.CardEffectMultiplier(2), attack.Effects[0].Multiplier, 6);
             var orig = zf.Deck.First(c => c.Id == "zf_attack");
             Assert.Equal(1.0, orig.Effects[0].Multiplier, 6);
-            var roar = built.Deck.First(c => c.Id == "zf_roar");
-            Assert.Equal(1.4, roar.Effects[0].Multiplier, 6);
+            var stance = built.Deck.First(c => c.Id == "zf_stance");
+            Assert.Equal(1.0, stance.Effects[0].Multiplier, 6); // 防禦姿態沒被強化，倍率不變
         }
 
         [Fact]

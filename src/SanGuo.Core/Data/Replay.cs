@@ -15,8 +15,11 @@ namespace SanGuo.Core.Data
         public int UnitId;
         public int Lane;
         public int Row;
+        /// <summary>Play：玩家指定的敵方目標 <see cref="Unit.Id"/>（<see cref="TargetRule.EnemyAny"/> 的牌用）；-1 = 沒指定。</summary>
+        public int TargetId = -1;
 
-        public static ReplayAction Play(int cardId) => new ReplayAction { Kind = ReplayActionKind.Play, CardId = cardId };
+        public static ReplayAction Play(int cardId, int targetId = -1) =>
+            new ReplayAction { Kind = ReplayActionKind.Play, CardId = cardId, TargetId = targetId };
         public static ReplayAction Move(int unitId, Position dest) =>
             new ReplayAction { Kind = ReplayActionKind.Move, UnitId = unitId, Lane = dest.Lane, Row = dest.Row };
         public static ReplayAction EndTurn() => new ReplayAction { Kind = ReplayActionKind.EndTurn };
@@ -56,7 +59,13 @@ namespace SanGuo.Core.Data
                     case ReplayActionKind.Play:
                         var card = FindCard(battle, a.CardId);
                         if (card == null) return Invalid($"手牌中沒有卡牌 {a.CardId}", battle);
-                        var pr = battle.PlayCard(card);
+                        Unit? target = null;
+                        if (a.TargetId >= 0)
+                        {
+                            target = battle.Units.Find(u => u.Id == a.TargetId && u.Side == Side.Enemy && u.Alive);
+                            if (target == null) return Invalid($"沒有可指定的敵方單位 {a.TargetId}", battle);
+                        }
+                        var pr = battle.PlayCard(card, target);
                         if (pr != PlayResult.Ok) return Invalid($"出牌失敗：{pr}", battle);
                         break;
                     case ReplayActionKind.Move:
@@ -104,10 +113,12 @@ namespace SanGuo.Core.Data
 
         public ReplayRecorder(Battle battle) { Battle = battle; }
 
-        public PlayResult Play(CardInstance card)
+        /// <param name="target">指定的敵方目標（只有 <see cref="TargetRule.EnemyAny"/> 的牌會採用）。</param>
+        public PlayResult Play(CardInstance card, Unit? target = null)
         {
-            var r = Battle.PlayCard(card);
-            if (r == PlayResult.Ok) Actions.Add(ReplayAction.Play(card.Id));
+            var r = Battle.PlayCard(card, target);
+            bool used = card.Def.Target == TargetRule.EnemyAny && target != null;
+            if (r == PlayResult.Ok) Actions.Add(ReplayAction.Play(card.Id, used ? target!.Id : -1));
             return r;
         }
 

@@ -73,6 +73,15 @@ namespace SanGuo.Core.Meta
         /// <summary>已領取的七日任務與里程碑（里程碑 id 為 "milestone:點數"）。</summary>
         public HashSet<string> SevenDayClaimed = new HashSet<string>();
 
+        /// <summary>月卡到期的遊戲日（<see cref="DailyClock.DayIndex"/>，不含該日）與最近一次領取每日獎勵的遊戲日。</summary>
+        public Dictionary<string, long> MonthCardExpiry = new Dictionary<string, long>();
+        public Dictionary<string, long> MonthCardClaimedDay = new Dictionary<string, long>();
+        public bool GrowthFundOwned;
+        /// <summary>已領取的成長基金階段（以帳號等級門檻標示）。</summary>
+        public HashSet<int> GrowthFundClaimed = new HashSet<int>();
+        /// <summary>訂單（訂單 id → "pending:商品" 或 "paid:商品"），用來讓付款回呼冪等。</summary>
+        public Dictionary<string, string> Orders = new Dictionary<string, string>();
+
         public int GetMaterial(string key) => Materials.TryGetValue(key, out int n) ? n : 0;
 
         public void AddMaterial(string key, int amount) => Materials[key] = GetMaterial(key) + amount;

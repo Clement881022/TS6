@@ -26,6 +26,10 @@ namespace SanGuo.Core
         AllyLowestHp,
         AllAllies,
         AllEnemies,
+        /// <summary>敵方目前血量最低的單位（同血量取較後排、較上路）。</summary>
+        EnemyLowestHp,
+        /// <summary>玩家指定的任意敵人（<see cref="Battle.PlayCard"/> 的 target 參數）；沒指定時退回後排優先。</summary>
+        EnemyAny,
     }
 
     /// <summary>以中心目標展開的範圍形狀。</summary>
@@ -33,7 +37,11 @@ namespace SanGuo.Core
 
     public enum EffectType { Damage, Heal, Armor, ApplyStatus, Draw, GainCost, StunGauge, Detonate }
 
-    public enum StatusType { Burn, Poison, Stun, ArmorBreak, Taunt }
+    /// <summary>
+    /// DefUp / AtkUp / CritUp 為增益：<see cref="EffectDef.Multiplier"/> 是加成比例（DefUp / AtkUp 的 0.3 = +30%；CritUp 的 0.25 = +25 個百分點爆擊率），
+    /// 同種增益重複施加時取較大的加成與較長的回合數，不疊加。
+    /// </summary>
+    public enum StatusType { Burn, Poison, Stun, ArmorBreak, Taunt, DefUp, AtkUp, CritUp }
 
     /// <summary>破釜 = Exhaust、蓄勢 = Retain、先登 = Innate。</summary>
     [Flags]

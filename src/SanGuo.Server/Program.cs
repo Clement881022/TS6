@@ -50,7 +50,7 @@ app.MapPost("/stage/finish", (HttpRequest req, GameService g, FinishRequest body
     {
         switch (d.Kind)
         {
-            case "play": actions.Add(ReplayAction.Play(d.CardId)); break;
+            case "play": actions.Add(ReplayAction.Play(d.CardId, d.TargetId)); break;
             case "move": actions.Add(ReplayAction.Move(d.UnitId, new Position(d.Lane, d.Row))); break;
             case "end": actions.Add(ReplayAction.EndTurn()); break;
             default: return Task.FromResult(Respond(ApiResult.Fail("bad_action")));
@@ -68,6 +68,15 @@ app.MapPost("/quest/claim", (HttpRequest req, GameService g, QuestRequest body) 
 app.MapPost("/quest/milestone", (HttpRequest req, GameService g, MilestoneRequest body) =>
     Handle(req, a => g.ClaimMilestone(a, body.Points)));
 
+app.MapPost("/shop/order", (HttpRequest req, GameService g, ProductRequest body) =>
+    Handle(req, a => g.CreateOrder(a, body.ProductId)));
+app.MapPost("/shop/dev/pay", (HttpRequest req, GameService g, OrderRequest body) =>
+    g.DevEndpointsEnabled ? Handle(req, a => g.DevPay(a, body.OrderId)) : Task.FromResult(Results.NotFound()));
+app.MapPost("/shop/month-card/claim", (HttpRequest req, GameService g, ProductRequest body) =>
+    Handle(req, a => g.ClaimMonthCard(a, body.ProductId)));
+app.MapPost("/shop/growth-fund/claim", (HttpRequest req, GameService g, MilestoneRequest body) =>
+    Handle(req, a => g.ClaimGrowthFund(a, body.Points)));
+
 app.MapPost("/dev/clear", (HttpRequest req, GameService g, DevClearRequest body) =>
     g.DevEndpointsEnabled ? Handle(req, a => g.DevClearStage(a, body.StageId, body.Stars)) : Task.FromResult(Results.NotFound()));
 
@@ -75,13 +84,15 @@ app.Run();
 
 public sealed record PullRequest(string PoolId, int Count);
 public sealed record StageRequest(string StageId);
-public sealed record ReplayActionDto(string Kind, int CardId = 0, int UnitId = 0, int Lane = 0, int Row = 0);
+public sealed record ReplayActionDto(string Kind, int CardId = 0, int UnitId = 0, int Lane = 0, int Row = 0, int TargetId = -1);
 public sealed record FinishRequest(string StageId, List<ReplayActionDto>? Actions);
 public sealed record HeroRequest(string HeroId);
 public sealed record EnhanceRequest(string HeroId, string CardId);
 public sealed record SweepRequest(string Id, int Count);
 public sealed record QuestRequest(string QuestId);
 public sealed record MilestoneRequest(int Points);
+public sealed record ProductRequest(string ProductId);
+public sealed record OrderRequest(string OrderId);
 public sealed record DevClearRequest(string StageId, int Stars);
 
 public partial class Program { }

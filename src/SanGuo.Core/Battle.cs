@@ -39,6 +39,7 @@ namespace SanGuo.Core
             _enemyBoard = new Unit?[setup.Lanes, setup.Rows];
 
             var allCards = new List<CardInstance>();
+            var cardsByHero = new List<List<CardInstance>>();
             foreach (var slot in setup.Heroes)
             {
                 var unit = CreateUnit(slot.Def.Name, Side.Player, slot.Def.AttackType, ScaleForLevel(slot.Def.Base, slot.Level), slot.Pos);
@@ -46,8 +47,11 @@ namespace SanGuo.Core
                 unit.Protected = slot.IsProtected;
                 if (slot.StartHpPercent < 100) unit.Hp = Math.Max(1, unit.MaxHp * slot.StartHpPercent / 100);
                 unit.DefId = slot.Def.Id;
+                var heroCards = new List<CardInstance>();
                 foreach (var cardDef in slot.Def.Deck)
-                    allCards.Add(new CardInstance(_nextCardId++, cardDef, unit));
+                    heroCards.Add(new CardInstance(_nextCardId++, cardDef, unit));
+                allCards.AddRange(heroCards);
+                cardsByHero.Add(heroCards);
             }
             foreach (var slot in setup.Enemies)
             {
@@ -56,7 +60,10 @@ namespace SanGuo.Core
 
             if (setup.ScriptedDraw.Count > 0)
             {
-                DrawPile.AddRange(allCards);
+                // 寫死牌序時各武將的牌輪流穿插（不洗牌，但也不會整手都是同一個人的牌）。
+                for (int i = 0; cardsByHero.Any(c => i < c.Count); i++)
+                    foreach (var heroCards in cardsByHero)
+                        if (i < heroCards.Count) DrawPile.Add(heroCards[i]);
                 OrderByScript(DrawPile);
             }
             else
@@ -104,7 +111,7 @@ namespace SanGuo.Core
         }
 
         /// <summary>目標自動判定；回傳 null 表示沒有可選目標（卡牌不可打出）。</summary>
-        public List<Unit>? ResolveTargets(Unit owner, CardDef def)
+        public List<Unit>? ResolveTargets(Unit owner, CardDef def, Unit? chosen = null)
         {
             Side own = owner.Side;
             Side foe = own == Side.Player ? Side.Enemy : Side.Player;
@@ -127,8 +134,16 @@ namespace SanGuo.Core
                 }
                 case TargetRule.EnemyFront:
                 case TargetRule.EnemyBack:
+                case TargetRule.EnemyLowestHp:
+                case TargetRule.EnemyAny:
                 {
-                    var center = PickTarget(foe, owner.Pos.Lane, def.Target == TargetRule.EnemyBack);
+                    Unit? center;
+                    if (def.Target == TargetRule.EnemyLowestHp)
+                        center = PickLowestHp(foe);
+                    else if (def.Target == TargetRule.EnemyAny && chosen != null && chosen.Alive && chosen.Side == foe)
+                        center = chosen;
+                    else
+                        center = PickTarget(foe, owner.Pos.Lane, def.Target != TargetRule.EnemyFront);
                     if (center == null) return null;
                     var result = new List<Unit>();
                     foreach (var cell in Targeting.ExpandShape(center.Pos, def.Shape, Setup.Lanes, Setup.Rows))
@@ -202,13 +217,14 @@ namespace SanGuo.Core
 
         // ---------------------------------------------------------------- 玩家行動
 
-        public PlayResult PlayCard(CardInstance card)
+        /// <param name="target">指定目標；只有 <see cref="TargetRule.EnemyAny"/> 的牌會採用（沒給或無效就退回後排優先）。</param>
+        public PlayResult PlayCard(CardInstance card, Unit? target = null)
         {
             var check = CanPlay(card);
             if (check != PlayResult.Ok) return check;
 
             var owner = card.Owner;
-            var targets = ResolveTargets(owner, card.Def)!;
+            var targets = ResolveTargets(owner, card.Def, target)!;
             Cost -= card.Def.Cost;
             Hand.Remove(card);
             Emit(EventType.CardPlayed, owner.Id, -1, card.Def.Cost, card.Def.Name);
@@ -330,7 +346,7 @@ namespace SanGuo.Core
                     case Intent.Kind.Heal:
                     {
                         var ally = intent.Target!;
-                        int amount = DamageCalc.Scale(enemy.Stats.Atk, enemy.AbilityPower);
+                        int amount = DamageCalc.Scale(enemy.EffectiveAtk, enemy.AbilityPower);
                         int healed = Math.Min(amount, ally.MaxHp - ally.Hp);
                         ally.Hp += healed;
                         Emit(EventType.Heal, enemy.Id, ally.Id, healed, "");
@@ -392,7 +408,7 @@ namespace SanGuo.Core
                     foreach (var t in affected)
                     {
                         if (!t.Alive) continue;
-                        int amount = DamageCalc.Scale(owner.Stats.Atk, effect.Multiplier);
+                        int amount = DamageCalc.Scale(owner.EffectiveAtk, effect.Multiplier);
                         int healed = Math.Min(amount, t.MaxHp - t.Hp);
                         t.Hp += healed;
                         Emit(EventType.Heal, owner.Id, t.Id, healed, "");
@@ -402,7 +418,7 @@ namespace SanGuo.Core
                     foreach (var t in affected)
                     {
                         if (!t.Alive) continue;
-                        int amount = DamageCalc.Scale(owner.Stats.Atk, effect.Multiplier);
+                        int amount = DamageCalc.Scale(owner.EffectiveAtk, effect.Multiplier);
                         t.Armor += amount;
                         Emit(EventType.Armor, owner.Id, t.Id, amount, "");
                     }
@@ -421,11 +437,25 @@ namespace SanGuo.Core
                                 Turns = effect.Amount,
                             });
                         }
+                        else if (IsBuff(effect.Status))
+                        {
+                            // 增益：Multiplier 是加成比例；已有同種增益時取較大的加成與較長的回合數。
+                            int percent = (int)Math.Round(effect.Multiplier * 100, MidpointRounding.AwayFromZero);
+                            if (t.Statuses.TryGetValue(effect.Status, out var cur))
+                            {
+                                cur.Power = Math.Max(cur.Power, percent);
+                                cur.Turns = Math.Max(cur.Turns, effect.Amount);
+                            }
+                            else
+                            {
+                                t.Statuses[effect.Status] = new StatusState { Power = percent, Turns = effect.Amount };
+                            }
+                        }
                         else
                         {
                             t.Statuses[effect.Status] = new StatusState
                             {
-                                Power = DamageCalc.Scale(owner.Stats.Atk, effect.Multiplier),
+                                Power = DamageCalc.Scale(owner.EffectiveAtk, effect.Multiplier),
                                 Turns = effect.Amount,
                             };
                         }
@@ -480,6 +510,9 @@ namespace SanGuo.Core
             }
         }
 
+        private static bool IsBuff(StatusType type) =>
+            type == StatusType.DefUp || type == StatusType.AtkUp || type == StatusType.CritUp;
+
         private void DealAttackDamage(Unit attacker, Unit target, double multiplier)
         {
             if (!Setup.NoRandomness && Rng.Roll(target.Stats.Dodge))
@@ -487,8 +520,8 @@ namespace SanGuo.Core
                 Emit(EventType.Dodge, attacker.Id, target.Id, 0, "");
                 return;
             }
-            bool crit = !Setup.NoRandomness && Rng.Roll(attacker.Stats.Crit);
-            int dmg = DamageCalc.Compute(attacker.Stats.Atk, multiplier, target.EffectiveDef,
+            bool crit = !Setup.NoRandomness && Rng.Roll(attacker.EffectiveCrit);
+            int dmg = DamageCalc.Compute(attacker.EffectiveAtk, multiplier, target.EffectiveDef,
                 crit, attacker.Stats.CritDmg);
             if (target.Has(StatusType.Taunt))
                 dmg = Math.Max(1, (int)Math.Round(dmg * (1.0 - DamageCalc.TauntDamageReduction), MidpointRounding.AwayFromZero));
@@ -676,6 +709,10 @@ namespace SanGuo.Core
             }
             return null;
         }
+
+        /// <summary>血量最低的存活單位；同血量取較後排、再取較上路。</summary>
+        private Unit? PickLowestHp(Side side) =>
+            AliveUnits(side).OrderBy(u => u.Hp).ThenByDescending(u => u.Pos.Row).ThenBy(u => u.Pos.Lane).FirstOrDefault();
 
         /// <summary>
         /// 後排優先（弓手 / 遠程）：不分路，先找最後一排，依路由上往下取第一個；

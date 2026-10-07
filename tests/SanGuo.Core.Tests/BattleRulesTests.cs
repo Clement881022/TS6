@@ -494,7 +494,8 @@ namespace SanGuo.Core.Tests
         private static bool HealerAlive(Battle b) => b.AliveUnits(Side.Enemy).Any(e => e.Ability.HasFlag(EnemyAbility.Healer));
 
         private static bool IsBackShot(CardInstance c) =>
-            c.Def.Target == TargetRule.EnemyBack && c.Def.Effects.Any(e => e.Type == EffectType.Damage);
+            (c.Def.Target == TargetRule.EnemyBack || c.Def.Target == TargetRule.EnemyLowestHp || c.Def.Target == TargetRule.EnemyAny)
+            && c.Def.Effects.Any(e => e.Type == EffectType.Damage);
 
         private static int TutorialPriority(Battle battle, CardInstance c)
         {

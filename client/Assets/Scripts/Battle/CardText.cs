@@ -15,6 +15,9 @@ namespace SanGuo.Client
                 case StatusType.Stun: return "昏亂";
                 case StatusType.ArmorBreak: return "破甲";
                 case StatusType.Taunt: return "挑釁";
+                case StatusType.DefUp: return "防禦提升";
+                case StatusType.AtkUp: return "攻擊提升";
+                case StatusType.CritUp: return "暴擊提升";
                 default: return type.ToString();
             }
         }
@@ -49,6 +52,8 @@ namespace SanGuo.Client
             {
                 case TargetRule.EnemyFront: who = "同路最前排敵人"; break;
                 case TargetRule.EnemyBack: who = "後排敵人（由上往下）"; break;
+                case TargetRule.EnemyLowestHp: who = "血量最低的敵人"; break;
+                case TargetRule.EnemyAny: who = "任意敵人"; break;
                 case TargetRule.Self: return "自己";
                 case TargetRule.AllyLowestHp: return "血量比例最低的隊友";
                 case TargetRule.AllAllies: return "全體隊友";

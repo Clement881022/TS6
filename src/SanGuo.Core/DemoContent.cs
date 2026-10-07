@@ -41,170 +41,171 @@ namespace SanGuo.Core
 
         // ---- 武將 ----
 
-        // 套牌原則：基礎牌（普攻 / 防禦 / 治療）為主 + 一兩張專屬技能。移動不在牌庫裡，是全隊共用的按鈕。
+        // 初始套牌規則：每名武將固定 DeckSize 張，厚度一致；稀有度只決定「高級牌」換掉幾張普通攻擊：
+        //   R = 0 張（全是普通攻擊）、SR = 1 張、UR = 2 張。
+        // 高級牌由職業決定（見 RoleSkills，SR 拿第一張、UR 兩張都拿），同職業先共用同一組；
+        // 之後要做武將專屬技能，直接在武將定義裡換掉對應那張即可。移動不在牌庫裡。
 
-        public static HeroDef ZhangFei()
+        /// <summary>每名武將的初始套牌張數。</summary>
+        public const int DeckSize = 6;
+
+        private static double BasicAttackMultiplier(Role role)
         {
-            var attack = Basic("zf_attack", "長矛突刺", 1, TargetRule.EnemyFront, Dmg(1.0));
-            var guard = Basic("zf_guard", "鐵壁", 1, TargetRule.Self, Armor(1.5));
-            var taunt = Card("zf_taunt", "燕人怒吼", 1, TargetRule.Self, Shape.Single, CardKeywords.Innate,
-                Status(StatusType.Taunt, 0, 3, self: true), Armor(3.0));
-            var roar = Card("zf_roar", "當陽橋喝斷", 3, TargetRule.EnemyFront, Shape.Row, CardKeywords.Innate | CardKeywords.Retain,
-                Dmg(1.4), StunGauge(60));
-            var howl = Card("zf_howl", "虎吼", 1, TargetRule.EnemyFront, Shape.Single, CardKeywords.Innate, StunGauge(40));
-            var breakArmor = Card("zf_break", "蛇矛破陣", 1, TargetRule.EnemyFront, Shape.Single, CardKeywords.None,
-                Dmg(0.6), Status(StatusType.ArmorBreak, 0.5, 4));
-            return new HeroDef
+            switch (role)
             {
-                Id = "zhangfei", Name = "張飛", Role = Role.Tank, Rarity = Rarity.UR, AttackType = AttackType.Melee,
-                Base = new Stats { Hp = 1200, Atk = 135, Def = 70, Dodge = 0, Speed = 1, Crit = 5, CritDmg = 150 },
-                Deck = new List<CardDef> { attack, guard, guard, taunt, roar, breakArmor, howl },
-            };
+                case Role.Warrior:
+                case Role.Archer: return 1.2;
+                case Role.Healer: return 0.8;
+                default: return 1.0;
+            }
         }
 
-        public static HeroDef GuanYu()
+        /// <summary>遠程職業的普通攻擊打後排，近戰職業打同路最前排。</summary>
+        private static TargetRule BasicAttackTarget(Role role) =>
+            role == Role.Archer || role == Role.Mage || role == Role.Strategist ? TargetRule.EnemyBack : TargetRule.EnemyFront;
+
+        /// <summary>職業的高級牌（依序：SR 拿第 1 張、UR 兩張都拿）。<paramref name="p"/> 是武將的卡牌 id 前綴。</summary>
+        private static List<CardDef> RoleSkills(string p, Role role)
         {
-            var attack = Basic("gy_attack", "青龍斬", 1, TargetRule.EnemyFront, Dmg(1.2));
-            var guard = Basic("gy_guard", "持刀架勢", 1, TargetRule.Self, Armor(1.0));
-            var sweep = Card("gy_sweep", "偃月橫掃", 2, TargetRule.EnemyFront, Shape.Row, CardKeywords.None, Dmg(0.9));
-            var duel = Card("gy_duel", "溫酒斬將", 3, TargetRule.EnemyFront, Shape.Single, CardKeywords.Exhaust,
-                Dmg(2.8), Status(StatusType.ArmorBreak, 0.25, 2));
-            var breakArmor = Card("gy_break", "斷甲", 1, TargetRule.EnemyFront, Shape.Single, CardKeywords.Innate,
-                Dmg(0.8), Status(StatusType.ArmorBreak, 0.5, 4));
-            return new HeroDef
+            switch (role)
             {
-                Id = "guanyu", Name = "關羽", Role = Role.Warrior, Rarity = Rarity.UR, AttackType = AttackType.Melee,
-                Base = new Stats { Hp = 960, Atk = 195, Def = 45, Dodge = 5, Speed = 2, Crit = 15, CritDmg = 180 },
-                Deck = new List<CardDef> { attack, attack, guard, sweep, duel, breakArmor },
-            };
+                case Role.Tank:
+                    return new List<CardDef>
+                    {
+                        Basic(p + "_stance", "防禦姿態", 1, TargetRule.Self, Status(StatusType.DefUp, 1.0, 2, self: true)),
+                        Card(p + "_taunt", "嘲諷", 1, TargetRule.Self, Shape.Single, CardKeywords.Innate,
+                            Status(StatusType.Taunt, 0, 3, self: true), Status(StatusType.DefUp, 0.3, 3, self: true)),
+                    };
+                case Role.Warrior:
+                    return new List<CardDef>
+                    {
+                        Card(p + "_sweep", "旋風斬", 2, TargetRule.EnemyFront, Shape.Row, CardKeywords.None, Dmg(1.0)),
+                        Card(p + "_cleave", "豎劈斬", 2, TargetRule.EnemyFront, Shape.Column, CardKeywords.None, Dmg(1.5)),
+                    };
+                case Role.Healer:
+                    return new List<CardDef>
+                    {
+                        Basic(p + "_heal", "治療", 1, TargetRule.AllyLowestHp, Heal(1.5)),
+                        Basic(p + "_shield", "上盾", 1, TargetRule.AllyLowestHp, Armor(1.8, self: false)),
+                    };
+                case Role.Strategist:
+                    return new List<CardDef>
+                    {
+                        Card(p + "_atkup", "攻擊鼓舞", 1, TargetRule.AllAllies, Shape.All, CardKeywords.None,
+                            Status(StatusType.AtkUp, 0.3, 2)),
+                        Card(p + "_critup", "暴擊鼓舞", 1, TargetRule.AllAllies, Shape.All, CardKeywords.None,
+                            Status(StatusType.CritUp, 0.25, 2)),
+                    };
+                case Role.Archer:
+                    return new List<CardDef>
+                    {
+                        Card(p + "_snipe", "狙擊", 2, TargetRule.EnemyLowestHp, Shape.Single, CardKeywords.None, Dmg(2.0)),
+                        Card(p + "_pierce", "破甲箭", 1, TargetRule.EnemyAny, Shape.Single, CardKeywords.None,
+                            Dmg(0.6), Status(StatusType.ArmorBreak, 0.5, 4)),
+                    };
+                case Role.Mage:
+                    return new List<CardDef>
+                    {
+                        Card(p + "_fire", "火計", 2, TargetRule.EnemyFront, Shape.Cross, CardKeywords.None,
+                            Dmg(0.7), Status(StatusType.Burn, 1.0, 3)),
+                        Card(p + "_inferno", "火燒連營", 1, TargetRule.EnemyFront, Shape.All, CardKeywords.None,
+                            Detonate(StatusType.Burn, 2)),
+                    };
+                default:
+                    return new List<CardDef>();
+            }
         }
 
-        public static HeroDef LiuBei()
+        /// <summary>依職業與稀有度組出初始套牌：高級牌取代普通攻擊，總張數固定為 <see cref="DeckSize"/>。</summary>
+        public static List<CardDef> BuildDeck(string prefix, Role role, Rarity rarity)
         {
-            var attack = Basic("lb_attack", "雙股劍", 1, TargetRule.EnemyFront, Dmg(0.9));
-            var guard = Card("lb_guard", "仁者護佑", 1, TargetRule.AllyLowestHp, Shape.Single, CardKeywords.Innate, Armor(1.8, self: false));
-            guard.Basic = true;
-            var heal = Basic("lb_heal", "撫慰", 1, TargetRule.AllyLowestHp, Heal(1.5));
-            var virtue = Card("lb_virtue", "仁德", 2, TargetRule.AllyLowestHp, Shape.Single, CardKeywords.None, Heal(3.0));
-            var rally = Card("lb_rally", "桃園結義", 3, TargetRule.AllAllies, Shape.All, CardKeywords.Exhaust,
-                Heal(1.5), Armor(1.0, self: false));
-            return new HeroDef
-            {
-                Id = "liubei", Name = "劉備", Role = Role.Healer, Rarity = Rarity.UR, AttackType = AttackType.Melee,
-                Base = new Stats { Hp = 800, Atk = 120, Def = 35, Dodge = 5, Speed = 2, Crit = 5, CritDmg = 150 },
-                Deck = new List<CardDef> { attack, guard, heal, virtue, rally },
-            };
+            var skills = RoleSkills(prefix, role);
+            int unique = rarity == Rarity.UR ? 2 : rarity == Rarity.SR ? 1 : 0;
+            unique = System.Math.Min(unique, skills.Count);
+
+            var attack = Basic(prefix + "_attack", "普通攻擊", 1, BasicAttackTarget(role), Dmg(BasicAttackMultiplier(role)));
+            var deck = new List<CardDef>(DeckSize);
+            for (int i = 0; i < DeckSize - unique; i++) deck.Add(attack);
+            for (int i = 0; i < unique; i++) deck.Add(skills[i]);
+            return deck;
         }
 
-        public static HeroDef ZhugeLiang()
+        private static HeroDef Hero(string id, string name, string prefix, Role role, Rarity rarity,
+            AttackType attackType, Stats stats) => new HeroDef
         {
-            var staff = Basic("zgl_attack", "羽扇輕搖", 1, TargetRule.EnemyBack, Dmg(1.0));
-            var guard = Basic("zgl_guard", "八卦護身", 1, TargetRule.Self, Armor(0.9));
-            var fire = Card("zgl_fire", "火計", 2, TargetRule.EnemyFront, Shape.Cross, CardKeywords.Innate,
-                Dmg(0.7), Status(StatusType.Burn, 1.0, 3));
-            var inferno = Card("zgl_inferno", "火燒連營", 1, TargetRule.EnemyFront, Shape.All, CardKeywords.Innate,
-                Detonate(StatusType.Burn, 2));
-            var plan = Card("zgl_plan", "錦囊妙計", 0, TargetRule.Self, Shape.Single, CardKeywords.Exhaust, Draw(2));
-            var tempo = Card("zgl_tempo", "運籌帷幄", 0, TargetRule.Self, Shape.Single, CardKeywords.Exhaust, Gain(2));
-            return new HeroDef
+            Id = id, Name = name, Role = role, Rarity = rarity, AttackType = attackType, Base = stats,
+            Deck = BuildDeck(prefix, role, rarity),
+        };
+
+        /// <summary>教學關借牌：把套牌裡的普通攻擊換成指定的教學牌（只用在教學關，正式套牌仍照 <see cref="BuildDeck"/>）。</summary>
+        private static HeroDef WithLoan(HeroDef hero, params CardDef[] loan)
+        {
+            foreach (var card in loan)
             {
-                Id = "zhugeliang", Name = "諸葛亮", Role = Role.Strategist, Rarity = Rarity.UR, AttackType = AttackType.Ranged,
-                Base = new Stats { Hp = 680, Atk = 165, Def = 25, Dodge = 10, Speed = 1, Crit = 10, CritDmg = 150 },
-                Deck = new List<CardDef> { staff, staff, guard, fire, plan, tempo, inferno },
-            };
+                int i = hero.Deck.FindIndex(c => c.Id.EndsWith("_attack"));
+                if (i >= 0) hero.Deck[i] = card;
+            }
+            return hero;
         }
 
-        public static HeroDef ZhaoYun()
-        {
-            var strike = Basic("zy_attack", "龍膽突刺", 1, TargetRule.EnemyFront, Dmg(1.3));
-            var guard = Basic("zy_guard", "游龍身法", 1, TargetRule.Self, Armor(0.8));
-            var ult = Card("zy_ult", "七進七出", 3, TargetRule.EnemyFront, Shape.Column, CardKeywords.Innate | CardKeywords.Retain, Dmg(2.0));
-            return new HeroDef
-            {
-                Id = "zhaoyun", Name = "趙雲", Role = Role.Warrior, Rarity = Rarity.UR, AttackType = AttackType.Melee,
-                Base = new Stats { Hp = 840, Atk = 210, Def = 40, Dodge = 15, Speed = 3, Crit = 20, CritDmg = 170 },
-                Deck = new List<CardDef> { strike, strike, guard, ult },
-            };
-        }
+        public static HeroDef ZhangFei() => Hero("zhangfei", "張飛", "zf", Role.Tank, Rarity.UR, AttackType.Melee,
+            new Stats { Hp = 1200, Atk = 135, Def = 70, Dodge = 0, Speed = 1, Crit = 5, CritDmg = 150 });
 
-        public static HeroDef HuangZhong()
-        {
-            var shot = Basic("hz_attack", "穿雲箭", 1, TargetRule.EnemyBack, Dmg(1.2));
-            var guard = Basic("hz_guard", "閃身", 1, TargetRule.Self, Armor(0.8));
-            var snipe = Card("hz_snipe", "百步穿楊", 2, TargetRule.EnemyBack, Shape.Single, CardKeywords.Innate, Dmg(2.0));
-            var pierce = Card("hz_pierce", "穿甲箭", 1, TargetRule.EnemyBack, Shape.Single, CardKeywords.Innate,
-                Dmg(0.6), Status(StatusType.ArmorBreak, 0.5, 4));
-            var volley = Card("hz_volley", "箭雨", 3, TargetRule.EnemyBack, Shape.Column, CardKeywords.Exhaust, Dmg(1.8));
-            return new HeroDef
-            {
-                Id = "huangzhong", Name = "黃忠", Role = Role.Archer, Rarity = Rarity.UR, AttackType = AttackType.Ranged,
-                Base = new Stats { Hp = 720, Atk = 200, Def = 30, Dodge = 8, Speed = 2, Crit = 20, CritDmg = 170 },
-                Deck = new List<CardDef> { shot, shot, guard, snipe, volley, pierce },
-            };
-        }
+        public static HeroDef GuanYu() => Hero("guanyu", "關羽", "gy", Role.Warrior, Rarity.UR, AttackType.Melee,
+            new Stats { Hp = 960, Atk = 195, Def = 45, Dodge = 5, Speed = 2, Crit = 15, CritDmg = 180 });
 
-        // ---- R 級基礎小兵（測試用的弱單位；只有基礎牌）----
+        public static HeroDef LiuBei() => Hero("liubei", "劉備", "lb", Role.Healer, Rarity.UR, AttackType.Melee,
+            new Stats { Hp = 800, Atk = 120, Def = 35, Dodge = 5, Speed = 2, Crit = 5, CritDmg = 150 });
 
-        public static HeroDef MilitiaSoldier()
-        {
-            var attack = Basic("r_mil_attack", "揮砍", 1, TargetRule.EnemyFront, Dmg(1.0));
-            var guard = Basic("r_mil_guard", "舉盾", 1, TargetRule.Self, Armor(1.0));
-            return new HeroDef
-            {
-                Id = "r_militia", Name = "義勇兵", Role = Role.Warrior, Rarity = Rarity.R, AttackType = AttackType.Melee,
-                Base = new Stats { Hp = 600, Atk = 120, Def = 25, Dodge = 0, Speed = 2, Crit = 5, CritDmg = 150 },
-                Deck = new List<CardDef> { attack, attack, guard },
-            };
-        }
+        public static HeroDef ZhugeLiang() => Hero("zhugeliang", "諸葛亮", "zgl", Role.Strategist, Rarity.UR, AttackType.Ranged,
+            new Stats { Hp = 680, Atk = 165, Def = 25, Dodge = 10, Speed = 1, Crit = 10, CritDmg = 150 });
 
-        public static HeroDef MilitiaShield()
-        {
-            var attack = Basic("r_shd_attack", "盾擊", 1, TargetRule.EnemyFront, Dmg(0.8));
-            var guard = Basic("r_shd_guard", "固守", 1, TargetRule.Self, Armor(1.2));
-            return new HeroDef
-            {
-                Id = "r_shield", Name = "鄉勇盾兵", Role = Role.Tank, Rarity = Rarity.R, AttackType = AttackType.Melee,
-                Base = new Stats { Hp = 800, Atk = 90, Def = 50, Dodge = 0, Speed = 1, Crit = 0, CritDmg = 150 },
-                Deck = new List<CardDef> { attack, guard, guard },
-            };
-        }
+        /// <summary>法師：Demo 的火攻教學（第 7 關）由他擔任，原本由諸葛亮兼任。</summary>
+        public static HeroDef PangTong() => Hero("pangtong", "龐統", "pt", Role.Mage, Rarity.UR, AttackType.Ranged,
+            new Stats { Hp = 680, Atk = 165, Def = 25, Dodge = 10, Speed = 1, Crit = 10, CritDmg = 150 });
 
-        public static HeroDef MilitiaArcher()
-        {
-            var shot = Basic("r_arc_attack", "射擊", 1, TargetRule.EnemyBack, Dmg(1.0));
-            var guard = Basic("r_arc_guard", "閃避", 1, TargetRule.Self, Armor(0.8));
-            return new HeroDef
-            {
-                Id = "r_archer", Name = "鄉勇弓手", Role = Role.Archer, Rarity = Rarity.R, AttackType = AttackType.Ranged,
-                Base = new Stats { Hp = 450, Atk = 130, Def = 15, Dodge = 5, Speed = 2, Crit = 10, CritDmg = 150 },
-                Deck = new List<CardDef> { shot, shot, guard },
-            };
-        }
+        public static HeroDef ZhaoYun() => Hero("zhaoyun", "趙雲", "zy", Role.Warrior, Rarity.UR, AttackType.Melee,
+            new Stats { Hp = 840, Atk = 210, Def = 40, Dodge = 15, Speed = 3, Crit = 20, CritDmg = 170 });
 
-        public static HeroDef MilitiaHealer()
-        {
-            var attack = Basic("r_hlr_attack", "棍擊", 1, TargetRule.EnemyFront, Dmg(0.6));
-            var heal = Basic("r_hlr_heal", "包紮", 1, TargetRule.AllyLowestHp, Heal(1.5));
-            return new HeroDef
-            {
-                Id = "r_healer", Name = "鄉勇醫士", Role = Role.Healer, Rarity = Rarity.R, AttackType = AttackType.Melee,
-                Base = new Stats { Hp = 450, Atk = 100, Def = 15, Dodge = 5, Speed = 2, Crit = 0, CritDmg = 150 },
-                Deck = new List<CardDef> { attack, heal, heal },
-            };
-        }
+        public static HeroDef HuangZhong() => Hero("huangzhong", "黃忠", "hz", Role.Archer, Rarity.UR, AttackType.Ranged,
+            new Stats { Hp = 720, Atk = 200, Def = 30, Dodge = 8, Speed = 2, Crit = 20, CritDmg = 170 });
+
+        // ---- 教學關借牌（昏亂 / 斷甲 不在初始套牌裡，教學關借給武將示範）----
+
+        private static CardDef Howl() => Card("zf_howl", "虎吼", 1, TargetRule.EnemyFront, Shape.Single, CardKeywords.Innate, StunGauge(40));
+
+        private static CardDef Roar() => Card("zf_roar", "當陽橋喝斷", 3, TargetRule.EnemyFront, Shape.Row,
+            CardKeywords.Innate | CardKeywords.Retain, Dmg(1.4), StunGauge(60));
+
+        private static CardDef GuanYuBreak() => Card("gy_break", "斷甲", 1, TargetRule.EnemyFront, Shape.Single, CardKeywords.Innate,
+            Dmg(0.8), Status(StatusType.ArmorBreak, 0.5, 4));
+
+        // ---- R 級基礎小兵（只有普通攻擊）----
+
+        public static HeroDef MilitiaSoldier() => Hero("r_militia", "義勇兵", "r_mil", Role.Warrior, Rarity.R, AttackType.Melee,
+            new Stats { Hp = 600, Atk = 85, Def = 25, Dodge = 0, Speed = 2, Crit = 5, CritDmg = 150 });
+
+        public static HeroDef MilitiaShield() => Hero("r_shield", "鄉勇盾兵", "r_shd", Role.Tank, Rarity.R, AttackType.Melee,
+            new Stats { Hp = 800, Atk = 60, Def = 50, Dodge = 0, Speed = 1, Crit = 0, CritDmg = 150 });
+
+        public static HeroDef MilitiaArcher() => Hero("r_archer", "鄉勇弓手", "r_arc", Role.Archer, Rarity.R, AttackType.Ranged,
+            new Stats { Hp = 450, Atk = 90, Def = 15, Dodge = 5, Speed = 2, Crit = 10, CritDmg = 150 });
+
+        public static HeroDef MilitiaHealer() => Hero("r_healer", "鄉勇醫士", "r_hlr", Role.Healer, Rarity.R, AttackType.Melee,
+            new Stats { Hp = 450, Atk = 70, Def = 15, Dodge = 5, Speed = 2, Crit = 0, CritDmg = 150 });
 
         /// <summary>第 6 關的保護目標「鄉民」：沒有牌，只能被保護。</summary>
         public static HeroDef Villager() => new HeroDef
         {
             Id = "r_villager", Name = "鄉民", Role = Role.Tank, Rarity = Rarity.R, AttackType = AttackType.Melee,
-            Base = new Stats { Hp = 500, Atk = 0, Def = 0, Speed = 1, Crit = 0, CritDmg = 150 },
+            Base = new Stats { Hp = 800, Atk = 0, Def = 0, Speed = 1, Crit = 0, CritDmg = 150 },
             Deck = new List<CardDef>(),
         };
 
         /// <summary>所有可上場武將（編隊用），依稀有度與登場順序排列。</summary>
         public static List<HeroDef> Roster() => new List<HeroDef>
         {
-            ZhangFei(), GuanYu(), HuangZhong(), LiuBei(), ZhugeLiang(), ZhaoYun(),
+            ZhangFei(), GuanYu(), HuangZhong(), LiuBei(), ZhugeLiang(), ZhaoYun(), PangTong(),
             MilitiaSoldier(), MilitiaShield(), MilitiaArcher(), MilitiaHealer(),
         };
 
@@ -225,7 +226,7 @@ namespace SanGuo.Core
         /// <summary>第 2 關用的精準弓手：攻擊高、血量中等，每回合都會重創後排。</summary>
         public static EnemyDef YellowTurbanSharpshooter() => new EnemyDef
         {
-            Id = "yt_sharpshooter", Name = "黃巾神射", AttackType = AttackType.Ranged, AttackMultiplier = 1.0,
+            
             Base = new Stats { Hp = 450, Atk = 540, Def = 10, Speed = 1, Crit = 5, CritDmg = 150 },
         };
 
@@ -257,7 +258,7 @@ namespace SanGuo.Core
         {
             Id = "yt_warlock", Name = "符水術士", AttackType = AttackType.Ranged, AttackMultiplier = 0.8,
             Ability = EnemyAbility.Summoner, Summons = YellowTurbanSoldier(), SummonCap = 7,
-            Base = new Stats { Hp = 300, Atk = 160, Def = 10, Speed = 1, Crit = 0, CritDmg = 150 },
+            Base = new Stats { Hp = 250, Atk = 160, Def = 10, Speed = 1, Crit = 0, CritDmg = 150 },
         };
 
         /// <summary>第 9 關的副將：和渠帥一樣蓄力大招，但昏亂條較短（60）。</summary>
@@ -299,15 +300,15 @@ namespace SanGuo.Core
         {
             switch (level)
             {
-                case 2: return new List<string> { "zf_taunt", "r_mil_attack", "r_arc_attack", "zf_attack", "r_hlr_heal" };
-                case 3: return new List<string> { "gy_break", "hz_pierce", "gy_attack", "hz_attack", "r_hlr_heal" };
-                case 4: return new List<string> { "hz_snipe", "r_mil_attack", "r_shd_attack", "hz_attack", "r_hlr_heal" };
-                case 5: return new List<string> { "zf_howl", "zf_roar", "r_hlr_heal", "r_arc_attack", "zf_attack" };
-                case 6: return new List<string> { "lb_guard", "r_arc_attack", "lb_attack", "r_shd_attack", "lb_heal" };
-                case 9: return new List<string> { "zf_howl", "hz_snipe", "zf_roar", "r_shd_attack", "r_hlr_heal" };
-                case 10: return new List<string> { "zf_howl", "zf_roar", "zy_ult", "hz_snipe", "lb_guard" };
-                case 8: return new List<string> { "zy_ult", "r_mil_attack", "zy_attack", "r_shd_attack", "r_hlr_heal" };
-                case 7: return new List<string> { "zgl_fire", "zgl_inferno", "r_mil_attack", "r_shd_attack", "r_hlr_heal" };
+                case 2: return new List<string> { "zf_taunt", "zf_stance", "r_mil_attack", "r_arc_attack", "zf_attack" };
+                case 3: return new List<string> { "gy_break", "hz_pierce", "gy_attack", "hz_attack", "r_hlr_attack" };
+                case 4: return new List<string> { "hz_snipe", "r_mil_attack", "r_shd_attack", "hz_attack", "r_hlr_attack" };
+                case 5: return new List<string> { "zf_howl", "zf_roar", "r_hlr_attack", "r_arc_attack", "zf_attack" };
+                case 6: return new List<string> { "lb_shield", "r_arc_attack", "lb_attack", "r_shd_attack", "lb_heal" };
+                case 9: return new List<string> { "zf_howl", "hz_snipe", "zf_roar", "r_shd_attack", "r_hlr_attack" };
+                case 10: return new List<string> { "zf_howl", "zf_roar", "zy_cleave", "hz_snipe", "lb_shield" };
+                case 8: return new List<string> { "zy_cleave", "r_mil_attack", "zy_attack", "r_shd_attack", "r_hlr_attack" };
+                case 7: return new List<string> { "pt_fire", "pt_inferno", "r_mil_attack", "r_shd_attack", "r_hlr_attack" };
                 default: return new List<string>();
             }
         }
@@ -318,7 +319,7 @@ namespace SanGuo.Core
             // 第一章每一關都是教學關：不開放自動戰鬥。
             var setup = new BattleSetup { Seed = seed, AutoAllowed = false };
             if (level == 3) setup.TurnLimit = 11;
-            if (level == 7) setup.TurnLimit = 4;
+            if (level == 7) setup.TurnLimit = 3;
             if (level == 8) setup.TurnLimit = 2; // 援軍源源不絕：兩回合內不斬首術士就守不住
             // 教學關：小兵湊數，只讓一兩名武將帶著該關要教的技能卡上場（編隊鎖定，之後再開放）。
             setup.FormationLocked = true;
@@ -332,25 +333,25 @@ namespace SanGuo.Core
                     setup.Heroes.Add(new HeroSlot(MilitiaArcher(), new Position(1, 1)));
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
                     break;
-                case 2: // 張飛（燕人怒吼・先登）
+                case 2: // 張飛（嘲諷 + 防禦姿態）
                     setup.Heroes.Add(new HeroSlot(ZhangFei(), new Position(0, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaSoldier(), new Position(1, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaArcher(), new Position(1, 1)));
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
                     break;
-                case 4: // 黃忠（百步穿楊・先登）專打後排的妖道
+                case 4: // 黃忠（狙擊：打血量最低的敵人）專打後排的妖道
                     setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaSoldier(), new Position(1, 0)));
                     setup.Heroes.Add(new HeroSlot(HuangZhong(), new Position(1, 1)));
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
                     break;
-                case 5: // 張飛（虎吼 / 當陽橋喝斷・先登）：用昏亂條打斷渠帥的蓄力大招
+                case 5: // 張飛借牌（虎吼 / 當陽橋喝斷・先登）：用昏亂條打斷渠帥的蓄力大招
                     setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
-                    setup.Heroes.Add(new HeroSlot(ZhangFei(), new Position(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(WithLoan(ZhangFei(), Howl(), Roar()), new Position(1, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaArcher(), new Position(1, 1)));
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
                     break;
-                case 6: // 劉備（仁者護佑・先登）：用護甲保護後排的鄉民（鄉民受傷（60% 血），所以是「血量比例最低的隊友」）
+                case 6: // 劉備（上盾）：用護甲保護後排的鄉民（鄉民受傷（60% 血），所以是「血量比例最低的隊友」）
                 {
                     setup.Heroes.Add(new HeroSlot(Villager(), new Position(0, 1)) { IsProtected = true, StartHpPercent = 60 });
                     setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
@@ -358,33 +359,33 @@ namespace SanGuo.Core
                     setup.Heroes.Add(new HeroSlot(MilitiaArcher(), new Position(1, 1)));
                     break;
                 }
-                case 7: // 諸葛亮（火計 / 火燒連營・先登）：先放火再引爆，火勢蔓延整排敵人
+                case 7: // 龐統（火計 / 火燒連營）：先放火再引爆，火勢蔓延整排敵人
                     setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaSoldier(), new Position(1, 0)));
-                    setup.Heroes.Add(new HeroSlot(ZhugeLiang(), new Position(1, 1)));
+                    setup.Heroes.Add(new HeroSlot(PangTong(), new Position(1, 1)));
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
                     break;
-                case 8: // 趙雲（七進七出・先登）：縱列穿透，一槍連前排帶後排的術士
+                case 8: // 趙雲（豎劈斬）：縱列穿透，一槍連前排帶後排的術士
                     setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
                     setup.Heroes.Add(new HeroSlot(ZhaoYun(), new Position(1, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaSoldier(), new Position(2, 0)));
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(1, 1)));
                     break;
-                case 9: // 綜合：張飛（昏亂）＋ 黃忠（後排）＋小兵；雙渠帥蓄力、妖道治療
+                case 9: // 綜合：張飛借牌（昏亂）＋ 黃忠（後排）＋小兵；雙渠帥蓄力、妖道治療
                     setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
-                    setup.Heroes.Add(new HeroSlot(ZhangFei(), new Position(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(WithLoan(ZhangFei(), Howl(), Roar()), new Position(1, 0)));
                     setup.Heroes.Add(new HeroSlot(HuangZhong(), new Position(1, 1)));
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
                     break;
-                case 10: // BOSS：四名武將齊上
-                    setup.Heroes.Add(new HeroSlot(ZhangFei(), new Position(0, 0)));
+                case 10: // BOSS：四名武將齊上（張飛借昏亂牌）
+                    setup.Heroes.Add(new HeroSlot(WithLoan(ZhangFei(), Howl(), Roar()), new Position(0, 0)));
                     setup.Heroes.Add(new HeroSlot(ZhaoYun(), new Position(1, 0)));
                     setup.Heroes.Add(new HeroSlot(HuangZhong(), new Position(1, 1)));
                     setup.Heroes.Add(new HeroSlot(LiuBei(), new Position(2, 1)));
                     break;
-                default: // 關羽（斷甲・先登）＋黃忠（穿甲箭・先登）
+                default: // 關羽借牌（斷甲・先登）＋黃忠（破甲箭）
                     setup.Heroes.Add(new HeroSlot(MilitiaShield(), new Position(0, 0)));
-                    setup.Heroes.Add(new HeroSlot(GuanYu(), new Position(1, 0)));
+                    setup.Heroes.Add(new HeroSlot(WithLoan(GuanYu(), GuanYuBreak()), new Position(1, 0)));
                     setup.Heroes.Add(new HeroSlot(HuangZhong(), new Position(1, 1)));
                     setup.Heroes.Add(new HeroSlot(MilitiaHealer(), new Position(2, 1)));
                     break;

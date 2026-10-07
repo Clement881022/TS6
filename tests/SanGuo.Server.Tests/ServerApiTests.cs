@@ -170,6 +170,58 @@ public sealed class ServerApiTests : IDisposable
     }
 
     [Fact]
+    public async Task Dungeon_StartFinish_VerifiedByReplay_ThenSweepable()
+    {
+        var c = Client();
+        await c.PostAsync("/login", null);
+        // 資源副本要帳號 Lv.3：重複打第 1 關累積經驗（每次 30 經驗，需 160）。
+        for (int i = 0; i < 6; i++)
+            await c.PostAsJsonAsync("/stage/finish", new { stageId = "1-1", actions = await PlayStageAuto(c, "1-1") });
+        var level = (await Json(await c.GetAsync("/profile"))).GetProperty("data").GetProperty("level").GetInt32();
+        Assert.True(level >= 3);
+
+        var actions = await PlayStageAuto(c, "res_gold"); // 週一：糧倉護衛開放
+        var done = await Json(await c.PostAsJsonAsync("/stage/finish", new { stageId = "res_gold", actions }));
+        Assert.True(done.GetProperty("ok").GetBoolean());
+        Assert.True(done.GetProperty("data").GetProperty("won").GetBoolean());
+        Assert.Equal(4000, done.GetProperty("data").GetProperty("gold").GetInt32());
+
+        var sweep = await Json(await c.PostAsJsonAsync("/dungeon/sweep", new { id = "res_gold", count = 1 }));
+        Assert.True(sweep.GetProperty("ok").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Shop_OrderThenPay_GrantsMonthCardOnce_AndClaimsDaily()
+    {
+        var c = Client();
+        await c.PostAsync("/login", null);
+        var order = await Json(await c.PostAsJsonAsync("/shop/order", new { productId = "month_small" }));
+        Assert.True(order.GetProperty("ok").GetBoolean());
+        string orderId = order.GetProperty("data").GetProperty("orderId").GetString()!;
+
+        // 付款前什麼都沒有
+        Assert.Equal(2000, (await Json(await c.GetAsync("/profile"))).GetProperty("data").GetProperty("yuanbao").GetInt32());
+
+        Assert.True((await Json(await c.PostAsJsonAsync("/shop/dev/pay", new { orderId }))).GetProperty("ok").GetBoolean());
+        await c.PostAsJsonAsync("/shop/dev/pay", new { orderId }); // 重複通知
+        Assert.Equal(2300, (await Json(await c.GetAsync("/profile"))).GetProperty("data").GetProperty("yuanbao").GetInt32());
+
+        var claim = await Json(await c.PostAsJsonAsync("/shop/month-card/claim", new { productId = "month_small" }));
+        Assert.Equal(2400, claim.GetProperty("data").GetProperty("yuanbao").GetInt32());
+        var again = await Json(await c.PostAsJsonAsync("/shop/month-card/claim", new { productId = "month_small" }));
+        Assert.Equal("AlreadyClaimedToday", again.GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task Shop_GrowthFund_NotPaid_CannotClaim()
+    {
+        var c = Client();
+        await c.PostAsync("/login", null);
+        var r = await Json(await c.PostAsJsonAsync("/shop/growth-fund/claim", new { points = 5 }));
+        Assert.Equal("NotPaid", r.GetProperty("code").GetString());
+    }
+
+    [Fact]
     public async Task Stage_Finish_WithoutStart_IsRejected()
     {
         var c = Client();
