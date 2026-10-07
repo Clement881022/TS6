@@ -28,21 +28,25 @@ namespace SanGuo.Client
             Directory.CreateDirectory(dir);
             yield return Wait(1.0f);
             Shot(dir, "home");
+            yield return Wait(0.4f);
 
             yield return Go(Page.Gacha);
             if (PageHost.Current?.ActivePage is GachaPage gacha) _ = gacha.DebugTenPull();
             yield return Wait(0.8f);
             Shot(dir, "gacha");
+            yield return Wait(0.4f);
 
             foreach (var page in new[] { Page.Map, Page.Heroes, Page.Dungeons, Page.Quests, Page.Shop })
             {
                 yield return Go(page);
                 Shot(dir, page.ToString().ToLowerInvariant());
+                yield return Wait(0.4f);
             }
 
             GameSession.SelectedLevel = Mathf.Max(2, GameSession.SelectedLevel);
             yield return Go(Page.Formation);
             Shot(dir, "formation");
+            yield return Wait(0.4f);
 
             // 實際開一場戰鬥：經過後端開始關卡 → 戰鬥場景 → 預覽 / 出牌 / 打完結算。
             var task = GameSession.BeginStage(GameSession.StageIdOf(GameSession.SelectedLevel));
@@ -51,22 +55,26 @@ namespace SanGuo.Client
             var battle = (PageHost.Current?.ActivePage as BattlePage)?.Screen;
             if (battle == null) { Application.Quit(); yield break; }
             Shot(dir, "battle-start");
+            yield return Wait(0.4f);
             yield return Wait(0.5f);
 
             battle.DebugPreviewFirstCard();
             yield return Wait(0.3f);
             Shot(dir, "battle-preview");
+            yield return Wait(0.4f);
             yield return Wait(0.5f);
 
             battle.DebugPlayFirstPlayable();
             battle.DebugPlayFirstPlayable();
             yield return Wait(0.3f);
             Shot(dir, "battle-played");
+            yield return Wait(0.4f);
             yield return Wait(0.5f);
 
             battle.DebugAutoFinish();
             yield return Wait(1.2f);
             Shot(dir, "battle-result");
+            yield return Wait(0.4f);
             yield return Wait(0.5f);
             Application.Quit();
         }

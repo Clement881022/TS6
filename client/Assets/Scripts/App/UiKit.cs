@@ -118,14 +118,20 @@ namespace SanGuo.Client
 
         public static Label RarityBadge(Rarity r) => Badge(r.ToString(), "badge-" + RarityClass(r));
 
-        /// <summary>武將圓形頭像（尚無立繪時用姓氏代替），依稀有度上色。</summary>
-        public static VisualElement Avatar(string name, Rarity rarity, bool large = false)
+        /// <summary>武將圓形頭像：有美術（HeroArt）就顯示頭像，否則用姓氏代替；依稀有度上框色。</summary>
+        public static VisualElement Avatar(string name, Rarity rarity, bool large = false, string? heroId = null)
         {
             var a = new VisualElement { pickingMode = PickingMode.Ignore };
             a.AddToClassList("avatar");
             a.AddToClassList("avatar-" + RarityClass(rarity));
             if (large) a.AddToClassList("avatar-lg");
-            a.Add(new Label(name.Length > 0 ? name.Substring(0, 1) : "?") { pickingMode = PickingMode.Ignore }.WithClass("avatar-text"));
+            var face = heroId != null ? HeroArt.Face(heroId) : null;
+            if (face != null)
+            {
+                a.style.backgroundImage = new StyleBackground(face);
+                a.AddToClassList("avatar-art");
+            }
+            else a.Add(new Label(name.Length > 0 ? name.Substring(0, 1) : "?") { pickingMode = PickingMode.Ignore }.WithClass("avatar-text"));
             return a;
         }
 

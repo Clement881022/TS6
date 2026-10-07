@@ -80,6 +80,7 @@ namespace SanGuo.Client
                     var card = new VisualElement();
                     card.AddToClassList("pull-card");
                     card.AddToClassList("pull-card-" + rc);
+                    card.Add(UiKit.Avatar(NameOf(r.HeroId), r.Rarity, true, r.HeroId));
                     card.Add(UiKit.Text(r.Rarity.ToString(), "pull-rarity pull-rarity-" + rc));
                     card.Add(UiKit.Text(NameOf(r.HeroId), "pull-card-name"));
                     var tags = UiKit.Row("row-center");

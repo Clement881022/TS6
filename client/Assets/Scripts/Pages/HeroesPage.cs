@@ -26,7 +26,7 @@ namespace SanGuo.Client
                 body.Add(UiKit.Btn("前往招募", () => Nav.Go(Page.Gacha), primary: true).WithClass("btn-wide"));
                 return;
             }
-            if (_heroId == null || !v.Heroes.ContainsKey(_heroId)) _heroId = v.Heroes.Keys.First();
+            if (_heroId == null || !v.Heroes.ContainsKey(_heroId)) _heroId = GameSession.Roster.First(d => v.Heroes.ContainsKey(d.Id)).Id;
 
             var split = new VisualElement();
             split.AddToClassList("split");
@@ -41,7 +41,7 @@ namespace SanGuo.Client
                 item.AddToClassList("hero-item");
                 item.AddToClassList("hero-item-" + UiKit.RarityClass(def.Rarity));
                 if (id == _heroId) item.AddToClassList("hero-item-on");
-                item.Add(UiKit.Avatar(def.Name, def.Rarity));
+                item.Add(UiKit.Avatar(def.Name, def.Rarity, false, def.Id));
                 var info = new VisualElement { pickingMode = PickingMode.Ignore };
                 info.AddToClassList("hero-item-text");
                 info.Add(new Label(def.Name) { pickingMode = PickingMode.Ignore }.WithClass("hero-item-name"));
@@ -63,9 +63,25 @@ namespace SanGuo.Client
         {
             var s = HeroGrowth.ScaleStats(def.Base, hero, _breakthroughs);
 
+            // 有全身立繪就放在左邊，內容在右邊
+            var full = HeroArt.Full(def.Id);
+            if (full != null)
+            {
+                panel.style.flexDirection = FlexDirection.Row;
+                var art = new VisualElement();
+                art.AddToClassList("hero-full");
+                art.AddToClassList("hero-full-" + UiKit.RarityClass(def.Rarity));
+                art.style.backgroundImage = new StyleBackground(full);
+                panel.Add(art);
+                var column = new VisualElement();
+                column.AddToClassList("grow");
+                panel.Add(column);
+                panel = column;
+            }
+
             var head = new VisualElement();
             head.AddToClassList("hero-head");
-            head.Add(UiKit.Avatar(def.Name, def.Rarity, large: true));
+            if (full == null) head.Add(UiKit.Avatar(def.Name, def.Rarity, true, def.Id));
             var title = new VisualElement();
             title.AddToClassList("grow");
             title.Add(UiKit.Text(def.Name, "hero-name"));

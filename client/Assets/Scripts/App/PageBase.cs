@@ -33,6 +33,7 @@ namespace SanGuo.Client
             _layer = container;
             _host = new VisualElement();
             _host.AddToClassList("page-host");
+            _host.AddToClassList("bg-" + Id.ToString().ToLowerInvariant());
             container.Add(_host);
             Rebuild();
             if (await GameSession.Refresh()) Rebuild();

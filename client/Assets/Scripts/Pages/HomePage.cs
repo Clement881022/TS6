@@ -40,7 +40,9 @@ namespace SanGuo.Client
             meta.Add(UiKit.Text(cleared >= total ? "章節已通關" : $"下一關：{DemoContent.LevelNames[System.Math.Min(cleared, total - 1)]}", "txt-dim"));
             banner.Add(meta);
             banner.Add(UiKit.Bar(total == 0 ? 0 : 100f * cleared / total, "bar-gold"));
-            banner.Add(UiKit.Btn("繼續征戰", () => Nav.Go(Page.Map), primary: true).WithClass("btn-wide"));
+            var orb = new Button(() => Nav.Go(Page.Map));
+            orb.AddToClassList("orb-battle");
+            banner.Add(orb);
             body.Add(banner);
 
             // 帳號經驗

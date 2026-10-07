@@ -145,3 +145,59 @@
 
 .row-center { max-width: 1500px; }
 .page-host .map-field { width: 1424px; }
+
+/* 內容區的區塊不可被壓扁，放不下就捲動（小視窗時橫幅不會疊在一起） */
+.page-body > * { flex-shrink: 0; }
+
+/* ---- 場景背景（取自 TS6Client 的 UIBackground / Home），調暗讓前景面板易讀 ---- */
+.bg-home, .bg-map, .bg-heroes, .bg-gacha, .bg-dungeons, .bg-quests, .bg-shop, .bg-formation {
+    -unity-background-scale-mode: scale-and-crop;
+    -unity-background-image-tint-color: rgb(170, 180, 210);
+}
+.bg-home { background-image: url("../UiBg/home.jpg"); -unity-background-image-tint-color: rgb(200, 205, 225); }
+.bg-map { background-image: url("../UiBg/map.jpg"); }
+.bg-heroes { background-image: url("../UiBg/heroes.jpg"); }
+.bg-gacha { background-image: url("../UiBg/gacha.jpg"); }
+.bg-dungeons { background-image: url("../UiBg/dungeons.jpg"); }
+.bg-quests { background-image: url("../UiBg/quests.jpg"); }
+.bg-shop { background-image: url("../UiBg/shop.jpg"); }
+.bg-formation { background-image: url("../UiBg/formation.jpg"); }
+
+/* ---- 武將美術 ---- */
+.avatar-art { -unity-background-scale-mode: scale-and-crop; background-color: rgba(0, 0, 0, 0); }
+.avatar-lg { width: 128px; height: 128px; border-radius: 64px; }
+.hero-full {
+    width: 300px; height: 456px;
+    margin-right: 24px;
+    flex-shrink: 0;
+    border-radius: 16px;
+    border-width: 4px;
+    border-color: rgb(76, 140, 226);
+    -unity-background-scale-mode: scale-and-crop;
+}
+.hero-full-sr { border-color: rgb(164, 100, 232); }
+.hero-full-ur { border-color: rgb(255, 190, 60); }
+.pull-card { height: 250px; }
+.pull-card .avatar { margin-right: 0; }
+.pull-rarity { font-size: 30px; margin-top: 4px; }
+
+/* ---- 主城：戰鬥圓章 ---- */
+.orb-battle {
+    width: 190px; height: 190px;
+    margin: 6px 0 0 0;
+    padding: 0;
+    border-width: 0;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("../UiSkin/orb_battle.png");
+    -unity-background-scale-mode: scale-to-fit;
+    transition: scale 120ms ease-out;
+}
+.orb-battle:hover { background-color: rgba(0, 0, 0, 0); scale: 1.08 1.08; }
+
+.panel-dim { opacity: 0.75; }
+
+/* 微調：戰鬥圓章靠右放大、抽卡卡片加高 */
+.banner { min-height: 330px; }
+.orb-battle { position: absolute; right: 40px; bottom: 24px; width: 240px; height: 240px; margin: 0; }
+.pull-card { height: 270px; }
+.pull-card-name { margin-top: 2px; }
