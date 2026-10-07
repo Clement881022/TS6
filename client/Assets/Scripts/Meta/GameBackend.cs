@@ -93,7 +93,8 @@ namespace SanGuo.Client
     {
         string Name { get; }
         Task<ProfileView?> GetProfile();
-        Task<StartStageResult> StartStage(string stageId);
+        /// <param name="formation">開放編隊的關卡 / 副本要帶（教學關為 null）。</param>
+        Task<StartStageResult> StartStage(string stageId, IReadOnlyList<FormationEntry>? formation = null);
         Task<FinishStageResult> FinishStage(string stageId, IReadOnlyList<ReplayAction> actions);
         Task<SweepOutcome> Sweep(string stageId, int count);
         Task<BackendResult> SweepDungeon(string dungeonId, int count);

@@ -18,6 +18,8 @@ namespace SanGuo.Client
         public int Level = 1;
         /// <summary>資源副本時不為 null（主線關卡為 null）。</summary>
         public ResourceDungeonDef? Dungeon;
+        /// <summary>開放編隊的關卡 / 副本：開始時送給後端的編隊（戰鬥用同一份重建）；教學關為 null。</summary>
+        public List<FormationEntry>? Formation;
     }
 
     /// <summary>
@@ -39,6 +41,8 @@ namespace SanGuo.Client
         public static readonly List<HeroDef> Roster = DemoContent.Roster();
         /// <summary>玩家排好的隊伍與站位（武將 Id → 格子）。</summary>
         public static readonly Dictionary<string, Position> Formation = new Dictionary<string, Position>();
+        /// <summary>編隊頁要為哪個關卡 / 副本排兵（主線 "1-9" 或副本 id）。</summary>
+        public static string FormationStageId = "";
         public static int SelectedLevel = 1;
         public static BattleTicket? Ticket;
         public static string? ShotDir { get; private set; }
@@ -49,6 +53,7 @@ namespace SanGuo.Client
             _backend = null;
             View = new ProfileView();
             Formation.Clear();
+            FormationStageId = "";
             SelectedLevel = 1;
             Ticket = null;
             ShotDir = null;
@@ -99,16 +104,44 @@ namespace SanGuo.Client
         public static bool IsUnlocked(int level) => level == 1 || View.ClearedStages.Contains(StageIdOf(level - 1));
 
         /// <summary>教學關：隊伍固定，不經過編隊畫面。</summary>
-        public static bool FormationLocked(int level) => DemoContent.Level(level, 1).FormationLocked;
+        public static bool FormationLocked(int level) => DemoMeta.FormationLocked(level);
 
-        /// <summary>把玩家排好的隊伍與站位套用到關卡設定；第一次使用關卡的預設隊伍。</summary>
-        public static void ApplyFormation(BattleSetup setup)
+        private static readonly (int Lane, int Row)[] FrontCells = { (1, 0), (2, 0), (3, 0), (0, 0), (4, 0) };
+        private static readonly (int Lane, int Row)[] BackCells = { (2, 1), (1, 1), (3, 1), (0, 1), (4, 1) };
+
+        /// <summary>已擁有的武將（照名冊順序：UR 在前、R 在後）。</summary>
+        public static List<HeroDef> OwnedHeroes() =>
+            Roster.Where(d => View.Heroes.ContainsKey(d.Id)).OrderByDescending(d => d.Rarity).ToList();
+
+        /// <summary>
+        /// 把編隊整理成合法狀態：丟掉沒擁有的武將；編隊是空的就自動排一隊
+        /// （最多 4 人，坦克與戰士站前排，其餘站後排）。
+        /// </summary>
+        public static void EnsureFormation()
         {
-            if (Formation.Count == 0)
-                foreach (var h in setup.Heroes) Formation[h.Def.Id] = h.Pos;
-            setup.Heroes.Clear();
-            foreach (var def in Roster.Where(d => Formation.ContainsKey(d.Id)))
-                setup.Heroes.Add(new HeroSlot(def, Formation[def.Id]));
+            foreach (var id in Formation.Keys.Where(id => !View.Heroes.ContainsKey(id)).ToList()) Formation.Remove(id);
+            if (Formation.Count > 0) return;
+            int front = 0, back = 0;
+            foreach (var def in OwnedHeroes().Take(MaxTeamSize))
+            {
+                bool isFront = def.Role == Role.Tank || def.Role == Role.Warrior;
+                var cell = isFront ? FrontCells[front++] : BackCells[back++];
+                Formation[def.Id] = new Position(cell.Lane, cell.Row);
+            }
+        }
+
+        /// <summary>目前編隊轉成送給後端的列表（順序固定：依路、排），客戶端與伺服器用同一份重建戰鬥。</summary>
+        public static List<FormationEntry> FormationEntries() =>
+            Formation.OrderBy(kv => kv.Value.Lane).ThenBy(kv => kv.Value.Row)
+                .Select(kv => new FormationEntry(kv.Key, kv.Value.Lane, kv.Value.Row)).ToList();
+
+        /// <summary>編隊頁用：這個關卡 / 副本的敵人預覽（只看敵人，我方由玩家決定）。</summary>
+        public static BattleSetup? EnemyPreview(string stageId)
+        {
+            var dungeon = DemoMeta.FindDungeon(stageId);
+            if (dungeon != null) return DemoMeta.DungeonSetup(dungeon.Id, 1);
+            int level = DemoMeta.LevelOf(stageId);
+            return level == 0 ? null : DemoMeta.OpenLevel(level, 1);
         }
 
         /// <summary>
@@ -118,13 +151,19 @@ namespace SanGuo.Client
         {
             try
             {
-                var r = await Backend.StartStage(stageId);
+                List<FormationEntry>? formation = null;
+                if (DemoMeta.UsesPlayerFormation(stageId))
+                {
+                    EnsureFormation();
+                    formation = FormationEntries();
+                }
+                var r = await Backend.StartStage(stageId, formation);
                 if (!r.Ok) return UiText.ExplainBackend(r.Code);
                 var dungeon = DemoMeta.FindDungeon(stageId);
                 int level = SelectedLevel;
                 if (dungeon == null && int.TryParse(stageId.Substring(stageId.IndexOf('-') + 1), out int parsed)) level = parsed;
                 SelectedLevel = level;
-                Ticket = new BattleTicket { StageId = stageId, Seed = r.Seed, Level = level, Dungeon = dungeon };
+                Ticket = new BattleTicket { StageId = stageId, Seed = r.Seed, Level = level, Dungeon = dungeon, Formation = formation };
                 return null;
             }
             catch (Exception e)

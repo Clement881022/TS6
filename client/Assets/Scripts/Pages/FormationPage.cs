@@ -1,22 +1,42 @@
 #nullable enable
 using System.Linq;
 using SanGuo.Core;
+using SanGuo.Core.Meta;
 using UnityEngine.UIElements;
 using Position = SanGuo.Core.Position;
 
 namespace SanGuo.Client
 {
-    /// <summary>戰前編隊：5x2 站位與上場武將（最多 4 人），按「開戰」才向後端開始關卡並扣體力。</summary>
+    /// <summary>
+    /// 戰前編隊：5x2 站位與上場武將（最多 4 人，只能帶已擁有的武將，戰鬥會套用他們的等級、突破與卡牌強化）。
+    /// 教學關之後的主線關卡與資源副本才會來這裡；按「開戰」才向後端開始並扣體力。
+    /// </summary>
     public sealed class FormationPage : PageBase
     {
         private string? _pick;
         private string _message = "";
 
         protected override Page Id => Page.Formation;
-        protected override string Title => $"排兵布陣　第 {GameSession.SelectedLevel} 關　{DemoContent.LevelNames[GameSession.SelectedLevel - 1]}";
+        private static string StageId =>
+            GameSession.FormationStageId != "" ? GameSession.FormationStageId : GameSession.StageIdOf(GameSession.SelectedLevel);
+
+        protected override string Title
+        {
+            get
+            {
+                var dungeon = DemoMeta.FindDungeon(StageId);
+                if (dungeon != null) return $"排兵布陣　{dungeon.Name}";
+                int level = DemoMeta.LevelOf(StageId);
+                return level == 0 ? "排兵布陣" : $"排兵布陣　第 {level} 關　{DemoContent.LevelNames[level - 1]}";
+            }
+        }
         protected override bool ShowNav => false;
 
-        private static string HeroLabel(HeroDef h) => $"{h.Name}　{h.Rarity} {CardText.RoleName(h.Role)}";
+        /// <summary>武將卡下方的小字：等級與職業。</summary>
+        private static string HeroSub(HeroDef h) =>
+            $"Lv.{(GameSession.View.Heroes.TryGetValue(h.Id, out var st) ? st.Level : 1)} {CardText.RoleName(h.Role)}";
+
+        private void Back() => Nav.Go(DemoMeta.FindDungeon(StageId) != null ? Page.Dungeons : Page.Map);
 
         private static string? HeroAtCell(int lane, int row)
         {
@@ -27,10 +47,25 @@ namespace SanGuo.Client
 
         protected override void BuildBody(VisualElement body)
         {
-            int levelNo = GameSession.SelectedLevel;
-            var level = DemoContent.Level(levelNo, 1);
-            // 第一次進來先把預設隊伍填好。
-            if (GameSession.Formation.Count == 0) GameSession.ApplyFormation(level);
+            string stageId = StageId;
+            var level = GameSession.EnemyPreview(stageId);
+            if (level == null)
+            {
+                body.Add(UiKit.Hint("找不到這個關卡", warn: true));
+                body.Add(UiKit.Btn("返回", Back, primary: true).WithClass("btn-wide"));
+                return;
+            }
+            if (GameSession.OwnedHeroes().Count == 0)
+            {
+                body.Add(UiKit.Hint("尚未擁有武將，先去招募吧", warn: true));
+                var go = UiKit.Row("row-center");
+                go.Add(UiKit.Btn("返回", Back).WithClass("btn-wide"));
+                go.Add(UiKit.Btn("前往招募", () => Nav.Go(Page.Gacha), primary: true).WithClass("btn-wide"));
+                body.Add(go);
+                return;
+            }
+            // 第一次進來（或編隊裡有沒擁有的武將）先自動排好一隊。
+            GameSession.EnsureFormation();
             var formation = GameSession.Formation;
 
             var foes = level.Enemies.GroupBy(e => e.Def.Name).Select(g => g.Count() > 1 ? $"{g.Key}×{g.Count()}" : g.Key);
@@ -58,7 +93,7 @@ namespace SanGuo.Client
                     var def = id == null ? null : GameSession.DefOf(id);
                     row.Add(def == null
                         ? UiKit.HeroCard("", Rarity.R, null, "空位", () => OnCell(l, rr), empty: true, cls: "fcell")
-                        : UiKit.HeroCard(def.Name, def.Rarity, def.Id, CardText.RoleName(def.Role), () => OnCell(l, rr), selected: id == _pick, cls: "fcell"));
+                        : UiKit.HeroCard(def.Name, def.Rarity, def.Id, HeroSub(def), () => OnCell(l, rr), selected: id == _pick, cls: "fcell"));
                 }
                 board.Add(row);
             }
@@ -67,19 +102,19 @@ namespace SanGuo.Client
             body.Add(UiKit.Section("待命武將"));
             body.Add(UiKit.Text("點選後再點上方格子上場；先點場上武將再點這裡可下場", "txt-dim"));
             var bench = UiKit.Row("row-center");
-            foreach (var def in GameSession.Roster.Where(d => !formation.ContainsKey(d.Id)))
+            foreach (var def in GameSession.OwnedHeroes().Where(d => !formation.ContainsKey(d.Id)))
             {
                 string id = def.Id;
-                bench.Add(UiKit.HeroCard(def.Name, def.Rarity, def.Id, CardText.RoleName(def.Role), () => OnBench(id), selected: id == _pick));
+                bench.Add(UiKit.HeroCard(def.Name, def.Rarity, def.Id, HeroSub(def), () => OnBench(id), selected: id == _pick));
             }
             body.Add(bench);
 
             var buttons = UiKit.Row("row-center");
-            buttons.Add(UiKit.Btn("回地圖", () => Nav.Go(Page.Map)).WithClass("btn-wide"));
+            buttons.Add(UiKit.Btn("返回", Back).WithClass("btn-wide"));
             buttons.Add(UiKit.Btn("開戰", () =>
             {
                 if (formation.Count == 0) { _message = "至少要有 1 名武將上場"; Rebuild(); return; }
-                _ = StartBattle(GameSession.StageIdOf(levelNo));
+                _ = StartBattle(stageId);
             }, primary: true).WithClass("btn-wide"));
             body.Add(buttons);
         }

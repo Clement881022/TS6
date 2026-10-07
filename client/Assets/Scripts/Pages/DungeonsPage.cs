@@ -44,7 +44,7 @@ namespace SanGuo.Client
                 var btns = UiKit.Row();
                 if (open)
                 {
-                    btns.Add(UiKit.Btn("挑戰", () => _ = StartBattle(dungeon.Id), primary: true));
+                    btns.Add(UiKit.Btn("挑戰", () => EnterDungeon(dungeon.Id), primary: true));
                     if (cleared)
                     {
                         btns.Add(UiKit.Btn("掃蕩 ×1", () => _ = Act(() => GameSession.Backend.SweepDungeon(dungeon.Id, 1), "掃蕩完成")));

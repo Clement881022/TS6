@@ -49,6 +49,8 @@ namespace SanGuo.Client
         /// <summary>目前進行的是資源副本時不為 null（主線關卡為 null）。</summary>
         private ResourceDungeonDef? _dungeon;
         private int _eventCursor;
+        /// <summary>開放編隊的關卡 / 副本：向後端開始時送出的編隊；教學關為 null。</summary>
+        private List<FormationEntry>? _formation;
         private bool _auto;
         private HashSet<(Side, int, int)> _previewTargets = new HashSet<(Side, int, int)>();
         /// <summary>已點下、正在等玩家點選敵人的指定目標牌（<see cref="TargetRule.EnemyAny"/>，例如破甲箭）。</summary>
@@ -215,13 +217,14 @@ namespace SanGuo.Client
             if (_busy || level < 1 || level > DemoContent.ChapterLevelCount) return;
             GameSession.SelectedLevel = level;
             if (GameSession.FormationLocked(level)) _ = BeginStageId(GameSession.StageIdOf(level));
-            else Nav.Go(Page.Formation);
+            else { GameSession.FormationStageId = GameSession.StageIdOf(level); Nav.Go(Page.Formation); }
         }
 
         /// <summary>向後端開始關卡 / 副本（檢查條件、扣體力、取得種子），成功才開打並開始錄操作。</summary>
         private async Task BeginStageId(string stageId)
         {
             if (_busy) return;
+            _formation = ticket.Formation;
             _busy = true;
             try
             {
@@ -238,8 +241,9 @@ namespace SanGuo.Client
 
         private void StartBattle(bool recording)
         {
-            var setup = _dungeon != null ? DemoMeta.DungeonSetup(_seed) : DemoContent.Level(_level, _seed);
-            if (!setup.FormationLocked) GameSession.ApplyFormation(setup);
+            // 已向後端開始的戰鬥用與伺服器相同的規則重建（含玩家編隊與養成）；開發用預覽走教學版關卡。
+            var setup = (recording ? DemoMeta.BuildSetup(_stageId, _seed, GameSession.View.Raw, _formation) : null)
+                ?? DemoContent.Level(_level, _seed);
             _battle = new Battle(setup);
             _recorder = recording ? new ReplayRecorder(_battle) : null;
             _finishing = false;
@@ -258,7 +262,7 @@ namespace SanGuo.Client
             if (_level == 1 && _dungeon == null)
                 Tutorial.Show(_root, "battle1", "戰鬥教學", new[]
                 {
-                    "戰鬥是回合制出牌。點右下角的手牌打出，每張牌要消耗費用，剩餘費用顯示在手牌旁。",
+                    "戰鬥是回合制出牌。點下方的手牌打出，每張牌要消耗費用，剩餘費用顯示在左下角。",
                     "費用用完（或不想出牌）就按「結束回合」，敵人才會行動；敵人頭上的圖示是牠下一步的行動預告。",
                     "攻擊只打得到同一路的敵人。打倒全部敵人就獲勝，快試試看吧！",
                 }, speaker: "巴豆妖", model: "badou");

@@ -103,7 +103,15 @@ namespace SanGuo.Client
             if (_busy || level < 1 || level > SanGuo.Core.DemoContent.ChapterLevelCount) return;
             GameSession.SelectedLevel = level;
             if (GameSession.FormationLocked(level)) _ = StartBattle(GameSession.StageIdOf(level));
-            else Nav.Go(Page.Formation);
+            else { GameSession.FormationStageId = GameSession.StageIdOf(level); Nav.Go(Page.Formation); }
+        }
+
+        /// <summary>進入資源副本：先到編隊頁排兵（開戰才扣體力與次數）。</summary>
+        protected void EnterDungeon(string dungeonId)
+        {
+            if (_busy) return;
+            GameSession.FormationStageId = dungeonId;
+            Nav.Go(Page.Formation);
         }
     }
 }

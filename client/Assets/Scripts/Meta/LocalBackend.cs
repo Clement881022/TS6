@@ -74,11 +74,11 @@ namespace SanGuo.Client
             return Task.FromResult<ProfileView?>(ProfileView.From(_profile, now));
         }
 
-        public Task<StartStageResult> StartStage(string stageId)
+        public Task<StartStageResult> StartStage(string stageId, IReadOnlyList<FormationEntry>? formation = null)
         {
             var bytes = new byte[8];
             using (var rng = RandomNumberGenerator.Create()) rng.GetBytes(bytes);
-            var r = StageFlow.Start(_profile, stageId, Now, BitConverter.ToUInt64(bytes, 0));
+            var r = StageFlow.Start(_profile, stageId, Now, BitConverter.ToUInt64(bytes, 0), formation);
             if (r.Ok) Save();
             return Task.FromResult(new StartStageResult { Ok = r.Ok, Code = r.Code, Seed = r.Seed });
         }

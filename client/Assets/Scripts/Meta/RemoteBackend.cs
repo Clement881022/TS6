@@ -97,9 +97,17 @@ namespace SanGuo.Client
             return view;
         }
 
-        public async Task<StartStageResult> StartStage(string stageId)
+        public async Task<StartStageResult> StartStage(string stageId, IReadOnlyList<FormationEntry>? formation = null)
         {
-            var r = await Send("POST", "/stage/start", new Dictionary<string, object?> { ["stageId"] = stageId });
+            var body = new Dictionary<string, object?> { ["stageId"] = stageId };
+            if (formation != null)
+            {
+                var list = new List<object?>();
+                foreach (var f in formation)
+                    list.Add(new Dictionary<string, object?> { ["heroId"] = f.HeroId, ["lane"] = (long)f.Lane, ["row"] = (long)f.Row });
+                body["formation"] = list;
+            }
+            var r = await Send("POST", "/stage/start", body);
             var result = new StartStageResult { Ok = r.Ok, Code = r.Code };
             if (r.Ok && r.Data.TryGetValue("seed", out var s) && s is long seed) result.Seed = (ulong)seed;
             else if (r.Ok) { result.Ok = false; result.Code = "network"; }

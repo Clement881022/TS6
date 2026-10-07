@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections;
 using System.IO;
+using SanGuo.Core.Meta;
 using UnityEngine;
 
 namespace SanGuo.Client
@@ -44,6 +45,7 @@ namespace SanGuo.Client
             }
 
             GameSession.SelectedLevel = Mathf.Max(2, GameSession.SelectedLevel);
+            GameSession.FormationStageId = GameSession.StageIdOf(DemoMeta.FirstOpenFormationLevel); // 編隊頁只用於教學關之後的關卡
             yield return Go(Page.Formation);
             Shot(dir, "formation");
             yield return Wait(0.4f);
