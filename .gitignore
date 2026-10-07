@@ -9,3 +9,9 @@ client/Logs/
 client/UserSettings/
 client/obj/
 *.csproj.user
+
+# 誤把 TS6 根目錄當 Unity 專案開啟時產生的資料夾（正式專案在 client/）
+/Library/
+/Logs/
+/Temp/
+/UserSettings/

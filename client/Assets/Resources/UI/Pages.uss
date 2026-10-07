@@ -1,0 +1,139 @@
+/* 非戰鬥頁面的共用樣式（主城、地圖、編隊、招募、武將、副本、任務、商店）。參考解析度 1920x1080。
+   按鈕、圖示、overlay、toast 等沿用 Battle.uss；這裡只放頁面外框與面板。 */
+
+.page-root {
+    flex-grow: 1;
+    color: rgb(235, 235, 240);
+}
+
+/* 每個頁面 prefab 專用的 UI 容器（切換頁面時整個移除）；背景由各頁自己決定，戰鬥頁要透明才看得到 3D 戰場 */
+.page-container {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+}
+
+.page-host {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    flex-direction: column;
+    background-color: rgb(20, 22, 30);
+}
+
+/* ---- 頂欄 ---- */
+.topbar {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    height: 88px;
+    flex-shrink: 0;
+    padding: 0 32px;
+    background-color: rgb(30, 33, 46);
+    border-bottom-width: 3px;
+    border-bottom-color: rgb(196, 120, 40);
+}
+.topbar-title { font-size: 42px; -unity-font-style: bold; }
+.topbar-res { flex-direction: row; align-items: center; }
+.pill {
+    font-size: 24px;
+    margin-left: 12px;
+    padding: 4px 18px;
+    border-radius: 18px;
+    background-color: rgb(46, 51, 72);
+    color: rgb(255, 214, 80);
+}
+
+/* ---- 內容區 ---- */
+.page-scroll { flex-grow: 1; }
+.page-body {
+    align-items: center;
+    padding: 24px 40px;
+}
+
+/* ---- 底部導覽 ---- */
+.nav {
+    flex-direction: row;
+    height: 104px;
+    flex-shrink: 0;
+    padding: 8px 24px;
+    background-color: rgb(26, 28, 40);
+    border-top-width: 2px;
+    border-top-color: rgb(58, 64, 86);
+}
+.nav-tab {
+    flex-grow: 1;
+    margin: 4px 6px;
+    font-size: 30px;
+    border-width: 0;
+    border-radius: 14px;
+    background-color: rgb(40, 44, 62);
+    color: rgb(200, 202, 216);
+}
+.nav-tab:hover { background-color: rgb(58, 64, 90); }
+.nav-tab-on { background-color: rgb(196, 120, 40); color: white; -unity-font-style: bold; }
+
+/* ---- 文字 ---- */
+.txt { font-size: 26px; color: rgb(235, 235, 240); white-space: normal; margin: 3px 0; }
+.txt-dim { font-size: 23px; color: rgb(170, 174, 192); white-space: normal; margin: 3px 0; }
+.txt-sub { font-size: 31px; -unity-font-style: bold; color: white; white-space: normal; margin: 6px 0 4px 0; }
+.txt-warn { font-size: 25px; color: rgb(255, 150, 90); white-space: normal; margin: 3px 0; }
+
+/* ---- 版面 ---- */
+.row { flex-direction: row; flex-wrap: wrap; align-items: center; margin: 4px 0; }
+.row-center { justify-content: center; }
+.grow { flex-grow: 1; flex-shrink: 1; }
+
+.panel {
+    width: 1500px;
+    max-width: 100%;
+    margin: 8px 0;
+    padding: 18px 26px;
+    border-radius: 16px;
+    border-width: 2px;
+    border-color: rgb(62, 68, 94);
+    background-color: rgb(34, 37, 52);
+}
+.panel-dim { opacity: 0.6; }
+.panel-row { flex-direction: row; align-items: center; justify-content: space-between; }
+
+/* ---- 彈出視窗 ---- */
+.popup { width: 900px; align-items: center; background-color: rgb(30, 33, 46); border-color: rgb(196, 120, 40); }
+.popup-title { font-size: 40px; -unity-font-style: bold; margin-bottom: 8px; }
+
+/* ---- 主城 ---- */
+.banner { align-items: flex-start; border-color: rgb(196, 120, 40); background-color: rgb(44, 40, 38); }
+.banner-title { font-size: 54px; -unity-font-style: bold; color: rgb(255, 214, 80); }
+.bar-bg { width: 100%; height: 16px; margin: 6px 0 10px 0; border-radius: 8px; background-color: rgb(20, 20, 26); }
+.bar-fill { height: 16px; border-radius: 8px; background-color: rgb(70, 170, 95); }
+.tile-grid { flex-direction: row; flex-wrap: wrap; justify-content: center; width: 1500px; max-width: 100%; }
+.tile {
+    width: 460px;
+    height: 170px;
+    margin: 10px;
+    padding: 16px 24px;
+    align-items: flex-start;
+    justify-content: center;
+    border-radius: 16px;
+    border-width: 2px;
+    border-color: rgb(62, 68, 94);
+    background-color: rgb(40, 44, 62);
+}
+.tile:hover { background-color: rgb(58, 64, 90); border-color: rgb(196, 120, 40); }
+.tile-title { font-size: 44px; -unity-font-style: bold; color: white; }
+
+/* ---- 左清單 + 右詳情（武將） ---- */
+.split { flex-direction: row; align-items: flex-start; width: 1500px; max-width: 100%; }
+.split-list { width: 320px; margin-right: 16px; }
+.split-detail { flex-grow: 1; flex-shrink: 1; width: auto; margin: 0; align-items: stretch; }
+.list-item {
+    margin: 4px 0;
+    padding: 12px 18px;
+    font-size: 26px;
+    -unity-text-align: middle-left;
+    border-width: 0;
+    border-radius: 12px;
+    background-color: rgb(40, 44, 62);
+    color: rgb(235, 235, 240);
+    white-space: normal;
+}
+.list-item:hover { background-color: rgb(58, 64, 90); }
+.list-item-on { background-color: rgb(60, 140, 90); }
