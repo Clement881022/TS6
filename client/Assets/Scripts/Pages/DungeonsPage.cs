@@ -21,6 +21,8 @@ namespace SanGuo.Client
             var v = GameSession.View;
             body.Add(UiKit.Hint($"體力 {v.Stamina}/{v.StaminaCap}　每日輪替、每天固定次數；通關一次後可掃蕩"));
 
+            var grid = UiKit.CardGrid();
+            body.Add(grid);
             foreach (var d in _dungeons)
             {
                 var dungeon = d;
@@ -31,19 +33,14 @@ namespace SanGuo.Client
 
                 var card = UiKit.Panel();
                 if (!open) card.AddToClassList("panel-dim");
-                var head = UiKit.Row();
-                head.AddToClassList("panel-row");
-                head.Add(UiKit.Text(d.Name, "txt-sub"));
+                card.Add(UiKit.Text(d.Name, "txt-sub"));
                 var tags = UiKit.Row();
                 tags.Add(UiKit.Badge(open ? "今日開放" : "今日未開放", open ? "badge-up" : ""));
                 tags.Add(UiKit.Badge(days, "badge-role"));
-                head.Add(tags);
-                card.Add(head);
+                card.Add(tags);
                 card.Add(UiKit.Text($"剩餘 {left}/{d.DailyLimit}　體力 {d.StaminaCost}　需帳號 Lv.{d.MinPlayerLevel}", "txt-dim"));
                 card.Add(UiKit.Bar(d.DailyLimit == 0 ? 0 : 100f * left / d.DailyLimit, "bar-gold bar-slim"));
-                var row = UiKit.Row();
-                row.AddToClassList("panel-row");
-                row.Add(UiKit.Text("獎勵：" + UiText.RewardText(d.Reward), "reward-text").WithClass("grow"));
+                card.Add(UiKit.Text("獎勵：" + UiText.RewardText(d.Reward), "reward-text").WithClass("grow"));
                 var btns = UiKit.Row();
                 if (open)
                 {
@@ -55,9 +52,8 @@ namespace SanGuo.Client
                             () => _ = Act(() => GameSession.Backend.SweepDungeon(dungeon.Id, ResourceDungeons.MaxSweepCount), "掃蕩完成")));
                     }
                 }
-                row.Add(btns);
-                card.Add(row);
-                body.Add(card);
+                card.Add(btns);
+                grid.Add(card);
             }
         }
     }

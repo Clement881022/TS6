@@ -1,14 +1,71 @@
-/* ---- 新手引導彈窗（Tutorial.cs） ---- */
-.tut-overlay { background-color: rgba(4, 6, 12, 0.78); }
-.tut-card {
-    width: 900px;
-    padding: 40px 48px;
-    background-color: rgb(24, 34, 58);
-    border-width: 3px;
-    border-color: rgb(120, 170, 240);
-    border-radius: 20px;
+/* ---- 新手引導：視覺小說式對話（Tutorial.cs；版型參考 TS6Client 對話介面設計稿） ---- */
+.tut-overlay {
+    background-color: rgba(4, 8, 24, 0.5);
+    justify-content: flex-end;
+    align-items: stretch;
 }
-.tut-title { font-size: 48px; -unity-font-style: bold; color: rgb(255, 224, 140); margin-bottom: 24px; -unity-text-align: middle-center; }
-.tut-body { font-size: 34px; color: rgb(235, 238, 248); white-space: normal; min-height: 150px; }
-.tut-step { font-size: 24px; color: rgb(160, 170, 195); -unity-text-align: middle-center; margin-top: 12px; }
-.tut-buttons { flex-direction: row; justify-content: center; margin-top: 20px; }
+
+/* 底部對話帶：淺色半透明、頂緣一條藍線 */
+.tut-band {
+    height: 300px;
+    padding: 34px 420px 26px 240px;
+    background-color: rgba(236, 242, 252, 0.98);
+    border-top-width: 8px;
+    border-top-color: rgb(52, 108, 214);
+}
+.tut-title { font-size: 26px; -unity-font-style: bold; color: rgb(190, 110, 30); margin-bottom: 6px; }
+.tut-body { font-size: 36px; color: rgb(28, 56, 124); white-space: normal; flex-grow: 1; }
+.tut-footer { flex-direction: row; justify-content: space-between; align-items: center; min-height: 76px; }
+.tut-step { font-size: 22px; color: rgb(110, 128, 168); }
+.tut-action { flex-direction: row; }
+
+/* ▽ 繼續提示（閃爍） */
+.tut-next {
+    position: absolute;
+    right: 460px; bottom: 30px;
+    width: 0; height: 0;
+    border-left-width: 16px; border-right-width: 16px; border-top-width: 24px;
+    border-left-color: rgba(0, 0, 0, 0); border-right-color: rgba(0, 0, 0, 0);
+    border-top-color: rgb(52, 108, 214);
+    transition: opacity 400ms ease-in-out;
+}
+.tut-next-dim { opacity: 0.2; }
+
+/* 名牌：菱形 + 說話者，浮在對話帶上緣 */
+.tut-nameplate {
+    position: absolute;
+    left: 240px; bottom: 306px;
+    flex-direction: row; align-items: center;
+}
+.tut-name {
+    font-size: 44px; -unity-font-style: bold; color: white;
+    margin: 0 18px;
+    -unity-text-outline-width: 0px;
+}
+.tut-diamond {
+    width: 22px; height: 22px;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("../UiSkin/diamond.png");
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+/* 右側角色立繪（全身圖帶底色，所以做成圓角卡片） */
+.tut-hero {
+    position: absolute;
+    right: 70px; bottom: 308px;
+    width: 330px; height: 500px;
+    border-radius: 18px;
+    border-width: 5px;
+    border-color: rgb(255, 214, 120);
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+.tut-skip { position: absolute; right: 30px; top: 24px; margin: 0; }
+
+/* 3D 角色（RenderTexture，背景透明）：站在對話帶上緣 */
+.tut-model {
+    position: absolute;
+    right: 40px; bottom: 236px;
+    width: 460px; height: 575px;
+    -unity-background-scale-mode: scale-to-fit;
+}

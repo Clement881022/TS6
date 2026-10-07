@@ -135,6 +135,35 @@ namespace SanGuo.Client
             return a;
         }
 
+        /// <summary>方形武將卡（頭像在上、名字在下），依稀有度上框色；sub 為第二行小字。空位用 empty = true。</summary>
+        public static Button HeroCard(string name, Rarity rarity, string? heroId, string sub, Action onClick,
+            bool selected = false, bool empty = false, string cls = "hcard")
+        {
+            var b = new Button(onClick);
+            b.AddToClassList(cls);
+            if (empty)
+            {
+                b.AddToClassList(cls + "-empty");
+                b.Add(new Label("＋") { pickingMode = PickingMode.Ignore }.WithClass("hcard-plus"));
+                b.Add(new Label(sub) { pickingMode = PickingMode.Ignore }.WithClass("hcard-sub"));
+                return b;
+            }
+            b.AddToClassList(cls + "-" + RarityClass(rarity));
+            if (selected) b.AddToClassList(cls + "-on");
+            b.Add(Avatar(name, rarity, false, heroId));
+            b.Add(new Label(name) { pickingMode = PickingMode.Ignore }.WithClass("hcard-name"));
+            b.Add(new Label(sub) { pickingMode = PickingMode.Ignore }.WithClass("hcard-sub"));
+            return b;
+        }
+
+        /// <summary>卡片格線容器（方塊卡片排成多欄）。</summary>
+        public static VisualElement CardGrid()
+        {
+            var g = new VisualElement();
+            g.AddToClassList("card-grid");
+            return g;
+        }
+
         /// <summary>圓點進度（例如卡牌強化 3/5）。</summary>
         public static VisualElement Pips(int on, int total)
         {

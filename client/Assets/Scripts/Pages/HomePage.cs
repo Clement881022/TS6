@@ -16,10 +16,10 @@ namespace SanGuo.Client
             if (GameSession.View.ClearedStages.Count > 0) return;
             Tutorial.Show(Host, "home", "歡迎，主公！", new[]
             {
-                "三國亂世開始了。你要帶領劉備、關羽、張飛等武將，從黃巾之亂一路打下去。",
+                "嗨嗨，主公！我是巴豆妖，負責帶你熟悉三國亂世。你要帶領劉備、關羽、張飛等武將，從黃巾之亂一路打下去。",
                 "「征戰」推進主線關卡；「招募」抽取新武將；「武將」升級與強化；「副本」和「任務」能取得養成素材。",
                 "先從第一關開始，教學會一步步帶你熟悉出牌。",
-            }, "前往征戰", () => Nav.Go(Page.Map));
+            }, "前往征戰", () => Nav.Go(Page.Map), speaker: "巴豆妖", model: "badou");
         }
 
         protected override void BuildBody(VisualElement body)

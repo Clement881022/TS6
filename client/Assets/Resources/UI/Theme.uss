@@ -201,3 +201,74 @@
 .orb-battle { position: absolute; right: 40px; bottom: 24px; width: 240px; height: 240px; margin: 0; }
 .pull-card { height: 270px; }
 .pull-card-name { margin-top: 2px; }
+
+/* =====================================================================
+   方塊式版型：卡片接近正方、圖在上字在下，避免橫長條
+   ===================================================================== */
+
+/* 按鈕：不拉太長，高度加高，接近方塊 */
+.page-host .btn, .page-host .btn-primary, .page-host .btn-on, .page-host .btn-done,
+.page-host .btn:hover, .page-host .btn-primary:hover, .page-host .btn-on:hover, .page-host .btn-done:hover {
+    min-width: 150px;
+    min-height: 84px;
+    padding: 10px 22px;
+    white-space: normal;
+}
+.page-host .btn-wide { padding: 12px 40px; min-width: 230px; min-height: 96px; }
+.page-host .tab, .page-host .tab:hover, .page-host .tab-on, .page-host .tab-on:hover { min-height: 84px; padding: 8px 32px; }
+
+/* 主城：直立方塊入口 */
+.banner { padding-right: 320px; }
+.tile {
+    width: 232px; height: 262px;
+    margin: 10px;
+    padding: 14px 10px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.tile-icon, .tile-hot .tile-icon { width: 128px; height: 128px; margin: 0 0 6px 0; }
+.tile-text { margin: 0; flex-grow: 0; align-items: center; }
+.tile-title { font-size: 38px; }
+.tile-desc { font-size: 21px; -unity-text-align: upper-center; }
+
+/* 卡片格線（副本、任務、商店） */
+.card-grid { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: stretch; width: 1500px; max-width: 100%; }
+.card-grid > .panel { width: 470px; margin: 10px; min-height: 300px; }
+.card-grid .quest-card { min-height: 250px; }
+.card-grid .tier { width: 200px; margin: 6px 8px 6px 0; }
+.card-grid .product-price { margin-bottom: 6px; }
+
+/* 方形武將卡（待命席、編隊格） */
+.hcard, .fcell {
+    margin: 8px;
+    padding: 12px 6px 8px 6px;
+    align-items: center;
+    justify-content: flex-start;
+    border-radius: 16px;
+    border-width: 3px;
+    border-color: rgb(76, 140, 226);
+    background-color: rgba(14, 30, 72, 0.88);
+    transition: background-color 120ms ease-out, translate 120ms ease-out;
+}
+.hcard { width: 156px; height: 200px; }
+.fcell { width: 170px; height: 168px; margin: 5px 6px; }
+.hcard:hover, .fcell:hover { background-color: rgba(52, 92, 190, 0.92); translate: 0 -4px; }
+.hcard-sr, .fcell-sr { border-color: rgb(170, 108, 240); }
+.hcard-ur, .fcell-ur { border-color: rgb(255, 204, 80); }
+.hcard-on, .fcell-on { background-color: rgb(150, 92, 20); border-color: rgb(255, 232, 150); }
+.hcard-empty, .fcell-empty { background-color: rgba(8, 18, 48, 0.55); border-color: rgb(60, 88, 150); justify-content: center; }
+.hcard .avatar, .fcell .avatar { width: 96px; height: 96px; border-radius: 48px; margin: 0 0 6px 0; }
+.hcard-name { font-size: 25px; -unity-font-style: bold; color: white; }
+.hcard-sub { font-size: 20px; color: rgb(176, 196, 232); }
+.hcard-plus { font-size: 52px; color: rgb(100, 128, 190); }
+.formation-board { align-items: flex-start; padding: 16px 24px; }
+.formation-label { color: rgb(255, 230, 160); -unity-text-align: middle-center; }
+
+/* 教學對話修正：名牌描邊、角色卡放在對話帶上方 */
+.tut-name { -unity-text-outline-width: 2px; }
+.tut-band { background-color: rgba(236, 242, 252, 0.98); }
+.tut-hero { bottom: 308px; }
+
+.fcell { height: 190px; }
+.formation-board { align-items: center; }

@@ -41,25 +41,24 @@ namespace SanGuo.Client
                 ? UiKit.Hint(_message, warn: true)
                 : UiKit.Hint("同路沒有對手時，攻擊會落在最上方（第 1 路）；點武將再點格子可移動 / 換位，最多上場 4 人"));
 
+            // 5 路排成欄、後排在上、前排在下（前排朝向敵人）
             var board = UiKit.Panel("formation-board");
-            var head = new VisualElement { style = { flexDirection = FlexDirection.Row } };
-            head.Add(FormLabel("", 120));
-            head.Add(FormLabel("後排", 260));
-            head.Add(FormLabel("前排", 260));
-            board.Add(head);
-            for (int lane = 0; lane < level.Lanes; lane++)
+            var laneHead = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+            laneHead.Add(FormLabel("", 90));
+            for (int lane = 0; lane < level.Lanes; lane++) laneHead.Add(FormLabel($"第 {lane + 1} 路", 170, 6));
+            board.Add(laneHead);
+            for (int r = level.Rows - 1; r >= 0; r--)
             {
-                var row = new VisualElement { style = { flexDirection = FlexDirection.Row } };
-                row.Add(FormLabel($"第 {lane + 1} 路", 120));
-                for (int r = level.Rows - 1; r >= 0; r--) // 後排在左、前排在右（前排朝向敵人）
+                var row = new VisualElement { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center } };
+                row.Add(FormLabel(r == level.Rows - 1 ? "後排" : "前排", 90));
+                for (int lane = 0; lane < level.Lanes; lane++)
                 {
                     int l = lane, rr = r;
                     string? id = HeroAtCell(lane, r);
-                    var cell = new Button(() => OnCell(l, rr)) { text = id == null ? "—" : HeroLabel(GameSession.DefOf(id)!) };
-                    cell.AddToClassList("formation-cell");
-                    if (id == null) cell.AddToClassList("formation-cell-empty");
-                    if (id != null && id == _pick) cell.AddToClassList("btn-on");
-                    row.Add(cell);
+                    var def = id == null ? null : GameSession.DefOf(id);
+                    row.Add(def == null
+                        ? UiKit.HeroCard("", Rarity.R, null, "空位", () => OnCell(l, rr), empty: true, cls: "fcell")
+                        : UiKit.HeroCard(def.Name, def.Rarity, def.Id, CardText.RoleName(def.Role), () => OnCell(l, rr), selected: id == _pick, cls: "fcell"));
                 }
                 board.Add(row);
             }
@@ -71,10 +70,7 @@ namespace SanGuo.Client
             foreach (var def in GameSession.Roster.Where(d => !formation.ContainsKey(d.Id)))
             {
                 string id = def.Id;
-                var chip = new Button(() => OnBench(id)) { text = HeroLabel(def) };
-                chip.AddToClassList("formation-chip");
-                if (id == _pick) chip.AddToClassList("btn-on");
-                bench.Add(chip);
+                bench.Add(UiKit.HeroCard(def.Name, def.Rarity, def.Id, CardText.RoleName(def.Role), () => OnBench(id), selected: id == _pick));
             }
             body.Add(bench);
 
@@ -88,11 +84,12 @@ namespace SanGuo.Client
             body.Add(buttons);
         }
 
-        private static Label FormLabel(string text, float width)
+        private static Label FormLabel(string text, float width, float margin = 0)
         {
             var l = new Label(text);
             l.AddToClassList("formation-label");
             l.style.width = width;
+            l.style.marginLeft = margin; l.style.marginRight = margin;
             return l;
         }
 

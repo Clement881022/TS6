@@ -18,6 +18,8 @@ namespace SanGuo.Client
             var p = v.Raw;
             body.Add(UiKit.Hint("目前為測試付款：按「購買」會直接模擬付款成功，不會真的扣款。", warn: true));
 
+            var grid = UiKit.CardGrid();
+            body.Add(grid);
             foreach (var product in Shop.Products())
             {
                 var pr = product;
@@ -72,7 +74,7 @@ namespace SanGuo.Client
                         card.Add(tiers);
                     }
                 }
-                body.Add(card);
+                grid.Add(card);
             }
         }
 

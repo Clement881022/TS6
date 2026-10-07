@@ -65,6 +65,18 @@ namespace SanGuo.Client.Editor
         private static readonly Vector3 WeaponPos = Vector3.zero;
         private static readonly Vector3 WeaponEuler = Vector3.zero;
 
+        /// <summary>吉祥物「巴豆妖」：Avatar_10001 骨架 + 對應部件，烘成 Resources/Characters/badou.prefab（教學對話用）。</summary>
+        [MenuItem("SanGuo/烘焙巴豆妖")]
+        public static void BakeMascot()
+        {
+            Directory.CreateDirectory(OutDir);
+            bool ok = Bake("badou", new Look(10001, 10001, 0, 0));
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("巴豆妖烘焙：" + (ok ? "成功" : "失敗"));
+            if (Application.isBatchMode) EditorApplication.Exit(ok ? 0 : 1);
+        }
+
         [MenuItem("SanGuo/烘焙公司角色")]
         public static void BakeAll()
         {
@@ -94,8 +106,8 @@ namespace SanGuo.Client.Editor
                 var renderers = root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
 
                 bool good = Attach(renderers, bones, "BodyRenderer", $"Body/Body_{look.Body:00000}/Body_{look.Body:00000}_Fbx.fbx")
-                          & Attach(renderers, bones, "HairRenderer", $"Hair/Hair_{look.Hair:00000}/Hair_{look.Hair:00000}_Fbx.fbx")
-                          & Attach(renderers, bones, "FaceRenderer", $"Face/Face_{look.Face:00000}/Face_{look.Face:00000}_Fbx.fbx");
+                          & (look.Hair <= 0 || Attach(renderers, bones, "HairRenderer", $"Hair/Hair_{look.Hair:00000}/Hair_{look.Hair:00000}_Fbx.fbx"))
+                          & (look.Face <= 0 || Attach(renderers, bones, "FaceRenderer", $"Face/Face_{look.Face:00000}/Face_{look.Face:00000}_Fbx.fbx"));
                 if (!good) return false;
 
                 // 沒有衣飾部件的 renderer 留空 mesh 會出錯，直接關掉。

@@ -31,8 +31,10 @@ namespace SanGuo.Client
 
             if (!_sevenDayTab)
             {
+                var dailyGrid = UiKit.CardGrid();
+                body.Add(dailyGrid);
                 foreach (var q in book.Quests.Where(x => x.Kind == QuestKind.Daily))
-                    AddQuestRow(body, q, p);
+                    AddQuestRow(dailyGrid, q, p);
                 return;
             }
 
@@ -58,8 +60,10 @@ namespace SanGuo.Client
             }
             body.Add(ms);
             body.Add(UiKit.Section("七日任務"));
+            var sevenGrid = UiKit.CardGrid();
+            body.Add(sevenGrid);
             foreach (var q in book.Quests.Where(x => x.Kind == QuestKind.SevenDay && x.Day <= Math.Max(day, 1)))
-                AddQuestRow(body, q, p);
+                AddQuestRow(sevenGrid, q, p);
             int later = book.Quests.Count(x => x.Kind == QuestKind.SevenDay && x.Day > day);
             if (later > 0) body.Add(UiKit.Text($"還有 {later} 項任務會在之後幾天開放", "txt-dim"));
         }
@@ -71,8 +75,7 @@ namespace SanGuo.Client
             bool claimed = claimedSet.Contains(q.Id);
             bool done = have >= q.Target;
 
-            var card = UiKit.Panel("panel-row");
-            card.AddToClassList("quest-card");
+            var card = UiKit.Panel("quest-card");
             if (done && !claimed) card.AddToClassList("quest-done");
             string extra = q.Kind == QuestKind.SevenDay ? $"　+{q.Points} 點" : "";
             var text = new VisualElement();
