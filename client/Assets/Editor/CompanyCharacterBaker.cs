@@ -19,46 +19,43 @@ namespace SanGuo.Client.Editor
 
         private readonly struct Look
         {
-            public readonly int Avatar, Body, Hair, Face;
-            public Look(int avatar, int body, int hair, int face) { Avatar = avatar; Body = body; Hair = hair; Face = face; }
+            public readonly int Avatar, Body, Hair, Face, BodyMat, HairMat, FaceMat, Cosmetic, Weapon;
+            public Look(int avatar, int body, int hair, int face, int bodyMat = 1, int hairMat = 1, int faceMat = 1, int cosmetic = 0, int weapon = 0)
+            {
+                Avatar = avatar; Body = body; Hair = hair; Face = face;
+                BodyMat = bodyMat; HairMat = hairMat; FaceMat = faceMat; Cosmetic = cosmetic; Weapon = weapon;
+            }
         }
 
-        // defId → 外觀。公司資源目前只有 7 套 Avatar，先以不同的 Body / Hair / Face 組合區分武將，之後可逐一調整。
+        // defId → 外觀。數字取自公司 CharacterSkin 表（體型 / 身體 / 臉 / 頭髮 / 鬍子 / 主手武器 與各自的材質版本）。
+        // 武將本人用同名角色的外觀；鄉勇、黃巾沿用公司的雜兵外觀；公司沒有的龐統借用荀彧的外觀。
         private static readonly Dictionary<string, Look> Looks = new Dictionary<string, Look>
         {
-            ["liubei"] = new Look(1, 1, 1, 1),
-            ["guanyu"] = new Look(1, 2, 2, 2),
-            ["zhangfei"] = new Look(1, 3, 3, 3),
-            ["zhaoyun"] = new Look(2, 1, 2, 1),
-            ["huangzhong"] = new Look(2, 4, 4, 2),
-            ["zhugeliang"] = new Look(3, 2, 1, 3),
-            ["pangtong"] = new Look(3, 1, 2, 2),
-            ["zhangjiao"] = new Look(3, 5, 5, 4),
-            ["r_militia"] = new Look(4, 1, 3, 1),
-            ["r_villager"] = new Look(4, 2, 4, 2),
-            ["r_shield"] = new Look(4, 3, 5, 3),
-            ["r_archer"] = new Look(5, 1, 2, 4),
-            ["r_healer"] = new Look(5, 2, 1, 5),
-            ["yt_soldier"] = new Look(2, 3, 5, 1),
-            ["yt_archer"] = new Look(5, 4, 3, 2),
-            ["yt_brute"] = new Look(1, 4, 5, 3),
-            ["yt_ironbrute"] = new Look(1, 5, 4, 4),
-            ["yt_lieutenant"] = new Look(2, 5, 2, 5),
-            ["yt_chief"] = new Look(3, 4, 3, 1),
-            ["yt_priest"] = new Look(3, 3, 4, 2),
-            ["yt_sharpshooter"] = new Look(5, 5, 5, 3),
-            ["yt_warlock"] = new Look(3, 1, 5, 4),
-            ["yt_zhangjiao"] = new Look(3, 5, 5, 4),
-        };
-
-        // defId → Weapon 編號（Weapon_000NN）。弓手沒有對應的弓模型，維持空手。
-        private static readonly Dictionary<string, int> Weapons = new Dictionary<string, int>
-        {
-            ["liubei"] = 12, ["guanyu"] = 21, ["zhangfei"] = 8, ["zhaoyun"] = 2, ["huangzhong"] = 14,
-            ["zhugeliang"] = 30, ["pangtong"] = 30, ["zhangjiao"] = 18,
-            ["r_militia"] = 11, ["r_villager"] = 17, ["r_shield"] = 15, ["r_healer"] = 4,
-            ["yt_soldier"] = 10, ["yt_brute"] = 16, ["yt_ironbrute"] = 5, ["yt_lieutenant"] = 13,
-            ["yt_chief"] = 32, ["yt_priest"] = 19, ["yt_warlock"] = 20, ["yt_zhangjiao"] = 31,
+            ["liubei"] = new Look(1, 1, 1, 1, cosmetic: 1, weapon: 1),
+            ["guanyu"] = new Look(2, 2, 2, 2, cosmetic: 2, weapon: 29),
+            ["zhangfei"] = new Look(3, 3, 3, 3, cosmetic: 3, weapon: 3),
+            ["zhaoyun"] = new Look(2, 24, 24, 24, cosmetic: 24, weapon: 33),
+            ["huangzhong"] = new Look(2, 25, 25, 25, cosmetic: 25, weapon: 10),
+            ["zhugeliang"] = new Look(2, 37, 37, 37, cosmetic: 37, weapon: 30),
+            ["pangtong"] = new Look(2, 23, 23, 23, cosmetic: 4, weapon: 30),
+            ["zhangjiao"] = new Look(2, 5, 5, 5, cosmetic: 5, weapon: 6),
+            ["yt_zhangjiao"] = new Look(2, 5, 5, 5, cosmetic: 5, weapon: 6),
+            // 鄉勇（公司「男體1拚」）
+            ["r_militia"] = new Look(1, 1, 10002, 10001, bodyMat: 2, cosmetic: 10006, weapon: 5),
+            ["r_villager"] = new Look(1, 1, 10003, 10001, bodyMat: 3, cosmetic: 10006, weapon: 17),
+            ["r_shield"] = new Look(1, 1, 10005, 10003, bodyMat: 4, cosmetic: 10006, weapon: 15),
+            ["r_archer"] = new Look(1, 1, 10006, 10006, bodyMat: 6, cosmetic: 10006),
+            ["r_healer"] = new Look(4, 14, 14, 14, cosmetic: 4, weapon: 4),
+            // 黃巾（公司黃巾賊 / 黃巾頭目）
+            ["yt_soldier"] = new Look(1, 1, 10002, 10005, bodyMat: 6, cosmetic: 10006, weapon: 11),
+            ["yt_archer"] = new Look(1, 6, 20001, 20001, cosmetic: 10003),
+            ["yt_brute"] = new Look(2, 2, 20001, 20005, bodyMat: 3, cosmetic: 20004, weapon: 5),
+            ["yt_ironbrute"] = new Look(2, 10, 20003, 20001, bodyMat: 5, cosmetic: 10006, weapon: 10),
+            ["yt_lieutenant"] = new Look(1, 7, 20002, 20003, cosmetic: 10006, weapon: 7),
+            ["yt_chief"] = new Look(1, 12, 20004, 20004, bodyMat: 6, cosmetic: 10003, weapon: 12),
+            ["yt_priest"] = new Look(1, 10, 20003, 20005, bodyMat: 6, cosmetic: 10006, weapon: 14),
+            ["yt_sharpshooter"] = new Look(2, 2, 20001, 20005, bodyMat: 3, cosmetic: 20004),
+            ["yt_warlock"] = new Look(1, 12, 20004, 20004, bodyMat: 6, cosmetic: 10003, weapon: 20),
         };
 
         private const string HandBone = "Bip001 R Hand";
@@ -105,15 +102,18 @@ namespace SanGuo.Client.Editor
                 foreach (var t in root.GetComponentsInChildren<Transform>(true)) bones[t.name] = t;
                 var renderers = root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
 
-                bool good = Attach(renderers, bones, "BodyRenderer", $"Body/Body_{look.Body:00000}/Body_{look.Body:00000}_Fbx.fbx")
-                          & (look.Hair <= 0 || Attach(renderers, bones, "HairRenderer", $"Hair/Hair_{look.Hair:00000}/Hair_{look.Hair:00000}_Fbx.fbx"))
-                          & (look.Face <= 0 || Attach(renderers, bones, "FaceRenderer", $"Face/Face_{look.Face:00000}/Face_{look.Face:00000}_Fbx.fbx"));
+                bool good = Attach(renderers, bones, "BodyRenderer", $"Body/Body_{look.Body:00000}/Body_{look.Body:00000}_Fbx.fbx", look.BodyMat)
+                          & (look.Hair <= 0 || Attach(renderers, bones, "HairRenderer", $"Hair/Hair_{look.Hair:00000}/Hair_{look.Hair:00000}_Fbx.fbx", look.HairMat))
+                          & (look.Face <= 0 || Attach(renderers, bones, "FaceRenderer", $"Face/Face_{look.Face:00000}/Face_{look.Face:00000}_Fbx.fbx", look.FaceMat));
                 if (!good) return false;
+                // 鬍子 / 配件：沒有或失敗都不致命，只是少一個部件。
+                if (look.Cosmetic > 0)
+                    Attach(renderers, bones, "CosmeticRenderer", $"Cosmetic/Cosmetic_{look.Cosmetic:00000}/Cosmetic_{look.Cosmetic:00000}_Fbx.fbx", 1);
 
                 // 沒有衣飾部件的 renderer 留空 mesh 會出錯，直接關掉。
                 foreach (var r in renderers) if (r.sharedMesh == null) r.gameObject.SetActive(false);
 
-                if (Weapons.TryGetValue(defId, out int weaponId)) AttachWeapon(bones, weaponId);
+                if (look.Weapon > 0) AttachWeapon(bones, look.Weapon);
 
                 var clips = root.AddComponent<CharacterClipSet>();
                 string a = $"{ModelRoot}/Avatar/{avatarId}/{avatarId}_Style0_";
@@ -132,7 +132,7 @@ namespace SanGuo.Client.Editor
             }
         }
 
-        private static bool Attach(SkinnedMeshRenderer[] targets, Dictionary<string, Transform> bones, string slot, string partFbx)
+        private static bool Attach(SkinnedMeshRenderer[] targets, Dictionary<string, Transform> bones, string slot, string partFbx, int matVariant = 1)
         {
             string path = $"{ModelRoot}/{partFbx}";
             var partPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -160,6 +160,15 @@ namespace SanGuo.Client.Editor
             }
             target.sharedMesh = src.sharedMesh;
             target.sharedMaterials = src.sharedMaterials;
+            // 材質版本（公司表的「身體 / 臉 / 頭髮材質」）：<部件>_<版本>_Mat.mat；只有單一材質槽的部件才換。
+            if (matVariant > 1 && src.sharedMaterials.Length == 1)
+            {
+                string dir = path.Substring(0, path.LastIndexOf('/'));
+                string name = dir.Substring(dir.LastIndexOf('/') + 1);
+                var variant = AssetDatabase.LoadAssetAtPath<Material>($"{dir}/{name}_{matVariant:000}_Mat.mat");
+                if (variant != null) target.sharedMaterials = new[] { variant };
+                else Debug.LogWarning($"{name} 沒有材質版本 {matVariant}，沿用預設");
+            }
             target.bones = mapped;
             target.rootBone = src.rootBone != null && bones.TryGetValue(src.rootBone.name, out var rb) ? rb : null;
             target.localBounds = src.localBounds;

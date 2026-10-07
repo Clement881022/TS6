@@ -33,8 +33,8 @@ namespace SanGuo.Client
         private const float TilePitchX = 1.5f;     // 排與排之間
         private const float CenterGap = 2.0f;       // 兩陣營間距（參考 TS6Client CampSpacing 2）
         private const float TileTop = 0.08f;
-        private const float ModelScale = 1.1f;
-        private const float UnitHeadHeight = 1.9f;
+        private const float ModelScale = 1.45f;
+        private const float UnitHeadHeight = 3.1f;
         private const float ViewYawDegrees = 38f;      // 面向對手的同時微微轉向鏡頭
 
         private sealed class UnitView
