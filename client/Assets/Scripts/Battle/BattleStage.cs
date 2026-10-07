@@ -80,7 +80,11 @@ namespace SanGuo.Client
             _camera.nearClipPlane = 0.1f;
             _camera.farClipPlane = 80f;
 
-            if (FindFirstObjectByType<Light>() == null)
+            // 劇情 / 主城的 3D 立繪（ModelStage）自帶燈光，但它們隨時會被銷毀：戰場只認不屬於立繪的燈，沒有就自己補一盞。
+            bool hasKeyLight = false;
+            foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None))
+                if (l.GetComponentInParent<ModelStage>() == null) { hasKeyLight = true; break; }
+            if (!hasKeyLight)
             {
                 var lightGo = new GameObject("Key Light");
                 var light = lightGo.AddComponent<Light>();

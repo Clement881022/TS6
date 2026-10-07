@@ -94,6 +94,39 @@ namespace SanGuo.Client
             });
         }
 
+        public Task<FinishStageResult> DebugWin(string stageId)
+        {
+            if (!Debug.isDebugBuild) return Task.FromResult(new FinishStageResult { Code = "debug_only" });
+            if (_profile.PendingStageId != stageId) return Task.FromResult(new FinishStageResult { Code = "no_pending_stage" });
+            _profile.PendingStageId = "";
+            _profile.PendingSeed = 0;
+            _profile.PendingFormation = new List<FormationEntry>();
+            var dungeon = DemoMeta.FindDungeon(stageId);
+            FinishStageResult result;
+            if (dungeon != null)
+            {
+                ResourceDungeons.ClaimWin(_profile, dungeon, Now);
+                var r = dungeon.Reward;
+                result = new FinishStageResult
+                {
+                    Ok = true, Won = true, Gold = r.Gold, Yuanbao = r.Yuanbao, Materials = new Dictionary<string, int>(r.Materials),
+                };
+            }
+            else
+            {
+                var stage = DemoMeta.FindStage(stageId);
+                if (stage == null) return Task.FromResult(new FinishStageResult { Code = "unknown_stage" });
+                var clear = _profile.ClaimClear(stage, Now, 3);
+                result = new FinishStageResult
+                {
+                    Ok = true, Won = true, Stars = 3, FirstClear = clear.FirstClear, Exp = clear.ExpGained, Gold = clear.GoldGained,
+                    Yuanbao = clear.YuanbaoGained, LevelsGained = clear.LevelsGained, HeroGained = clear.HeroGained,
+                };
+            }
+            Save();
+            return Task.FromResult(result);
+        }
+
         public Task<BackendResult> SweepDungeon(string dungeonId, int count)
         {
             var d = DemoMeta.FindDungeon(dungeonId);

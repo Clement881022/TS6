@@ -114,6 +114,9 @@ namespace SanGuo.Client
             return result;
         }
 
+        public Task<FinishStageResult> DebugWin(string stageId) =>
+            Task.FromResult(new FinishStageResult { Code = "debug_only" });
+
         public async Task<FinishStageResult> FinishStage(string stageId, IReadOnlyList<ReplayAction> actions)
         {
             var list = new List<object?>();

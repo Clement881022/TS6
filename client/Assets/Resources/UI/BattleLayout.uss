@@ -129,9 +129,9 @@
 .bl-hp-text { position: absolute; left: 0; right: 0; top: 0; bottom: 0; font-size: 23px; color: white; -unity-text-align: middle-center; -unity-text-outline-width: 0; }
 .bl-stats { flex-direction: row; flex-wrap: wrap; }
 .bl-stats { flex-direction: row; flex-wrap: nowrap; }
-.bl-stat-chip { width: 25%; flex-direction: row; align-items: center; }
+.bl-stat-chip { flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 0; flex-direction: row; align-items: center; }
 .bl-stat-icon { width: 30px; height: 30px; margin-right: 5px; }
-.bl-stat-main, .bl-stat { font-size: 28px; -unity-font-style: bold; }
+.bl-stat-main, .bl-stat { font-size: 24px; -unity-font-style: bold; white-space: nowrap; flex-shrink: 0; }
 .bl-stat-main { color: rgb(255, 226, 140); }
 .bl-stat { color: rgb(224, 230, 248); }
 .bl-stat.ui-up, .bl-stat-main.ui-up { color: rgb(110, 232, 140); }

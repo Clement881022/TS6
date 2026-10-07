@@ -129,6 +129,7 @@ namespace SanGuo.Client
             _autoButton = MakeButton("自動", ToggleAuto);
             buttons.Add(_autoButton);
             buttons.Add(MakeButton("重置視角", () => _stage.ResetView()));
+            if (Debug.isDebugBuild) buttons.Add(MakeButton("直接勝利", DebugWin));
             buttons.Add(MakeButton("撤退", Leave));
             buttons.Add(MakeButton("重來", () => { _ = BeginStageId(_stageId); }));
             header.Add(buttons);
@@ -1168,16 +1169,31 @@ namespace SanGuo.Client
             wait.AddToClassList("overlay-text");
             _overlay.Add(wait);
             _root.Add(_overlay);
-            _ = FinishStage(_overlay, _stageId, _recorder.Actions.ToList());
+            var actions = _recorder.Actions.ToList();
+            _ = FinishStage(_overlay, _stageId, () => GameSession.Backend.FinishStage(_stageId, actions));
+        }
+
+        /// <summary>Debug 版本才有：跳過戰鬥直接當作三星勝利結算（後端不重播，只有單機版接受）。</summary>
+        private void DebugWin()
+        {
+            if (_recorder == null || _overlay != null || _finishing || _busy) return;
+            _finishing = true;
+            _overlay = new VisualElement();
+            _overlay.AddToClassList("overlay");
+            var wait = new Label("結算中…");
+            wait.AddToClassList("overlay-text");
+            _overlay.Add(wait);
+            _root.Add(_overlay);
+            _ = FinishStage(_overlay, _stageId, () => GameSession.Backend.DebugWin(_stageId));
         }
 
         /// <summary>把操作紀錄交給後端結算（勝負與星數由後端自己重播算出），再顯示結果。</summary>
-        private async Task FinishStage(VisualElement overlay, string stageId, List<ReplayAction> actions)
+        private async Task FinishStage(VisualElement overlay, string stageId, Func<Task<FinishStageResult>> settle)
         {
             FinishStageResult result;
             try
             {
-                result = await GameSession.Backend.FinishStage(stageId, actions);
+                result = await settle();
             }
             catch (Exception e)
             {

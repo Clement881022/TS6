@@ -98,6 +98,8 @@ namespace SanGuo.Client
         /// <param name="formation">開放編隊的關卡 / 副本要帶（教學關為 null）。</param>
         Task<StartStageResult> StartStage(string stageId, IReadOnlyList<FormationEntry>? formation = null);
         Task<FinishStageResult> FinishStage(string stageId, IReadOnlyList<ReplayAction> actions);
+        /// <summary>開發用：跳過戰鬥直接算勝利（三星）。只有單機版在 Debug 版本 / 編輯器可用，伺服器版一律拒絕。</summary>
+        Task<FinishStageResult> DebugWin(string stageId);
         Task<SweepOutcome> Sweep(string stageId, int count);
         Task<BackendResult> SweepDungeon(string dungeonId, int count);
         Task<BackendResult> ClaimQuest(string questId);
