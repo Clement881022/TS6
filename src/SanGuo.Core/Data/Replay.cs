@@ -11,14 +11,14 @@ namespace SanGuo.Core.Data
         public ReplayActionKind Kind;
         /// <summary>Play：<see cref="CardInstance.Id"/>。</summary>
         public int CardId;
-        /// <summary>Play：移動卡的目的格（-1 = 沒有）。</summary>
+        /// <summary>Play：玩家指定的目標格（單體敵人牌可空放；移動卡的目的地）；-1 = 沒指定（自動挑目標）。</summary>
         public int Lane = -1;
         public int Row = -1;
-        /// <summary>Play：玩家指定的敵方目標 <see cref="Unit.Id"/>（<see cref="TargetRule.Enemy"/> 的牌用）；-1 = 沒指定。</summary>
-        public int TargetId = -1;
+        /// <summary>Play：移動卡要移動的武將 <see cref="Unit.Id"/>；-1 = 不是移動卡。</summary>
+        public int UnitId = -1;
 
-        public static ReplayAction Play(int cardId, int targetId = -1, int lane = -1, int row = -1) =>
-            new ReplayAction { Kind = ReplayActionKind.Play, CardId = cardId, TargetId = targetId, Lane = lane, Row = row };
+        public static ReplayAction Play(int cardId, int lane = -1, int row = -1, int unitId = -1) =>
+            new ReplayAction { Kind = ReplayActionKind.Play, CardId = cardId, Lane = lane, Row = row, UnitId = unitId };
         public static ReplayAction EndTurn() => new ReplayAction { Kind = ReplayActionKind.EndTurn };
     }
 
@@ -56,14 +56,14 @@ namespace SanGuo.Core.Data
                     case ReplayActionKind.Play:
                         var card = FindCard(battle, a.CardId);
                         if (card == null) return Invalid($"手牌中沒有卡牌 {a.CardId}", battle);
-                        Unit? target = null;
-                        if (a.TargetId >= 0)
+                        Position? target = a.Lane >= 0 && a.Row >= 0 ? new Position(a.Lane, a.Row) : (Position?)null;
+                        Unit? mover = null;
+                        if (a.UnitId >= 0)
                         {
-                            target = battle.Units.Find(u => u.Id == a.TargetId && u.Side == Side.Enemy && u.Alive);
-                            if (target == null) return Invalid($"沒有可指定的敵方單位 {a.TargetId}", battle);
+                            mover = battle.Units.Find(u => u.Id == a.UnitId && u.Side == Side.Player);
+                            if (mover == null) return Invalid($"沒有我方單位 {a.UnitId}", battle);
                         }
-                        Position? dest = a.Lane >= 0 && a.Row >= 0 ? new Position(a.Lane, a.Row) : (Position?)null;
-                        var pr = battle.PlayCard(card, target, dest);
+                        var pr = battle.PlayCard(card, target, mover);
                         if (pr != PlayResult.Ok) return Invalid($"出牌失敗：{pr}", battle);
                         break;
                     case ReplayActionKind.EndTurn:
@@ -105,15 +105,17 @@ namespace SanGuo.Core.Data
 
         public ReplayRecorder(Battle battle) { Battle = battle; }
 
-        /// <param name="target">指定的敵方目標（只有 <see cref="TargetRule.Enemy"/> 的牌會採用）。</param>
-        /// <param name="dest">移動卡的目的格。</param>
-        public PlayResult Play(CardInstance card, Unit? target = null, Position? dest = null)
+        /// <param name="target">指定的目標格（單體敵人牌可空放 / 移動卡的目的地）。</param>
+        /// <param name="mover">移動卡要移動的武將。</param>
+        public PlayResult Play(CardInstance card, Position? target = null, Unit? mover = null)
         {
-            var r = Battle.PlayCard(card, target, dest);
-            bool useTarget = card.Def.Target == TargetRule.Enemy && target != null;
-            bool useDest = card.Def.Target == TargetRule.MoveDest && dest != null;
+            var r = Battle.PlayCard(card, target, mover);
             if (r == PlayResult.Ok)
-                Actions.Add(ReplayAction.Play(card.Id, useTarget ? target!.Id : -1, useDest ? dest!.Value.Lane : -1, useDest ? dest!.Value.Row : -1));
+            {
+                bool useTarget = target != null && (card.Def.Target == TargetRule.Enemy || card.Def.Target == TargetRule.MoveDest);
+                bool useMover = mover != null && card.Def.Target == TargetRule.MoveDest;
+                Actions.Add(ReplayAction.Play(card.Id, useTarget ? target!.Value.Lane : -1, useTarget ? target!.Value.Row : -1, useMover ? mover!.Id : -1));
+            }
             return r;
         }
 
@@ -129,9 +131,9 @@ namespace SanGuo.Core.Data
         {
             while (Battle.Result == BattleResult.Ongoing)
             {
-                var (pick, dest) = AutoPlayer.Pick(Battle, priority);
+                var (pick, target, mover) = AutoPlayer.Pick(Battle, priority);
                 if (pick == null) break;
-                Play(pick, null, dest);
+                Play(pick, target, mover);
             }
             EndTurn();
         }

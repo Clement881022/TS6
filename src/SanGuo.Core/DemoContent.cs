@@ -323,7 +323,7 @@ namespace SanGuo.Core
         }
 
         /// <summary>第一章「黃巾之亂」關卡（教學關：固定隊伍、不開放自動戰鬥）。</summary>
-        public static BattleSetup Level(int level, ulong seed = 1)
+        public static BattleSetup Level(int level, ulong seed = 1, bool tutorialScale = true)
         {
             // 第一章每一關都是教學關：不開放自動戰鬥。
             var setup = new BattleSetup { Seed = seed, AutoAllowed = false };
@@ -454,7 +454,7 @@ namespace SanGuo.Core
                 default:
                     throw new System.ArgumentOutOfRangeException(nameof(level));
             }
-            var (hpPct, atkPct) = TutorialEnemyScale(level);
+            var (hpPct, atkPct) = tutorialScale ? TutorialEnemyScale(level) : (100, 100);
             void Scale(EnemyDef def)
             {
                 def.Base.Hp = def.Base.Hp * hpPct / 100;
@@ -478,11 +478,11 @@ namespace SanGuo.Core
                 case 3: return (40, 70);
                 case 4: return (50, 70);
                 case 5: return (60, 80);
-                case 6: return (90, 210);
+                case 6: return (90, 63);
                 case 7: return (60, 70);
                 case 8: return (40, 80);
                 case 9: return (50, 80);
-                case 10: return (40, 80);
+                case 10: return (30, 40);
                 default: return (100, 100);
             }
         }

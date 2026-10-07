@@ -53,9 +53,9 @@ namespace SanGuo.Client
             string who;
             switch (def.Target)
             {
-                case TargetRule.Enemy: who = $"{def.Range} 格內的敵人（點選）"; break;
+                case TargetRule.Enemy: who = $"{def.Range} 格內任一格（點選，可空放）"; break;
                 case TargetRule.EnemyLowestHp: who = $"{def.Range} 格內血量最低的敵人"; break;
-                case TargetRule.MoveDest: return "移動力內可到達的空格（點選）";
+                case TargetRule.MoveDest: return "選一名武將，移動到其移動力內的空格";
                 case TargetRule.Self: return "自己";
                 case TargetRule.AllyLowestHp: return $"{def.Range} 格內血量比例最低的隊友";
                 case TargetRule.AllAllies: return "全體隊友";

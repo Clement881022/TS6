@@ -49,7 +49,6 @@ namespace SanGuo.Core
                 foreach (var cardDef in slot.Def.Deck)
                     heroCards.Add(new CardInstance(_nextCardId++, cardDef, unit));
                 // 隊伍每有一名帶牌的武將，就在牌堆洗入一張 0 費移動卡。
-                if (heroCards.Count > 0) heroCards.Add(new CardInstance(_nextCardId++, CardDef.CreateMove(), unit));
                 allCards.AddRange(heroCards);
                 cardsByHero.Add(heroCards);
             }
@@ -58,6 +57,10 @@ namespace SanGuo.Core
                 SpawnEnemy(slot.Def, slot.Pos);
             }
 
+            // 通用移動卡：隊伍每有一名帶牌的武將洗入一張（不屬於任何人）。
+            int moveCards = cardsByHero.Count(c => c.Count > 0);
+            for (int i = 0; i < moveCards; i++) allCards.Add(new CardInstance(_nextCardId++, CardDef.CreateMove(), null));
+
             if (setup.ScriptedDraw.Count > 0)
             {
                 // 寫死牌序時各武將的牌輪流穿插（不洗牌，但也不會整手都是同一個人的牌）；移動卡排在起手牌之後（第 2 回合起抽到）。
@@ -65,9 +68,9 @@ namespace SanGuo.Core
                     foreach (var heroCards in cardsByHero)
                         if (i < heroCards.Count) DrawPile.Add(heroCards[i]);
                 OrderByScript(DrawPile);
-                var moves = DrawPile.Where(c => c.Def.Target == TargetRule.MoveDest).ToList();
-                DrawPile.RemoveAll(c => c.Def.Target == TargetRule.MoveDest);
-                DrawPile.InsertRange(Math.Min(setup.HandSize, DrawPile.Count), moves);
+                // 移動卡接在腳本牌之後（起手牌的最後幾張）。
+                var moves = allCards.Where(c => c.Owner == null).ToList();
+                DrawPile.InsertRange(Math.Min(setup.ScriptedDraw.Count, DrawPile.Count), moves);
             }
             else
             {
@@ -134,28 +137,34 @@ namespace SanGuo.Core
             return dist;
         }
 
-        /// <summary>檢查卡牌目前能否打出（不產生副作用）。</summary>
+        /// <summary>某武將現在能不能被移動卡移動（我方、活著、沒昏亂、旁邊有空格可走）。</summary>
+        public bool CanMoveUnit(Unit u) =>
+            u.Side == Side.Player && u.Alive && !u.Has(StatusType.Stun) && ReachableTiles(u).Count > 1;
+
+        /// <summary>
+        /// 檢查卡牌目前能否打出（不產生副作用）。單體敵人牌（<see cref="TargetRule.Enemy"/>）可以空放：
+        /// 只要持有者能行動、費用夠就行，目標格在 <see cref="PlayCard"/> 指定。
+        /// </summary>
         public PlayResult CanPlay(CardInstance card)
         {
             if (Result != BattleResult.Ongoing) return PlayResult.BattleOver;
             if (!Hand.Contains(card)) return PlayResult.NotInHand;
+            if (Cost < card.Def.Cost) return PlayResult.NotEnoughCost;
+            if (card.Owner == null)
+                return AliveUnits(Side.Player).Any(CanMoveUnit) ? PlayResult.Ok : PlayResult.NoTarget;
             if (!card.Owner.Alive) return PlayResult.OwnerDead;
             if (card.Owner.Has(StatusType.Stun)) return PlayResult.Stunned;
-            if (Cost < card.Def.Cost) return PlayResult.NotEnoughCost;
-            if (card.Def.Target == TargetRule.MoveDest)
-            {
-                if (ReachableTiles(card.Owner).Count <= 1) return PlayResult.NoTarget;
-            }
-            else if (ResolveTargets(card.Owner, card.Def) == null)
+            if (card.Def.Target != TargetRule.Enemy && ResolveTargets(card.Owner, card.Def) == null)
                 return PlayResult.NoTarget;
             return PlayResult.Ok;
         }
 
         /// <summary>
-        /// 目標判定；回傳 null 表示沒有可選目標（卡牌不可打出）或指定的目標不在範圍內。
-        /// 單體目標限卡牌射程內（曼哈頓格距）；<paramref name="chosen"/> 只有 <see cref="TargetRule.Enemy"/> 的牌會採用。
+        /// 目標判定；回傳 null 表示沒有可選目標（卡牌不可打出）或指定的格子不在射程內。
+        /// <see cref="TargetRule.Enemy"/>：<paramref name="chosen"/> 是玩家指定的中心格（可以是空格，必須在射程內）；
+        /// 沒指定就自動挑射程內最近的敵人。範圍形狀以中心格展開，只影響格上的敵人（可能一個都沒有）。
         /// </summary>
-        public List<Unit>? ResolveTargets(Unit owner, CardDef def, Unit? chosen = null)
+        public List<Unit>? ResolveTargets(Unit owner, CardDef def, Position? chosen = null)
         {
             Side own = owner.Side;
             Side foe = own == Side.Player ? Side.Enemy : Side.Player;
@@ -180,20 +189,23 @@ namespace SanGuo.Core
                 case TargetRule.Enemy:
                 case TargetRule.EnemyLowestHp:
                 {
-                    var inRange = AliveUnits(foe).Where(u => Position.Distance(owner.Pos, u.Pos) <= def.Range).ToList();
-                    if (inRange.Count == 0) return null;
-                    Unit center;
-                    if (def.Target == TargetRule.EnemyLowestHp)
-                        center = inRange.OrderBy(u => u.Hp).ThenByDescending(u => u.Pos.Row).ThenBy(u => u.Pos.Lane).First();
-                    else if (chosen != null)
+                    Position center;
+                    if (def.Target == TargetRule.Enemy && chosen != null)
                     {
-                        if (!inRange.Contains(chosen)) return null;
-                        center = chosen;
+                        if (!InBounds(chosen.Value) || Position.Distance(owner.Pos, chosen.Value) > def.Range) return null;
+                        center = chosen.Value;
                     }
                     else
-                        center = inRange.OrderBy(u => Position.Distance(owner.Pos, u.Pos)).ThenBy(u => u.Hp).ThenBy(u => u.Pos.Lane).First();
+                    {
+                        var inRange = AliveUnits(foe).Where(u => Position.Distance(owner.Pos, u.Pos) <= def.Range).ToList();
+                        if (inRange.Count == 0) return null;
+                        Unit pick = def.Target == TargetRule.EnemyLowestHp
+                            ? inRange.OrderBy(u => u.Hp).ThenByDescending(u => u.Pos.Row).ThenBy(u => u.Pos.Lane).First()
+                            : inRange.OrderBy(u => Position.Distance(owner.Pos, u.Pos)).ThenBy(u => u.Hp).ThenBy(u => u.Pos.Lane).First();
+                        center = pick.Pos;
+                    }
                     var result = new List<Unit>();
-                    foreach (var cell in Targeting.ExpandShape(center.Pos, def.Shape, Setup.Lanes, Setup.Rows))
+                    foreach (var cell in Targeting.ExpandShape(center, def.Shape, Setup.Lanes, Setup.Rows))
                     {
                         var u = UnitAt(foe, cell);
                         if (u != null && u.Alive) result.Add(u);
@@ -337,25 +349,28 @@ namespace SanGuo.Core
 
         // ---------------------------------------------------------------- 玩家行動
 
-        /// <param name="target">指定的敵方目標（只有 <see cref="TargetRule.Enemy"/> 的牌會採用）；沒給就自動挑範圍內最近者。</param>
-        /// <param name="dest">移動卡的目的地格子。</param>
-        public PlayResult PlayCard(CardInstance card, Unit? target = null, Position? dest = null)
+        /// <param name="target">玩家指定的格子：單體敵人牌的中心格（可空放）；移動卡的目的地。沒給的敵人牌自動挑射程內最近者。</param>
+        /// <param name="mover">移動卡要移動的武將（通用卡必填）。</param>
+        public PlayResult PlayCard(CardInstance card, Position? target = null, Unit? mover = null)
         {
             var check = CanPlay(card);
             if (check != PlayResult.Ok) return check;
 
-            var owner = card.Owner;
+            Unit owner;
             List<Unit> targets;
             if (card.Def.Target == TargetRule.MoveDest)
             {
-                if (dest == null) return PlayResult.NoTarget;
-                var d = dest.Value;
-                if (d == owner.Pos || !ReachableTiles(owner).ContainsKey(d)) return PlayResult.OutOfRange;
+                if (mover == null || !Units.Contains(mover) || !CanMoveUnit(mover)) return PlayResult.InvalidMover;
+                if (target == null) return PlayResult.NoTarget;
+                var d = target.Value;
+                if (d == mover.Pos || !ReachableTiles(mover).ContainsKey(d)) return PlayResult.OutOfRange;
                 _moveDest = d;
-                targets = new List<Unit> { owner };
+                owner = mover;
+                targets = new List<Unit> { mover };
             }
             else
             {
+                owner = card.Owner!;
                 var resolved = ResolveTargets(owner, card.Def, target);
                 if (resolved == null) return target != null ? PlayResult.OutOfRange : PlayResult.NoTarget;
                 targets = resolved;

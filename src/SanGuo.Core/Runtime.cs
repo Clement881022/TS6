@@ -102,9 +102,10 @@ namespace SanGuo.Core
     {
         public int Id;
         public CardDef Def;
-        public Unit Owner;
+        /// <summary>持有者；null = 全隊通用卡（移動卡），打出時由玩家指定要移動的武將。</summary>
+        public Unit? Owner;
 
-        public CardInstance(int id, CardDef def, Unit owner)
+        public CardInstance(int id, CardDef def, Unit? owner)
         {
             Id = id;
             Def = def;

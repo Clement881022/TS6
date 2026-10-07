@@ -65,6 +65,8 @@ namespace SanGuo.Core
         NoTarget,
         /// <summary>指定的目標 / 格子不在範圍內或不合法。</summary>
         OutOfRange,
+        /// <summary>移動卡指定的武將不能移動（陣亡 / 昏亂 / 四周沒有空格 / 不是我方）。</summary>
+        InvalidMover,
     }
 
     public enum EventType

@@ -73,7 +73,7 @@ namespace SanGuo.Core
         public Shape Shape = Shape.Single;
         public List<EffectDef> Effects = new List<EffectDef>();
 
-        /// <summary>移動卡（0 費）：隊伍每有一名武將，開局就在牌堆洗入一張；移動格數 = 持有者移動力。</summary>
+        /// <summary>通用移動卡（0 費、不屬於任何武將）：隊伍每有一名武將，開局就在牌堆洗入一張；打出時指定一名武將與目的地，格數 = 該武將移動力。</summary>
         public static CardDef CreateMove() => new CardDef
         {
             Id = "move", Name = "移動", Basic = true, Cost = 0, Target = TargetRule.MoveDest,
@@ -154,7 +154,8 @@ namespace SanGuo.Core
         /// <summary>我方列陣區：3 欄 × 2 列（欄 1–3、列 3–4）。</summary>
         public const int FormationMinLane = 1, FormationMaxLane = 3, FormationMinRow = 3, FormationMaxRow = 4;
         public ulong Seed = 1;
-        public int HandSize = 5;
+        /// <summary>首回合抽牌數（之後每回合抽 <see cref="DrawPerTurn"/> 張）。</summary>
+        public int HandSize = 7;
         public int CostPerTurn = 3;
         public int CostCap = 10;
         /// <summary>第 2 回合起每回合抽幾張（首回合抽 <see cref="HandSize"/> 張）。手牌不會在回合結束時棄掉，上限 10；牌堆抽完就不再重洗。</summary>

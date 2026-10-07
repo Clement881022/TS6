@@ -123,7 +123,7 @@ namespace SanGuo.Client
                 list.Add(new Dictionary<string, object?>
                 {
                     ["kind"] = kind, ["cardId"] = (long)a.CardId, 
-                    ["lane"] = (long)a.Lane, ["row"] = (long)a.Row, ["targetId"] = (long)a.TargetId,
+                    ["unitId"] = (long)a.UnitId, ["lane"] = (long)a.Lane, ["row"] = (long)a.Row,
                 });
             }
             var r = await Send("POST", "/stage/finish", new Dictionary<string, object?> { ["stageId"] = stageId, ["actions"] = list });

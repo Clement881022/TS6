@@ -12,13 +12,14 @@ namespace SanGuo.Client
     {
         private const int Size = 5;
         private const int Mid = 2;
+        /// <summary>移動卡示意圖畫的格數（實際格數看被移動武將的移動力）。</summary>
+        private const int SampleMoveRange = 2;
 
-        /// <param name="moveRange">移動卡的格數（持有者移動力）；其他牌忽略。</param>
-        public static VisualElement Build(CardDef def, int moveRange = 0)
+        public static VisualElement Build(CardDef def)
         {
             bool ally = def.Target == TargetRule.Self || def.Target == TargetRule.AllyLowestHp || def.Target == TargetRule.AllAllies;
             bool move = def.Target == TargetRule.MoveDest;
-            int range = move ? moveRange : def.Range;
+            int range = move ? SampleMoveRange : def.Range;
             bool all = def.Target == TargetRule.AllAllies || def.Target == TargetRule.AllEnemies;
 
             var root = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -61,7 +62,7 @@ namespace SanGuo.Client
                 case TargetRule.Self: return "自身";
                 case TargetRule.AllAllies: return "全體友軍";
                 case TargetRule.AllEnemies: return "全體敵人";
-                case TargetRule.MoveDest: return $"移動 {range} 格";
+                case TargetRule.MoveDest: return "任一武將移動";
             }
             string shape;
             switch (def.Shape)

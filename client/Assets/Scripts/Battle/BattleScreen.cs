@@ -58,8 +58,10 @@ namespace SanGuo.Client
         private readonly HashSet<Position> _previewTargets = new HashSet<Position>();
         private readonly HashSet<Position> _previewRange = new HashSet<Position>();
         private readonly HashSet<Position> _previewReach = new HashSet<Position>();
-        /// <summary>已點下、正在等玩家點選格子的牌：指定敵人（<see cref="TargetRule.Enemy"/>，範圍內有多個目標時）或移動卡的目的地。</summary>
+        /// <summary>已點下、正在等玩家點選格子的牌：單體敵人牌的施放格（可空放），或移動卡（先選武將、再選目的地）。</summary>
         private CardInstance? _pendingCard;
+        /// <summary>移動卡已選好的武將（null = 還在選武將）。</summary>
+        private Unit? _pendingMover;
         /// <summary>滑鼠懸停的單位（顯示屬性與增減益面板）。</summary>
         private Unit? _hoverUnit;
         private VisualElement _unitInfo = null!;
@@ -290,6 +292,7 @@ namespace SanGuo.Client
             _log.Clear();
             ClearPreview();
             _pendingCard = null;
+            _pendingMover = null;
             HideUnitInfo();
             if (_overlay != null) { _overlay.RemoveFromHierarchy(); _overlay = null; }
             _stage.Bind(_battle, _root, _field);
@@ -302,7 +305,7 @@ namespace SanGuo.Client
                     "戰鬥是回合制出牌。點下方的手牌打出，每張牌要消耗費用，剩餘費用顯示在左下角。",
                     "費用用完（或不想出牌）就按「結束回合」，敵人才會行動；敵人頭上的圖示是牠下一步的行動預告。",
                     "戰場是敵我共用的 5x5 棋盤，每張牌都有攻擊範圍（格數）：近戰只打得到相鄰的敵人，弓手與法師射程較遠。",
-                    "牌堆裡每名武將都有一張 0 費的「移動」牌：點它再點綠色的格子，就能依移動力走位。牌抽完就沒有了，不會重洗。打倒全部敵人就獲勝！",
+                    "牌堆裡有幾張 0 費的通用「移動」牌（隊伍每有一人就有一張）：點牌後先選要移動的武將，再點綠色的格子走位。攻擊牌要自己點選射程內的格子施放，空格也可以點（會打空）。牌抽完就沒有了，不會重洗。打倒全部敵人就獲勝！",
                 }, speaker: "巴豆妖", model: "badou");
         }
 
@@ -336,8 +339,8 @@ namespace SanGuo.Client
         {
             if (!_auto || _battle.Result != BattleResult.Ongoing || Blocked) return;
             if (_fx.PendingSeconds > 0.05f) return; // 等上一段演出播完
-            var (card, dest) = AutoPlayer.Pick(_battle);
-            if (card != null) _recorder!.Play(card, null, dest);
+            var (card, target, mover) = AutoPlayer.Pick(_battle);
+            if (card != null) _recorder!.Play(card, target, mover);
             else _recorder!.EndTurn();
             PumpEvents();
             Refresh();
@@ -354,36 +357,35 @@ namespace SanGuo.Client
             var check = _battle.CanPlay(card);
             if (check != PlayResult.Ok) { Toast(Explain(check)); return; }
 
-            // 移動卡：先標出可到達的格子，等玩家點選目的地。
             if (card.Def.Target == TargetRule.MoveDest)
             {
                 BeginPending(card);
-                Toast("點選綠色格子移動（再點一次卡牌取消）");
+                Toast("先點選要移動的武將（再點一次卡牌取消）");
                 return;
             }
-            // 單體敵人目標：射程內有多個敵人才需要玩家點選，只有一個就直接打。
-            if (card.Def.Target == TargetRule.Enemy && EnemiesInRange(card).Count > 1)
+            // 單體敵人牌：一律由玩家點選射程內的格子，空格也可以點（空放）。
+            if (card.Def.Target == TargetRule.Enemy)
             {
                 BeginPending(card);
-                Toast("點選要攻擊的敵人（再點一次卡牌取消）");
+                Toast("點選射程內的格子施放（空格也可以，再點一次卡牌取消）");
                 return;
             }
             PlayCardAt(card, null, null);
         }
 
-        private List<Unit> EnemiesInRange(CardInstance card) =>
-            _battle.AliveUnits(Side.Enemy).Where(u => Position.Distance(card.Owner.Pos, u.Pos) <= card.Def.Range).ToList();
-
         private void BeginPending(CardInstance card)
         {
             _pendingCard = card;
+            _pendingMover = null;
             ShowCardRange(card);
         }
 
-        private void PlayCardAt(CardInstance card, Unit? target, Position? dest)
+        private void PlayCardAt(CardInstance card, Position? target, Unit? mover)
         {
-            var result = _recorder!.Play(card, target, dest);
+            var result = _recorder!.Play(card, target, mover);
             if (result != PlayResult.Ok) { Toast(Explain(result)); Refresh(); return; }
+            _pendingCard = null;
+            _pendingMover = null;
             ClearPreview();
             PumpEvents();
             Refresh();
@@ -393,11 +395,12 @@ namespace SanGuo.Client
         {
             if (_pendingCard == null) return;
             _pendingCard = null;
+            _pendingMover = null;
             ClearPreview();
             RefreshTiles();
         }
 
-        /// <summary>等待指定目標 / 目的地時，點戰場上的格子就出牌；點到不合法的格子會提示，點場外取消。</summary>
+        /// <summary>等待指定格子時：點格出牌；移動卡先點武將再點目的地；點場外取消。</summary>
         private void OnFieldClicked(ClickEvent evt)
         {
             var card = _pendingCard;
@@ -409,19 +412,28 @@ namespace SanGuo.Client
             }
             if (card.Def.Target == TargetRule.MoveDest)
             {
-                if (pos == card.Owner.Pos || !_battle.ReachableTiles(card.Owner).ContainsKey(pos)) { Toast("請點選綠色的可移動格"); return; }
-                _pendingCard = null;
-                PlayCardAt(card, null, pos);
+                var hero = _battle.UnitAt(Side.Player, pos);
+                if (hero != null && hero.Alive)
+                {
+                    // 點到我方武將 = 選他（或換人）。
+                    if (!_battle.CanMoveUnit(hero)) { Toast("這名武將現在不能移動"); return; }
+                    _pendingMover = hero;
+                    ShowCardRange(card);
+                    Toast("再點選綠色格子移動");
+                    return;
+                }
+                if (_pendingMover == null) { Toast("先點選要移動的武將"); return; }
+                if (!_battle.ReachableTiles(_pendingMover).ContainsKey(pos)) { Toast("請點選綠色的可移動格"); return; }
+                PlayCardAt(card, pos, _pendingMover);
                 return;
             }
-            var target = _battle.UnitAt(Side.Enemy, pos);
-            if (target == null || !target.Alive || Position.Distance(card.Owner.Pos, pos) > card.Def.Range)
+            var owner = card.Owner!;
+            if (!_battle.InBounds(pos) || pos == owner.Pos || Position.Distance(owner.Pos, pos) > card.Def.Range)
             {
-                Toast("請點選射程內的敵人");
+                Toast("請點選射程內的格子");
                 return;
             }
-            _pendingCard = null;
-            PlayCardAt(card, target, null);
+            PlayCardAt(card, pos, null);
         }
 
         // ------------------------------------------------------------ 單位懸停面板
@@ -565,6 +577,7 @@ namespace SanGuo.Client
                 case PlayResult.NotEnoughCost: return "費用不足";
                 case PlayResult.NoTarget: return "射程內沒有目標，無法打出（先用「移動」卡走位）";
                 case PlayResult.OutOfRange: return "超出射程或無法到達那裡";
+                case PlayResult.InvalidMover: return "這名武將現在不能移動";
                 case PlayResult.OwnerDead: return "該武將已陣亡";
                 case PlayResult.Stunned: return "該武將昏亂，無法行動";
                 case PlayResult.BattleOver: return "戰鬥已結束";
@@ -594,26 +607,42 @@ namespace SanGuo.Client
             var def = card.Def;
             if (def.Target == TargetRule.MoveDest)
             {
-                foreach (var kv in _battle.ReachableTiles(card.Owner))
-                    if (kv.Value > 0) _previewReach.Add(kv.Key);
+                if (_pendingMover != null)
+                {
+                    foreach (var kv in _battle.ReachableTiles(_pendingMover))
+                        if (kv.Value > 0) _previewReach.Add(kv.Key);
+                }
+                else
+                {
+                    // 還沒選武將：標出所有能移動的武將。
+                    foreach (var u in _battle.AliveUnits(Side.Player))
+                        if (_battle.CanMoveUnit(u)) _previewTargets.Add(u.Pos);
+                }
             }
-            else
+            else if (card.Owner != null)
             {
+                var owner = card.Owner;
                 if (def.Target == TargetRule.Enemy || def.Target == TargetRule.EnemyLowestHp || def.Target == TargetRule.AllyLowestHp)
                 {
                     for (int lane = 0; lane < _battle.Setup.Lanes; lane++)
                         for (int row = 0; row < _battle.Setup.Rows; row++)
                         {
                             var p = new Position(lane, row);
-                            if (p != card.Owner.Pos && Position.Distance(card.Owner.Pos, p) <= def.Range) _previewRange.Add(p);
+                            if (p != owner.Pos && Position.Distance(owner.Pos, p) <= def.Range) _previewRange.Add(p);
                         }
                 }
-                var targets = _battle.ResolveTargets(card.Owner, def);
-                if (targets != null)
-                    foreach (var u in targets) _previewTargets.Add(u.Pos);
-                // 單體敵人牌在等玩家點選時，所有射程內的敵人都是可選目標。
-                if (def.Target == TargetRule.Enemy && _pendingCard == card)
-                    foreach (var u in EnemiesInRange(card)) _previewTargets.Add(u.Pos);
+                // 自動選目標的牌（最低血量、全體）直接標出會中招的單位；單體敵人牌由玩家點格，只標射程。
+                if (def.Target != TargetRule.Enemy)
+                {
+                    var targets = _battle.ResolveTargets(owner, def);
+                    if (targets != null)
+                        foreach (var u in targets) _previewTargets.Add(u.Pos);
+                }
+                else
+                {
+                    foreach (var u in _battle.AliveUnits(Side.Enemy))
+                        if (Position.Distance(owner.Pos, u.Pos) <= def.Range) _previewTargets.Add(u.Pos);
+                }
             }
             RefreshTiles();
         }
@@ -650,7 +679,8 @@ namespace SanGuo.Client
             foreach (var p in _previewRange) states.Add((p, TileState.Range));
             foreach (var p in _previewReach) states.Add((p, TileState.Reach));
             foreach (var p in _previewTargets) states.Add((p, TileState.Target));
-            if (_pendingCard != null) states.Add((_pendingCard.Owner.Pos, TileState.Owner));
+            var actor = _pendingMover ?? _pendingCard?.Owner;
+            if (actor != null) states.Add((actor.Pos, TileState.Owner));
             _stage.SetTileStates(states);
         }
 
@@ -757,7 +787,7 @@ namespace SanGuo.Client
                 // 卡面插圖：出牌武將的頭像（TS6Client 美術），沒有圖就維持純色。
                 var art = new VisualElement { pickingMode = PickingMode.Ignore };
                 art.AddToClassList("card-art");
-                var portrait = HeroArt.Face(card.Owner.DefId);
+                var portrait = card.Owner != null ? HeroArt.Face(card.Owner.DefId) : null;
                 if (portrait != null) art.style.backgroundImage = new StyleBackground(portrait);
 
                 var cost = new Label(card.Def.Cost.ToString()) { pickingMode = PickingMode.Ignore };
@@ -766,13 +796,13 @@ namespace SanGuo.Client
                 if (costIcon != null) cost.style.backgroundImage = new StyleBackground(costIcon);
                 art.Add(cost);
                 art.Add(UiIcons.Icon(attack ? "damage" : heal ? "heal" : "armor", "card-tag"));
-                var owner = new Label(card.Owner.Name + (card.Owner.Alive ? "" : "（陣亡）")) { pickingMode = PickingMode.Ignore };
+                var owner = new Label(card.Owner == null ? "全隊通用" : card.Owner.Name + (card.Owner.Alive ? "" : "（陣亡）")) { pickingMode = PickingMode.Ignore };
                 owner.AddToClassList("card-owner");
                 art.Add(owner);
 
                 var name = new Label(card.Def.Name) { pickingMode = PickingMode.Ignore };
                 name.AddToClassList("card-name");
-                var target = RangeIcon.Build(card.Def, card.Owner.Stats.Move);
+                var target = RangeIcon.Build(card.Def);
                 var desc = new VisualElement { pickingMode = PickingMode.Ignore };
                 desc.AddToClassList("card-desc");
                 FillCardEffects(desc, card.Def);

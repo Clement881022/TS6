@@ -10,21 +10,26 @@ namespace SanGuo.Core
         /// 回傳 (null, null) 表示這回合沒事可做。
         /// </summary>
         /// <param name="priority">可選：出牌優先度（越大越先出，同分維持手牌順序；小於 0 = 這回合先不出）；用來模擬「照教學打」的玩家。</param>
-        public static (CardInstance? Card, Position? Dest) Pick(Battle battle, System.Func<Battle, CardInstance, int>? priority = null)
+        public static (CardInstance? Card, Position? Target, Unit? Mover) Pick(Battle battle, System.Func<Battle, CardInstance, int>? priority = null)
         {
             // 移動卡 0 費：夠不到敵人的武將先走位，再出牌。
             foreach (var move in battle.Hand.Where(c => c.Def.Target == TargetRule.MoveDest && battle.CanPlay(c) == PlayResult.Ok))
             {
-                var dest = ChooseMove(battle, move.Owner);
-                if (dest != null) return (move, dest);
+                foreach (var hero in battle.AliveUnits(Side.Player))
+                {
+                    if (hero.Protected || !battle.CanMoveUnit(hero)) continue; // 保護目標不衝鋒
+                    var dest = ChooseMove(battle, hero);
+                    if (dest != null) return (move, dest, hero);
+                }
             }
 
-            var playable = battle.Hand
-                .Where(c => c.Def.Target != TargetRule.MoveDest && battle.CanPlay(c) == PlayResult.Ok);
+            // 自動戰鬥不空放：射程內有目標才出（單體敵人牌自動挑最近者）。
+            var playable = battle.Hand.Where(c => c.Def.Target != TargetRule.MoveDest && battle.CanPlay(c) == PlayResult.Ok
+                && (c.Def.Target != TargetRule.Enemy || battle.ResolveTargets(c.Owner!, c.Def) != null));
             var card = priority == null
                 ? playable.FirstOrDefault()
                 : playable.Where(c => priority(battle, c) >= 0).OrderByDescending(c => priority(battle, c)).FirstOrDefault();
-            return (card, null);
+            return (card, null, null);
         }
 
         /// <summary>移動目的地：範圍內已有敵人就不動；否則走到離最近敵人最近的格子（同距離取步數少）。</summary>
@@ -58,9 +63,9 @@ namespace SanGuo.Core
         {
             while (battle.Result == BattleResult.Ongoing)
             {
-                var (card, dest) = Pick(battle, priority);
+                var (card, target, mover) = Pick(battle, priority);
                 if (card == null) break;
-                battle.PlayCard(card, null, dest);
+                battle.PlayCard(card, target, mover);
             }
             battle.EndTurn();
         }

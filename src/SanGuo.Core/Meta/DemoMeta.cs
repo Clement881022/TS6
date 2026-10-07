@@ -76,8 +76,8 @@ namespace SanGuo.Core.Meta
                 case "res_gold": return (35, 35);
                 case "res_exp": return (30, 35);
                 case "res_card": return (63, 63);
-                case "1-9": return (75, 85);
-                case "1-10": return (85, 85);
+                case "1-9": return (50, 50);
+                case "1-10": return (45, 45);
                 default: return (100, 100);
             }
         }
@@ -101,7 +101,7 @@ namespace SanGuo.Core.Meta
         /// </summary>
         public static BattleSetup OpenLevel(int level, ulong seed)
         {
-            var setup = DemoContent.Level(level, seed);
+            var setup = DemoContent.Level(level, seed, tutorialScale: false); // 教學關的敵人縮放不套用，強度由 EnemyScale 決定
             setup.Heroes.Clear();
             setup.FormationLocked = false;
             setup.NoRandomness = false;

@@ -159,7 +159,7 @@ public sealed class ServerApiTests : IDisposable
         return rec.Actions.Select(a => (object)new
         {
             kind = a.Kind == SanGuo.Core.Data.ReplayActionKind.Play ? "play" : "end",
-            cardId = a.CardId, targetId = a.TargetId, lane = a.Lane, row = a.Row,
+            cardId = a.CardId, unitId = a.UnitId, lane = a.Lane, row = a.Row,
         }).ToList();
     }
 

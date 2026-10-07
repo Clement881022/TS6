@@ -128,19 +128,54 @@ namespace SanGuo.Core.Tests
             Assert.Equal("near", auto[0].Name);
 
             var far = EnemyUnit(battle, "far");
-            Assert.Null(battle.ResolveTargets(hero, def, far));                      // 指定射程外的目標：不可
-            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(FirstCard(battle), far));
-            Assert.Equal(PlayResult.Ok, battle.PlayCard(FirstCard(battle), EnemyUnit(battle, "near")));
+            Assert.Null(battle.ResolveTargets(hero, def, far.Pos));                  // 指定射程外的格子：不可
+            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(FirstCard(battle), far.Pos));
+            Assert.Equal(PlayResult.Ok, battle.PlayCard(FirstCard(battle), EnemyUnit(battle, "near").Pos));
         }
 
         [Fact]
-        public void Target_NoEnemyInRange_CannotPlay()
+        public void Attack_CanBeCastOnAnEmptyTileInRange_HittingNothing()
+        {
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack(range: 2) }), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 500), new Position(2, 2)));
+            var battle = new Battle(setup);
+            var card = FirstCard(battle);
+
+            Assert.Equal(PlayResult.Ok, battle.CanPlay(card));
+            Assert.Equal(PlayResult.Ok, battle.PlayCard(card, new Position(0, 3)));   // 距離 2 的空格：空放
+            Assert.Equal(500, EnemyUnit(battle, "e").Hp);
+            Assert.Equal(2, battle.Cost);                                              // 照樣扣費
+            Assert.Contains(card, battle.DiscardPile);
+        }
+
+        [Fact]
+        public void Attack_AreaShapeCentersOnChosenTile_EvenIfEmpty()
+        {
+            var cleave = Attack(shape: Shape.Row, range: 3);
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { cleave }, atk: 100), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("a", hp: 500), new Position(0, 2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("b", hp: 500), new Position(4, 2)));
+            var battle = new Battle(setup);
+            // 點中間的空格（2,2）：整排都被波及，兩名敵人都中招。
+            Assert.Equal(PlayResult.Ok, battle.PlayCard(FirstCard(battle), new Position(2, 2)));
+            Assert.True(EnemyUnit(battle, "a").Hp < 500);
+            Assert.True(EnemyUnit(battle, "b").Hp < 500);
+        }
+
+        [Fact]
+        public void Target_NoEnemyInRange_AutoPickFails_ButCardStaysPlayable()
         {
             var setup = new BattleSetup();
             setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack(range: 1) }), PH(2)));
             setup.Enemies.Add(new EnemySlot(Enemy("e"), PE(2)));                     // 距離 2
             var battle = new Battle(setup);
-            Assert.Equal(PlayResult.NoTarget, battle.CanPlay(FirstCard(battle)));
+            var card = FirstCard(battle);
+            Assert.Equal(PlayResult.Ok, battle.CanPlay(card));                       // 可以空放
+            Assert.Equal(PlayResult.NoTarget, battle.PlayCard(card));                 // 但沒指定格子、自動也找不到目標
+            var auto = AutoPlayer.Pick(battle).Card;                                  // 自動戰鬥不空放攻擊：最多只會用移動卡靠近
+            Assert.True(auto == null || auto.Def.Target == TargetRule.MoveDest);
         }
 
         [Fact]
@@ -180,12 +215,12 @@ namespace SanGuo.Core.Tests
             setup.Heroes.Add(new HeroSlot(Hero("H", deck, hp: 99999), PH(0)));
             setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), PE(4, 0)));
             var battle = new Battle(setup);
-            Assert.Equal(5, battle.Hand.Count);
-            Assert.Equal(16, battle.DrawPile.Count);
+            Assert.Equal(7, battle.Hand.Count);                // 首回合抽 7 張
+            Assert.Equal(14, battle.DrawPile.Count);
 
-            battle.EndTurn();                       // 手牌不棄：5 + 3
-            Assert.Equal(8, battle.Hand.Count);
-            battle.EndTurn();                       // 8 + 3 → 受手牌上限 10 限制
+            battle.EndTurn();                       // 手牌不棄：7 + 3 = 10（每回合抽 3）
+            Assert.Equal(Battle.MaxHandSize, battle.Hand.Count);
+            battle.EndTurn();                       // 已滿 10：不再抽
             Assert.Equal(Battle.MaxHandSize, battle.Hand.Count);
             Assert.Empty(battle.DiscardPile);
         }
@@ -198,7 +233,7 @@ namespace SanGuo.Core.Tests
             setup.Heroes.Add(new HeroSlot(Hero("H", deck, hp: 99999), PH(2)));
             setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), new Position(2, 2)));
             var battle = new Battle(setup);
-            Assert.Equal(5, battle.Hand.Count);
+            Assert.Equal(5, battle.Hand.Count);                // 4 張 + 1 張移動卡，牌堆已空
             Assert.Empty(battle.DrawPile);
 
             battle.PlayCard(FirstCard(battle));
@@ -356,7 +391,7 @@ namespace SanGuo.Core.Tests
             setup.Heroes.Add(new HeroSlot(Hero("B", new[] { Attack("b") }), PH(3)));
             setup.Enemies.Add(new EnemySlot(Enemy("e", atk: 999, hp: 99999), new Position(1, 2)));
             var battle = new Battle(setup);
-            var cardA = battle.Hand.First(c => c.Owner.Name == "A" && c.Def.Id == "a");
+            var cardA = battle.Hand.First(c => c.Owner?.Name == "A" && c.Def.Id == "a");
 
             battle.EndTurn(); // 敵人殺死 A
             Assert.False(battle.Units[0].Alive);
@@ -400,7 +435,7 @@ namespace SanGuo.Core.Tests
         // ---- 移動卡 ----
 
         [Fact]
-        public void MoveCard_OnePerHeroWithCards_ZeroCost()
+        public void MoveCard_OnePerHeroWithCards_ZeroCost_AndGeneric()
         {
             var setup = new BattleSetup();
             setup.Heroes.Add(new HeroSlot(Hero("A", Enumerable.Range(0, 8).Select(i => Attack("a" + i)), hp: 99999), PH(1)));
@@ -412,7 +447,7 @@ namespace SanGuo.Core.Tests
             var moves = battle.Hand.Concat(battle.DrawPile).Where(c => c.Def.Target == TargetRule.MoveDest).ToList();
             Assert.Equal(2, moves.Count);
             Assert.All(moves, c => Assert.Equal(0, c.Def.Cost));
-            Assert.Equal(new[] { "A", "B" }, moves.Select(c => c.Owner.Name).OrderBy(n => n).ToArray());
+            Assert.All(moves, c => Assert.Null(c.Owner));                            // 通用卡：不屬於任何武將
         }
 
         private static (Battle, Unit, CardInstance) MoveBattle(int move, Position heroPos, params (string, Position)[] others)
@@ -429,9 +464,10 @@ namespace SanGuo.Core.Tests
         public void MoveCard_MovesWithinMoveRange_AndCostsNothing()
         {
             var (battle, hero, card) = MoveBattle(2, PH(2), ("e", PE(0, 0)));
-            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(card, null, new Position(2, 0)));   // 3 格，超過移動力 2
+            Assert.Equal(PlayResult.InvalidMover, battle.PlayCard(card, new Position(2, 2)));        // 通用卡必須指定武將
+            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(card, new Position(2, 0), hero));    // 3 格，超過移動力 2
             Assert.Equal(3, battle.Cost);
-            Assert.Equal(PlayResult.Ok, battle.PlayCard(card, null, new Position(2, 1)));
+            Assert.Equal(PlayResult.Ok, battle.PlayCard(card, new Position(2, 1), hero));
             Assert.Equal(new Position(2, 1), hero.Pos);
             Assert.Same(hero, battle.UnitAt(new Position(2, 1)));
             Assert.Null(battle.UnitAt(new Position(2, 3)));
@@ -443,22 +479,32 @@ namespace SanGuo.Core.Tests
         public void MoveCard_NeedsDestination_AndCannotLandOnOrPassThroughUnits()
         {
             var (battle, hero, card) = MoveBattle(2, PH(2), ("wall", new Position(2, 2)));
-            Assert.Equal(PlayResult.NoTarget, battle.PlayCard(card));                                // 沒給目的地
-            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(card, null, new Position(2, 2)));    // 不能停在單位上
-            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(card, null, new Position(2, 1)));    // 直線被擋，繞路要 4 步
-            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(card, null, hero.Pos));              // 原地不算移動
-            Assert.Equal(PlayResult.Ok, battle.PlayCard(card, null, new Position(1, 2)));
+            Assert.Equal(PlayResult.NoTarget, battle.PlayCard(card, null, hero));                    // 沒給目的地
+            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(card, new Position(2, 2), hero));    // 不能停在單位上
+            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(card, new Position(2, 1), hero));    // 直線被擋，繞路要 4 步
+            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(card, hero.Pos, hero));              // 原地不算移動
+            Assert.Equal(PlayResult.Ok, battle.PlayCard(card, new Position(1, 2), hero));
         }
 
         [Fact]
-        public void MoveCard_BlockedByStunOrDeath()
+        public void MoveCard_AnyHeroCanBeChosen_ButNotStunnedOrDeadOnes()
         {
-            var (battle, hero, card) = MoveBattle(2, PH(2), ("e", PE(0, 0)));
-            hero.Statuses[StatusType.Stun] = new StatusState { Turns = 1 };
-            Assert.Equal(PlayResult.Stunned, battle.CanPlay(card));
-            hero.Statuses.Clear();
-            hero.Alive = false;
-            Assert.Equal(PlayResult.OwnerDead, battle.CanPlay(card));
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("A", new[] { Attack() }, move: 1), PH(1)));
+            setup.Heroes.Add(new HeroSlot(Hero("B", new[] { Attack() }, move: 1), PH(3)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), PE(2)));
+            var battle = new Battle(setup);
+            var a = battle.Units[0];
+            var b = battle.Units[1];
+            var card = battle.Hand.First(c => c.Def.Target == TargetRule.MoveDest);   // 兩張通用卡任選一張
+
+            a.Statuses[StatusType.Stun] = new StatusState { Turns = 1 };
+            Assert.Equal(PlayResult.InvalidMover, battle.PlayCard(card, new Position(1, 2), a));   // 昏亂的不能移動
+            b.Alive = false;
+            Assert.Equal(PlayResult.NoTarget, battle.PlayCard(card, new Position(3, 2), b));        // 陣亡 + 昏亂 = 沒人能動，整張牌不可打
+            a.Statuses.Clear();
+            Assert.Equal(PlayResult.Ok, battle.PlayCard(card, new Position(1, 2), a));
+            Assert.Equal(new Position(1, 2), a.Pos);
         }
 
         [Fact]

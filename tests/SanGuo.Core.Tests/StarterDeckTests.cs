@@ -117,10 +117,10 @@ namespace SanGuo.Core.Tests
             var pierce = Card(b, "破甲箭");
             ToHand(b, pierce);
 
-            Assert.Equal("back", b.ResolveTargets(pierce.Owner, pierce.Def)!.Single().Name); // 沒指定 → 最近者
-            Assert.Equal("front", b.ResolveTargets(pierce.Owner, pierce.Def, Enemy(b, "front"))!.Single().Name);
+            Assert.Equal("back", b.ResolveTargets(pierce.Owner!, pierce.Def)!.Single().Name); // 沒指定 → 最近者
+            Assert.Equal("front", b.ResolveTargets(pierce.Owner!, pierce.Def, Enemy(b, "front").Pos)!.Single().Name);
 
-            Assert.Equal(PlayResult.Ok, b.PlayCard(pierce, Enemy(b, "front")));
+            Assert.Equal(PlayResult.Ok, b.PlayCard(pierce, Enemy(b, "front").Pos));
             Assert.Single(Enemy(b, "front").DefBreaks);
             Assert.Empty(Enemy(b, "back").DefBreaks);
             Assert.True(Enemy(b, "front").Hp < 1000);
@@ -131,7 +131,7 @@ namespace SanGuo.Core.Tests
         {
             var b = Fight(Hero(Role.Tank, def: 100), Foe("e", 2, 2, atk: 100));
             var stance = Card(b, "防禦姿態");
-            var tank = stance.Owner;
+            var tank = stance.Owner!;
             Assert.Equal(100, tank.EffectiveDef);
 
             ToHand(b, stance);
@@ -151,7 +151,7 @@ namespace SanGuo.Core.Tests
             var b = Fight(Hero(Role.Tank, def: 100), Foe("e", 2, 2));
             var taunt = Card(b, "嘲諷");
             var stance = Card(b, "防禦姿態");
-            var tank = taunt.Owner;
+            var tank = taunt.Owner!;
             ToHand(b, taunt); ToHand(b, stance);
 
             b.PlayCard(taunt);
@@ -238,8 +238,9 @@ namespace SanGuo.Core.Tests
             var pierce = rec.Battle.Hand.First(c => c.Def.Name == "破甲箭");
             var front = Enemy(rec.Battle, "front");
 
-            Assert.Equal(PlayResult.Ok, rec.Play(pierce, front));
-            Assert.Equal(front.Id, rec.Actions.Single().TargetId);
+            Assert.Equal(PlayResult.Ok, rec.Play(pierce, front.Pos));
+            Assert.Equal(front.Pos.Lane, rec.Actions.Single().Lane);
+            Assert.Equal(front.Pos.Row, rec.Actions.Single().Row);
 
             var result = Data.ReplayVerifier.Verify(PierceSetup(), rec.Actions);
             Assert.True(result.Valid, result.Error);
@@ -251,7 +252,7 @@ namespace SanGuo.Core.Tests
         public void Replay_RejectsAnInvalidChosenTarget()
         {
             var pierce = new Battle(PierceSetup()).Hand.First(c => c.Def.Name == "破甲箭");
-            var bad = new[] { Data.ReplayAction.Play(pierce.Id, targetId: 0) }; // 0 號是我方武將
+            var bad = new[] { Data.ReplayAction.Play(pierce.Id, lane: 9, row: 9) }; // 場外的格子
             Assert.False(Data.ReplayVerifier.Verify(PierceSetup(), bad).Valid);
         }
 

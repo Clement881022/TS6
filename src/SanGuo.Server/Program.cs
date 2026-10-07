@@ -52,7 +52,7 @@ app.MapPost("/stage/finish", (HttpRequest req, GameService g, FinishRequest body
     {
         switch (d.Kind)
         {
-            case "play": actions.Add(ReplayAction.Play(d.CardId, d.TargetId, d.Lane, d.Row)); break;
+            case "play": actions.Add(ReplayAction.Play(d.CardId, d.Lane, d.Row, d.UnitId)); break;
             case "end": actions.Add(ReplayAction.EndTurn()); break;
             default: return Task.FromResult(Respond(ApiResult.Fail("bad_action")));
         }
@@ -86,7 +86,7 @@ app.Run();
 public sealed record PullRequest(string PoolId, int Count);
 public sealed record FormationEntryDto(string HeroId, int Lane, int Row);
 public sealed record StageRequest(string StageId, List<FormationEntryDto>? Formation = null);
-public sealed record ReplayActionDto(string Kind, int CardId = 0, int UnitId = 0, int Lane = -1, int Row = -1, int TargetId = -1);
+public sealed record ReplayActionDto(string Kind, int CardId = 0, int UnitId = -1, int Lane = -1, int Row = -1);
 public sealed record FinishRequest(string StageId, List<ReplayActionDto>? Actions);
 public sealed record HeroRequest(string HeroId);
 public sealed record EnhanceRequest(string HeroId, string CardId);
