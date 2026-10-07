@@ -43,6 +43,7 @@ namespace SanGuo.Client
             AddSheet(_root, "UI/Battle");
             AddSheet(_root, "UI/Pages");
             AddSheet(_root, "UI/Theme");
+            AddSheet(_root, "UI/Tutorial");
             ApplyCjkFont(_root);
 
             Show(startPage);

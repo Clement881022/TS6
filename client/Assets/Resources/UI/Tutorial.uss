@@ -1,0 +1,14 @@
+/* ---- 新手引導彈窗（Tutorial.cs） ---- */
+.tut-overlay { background-color: rgba(4, 6, 12, 0.78); }
+.tut-card {
+    width: 900px;
+    padding: 40px 48px;
+    background-color: rgb(24, 34, 58);
+    border-width: 3px;
+    border-color: rgb(120, 170, 240);
+    border-radius: 20px;
+}
+.tut-title { font-size: 48px; -unity-font-style: bold; color: rgb(255, 224, 140); margin-bottom: 24px; -unity-text-align: middle-center; }
+.tut-body { font-size: 34px; color: rgb(235, 238, 248); white-space: normal; min-height: 150px; }
+.tut-step { font-size: 24px; color: rgb(160, 170, 195); -unity-text-align: middle-center; margin-top: 12px; }
+.tut-buttons { flex-direction: row; justify-content: center; margin-top: 20px; }
