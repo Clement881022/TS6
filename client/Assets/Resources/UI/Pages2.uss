@@ -1,0 +1,273 @@
+/* 非戰鬥頁面第二版：版型參考 TS6Client 設計稿（左上返回 + 金字標題、右上資源與關閉、藍色漸層底、直立武將卡）。
+   在 Theme.uss 之後載入；沿用其按鈕 / 分頁貼圖，這裡定義新框架與新元件。 */
+
+.page-host { background-color: rgb(30, 78, 168); -unity-background-scale-mode: scale-and-crop; }
+.page-host.bg-heroes, .page-host.bg-quests, .page-host.bg-formation, .page-host.bg-dungeons {
+    -unity-background-image-tint-color: rgb(222, 232, 255);
+}
+
+/* ---- 標題列 ---- */
+.hdr {
+    flex-direction: row;
+    align-items: center;
+    height: 84px;
+    flex-shrink: 0;
+    padding: 0 22px 0 18px;
+    background-color: rgba(14, 40, 100, 0.92);
+    border-bottom-width: 3px;
+    border-bottom-color: rgb(214, 186, 120);
+}
+.hdr-back {
+    width: 62px; height: 62px;
+    margin: 0 16px 0 0; padding: 0;
+    border-width: 0;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("../UiSkin/circle_cyan.png");
+    -unity-background-scale-mode: scale-to-fit;
+}
+.hdr-back:hover { background-color: rgba(0, 0, 0, 0); scale: 1.08 1.08; }
+.hdr-title {
+    font-size: 50px; -unity-font-style: bold;
+    color: rgb(255, 238, 190);
+    -unity-text-outline-width: 2px; -unity-text-outline-color: rgb(70, 46, 8);
+}
+.hdr-res { flex-direction: row; align-items: center; margin-right: 12px; }
+.hdr-close {
+    width: 58px; height: 58px; margin: 0; padding: 0; border-width: 0;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("../UiSkin/btn_close.png");
+    -unity-background-scale-mode: scale-to-fit;
+}
+.hdr-close:hover { background-color: rgba(0, 0, 0, 0); scale: 1.1 1.1; }
+
+.res-pill {
+    flex-direction: row; align-items: center;
+    margin-left: 14px;
+    padding: 4px 22px 4px 6px;
+    border-radius: 24px;
+    background-color: rgba(8, 24, 70, 0.85);
+}
+.res-pill-icon { width: 42px; height: 42px; margin-right: 8px; -unity-background-scale-mode: scale-to-fit; }
+.res-pill-text { font-size: 28px; -unity-font-style: bold; color: white; }
+
+.page-content { flex-grow: 1; flex-direction: row; position: relative; }
+
+/* ---- 物品 / 星星 ---- */
+.item-tile {
+    width: 92px; height: 92px; margin: 5px;
+    border-radius: 12px; border-width: 3px; border-color: rgb(214, 186, 120);
+    background-color: rgba(8, 20, 56, 0.8);
+    -unity-background-scale-mode: scale-to-fit;
+}
+.item-count { position: absolute; right: 2px; bottom: 2px; padding: 0 7px; border-radius: 9px; font-size: 24px; -unity-font-style: bold; color: white; background-color: rgba(6, 16, 48, 0.88); }
+.stars-row { flex-direction: row; }
+.star { width: 26px; height: 26px; -unity-background-scale-mode: scale-to-fit; }
+.stars-lg .star { width: 52px; height: 52px; margin: 0 3px; }
+
+/* ---- 直立武將卡 ---- */
+.htile {
+    width: 138px; height: 184px;
+    margin: 6px;
+    padding: 0;
+    border-radius: 12px;
+    border-width: 4px;
+    border-color: rgb(76, 140, 226);
+    background-color: rgb(14, 30, 72);
+    overflow: hidden;
+    transition: scale 120ms ease-out;
+}
+.htile:hover { scale: 1.05 1.05; background-color: rgb(14, 30, 72); }
+.htile-sr { border-color: rgb(176, 108, 244); }
+.htile-ur { border-color: rgb(255, 196, 70); }
+.htile-on { border-color: white; }
+.htile-art { position: absolute; left: 0; right: 0; top: 0; bottom: 0; -unity-background-scale-mode: scale-and-crop; align-items: center; justify-content: center; }
+.htile-stars { position: absolute; left: 4px; top: 4px; }
+.htile-stars .star { width: 20px; height: 20px; }
+.htile-role { position: absolute; right: 4px; top: 4px; width: 34px; height: 34px; border-radius: 6px; background-color: rgba(190, 50, 40, 0.92); -unity-background-scale-mode: scale-to-fit; }
+.htile-level { position: absolute; right: 6px; bottom: 2px; font-size: 34px; -unity-font-style: bold; color: white; -unity-text-outline-width: 3px; -unity-text-outline-color: rgb(10, 20, 50); }
+.htile-name { position: absolute; left: 0; right: 0; bottom: 0; padding: 2px 52px 2px 6px; font-size: 21px; -unity-font-style: bold; color: white; background-color: rgba(8, 18, 50, 0.72); -unity-text-align: middle-left; white-space: nowrap; }
+
+/* ---- 藍色面板 ---- */
+.bpanel {
+    padding: 16px 18px;
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgb(96, 142, 226);
+    background-color: rgba(14, 38, 98, 0.9);
+}
+.bpanel-title { font-size: 30px; -unity-font-style: bold; color: rgb(255, 232, 170); -unity-text-align: middle-center; margin-bottom: 6px; }
+
+/* ---- 武將頁 ---- */
+.hero-left { width: 480px; flex-shrink: 0; padding: 14px 8px 8px 18px; }
+.hero-grid { flex-direction: row; flex-wrap: wrap; align-content: flex-start; padding-bottom: 20px; }
+.hero-center { flex-grow: 1; align-items: center; justify-content: flex-end; position: relative; }
+.hero-emblem { position: absolute; left: 50%; top: 12%; width: 540px; height: 540px; translate: -50% 0; border-radius: 270px; border-width: 5px; border-color: rgba(190, 220, 255, 0.35); background-color: rgba(120, 170, 255, 0.10); }
+.hero-model { position: absolute; left: 50%; top: 2%; width: 600px; height: 690px; translate: -50% 0; -unity-background-scale-mode: scale-to-fit; }
+.hero-namebar {
+    position: absolute; left: 0; right: 0; top: 10px;
+    margin: 0 40px;
+    flex-direction: row; align-items: center; justify-content: center;
+    padding: 6px 16px;
+    background-color: rgba(10, 30, 84, 0.85);
+    border-radius: 10px;
+}
+.hero-namebar-name { font-size: 40px; -unity-font-style: bold; color: white; margin: 0 14px; }
+.hero-stats {
+    width: 460px;
+    margin: 0 0 12px 0;
+    padding: 12px 22px;
+    border-radius: 12px;
+    border-width: 2px; border-color: rgb(96, 142, 226);
+    background-color: rgba(10, 30, 84, 0.9);
+}
+.stat-line { flex-direction: row; justify-content: space-between; margin: 3px 0; }
+.stat-line-name { font-size: 28px; color: rgb(214, 226, 252); }
+.stat-line-val { font-size: 30px; -unity-font-style: bold; color: white; }
+.hero-actionbar { margin: 0 0 14px 0; align-items: center; }
+.hero-right { width: 440px; flex-shrink: 0; padding: 14px 18px 8px 8px; }
+.side-tab { margin: 0 0 12px 0; }
+.page-host .side-tab, .page-host .side-tab:hover {
+    min-height: 84px;
+    margin: 0 0 12px 0;
+    font-size: 32px;
+}
+.side-panel { flex-grow: 1; }
+.side-row { margin: 8px 0; }
+.line-title { font-size: 27px; color: white; }
+.line-sub { font-size: 22px; color: rgb(184, 204, 244); white-space: normal; }
+.cost-chip { flex-direction: row; align-items: center; }
+.cost-chip .item-tile { width: 40px; height: 40px; margin: 0 6px 0 0; border-width: 0; background-color: rgba(0, 0, 0, 0); }
+.cost-chip-text { font-size: 26px; -unity-font-style: bold; color: white; margin-right: 14px; }
+.cost-chip-bad .cost-chip-text { color: rgb(255, 130, 110); }
+
+.hdr-back-icon { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background-image: url("../UiSkin/back.png"); -unity-background-scale-mode: scale-to-fit; margin: 14px; }
+
+/* ---- 招募 ---- */
+.gacha-page { flex-direction: column; align-items: center; }
+.gacha-tabs { flex-direction: row; justify-content: center; margin: 14px 0 6px 0; }
+.gacha-stage { flex-direction: row; align-items: center; justify-content: center; flex-grow: 1; padding: 0 30px; }
+.gacha-showcase { flex-direction: row; align-items: flex-end; margin-right: 40px; }
+.gacha-card {
+    width: 230px; height: 360px; margin: 0 -10px;
+    border-radius: 16px; border-width: 5px; border-color: rgb(255, 196, 70);
+    background-color: rgb(14, 30, 72);
+    -unity-background-scale-mode: scale-and-crop;
+}
+.gacha-card-main { width: 290px; height: 450px; margin: 0 -6px; z-index: 2; }
+.gacha-card-name { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 10px; font-size: 30px; -unity-font-style: bold; color: white; background-color: rgba(8, 18, 50, 0.78); -unity-text-align: middle-center; }
+.gacha-info { width: 540px; padding: 20px 26px; }
+.gacha-actions { flex-direction: row; justify-content: center; margin: 0 0 18px 0; }
+.gacha-actions .btn { min-width: 300px; min-height: 96px; font-size: 34px; margin: 0 14px; }
+.gacha-cost { flex-direction: row; align-items: center; justify-content: center; }
+.gacha-cost .item-tile { width: 44px; height: 44px; margin: 0 6px 0 0; border-width: 0; background-color: rgba(0, 0, 0, 0); }
+
+/* 結果展示（全螢幕） */
+.pull-overlay {
+    position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+    align-items: center; justify-content: center;
+    background-color: rgb(16, 46, 120);
+}
+.pull-ring { position: absolute; width: 760px; height: 760px; border-radius: 380px; border-width: 6px; border-color: rgba(190, 220, 255, 0.22); background-color: rgba(120, 170, 255, 0.08); }
+.pull-title { font-size: 56px; -unity-font-style: bold; color: rgb(255, 238, 190); margin-bottom: 14px; -unity-text-outline-width: 2px; -unity-text-outline-color: rgb(70, 46, 8); }
+.pull-rows { align-items: center; }
+.pull-row2 { flex-direction: row; justify-content: center; }
+.htile-lg { width: 190px; height: 262px; margin: 8px 10px; }
+.htile-lg .htile-name { font-size: 26px; padding: 4px 8px; -unity-text-align: middle-center; }
+.htile-lg .htile-stars .star { width: 24px; height: 24px; }
+.htile-lg .htile-role { width: 40px; height: 40px; }
+.pop-hidden { opacity: 0; scale: 0.3 0.3; }
+.pop { transition: opacity 260ms ease-out, scale 360ms ease-out; }
+.pull-tag { position: absolute; left: 6px; top: 30px; padding: 0 10px; border-radius: 10px; font-size: 22px; -unity-font-style: bold; color: white; background-color: rgb(204, 62, 56); }
+.pull-ur { border-color: rgb(255, 224, 110); border-width: 6px; }
+.pull-buttons { flex-direction: row; justify-content: center; margin-top: 18px; }
+.pull-buttons .btn { min-width: 260px; min-height: 92px; font-size: 32px; margin: 0 14px; }
+
+/* ---- 地圖 ---- */
+.map-area { flex-grow: 1; position: relative; margin: 8px 24px 0 24px; }
+.mnode-dot { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 7px; background-color: rgba(255, 244, 214, 0.75); border-width: 2px; border-color: rgba(90, 60, 20, 0.6); }
+.mnode-holder { position: absolute; width: 150px; margin-left: -75px; margin-top: -45px; align-items: center; }
+.mnode {
+    width: 92px; height: 92px; margin: 0; padding: 0;
+    border-radius: 46px; border-width: 5px;
+    align-items: center; justify-content: center;
+    transition: scale 120ms ease-out;
+}
+.mnode:hover { scale: 1.1 1.1; }
+.mnode-open { background-color: rgb(206, 72, 56); border-color: rgb(255, 232, 170); }
+.mnode-open:hover { background-color: rgb(228, 92, 70); }
+.mnode-current { border-color: rgb(255, 255, 255); }
+.mnode-clear { background-color: rgb(52, 140, 98); border-color: rgb(196, 244, 214); }
+.mnode-lock { background-color: rgb(70, 76, 96); border-color: rgb(130, 138, 160); }
+.mnode-boss { width: 118px; height: 118px; border-radius: 59px; border-color: rgb(255, 210, 90); }
+.mnode-num { font-size: 44px; -unity-font-style: bold; color: white; -unity-text-outline-width: 2px; -unity-text-outline-color: rgba(60, 20, 10, 0.7); }
+.mnode-lockicon { width: 44px; height: 44px; background-image: url("../UiSkin/lock.png"); -unity-background-scale-mode: scale-to-fit; }
+.mnode-stars { margin-top: 2px; }
+.mnode-stars .star { width: 28px; height: 28px; }
+.mnode-plate { margin-top: 4px; padding: 3px 12px; border-radius: 10px; font-size: 24px; -unity-font-style: bold; color: white; background-color: rgba(12, 30, 80, 0.88); white-space: nowrap; }
+.mnode-plate-dim { color: rgb(170, 184, 214); background-color: rgba(30, 40, 66, 0.82); }
+.map-info { margin: 0 24px 12px 24px; padding: 8px 20px; border-radius: 10px; background-color: rgba(12, 30, 80, 0.85); }
+
+/* 關卡面板 */
+.stage-panel { width: 920px; padding: 20px 28px 22px 28px; }
+.stage-head { flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.stage-title { font-size: 44px; -unity-font-style: bold; color: rgb(255, 238, 190); }
+.stage-cols { flex-direction: row; }
+.stage-col { flex-grow: 1; flex-basis: 0; margin-right: 18px; }
+.stage-tiles { flex-direction: row; flex-wrap: wrap; }
+.item-first { border-color: rgb(255, 120, 90); }
+.stage-cost { margin: 10px 0 4px 0; }
+.stage-buttons { flex-direction: row; justify-content: center; margin-top: 12px; }
+.stage-buttons .btn { min-width: 190px; min-height: 84px; font-size: 30px; margin: 0 8px; }
+
+/* ---- 編隊 ---- */
+.form-strip { flex-direction: row; align-items: center; margin: 10px 24px 0 24px; padding: 6px 20px; border-radius: 10px; background-color: rgba(12, 30, 80, 0.88); }
+.form-strip-label { font-size: 26px; color: rgb(184, 204, 244); margin-right: 16px; }
+.form-hint { margin: 8px 24px 0 24px; width: auto; max-width: none; }
+.form-main { flex-direction: row; flex-grow: 1; margin: 8px 24px 0 24px; }
+.form-board { flex-shrink: 0; margin-right: 16px; padding: 12px 14px; }
+.form-bench { flex-grow: 1; flex-basis: 0; }
+.htile-sm { width: 150px; height: 200px; margin: 6px 5px; }
+.htile-sm .htile-name { font-size: 20px; }
+.htile-sm .htile-stars { display: none; }
+.slot-empty { width: 150px; height: 200px; margin: 6px 5px; padding: 0; align-items: center; justify-content: center; border-radius: 12px; border-width: 3px; border-color: rgba(150, 190, 255, 0.45); background-color: rgba(8, 24, 70, 0.55); }
+.slot-empty:hover { background-color: rgba(40, 80, 170, 0.6); border-color: white; }
+.slot-plus { font-size: 60px; color: rgba(190, 214, 255, 0.7); }
+.form-buttons { flex-direction: row; justify-content: center; margin: 8px 0 12px 0; }
+
+/* ---- 副本 / 商店：直立大卡 ---- */
+.dun-row { flex-direction: row; justify-content: center; align-items: flex-start; flex-grow: 1; margin: 6px 24px 14px 24px; }
+.dun-card, .shop-card {
+    width: 470px; margin: 8px 12px; padding: 0 0 14px 0;
+    border-radius: 16px; border-width: 3px; border-color: rgb(120, 168, 244);
+    background-color: rgba(12, 34, 90, 0.92);
+    overflow: hidden;
+    align-items: stretch;
+}
+.dun-closed { opacity: 0.8; }
+.dun-head, .shop-head { padding: 10px 14px; background-color: rgb(40, 96, 200); align-items: center; }
+.dun-name, .shop-name { font-size: 36px; -unity-font-style: bold; color: white; }
+.dun-art, .shop-art { height: 190px; align-items: center; justify-content: center; background-color: rgba(60, 120, 220, 0.28); }
+.dun-reward { justify-content: center; }
+.dun-reward .item-tile, .shop-icon { width: 128px; height: 128px; border-width: 4px; }
+.dun-center { -unity-text-align: middle-center; margin: 4px 14px; }
+.dun-cost { justify-content: center; margin: 6px 0; }
+.dun-buttons { flex-direction: row; flex-wrap: wrap; justify-content: center; margin-top: 8px; padding: 0 8px; }
+.dun-buttons .btn { min-width: 150px; margin: 4px; }
+.shop-card-gold { border-color: rgb(255, 196, 70); }
+.shop-card-gold .shop-head { background-color: rgb(210, 140, 30); }
+.shop-card-purple { border-color: rgb(176, 108, 244); }
+.shop-card-purple .shop-head { background-color: rgb(120, 70, 190); }
+.shop-tiers { flex-direction: row; flex-wrap: wrap; justify-content: center; padding: 0 8px; }
+.shop-tier-btn { min-width: 190px; }
+.reward-tiles { flex-direction: row; flex-wrap: wrap; }
+
+/* ---- 任務 ---- */
+.quest-side { width: 250px; flex-shrink: 0; padding: 18px 0 0 22px; }
+.quest-main { flex-grow: 1; padding: 14px 24px 8px 14px; }
+.quest-ms { margin-bottom: 8px; padding: 10px 16px; }
+.quest-ms .tier { width: 200px; }
+.quest-grid { flex-direction: row; flex-wrap: wrap; align-content: flex-start; }
+.quest-card2 { width: 48%; margin: 0 1% 12px 1%; flex-grow: 0; min-height: 230px; }
+.quest-bottom { flex-direction: row; align-items: center; margin: 6px 0; }
+.quest-done2 { border-color: rgb(255, 214, 120); background-color: rgba(70, 60, 30, 0.88); }
+.quest-claimed2 { opacity: 0.6; }

@@ -4,16 +4,18 @@ using System.Linq;
 using System.Threading.Tasks;
 using SanGuo.Core;
 using SanGuo.Core.Meta;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>招募：卡池切換、機率公示、保底資訊、單抽 / 十連與本次結果。</summary>
+    /// <summary>招募：卡池分頁、卡池主打武將展示、機率與保底、單抽 / 十連；結果以全螢幕卡片依序彈出。</summary>
     public sealed class GachaPage : PageBase
     {
         private readonly List<GachaPool> _pools = DemoMeta.Pools();
         private string _poolId = DemoMeta.NewbiePoolId;
         private List<PullResult>? _last;
+        private int _lastCount = 10;
 
         protected override Page Id => Page.Gacha;
         protected override string Title => "招募";
@@ -21,25 +23,50 @@ namespace SanGuo.Client
         /// <summary>截圖 / 除錯用：直接抽一次十連。</summary>
         public Task DebugTenPull() => Pull(10);
 
-        private string NameOf(string heroId) => GameSession.DefOf(heroId)?.Name ?? heroId;
+        private HeroDef? DefOf(string heroId) => GameSession.DefOf(heroId);
 
         protected override void BuildBody(VisualElement body)
         {
+            var page = new VisualElement();
+            page.AddToClassList("gacha-page");
+            page.AddToClassList("grow");
+            body.Add(page);
+
+            var current = _pools.Find(p => p.Id == _poolId) ?? _pools[0];
+            GameSession.View.Pools.TryGetValue(current.Id, out var state);
+
             var tabs = new VisualElement();
-            tabs.AddToClassList("tabs");
+            tabs.AddToClassList("gacha-tabs");
             foreach (var p in _pools)
             {
                 var pool = p;
                 tabs.Add(UiKit.Tab(pool.Name, () => { _poolId = pool.Id; _last = null; Rebuild(); }, pool.Id == _poolId));
             }
-            body.Add(tabs);
+            page.Add(tabs);
 
-            var current = _pools.Find(p => p.Id == _poolId) ?? _pools[0];
-            GameSession.View.Pools.TryGetValue(current.Id, out var state);
+            // ---- 中央：主打武將展示 + 機率資訊 ----
+            var stage = new VisualElement();
+            stage.AddToClassList("gacha-stage");
+            var showcase = new VisualElement();
+            showcase.AddToClassList("gacha-showcase");
+            var heroes = current.UrHeroes.Select(DefOf).Where(d => d != null).Take(3).ToList();
+            for (int i = 0; i < heroes.Count; i++)
+            {
+                var d = heroes[i]!;
+                var card = new VisualElement { pickingMode = PickingMode.Ignore };
+                card.AddToClassList("gacha-card");
+                if (i == 0) card.AddToClassList("gacha-card-main");
+                var tex = HeroArt.Full(d.Id) ?? HeroArt.Face(d.Id);
+                if (tex != null) card.style.backgroundImage = new StyleBackground(tex);
+                card.Add(new Label(d.Name) { pickingMode = PickingMode.Ignore }.WithClass("gacha-card-name"));
+                showcase.Add(card);
+            }
+            stage.Add(showcase);
 
-            var info = UiKit.Panel();
-            info.Add(UiKit.Text("機率公示", "txt-sub"));
-            // 機率公示：與實際機率由同一份資料產生。
+            var info = new VisualElement();
+            info.AddToClassList("bpanel");
+            info.AddToClassList("gacha-info");
+            info.Add(UiKit.Text("機率公示", "bpanel-title"));
             var rates = new VisualElement();
             rates.AddToClassList("gacha-rates");
             foreach (var kv in current.DisclosedRates().Where(kv => kv.Value > 0))
@@ -52,52 +79,86 @@ namespace SanGuo.Client
             }
             info.Add(rates);
             string pity = current.PityDescription();
-            if (pity.Length > 0) info.Add(UiKit.Text("保底：" + pity, "txt-dim"));
+            if (pity.Length > 0) info.Add(UiKit.Text(pity, "line-sub"));
             if (current.HardPityUr > 0)
             {
                 int since = state?.PullsSinceUr ?? 0;
-                info.Add(UiKit.Text($"距離硬保底還有 {current.HardPityUr - since} 抽（累計 {state?.TotalPulls ?? 0} 抽）", "txt-dim"));
+                info.Add(UiKit.Text($"距離保底還有 {current.HardPityUr - since} 抽（累計 {state?.TotalPulls ?? 0} 抽）", "line-title"));
                 info.Add(UiKit.Bar(100f * since / current.HardPityUr, "bar-gold bar-slim"));
             }
             if (current.FirstTenGuaranteesUr && (state?.TenPulls ?? 0) == 0)
                 info.Add(UiKit.Text("首次十連必定獲得 1 名 UR", "txt-warn"));
-            body.Add(info);
+            stage.Add(info);
+            page.Add(stage);
 
-            var row = new VisualElement();
-            row.AddToClassList("pull-row");
-            row.Add(UiKit.Btn($"單抽　{current.SingleCost} 元寶", () => _ = Pull(1)).WithClass("btn-wide"));
-            row.Add(UiKit.Btn($"十連　{current.TenCost} 元寶", () => _ = Pull(10), primary: true).WithClass("btn-wide"));
-            body.Add(row);
+            // ---- 底部：抽卡按鈕 ----
+            var actions = new VisualElement();
+            actions.AddToClassList("gacha-actions");
+            actions.Add(PullButton("單抽", current.SingleCost, 1, false));
+            actions.Add(PullButton("十連", current.TenCost, 10, true));
+            page.Add(actions);
 
-            if (_last != null)
+            if (_last != null) body.Add(BuildResults());
+        }
+
+        private Button PullButton(string label, int cost, int count, bool primary)
+        {
+            var b = UiKit.Btn("", () => _ = Pull(count), primary: primary);
+            var row = new VisualElement { pickingMode = PickingMode.Ignore };
+            row.AddToClassList("gacha-cost");
+            row.Add(new Label(label + "　") { pickingMode = PickingMode.Ignore }.WithClass("cost-chip-text"));
+            row.Add(UiKit.ItemTile("item_yuanbao"));
+            row.Add(new Label(cost.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("cost-chip-text"));
+            b.Add(row);
+            return b;
+        }
+
+        private VisualElement BuildResults()
+        {
+            var overlay = new VisualElement();
+            overlay.AddToClassList("pull-overlay");
+            overlay.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("pull-ring"));
+            overlay.Add(UiKit.Text("招募結果", "pull-title"));
+
+            var rows = new VisualElement();
+            rows.AddToClassList("pull-rows");
+            var results = _last!;
+            int perRow = results.Count > 5 ? 5 : results.Count;
+            VisualElement? line = null;
+            for (int i = 0; i < results.Count; i++)
             {
-                body.Add(UiKit.Section("本次結果"));
-                var grid = new VisualElement();
-                grid.AddToClassList("pull-grid");
-                foreach (var r in _last)
+                if (i % perRow == 0)
                 {
-                    string rc = UiKit.RarityClass(r.Rarity);
-                    var card = new VisualElement();
-                    card.AddToClassList("pull-card");
-                    card.AddToClassList("pull-card-" + rc);
-                    card.Add(UiKit.Avatar(NameOf(r.HeroId), r.Rarity, true, r.HeroId));
-                    card.Add(UiKit.Text(r.Rarity.ToString(), "pull-rarity pull-rarity-" + rc));
-                    card.Add(UiKit.Text(NameOf(r.HeroId), "pull-card-name"));
-                    var tags = UiKit.Row("row-center");
-                    if (r.IsNew) tags.Add(UiKit.Badge("NEW", "badge-new"));
-                    else if (r.Shards > 0) tags.Add(UiKit.Text($"碎片 +{r.Shards}", "pull-card-sub"));
-                    if (r.IsUp) tags.Add(UiKit.Badge("UP", "badge-up"));
-                    card.Add(tags);
-                    grid.Add(card);
+                    line = new VisualElement();
+                    line.AddToClassList("pull-row2");
+                    rows.Add(line);
                 }
-                body.Add(grid);
+                var r = results[i];
+                var d = DefOf(r.HeroId);
+                if (d == null) continue;
+                var tile = UiKit.HeroTile(d, 0, -1, () => { }, cls: "htile", extraClass: "htile-lg");
+                tile.AddToClassList("pop");
+                tile.AddToClassList("pop-hidden");
+                if (r.Rarity == Rarity.UR) tile.AddToClassList("pull-ur");
+                if (r.IsNew) tile.Add(new Label("NEW") { pickingMode = PickingMode.Ignore }.WithClass("pull-tag"));
+                else if (r.Shards > 0) tile.Add(new Label($"碎片+{r.Shards}") { pickingMode = PickingMode.Ignore }.WithClass("pull-tag").WithClass("pull-tag-shard"));
+                line!.Add(tile);
+                tile.schedule.Execute(() => tile.RemoveFromClassList("pop-hidden")).StartingIn(150 + i * 130);
             }
+            overlay.Add(rows);
+
+            var buttons = new VisualElement();
+            buttons.AddToClassList("pull-buttons");
+            buttons.Add(UiKit.Btn("確定", () => { _last = null; Rebuild(); }));
+            buttons.Add(UiKit.Btn(_lastCount == 1 ? "再抽一次" : "再抽十連", () => _ = Pull(_lastCount), primary: true));
+            overlay.Add(buttons);
+            return overlay;
         }
 
         private Task Pull(int count) => Act(async () =>
         {
             var r = await GameSession.Backend.Pull(_poolId, count);
-            if (r.Ok) { _last = r.Results; AudioManager.PlaySfx(Sfx.Gacha); }
+            if (r.Ok) { _last = r.Results; _lastCount = count; }
             return (BackendResult)r;
         });
     }

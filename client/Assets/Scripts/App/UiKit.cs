@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using SanGuo.Core;
+using SanGuo.Core.Meta;
 using UnityEngine.UIElements;
 
 namespace SanGuo.Client
@@ -200,51 +201,145 @@ namespace SanGuo.Client
             return pill;
         }
 
+        /// <summary>資源膠囊（右上角）：圖示 + 數字。icon 是 UiSkin 的檔名（不含副檔名）。</summary>
+        public static VisualElement ResPill(string icon, string text)
+        {
+            var pill = new VisualElement { pickingMode = PickingMode.Ignore };
+            pill.AddToClassList("res-pill");
+            var ic = new VisualElement { pickingMode = PickingMode.Ignore };
+            ic.AddToClassList("res-pill-icon");
+            var tex = SkinTex(icon);
+            if (tex != null) ic.style.backgroundImage = new StyleBackground(tex);
+            pill.Add(ic);
+            pill.Add(new Label(text) { pickingMode = PickingMode.Ignore }.WithClass("res-pill-text"));
+            return pill;
+        }
+
+        private static readonly System.Collections.Generic.Dictionary<string, UnityEngine.Texture2D?> SkinCache =
+            new System.Collections.Generic.Dictionary<string, UnityEngine.Texture2D?>();
+
+        /// <summary>Resources/UiSkin 下的貼圖（有快取）。</summary>
+        public static UnityEngine.Texture2D? SkinTex(string name)
+        {
+            if (!SkinCache.TryGetValue(name, out var t))
+            {
+                t = UnityEngine.Resources.Load<UnityEngine.Texture2D>("UiSkin/" + name);
+                SkinCache[name] = t;
+            }
+            return t;
+        }
+
+        /// <summary>物品圖示方塊（獎勵、素材）：圖 + 右下角數量。</summary>
+        public static VisualElement ItemTile(string icon, string count = "", string cls = "")
+        {
+            var t = new VisualElement { pickingMode = PickingMode.Ignore };
+            t.AddToClassList("item-tile");
+            if (cls.Length > 0) t.AddToClassList(cls);
+            var tex = SkinTex(icon);
+            if (tex != null) t.style.backgroundImage = new StyleBackground(tex);
+            if (count.Length > 0) t.Add(new Label(count) { pickingMode = PickingMode.Ignore }.WithClass("item-count"));
+            return t;
+        }
+
+        /// <summary>把獎勵轉成一排物品圖示（元寶、金幣、體力、素材、武將）。</summary>
+        public static VisualElement RewardTiles(Reward r)
+        {
+            var row = new VisualElement { pickingMode = PickingMode.Ignore };
+            row.AddToClassList("reward-tiles");
+            if (r.Yuanbao > 0) row.Add(ItemTile("item_yuanbao", r.Yuanbao.ToString()));
+            if (r.Gold > 0) row.Add(ItemTile("item_gold", r.Gold.ToString()));
+            if (r.Stamina > 0) row.Add(ItemTile("item_stamina", r.Stamina.ToString()));
+            foreach (var m in r.Materials)
+            {
+                string icon = m.Key == HeroGrowth.ExpBook ? "item_expbook" : m.Key == HeroGrowth.CardMaterial ? "item_cardmat" : "item_shard";
+                row.Add(ItemTile(icon, m.Value.ToString()));
+            }
+            foreach (var h in r.Heroes) row.Add(ItemTile("item_chest", "1"));
+            return row;
+        }
+
+        /// <summary>星星列：on 顆亮、其餘暗；total 為總顆數。</summary>
+        public static VisualElement StarsRow(int on, int total, string cls = "")
+        {
+            var row = new VisualElement { pickingMode = PickingMode.Ignore };
+            row.AddToClassList("stars-row");
+            if (cls.Length > 0) row.AddToClassList(cls);
+            for (int i = 0; i < total; i++)
+            {
+                var star = new VisualElement { pickingMode = PickingMode.Ignore };
+                star.AddToClassList("star");
+                var tex = SkinTex(i < on ? "star_on" : "star_off");
+                if (tex != null) star.style.backgroundImage = new StyleBackground(tex);
+                row.Add(star);
+            }
+            return row;
+        }
+
         /// <summary>
-        /// 建出頁面外框並回傳內容區：頂欄（標題 + 帳號資源）、可捲動內容、底部導覽（showNav 為 false 則不顯示）。
+        /// 直立武將卡（參考 TS6Client）：稀有度色框、上方星數、頭像、右下等級、右上職業圖示。
+        /// level &lt;= 0 不顯示等級；stars &lt; 0 不顯示星數；empty 為空格子。
         /// </summary>
-        public static VisualElement Frame(VisualElement host, string title, Page? current, bool showNav)
+        public static Button HeroTile(HeroDef def, int level, int stars, Action onClick, bool selected = false, string cls = "htile", string extraClass = "")
+        {
+            var b = new Button(onClick);
+            b.AddToClassList(cls);
+            if (extraClass.Length > 0) b.AddToClassList(extraClass);
+            b.AddToClassList(cls + "-" + RarityClass(def.Rarity));
+            if (selected) b.AddToClassList(cls + "-on");
+            var art = new VisualElement { pickingMode = PickingMode.Ignore };
+            art.AddToClassList(cls + "-art");
+            var face = HeroArt.Face(def.Id);
+            if (face != null) art.style.backgroundImage = new StyleBackground(face);
+            else art.Add(new Label(def.Name.Substring(0, 1)) { pickingMode = PickingMode.Ignore }.WithClass("avatar-text"));
+            b.Add(art);
+            if (stars >= 0)
+            {
+                var top = StarsRow(stars, HeroGrowth.MaxStars, "htile-stars");
+                b.Add(top);
+            }
+            var role = new VisualElement { pickingMode = PickingMode.Ignore };
+            role.AddToClassList("htile-role");
+            var rt = UiIcons.Get(UiIcons.RoleIcon(def.Role));
+            if (rt != null) role.style.backgroundImage = new StyleBackground(rt);
+            b.Add(role);
+            if (level > 0) b.Add(new Label(level.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("htile-level"));
+            b.Add(new Label(def.Name) { pickingMode = PickingMode.Ignore }.WithClass("htile-name"));
+            return b;
+        }
+
+        /// <summary>
+        /// 建出頁面外框並回傳內容區：標題列（返回鍵 + 金字標題 + 右上資源 + 關閉），內容區是一塊填滿的容器，頁面自己排版。
+        /// back = 返回鍵去的頁面；關閉鍵一律回主城。
+        /// </summary>
+        public static VisualElement Frame(VisualElement host, string title, Page back)
         {
             var bar = new VisualElement();
-            bar.AddToClassList("topbar");
-            var left = new VisualElement();
-            left.AddToClassList("topbar-left");
-            left.Add(new VisualElement().WithClass("topbar-seal"));
-            left.Add(Text(title, "topbar-title"));
-            bar.Add(left);
+            bar.AddToClassList("hdr");
+
+            var backBtn = new Button(() => Nav.Go(back));
+            backBtn.AddToClassList("hdr-back");
+            backBtn.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("hdr-back-icon"));
+            bar.Add(backBtn);
+            bar.Add(new Label(title) { pickingMode = PickingMode.Ignore }.WithClass("hdr-title"));
+            bar.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("grow"));
 
             var v = GameSession.View;
-            var res = new VisualElement();
-            res.AddToClassList("topbar-res");
-            res.Add(Pill($"Lv.{v.Level}", "level"));
-            res.Add(Pill($"體力 {v.Stamina}/{v.StaminaCap}", "stamina"));
-            res.Add(Pill($"{v.Gold:N0}", "gold"));
-            res.Add(Pill($"{v.Yuanbao:N0}", "yuanbao"));
+            var res = new VisualElement { pickingMode = PickingMode.Ignore };
+            res.AddToClassList("hdr-res");
+            res.Add(ResPill("item_stamina", $"{v.Stamina}/{v.StaminaCap}"));
+            res.Add(ResPill("item_gold", v.Gold.ToString("N0")));
+            res.Add(ResPill("item_yuanbao", v.Yuanbao.ToString("N0")));
             bar.Add(res);
+
+            var close = new Button(() => Nav.Go(Page.Home));
+            close.AddToClassList("hdr-close");
+            bar.Add(close);
             host.Add(bar);
 
-            var scroll = new ScrollView(ScrollViewMode.Vertical);
-            scroll.AddToClassList("page-scroll");
-            scroll.contentContainer.AddToClassList("page-body");
-            host.Add(scroll);
-
-            if (showNav)
-            {
-                var nav = new VisualElement();
-                nav.AddToClassList("nav");
-                foreach (var (page, _, label) in Tabs)
-                {
-                    var target = page;
-                    var tab = new Button(() => { if (target != current) Nav.Go(target); });
-                    tab.AddToClassList("nav-tab");
-                    tab.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("nav-icon").WithClass("nav-icon-" + page.ToString().ToLowerInvariant()));
-                    tab.Add(new Label(label) { pickingMode = PickingMode.Ignore }.WithClass("nav-label"));
-                    if (page == current) tab.AddToClassList("nav-tab-on");
-                    nav.Add(tab);
-                }
-                host.Add(nav);
-            }
-            return scroll.contentContainer;
+            var body = new VisualElement();
+            body.AddToClassList("page-content");
+            host.Add(body);
+            return body;
         }
 
         public static void Toast(VisualElement layer, string message)

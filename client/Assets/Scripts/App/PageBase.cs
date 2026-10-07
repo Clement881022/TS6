@@ -23,6 +23,8 @@ namespace SanGuo.Client
         protected virtual bool ShowNav => true;
         /// <summary>false = 不用共用的頂欄 / 導覽外框，頁面自己鋪滿整個畫面（主城用）。</summary>
         protected virtual bool UseFrame => true;
+        /// <summary>左上角返回鍵回到的頁面（關閉鍵一律回主城）。</summary>
+        protected virtual Page BackPage => Page.Home;
         protected abstract void BuildBody(VisualElement body);
 
         /// <summary>頁面內容區（Rebuild 時會清空重畫）；彈出視窗請加在這裡，會跟著重畫消失。</summary>
@@ -50,7 +52,7 @@ namespace SanGuo.Client
         {
             _host.Clear();
             if (!UseFrame) { BuildBody(_host); return; }
-            var body = UiKit.Frame(_host, Title, Id, ShowNav);
+            var body = UiKit.Frame(_host, Title, BackPage);
             BuildBody(body);
         }
 

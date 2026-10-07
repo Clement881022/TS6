@@ -1,15 +1,14 @@
 #nullable enable
-using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using SanGuo.Core;
-using SanGuo.Core.Data;
 using SanGuo.Core.Meta;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>征戰：章節大地圖與關卡資訊（挑戰 / 掃蕩）。</summary>
+    /// <summary>征戰：整張章節地圖，關卡是圓形節點（星數、鎖頭、名牌），點下去開關卡面板（獎勵、敵人、挑戰 / 掃蕩）。</summary>
     public sealed class MapPage : PageBase
     {
         protected override Page Id => Page.Map;
@@ -18,88 +17,139 @@ namespace SanGuo.Client
         protected override void BuildBody(VisualElement body)
         {
             var v = GameSession.View;
-            body.Add(UiKit.Hint("打贏一關才會開啟下一關；三星通關後可掃蕩"));
-
-            var mapPanel = UiKit.Panel("map-card");
-            var field = new VisualElement();
-            field.AddToClassList("map-field");
             int total = DemoContent.LevelNames.Length;
-            var centers = new List<Vector2>();
-            for (int i = 0; i < total; i++)
-                centers.Add(new Vector2(90 + i * 138f, 250 + Mathf.Sin(i * 0.9f) * 140f));
+            body.style.flexDirection = FlexDirection.Column;
 
+            var area = new VisualElement();
+            area.AddToClassList("map-area");
+            body.Add(area);
+
+            // 路徑小圓點
+            var centers = new Vector2[total];
+            for (int i = 0; i < total; i++)
+                centers[i] = new Vector2(7f + i * (86f / (total - 1)), 50f + Mathf.Sin(i * 0.9f) * 17f);
             for (int i = 0; i < total - 1; i++)
             {
-                for (int k = 1; k <= 3; k++)
+                for (int k = 1; k <= 4; k++)
                 {
-                    var p = Vector2.Lerp(centers[i], centers[i + 1], k / 4f);
+                    var p = Vector2.Lerp(centers[i], centers[i + 1], k / 5f);
                     var dot = new VisualElement { pickingMode = PickingMode.Ignore };
-                    dot.AddToClassList("map-dot");
-                    dot.style.left = p.x - 5; dot.style.top = p.y - 5;
-                    field.Add(dot);
+                    dot.AddToClassList("mnode-dot");
+                    dot.style.left = Length.Percent(p.x);
+                    dot.style.top = Length.Percent(p.y);
+                    area.Add(dot);
                 }
             }
 
+            int cleared = 0;
             for (int i = 0; i < total; i++)
             {
                 int level = i + 1;
                 bool implemented = level <= DemoContent.ChapterLevelCount;
-                int stars = v.StarsOf(GameSession.StageIdOf(level));
-                bool cleared = v.ClearedStages.Contains(GameSession.StageIdOf(level));
+                string sid = GameSession.StageIdOf(level);
+                int stars = v.StarsOf(sid);
+                bool isCleared = v.ClearedStages.Contains(sid);
+                if (isCleared) cleared++;
                 bool open = implemented && GameSession.IsUnlocked(level);
                 bool boss = level == total;
-                float size = boss ? 118 : 92;
 
-                var node = new Button(() => { if (open) OpenStageDetail(level); }) { text = level.ToString() };
-                node.AddToClassList("map-node");
-                node.AddToClassList(cleared ? "map-node-clear" : open ? "map-node-open" : "map-node-lock");
-                if (boss) node.AddToClassList("map-node-boss");
-                node.style.width = size; node.style.height = size;
-                node.style.borderTopLeftRadius = size / 2; node.style.borderTopRightRadius = size / 2;
-                node.style.borderBottomLeftRadius = size / 2; node.style.borderBottomRightRadius = size / 2;
-                node.style.left = centers[i].x - size / 2;
-                node.style.top = centers[i].y - size / 2;
-                field.Add(node);
+                var holder = new VisualElement { pickingMode = PickingMode.Ignore };
+                holder.AddToClassList("mnode-holder");
+                holder.style.left = Length.Percent(centers[i].x);
+                holder.style.top = Length.Percent(centers[i].y);
 
-                string status = cleared ? UiText.Stars(stars) : !implemented ? "未開放" : open ? "可挑戰" : "未解鎖";
-                var caption = new Label($"{DemoContent.LevelNames[i]}\n{status}") { pickingMode = PickingMode.Ignore };
-                caption.AddToClassList("map-caption");
-                caption.style.left = centers[i].x - 65;
-                caption.style.top = centers[i].y + size / 2 + 4;
-                field.Add(caption);
+                int lv = level;
+                var node = new Button(() => { if (open) OpenStageDetail(lv); });
+                node.AddToClassList("mnode");
+                node.AddToClassList(isCleared ? "mnode-clear" : open ? "mnode-open" : "mnode-lock");
+                if (boss) node.AddToClassList("mnode-boss");
+                if (open && !isCleared) node.AddToClassList("mnode-current");
+                if (open) node.Add(new Label(level.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("mnode-num"));
+                else node.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("mnode-lockicon"));
+                holder.Add(node);
+
+                if (isCleared) holder.Add(UiKit.StarsRow(stars, 3, "mnode-stars"));
+                var plate = new Label(DemoContent.LevelNames[i]) { pickingMode = PickingMode.Ignore };
+                plate.AddToClassList("mnode-plate");
+                if (!open) plate.AddToClassList("mnode-plate-dim");
+                holder.Add(plate);
+                area.Add(holder);
             }
-            mapPanel.Add(field);
-            body.Add(mapPanel);
+
+            // 底部：章節進度條
+            var info = new VisualElement { pickingMode = PickingMode.Ignore };
+            info.AddToClassList("map-info");
+            info.Add(UiKit.Text($"章節進度 {cleared}/{DemoContent.ChapterLevelCount}", "txt-gold"));
+            info.Add(UiKit.Bar(100f * cleared / DemoContent.ChapterLevelCount, "bar-gold bar-slim"));
+            body.Add(info);
         }
 
-        // ---- 關卡資訊（挑戰 / 掃蕩）----
+        // ---- 關卡面板（獎勵 / 敵人 / 挑戰 / 掃蕩）----
 
         private void OpenStageDetail(int level)
         {
             var v = GameSession.View;
             var stage = DemoMeta.Chapter1Stage(level);
             int stars = v.StarsOf(stage.StageId);
+            bool first = !v.ClearedStages.Contains(stage.StageId);
+            var setup = DemoContent.Level(level, 1);
 
             var overlay = new VisualElement();
             overlay.AddToClassList("overlay");
-            var panel = UiKit.Panel("popup");
-            panel.Add(UiKit.Text($"第 {level} 關　{DemoContent.LevelNames[level - 1]}", "popup-title"));
-            panel.Add(UiKit.Text(UiText.Stars(stars), "star-text"));
-            panel.Add(UiKit.Text($"消耗體力 {stage.StaminaCost}（現有 {v.Stamina}）", v.Stamina >= stage.StaminaCost ? "txt" : "txt-warn"));
-            panel.Add(UiKit.Text($"獎勵：經驗 {stage.Exp}　金幣 {stage.Gold}" +
-                (v.ClearedStages.Contains(stage.StageId) ? "" : $"　首通元寶 {stage.FirstClearYuanbao}"), "txt-gold"));
-            string par = stage.StarTurnPar > 0 ? $"　★★★ {stage.StarTurnPar} 回合內" : "";
-            panel.Add(UiKit.Hint("★ 通關　★★ 無武將陣亡" + par));
+            var panel = new VisualElement();
+            panel.AddToClassList("bpanel");
+            panel.AddToClassList("stage-panel");
 
-            var row = UiKit.Row("row-center");
-            row.Add(UiKit.Btn("挑戰", () => EnterLevel(level), primary: true));
+            var head = new VisualElement();
+            head.AddToClassList("stage-head");
+            head.Add(UiKit.Text($"{level}　{DemoContent.LevelNames[level - 1]}", "stage-title"));
+            head.Add(UiKit.StarsRow(stars, 3, "stars-lg"));
+            panel.Add(head);
+
+            var cols = new VisualElement();
+            cols.AddToClassList("stage-cols");
+
+            var rewards = new VisualElement();
+            rewards.AddToClassList("stage-col");
+            rewards.Add(UiKit.Section(first ? "首通獎勵" : "通關獎勵"));
+            var tiles = new VisualElement();
+            tiles.AddToClassList("stage-tiles");
+            tiles.Add(UiKit.ItemTile("item_expbook", stage.Exp.ToString()));
+            tiles.Add(UiKit.ItemTile("item_gold", stage.Gold.ToString()));
+            if (first && stage.FirstClearYuanbao > 0) tiles.Add(UiKit.ItemTile("item_yuanbao", stage.FirstClearYuanbao.ToString(), "item-first"));
+            rewards.Add(tiles);
+            string par = stage.StarTurnPar > 0 ? $"　★★★ {stage.StarTurnPar} 回合內" : "";
+            rewards.Add(UiKit.Text("★ 通關　★★ 無武將陣亡" + par, "line-sub"));
+            cols.Add(rewards);
+
+            var foes = new VisualElement();
+            foes.AddToClassList("stage-col");
+            foes.Add(UiKit.Section("敵方"));
+            var names = setup.Enemies.GroupBy(e => e.Def.Name).Select(g => g.Count() > 1 ? $"{g.Key} ×{g.Count()}" : g.Key);
+            foreach (var n in names) foes.Add(UiKit.Text("● " + n, "line-title"));
+            cols.Add(foes);
+            panel.Add(cols);
+
+            var cost = new VisualElement();
+            cost.AddToClassList("cost-chip");
+            cost.AddToClassList("stage-cost");
+            if (v.Stamina < stage.StaminaCost) cost.AddToClassList("cost-chip-bad");
+            cost.Add(new Label("消耗體力") { pickingMode = PickingMode.Ignore }.WithClass("line-sub"));
+            cost.Add(UiKit.ItemTile("item_stamina"));
+            cost.Add(new Label($"{stage.StaminaCost}（現有 {v.Stamina}）") { pickingMode = PickingMode.Ignore }.WithClass("cost-chip-text"));
+            panel.Add(cost);
+
+            var row = new VisualElement();
+            row.AddToClassList("stage-buttons");
             if (stars >= 3)
             {
                 row.Add(UiKit.Btn("掃蕩 ×1", () => _ = Sweep(level, 1)));
                 row.Add(UiKit.Btn($"掃蕩 ×{PlayerProfile.MaxSweepCount}", () => _ = Sweep(level, PlayerProfile.MaxSweepCount)));
             }
             row.Add(UiKit.Btn("返回", () => overlay.RemoveFromHierarchy()));
+            row.Add(UiKit.Btn("戰鬥", () => EnterLevel(level), primary: true));
             panel.Add(row);
+
             overlay.Add(panel);
             Host.Add(overlay);
         }

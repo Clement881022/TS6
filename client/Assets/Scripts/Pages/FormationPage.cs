@@ -30,7 +30,7 @@ namespace SanGuo.Client
                 return level == 0 ? "排兵布陣" : $"排兵布陣　第 {level} 關　{DemoContent.LevelNames[level - 1]}";
             }
         }
-        protected override bool ShowNav => false;
+        protected override Page BackPage => DemoMeta.FindDungeon(StageId) != null ? Page.Dungeons : Page.Map;
 
         /// <summary>武將卡下方的小字：等級與職業。</summary>
         private static string HeroSub(HeroDef h) =>
@@ -68,50 +68,79 @@ namespace SanGuo.Client
             GameSession.EnsureFormation();
             var formation = GameSession.Formation;
 
-            var foes = level.Enemies.GroupBy(e => e.Def.Name).Select(g => g.Count() > 1 ? $"{g.Key}×{g.Count()}" : g.Key);
-            var enemyPanel = UiKit.Panel();
-            enemyPanel.Add(UiKit.Text("敵方：" + string.Join("、", foes), "txt-gold"));
-            body.Add(enemyPanel);
-            body.Add(_message.Length > 0
-                ? UiKit.Hint(_message, warn: true)
-                : UiKit.Hint("同路沒有對手時，攻擊會落在最上方（第 1 路）；點武將再點格子可移動 / 換位，最多上場 4 人"));
+            body.style.flexDirection = FlexDirection.Column;
 
-            // 5 路排成欄、後排在上、前排在下（前排朝向敵人）
-            var board = UiKit.Panel("formation-board");
+            // ---- 上：敵情與提示 ----
+            var foes = level.Enemies.GroupBy(e => e.Def.Name).Select(g => g.Count() > 1 ? $"{g.Key} ×{g.Count()}" : g.Key);
+            var strip = new VisualElement();
+            strip.AddToClassList("form-strip");
+            strip.Add(UiKit.Text("敵方", "form-strip-label"));
+            strip.Add(UiKit.Text(string.Join("　", foes), "txt-gold"));
+            body.Add(strip);
+            var hint = UiKit.Hint(_message.Length > 0 ? _message : "點武將再點格子可移動 / 換位，最多上場 4 人；同路沒有對手時，攻擊會落在第 1 路", _message.Length > 0);
+            hint.AddToClassList("form-hint");
+            body.Add(hint);
+
+            var main = new VisualElement();
+            main.AddToClassList("form-main");
+            body.Add(main);
+
+            // ---- 左：站位（前排在上，朝向敵人）----
+            var board = new VisualElement();
+            board.AddToClassList("bpanel");
+            board.AddToClassList("form-board");
+            board.Add(UiKit.Text("站位", "bpanel-title"));
             var laneHead = new VisualElement { style = { flexDirection = FlexDirection.Row } };
-            laneHead.Add(FormLabel("", 90));
-            for (int lane = 0; lane < level.Lanes; lane++) laneHead.Add(FormLabel($"第 {lane + 1} 路", 170, 6));
+            laneHead.Add(FormLabel("", 80));
+            for (int lane = 0; lane < level.Lanes; lane++) laneHead.Add(FormLabel($"第 {lane + 1} 路", 150, 5));
             board.Add(laneHead);
-            for (int r = level.Rows - 1; r >= 0; r--)
+            for (int r = 0; r < level.Rows; r++)
             {
                 var row = new VisualElement { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center } };
-                row.Add(FormLabel(r == level.Rows - 1 ? "後排" : "前排", 90));
+                row.Add(FormLabel(r == 0 ? "前排" : "後排", 80));
                 for (int lane = 0; lane < level.Lanes; lane++)
                 {
                     int l = lane, rr = r;
                     string? id = HeroAtCell(lane, r);
                     var def = id == null ? null : GameSession.DefOf(id);
-                    row.Add(def == null
-                        ? UiKit.HeroCard("", Rarity.R, null, "空位", () => OnCell(l, rr), empty: true, cls: "fcell")
-                        : UiKit.HeroCard(def.Name, def.Rarity, def.Id, HeroSub(def), () => OnCell(l, rr), selected: id == _pick, cls: "fcell"));
+                    if (def == null)
+                    {
+                        var slot = new Button(() => OnCell(l, rr));
+                        slot.AddToClassList("slot-empty");
+                        slot.Add(new Label("＋") { pickingMode = PickingMode.Ignore }.WithClass("slot-plus"));
+                        row.Add(slot);
+                    }
+                    else
+                    {
+                        int lv = GameSession.View.Heroes.TryGetValue(def.Id, out var st) ? st.Level : 1;
+                        row.Add(UiKit.HeroTile(def, lv, -1, () => OnCell(l, rr), selected: id == _pick, extraClass: "htile-sm"));
+                    }
                 }
                 board.Add(row);
             }
-            body.Add(board);
+            main.Add(board);
 
-            body.Add(UiKit.Section("待命武將"));
-            body.Add(UiKit.Text("點選後再點上方格子上場；先點場上武將再點這裡可下場", "txt-dim"));
-            var bench = UiKit.Row("row-center");
+            // ---- 右：待命武將 ----
+            var bench = new VisualElement();
+            bench.AddToClassList("bpanel");
+            bench.AddToClassList("form-bench");
+            bench.Add(UiKit.Text($"待命武將（上場 {formation.Count}/{GameSession.MaxTeamSize}）", "bpanel-title"));
+            var scroll = new ScrollView(ScrollViewMode.Vertical);
+            scroll.AddToClassList("grow");
+            scroll.contentContainer.AddToClassList("hero-grid");
             foreach (var def in GameSession.OwnedHeroes().Where(d => !formation.ContainsKey(d.Id)))
             {
                 string id = def.Id;
-                bench.Add(UiKit.HeroCard(def.Name, def.Rarity, def.Id, HeroSub(def), () => OnBench(id), selected: id == _pick));
+                int lv = GameSession.View.Heroes.TryGetValue(id, out var st) ? st.Level : 1;
+                scroll.Add(UiKit.HeroTile(def, lv, -1, () => OnBench(id), selected: id == _pick, extraClass: "htile-sm"));
             }
-            body.Add(bench);
+            bench.Add(scroll);
+            main.Add(bench);
 
-            var buttons = UiKit.Row("row-center");
+            var buttons = new VisualElement();
+            buttons.AddToClassList("form-buttons");
             buttons.Add(UiKit.Btn("返回", Back).WithClass("btn-wide"));
-            buttons.Add(UiKit.Btn("開戰", () =>
+            buttons.Add(UiKit.Btn("戰鬥", () =>
             {
                 if (formation.Count == 0) { _message = "至少要有 1 名武將上場"; Rebuild(); return; }
                 _ = StartBattle(stageId);
