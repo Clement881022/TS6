@@ -70,7 +70,10 @@ namespace SanGuo.Client
         private VisualElement _field = null!;
         private VisualElement _tagLayer = null!;
         private BattleFx _fx = null!;
-        private VisualElement _hand = null!;
+        private VisualElement _hand = null!;      // 左側手牌清單（每張牌一列）
+        private VisualElement _detail = null!;    // 選定技能後在右側跳出的卡片詳情
+        private VisualElement _heroBar = null!;   // 畫面底部的武將資訊列
+        private Button _endButton = null!;
         private Label _title = null!;
         private VisualElement _cost = null!;
         private VisualElement _piles = null!;
@@ -129,41 +132,49 @@ namespace SanGuo.Client
             // 戰場區：3D 畫在這塊後面（透明）。
             _field = new VisualElement();
             _field.AddToClassList("field");
+            // 左側是手牌清單、底部是武將資訊列：戰場（鏡頭取景範圍）讓出這兩塊。
+            _field.style.marginLeft = 330f;
+            _field.style.marginBottom = 176f;
             _field.RegisterCallback<ClickEvent>(OnFieldClicked);
             _field.RegisterCallback<PointerMoveEvent>(OnFieldHover);
             _field.RegisterCallback<PointerLeaveEvent>(_ => HideUnitInfo());
             _content.Add(_field);
 
-            // 底部：左 = 費用與牌堆，中 = 手牌，右 = 結束回合。
-            var bottom = new VisualElement { pickingMode = PickingMode.Ignore };
-            bottom.AddToClassList("bottom");
-
+            // 左側：結束回合 / 費用 / 牌堆資訊，下面是手牌清單（一張牌一列，仿超時空方舟）。
             var left = new VisualElement { pickingMode = PickingMode.Ignore };
-            left.AddToClassList("bottom-left");
+            left.AddToClassList("bl-left");
+            var top = new VisualElement { pickingMode = PickingMode.Ignore };
+            top.AddToClassList("bl-top");
+            _endButton = new Button(EndTurn) { text = "結束回合" };
+            _endButton.AddToClassList("bl-end");
+            top.Add(_endButton);
             _cost = new VisualElement { pickingMode = PickingMode.Ignore };
-            _cost.AddToClassList("cost-label");
+            _cost.AddToClassList("bl-cost");
+            top.Add(_cost);
+            left.Add(top);
             _piles = new VisualElement { pickingMode = PickingMode.Ignore };
-            _piles.AddToClassList("pile-label");
-            left.Add(_cost);
+            _piles.AddToClassList("bl-piles");
             left.Add(_piles);
-            bottom.Add(left);
-
             _hand = new VisualElement();
-            _hand.AddToClassList("hand");
-            bottom.Add(_hand);
+            _hand.AddToClassList("bl-list");
+            left.Add(_hand);
+            _content.Add(left);
 
-            var right = new VisualElement { pickingMode = PickingMode.Ignore };
-            right.AddToClassList("bottom-right");
-            var endTurn = new Button(EndTurn) { text = "結束\n回合" };
-            endTurn.AddToClassList("end-turn");
-            right.Add(endTurn);
-            bottom.Add(right);
-            _content.Add(bottom);
+            // 右側：選定技能後才出現的卡片詳情。
+            _detail = new VisualElement();
+            _detail.AddToClassList("bl-detail");
+            _detail.style.display = DisplayStyle.None;
+            _content.Add(_detail);
+
+            // 底部：武將資訊列。
+            _heroBar = new VisualElement();
+            _heroBar.AddToClassList("bl-bar");
+            _content.Add(_heroBar);
 
             var log = new VisualElement { pickingMode = PickingMode.Ignore };
-            log.AddToClassList("log");
+            log.AddToClassList("bl-log");
             _logLabel = new Label { pickingMode = PickingMode.Ignore };
-            _logLabel.AddToClassList("log-line");
+            _logLabel.AddToClassList("bl-log-line");
             log.Add(_logLabel);
             _logBox = log;
             _content.Add(log);
@@ -348,28 +359,21 @@ namespace SanGuo.Client
 
         // ------------------------------------------------------------ 操作
 
+        /// <summary>點手牌清單的一列 = 選定該技能（右側跳出詳情、標出射程）；再點一次取消。</summary>
         private void OnCardClicked(CardInstance card)
         {
             if (_battle.Result != BattleResult.Ongoing || Blocked) return;
-            if (_pendingCard == card) { CancelTargeting(); return; } // 再點一次同一張 = 取消
+            if (_pendingCard == card) { CancelTargeting(); return; }
             CancelTargeting();
+            if (!_battle.Hand.Contains(card)) return;
+            BeginPending(card);
+        }
 
-            var check = _battle.CanPlay(card);
-            if (check != PlayResult.Ok) { Toast(Explain(check)); return; }
-
-            if (card.Def.Target == TargetRule.MoveDest)
-            {
-                BeginPending(card);
-                Toast("先點選要移動的武將（再點一次卡牌取消）");
-                return;
-            }
-            // 單體敵人牌：一律由玩家點選射程內的格子，空格也可以點（空放）。
-            if (card.Def.Target == TargetRule.Enemy)
-            {
-                BeginPending(card);
-                Toast("點選射程內的格子施放（空格也可以，再點一次卡牌取消）");
-                return;
-            }
+        /// <summary>詳情面板的「使用」：不需要點格的牌（自身 / 全體 / 自動選目標）直接打出。</summary>
+        private void UseSelected()
+        {
+            var card = _pendingCard;
+            if (card == null || card.Def.Target == TargetRule.MoveDest || card.Def.Target == TargetRule.Enemy) return;
             PlayCardAt(card, null, null);
         }
 
@@ -378,6 +382,8 @@ namespace SanGuo.Client
             _pendingCard = card;
             _pendingMover = null;
             ShowCardRange(card);
+            RefreshCards();
+            RefreshDetail();
         }
 
         private void PlayCardAt(CardInstance card, Position? target, Unit? mover)
@@ -398,6 +404,8 @@ namespace SanGuo.Client
             _pendingMover = null;
             ClearPreview();
             RefreshTiles();
+            RefreshCards();
+            RefreshDetail();
         }
 
         /// <summary>等待指定格子時：點格出牌；移動卡先點武將再點目的地；點場外取消。</summary>
@@ -413,20 +421,13 @@ namespace SanGuo.Client
             if (card.Def.Target == TargetRule.MoveDest)
             {
                 var hero = _battle.UnitAt(Side.Player, pos);
-                if (hero != null && hero.Alive)
-                {
-                    // 點到我方武將 = 選他（或換人）。
-                    if (!_battle.CanMoveUnit(hero)) { Toast("這名武將現在不能移動"); return; }
-                    _pendingMover = hero;
-                    ShowCardRange(card);
-                    Toast("再點選綠色格子移動");
-                    return;
-                }
-                if (_pendingMover == null) { Toast("先點選要移動的武將"); return; }
+                if (hero != null && hero.Alive) { PickMover(card, hero); return; }
+                if (_pendingMover == null) { Toast("先點選要移動的武將（棋盤上的武將或底部武將列）"); return; }
                 if (!_battle.ReachableTiles(_pendingMover).ContainsKey(pos)) { Toast("請點選綠色的可移動格"); return; }
                 PlayCardAt(card, pos, _pendingMover);
                 return;
             }
+            if (card.Def.Target != TargetRule.Enemy) return;   // 其餘牌用右側詳情的「使用」按鈕
             var owner = card.Owner!;
             if (!_battle.InBounds(pos) || pos == owner.Pos || Position.Distance(owner.Pos, pos) > card.Def.Range)
             {
@@ -434,6 +435,16 @@ namespace SanGuo.Client
                 return;
             }
             PlayCardAt(card, pos, null);
+        }
+
+        private void PickMover(CardInstance card, Unit hero)
+        {
+            if (!_battle.CanMoveUnit(hero)) { Toast("這名武將現在不能移動"); return; }
+            _pendingMover = hero;
+            ShowCardRange(card);
+            RefreshDetail();
+            RefreshHeroBar();
+            Toast("再點選綠色格子移動");
         }
 
         // ------------------------------------------------------------ 單位懸停面板
@@ -662,7 +673,9 @@ namespace SanGuo.Client
         {
             RefreshTags();
             RefreshTiles();
-            RefreshHand();
+            RefreshCards();
+            RefreshDetail();
+            RefreshHeroBar();
             RefreshHud();
             RefreshOverlay();
             if (_hoverUnit != null)
@@ -770,59 +783,172 @@ namespace SanGuo.Client
             }
         }
 
-        private void RefreshHand()
+        // ------------------------------------------------------------ 手牌清單 / 卡片詳情 / 武將資訊列
+
+        private static string KindIcon(CardDef def) =>
+            def.Effects.Any(e => e.Type == EffectType.Damage) ? "damage"
+            : def.Effects.Any(e => e.Type == EffectType.Heal) ? "heal"
+            : def.Target == TargetRule.MoveDest ? "draw" : "armor";
+
+        private static VisualElement Face(Unit? owner, string cls)
+        {
+            var face = new VisualElement { pickingMode = PickingMode.Ignore };
+            face.AddToClassList(cls);
+            var portrait = owner != null ? HeroArt.Face(owner.DefId) : null;
+            if (portrait != null) face.style.backgroundImage = new StyleBackground(portrait);
+            else
+            {
+                var icon = UiIcons.Get("draw");
+                if (icon != null) face.style.backgroundImage = new StyleBackground(icon);
+            }
+            return face;
+        }
+
+        /// <summary>左側手牌清單：一張牌一列（編號、頭像、名稱、費用）；選定的那列會凸出來。</summary>
+        private void RefreshCards()
         {
             _hand.Clear();
+            int index = 1;
             foreach (var card in _battle.Hand)
             {
+                var captured = card;
                 var ok = _battle.CanPlay(card);
-                var el = new VisualElement();
-                el.AddToClassList("card");
-                bool attack = card.Def.Effects.Any(e => e.Type == EffectType.Damage);
-                bool heal = card.Def.Effects.Any(e => e.Type == EffectType.Heal);
-                el.AddToClassList(attack ? "card-attack" : heal ? "card-heal" : "card-support");
-                if (!card.Def.Basic) el.AddToClassList("card-skill");
-                if (ok != PlayResult.Ok) el.AddToClassList("card-disabled");
+                var row = new VisualElement();
+                row.AddToClassList("bl-row");
+                if (card.Def.Target == TargetRule.MoveDest) row.AddToClassList("bl-row-move");
+                else if (!card.Def.Basic) row.AddToClassList("bl-row-skill");
+                if (ok != PlayResult.Ok) row.AddToClassList("bl-row-disabled");
+                if (card == _pendingCard) row.AddToClassList("bl-row-selected");
 
-                // 卡面插圖：出牌武將的頭像（TS6Client 美術），沒有圖就維持純色。
-                var art = new VisualElement { pickingMode = PickingMode.Ignore };
-                art.AddToClassList("card-art");
-                var portrait = card.Owner != null ? HeroArt.Face(card.Owner.DefId) : null;
-                if (portrait != null) art.style.backgroundImage = new StyleBackground(portrait);
-
+                row.Add(new Label(index.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("bl-row-index"));
+                row.Add(Face(card.Owner, "bl-row-face"));
+                var name = new Label(card.Def.Name) { pickingMode = PickingMode.Ignore };
+                name.AddToClassList("bl-row-name");
+                row.Add(name);
+                row.Add(UiIcons.Icon(KindIcon(card.Def), "bl-row-kind"));
                 var cost = new Label(card.Def.Cost.ToString()) { pickingMode = PickingMode.Ignore };
-                cost.AddToClassList("card-cost");
+                cost.AddToClassList("bl-row-cost");
                 var costIcon = UiIcons.Get("cost");
                 if (costIcon != null) cost.style.backgroundImage = new StyleBackground(costIcon);
-                art.Add(cost);
-                art.Add(UiIcons.Icon(attack ? "damage" : heal ? "heal" : "armor", "card-tag"));
-                var owner = new Label(card.Owner == null ? "全隊通用" : card.Owner.Name + (card.Owner.Alive ? "" : "（陣亡）")) { pickingMode = PickingMode.Ignore };
-                owner.AddToClassList("card-owner");
-                art.Add(owner);
+                row.Add(cost);
 
-                var name = new Label(card.Def.Name) { pickingMode = PickingMode.Ignore };
-                name.AddToClassList("card-name");
-                var target = RangeIcon.Build(card.Def);
-                var desc = new VisualElement { pickingMode = PickingMode.Ignore };
-                desc.AddToClassList("card-desc");
-                FillCardEffects(desc, card.Def);
-                var kw = new VisualElement { pickingMode = PickingMode.Ignore };
-                kw.AddToClassList("card-kw");
-                if (card.Def.Keywords.HasFlag(CardKeywords.Exhaust)) kw.Add(UiIcons.Chip("kw_exhaust"));
-                if (card.Def.Keywords.HasFlag(CardKeywords.Retain)) kw.Add(UiIcons.Chip("kw_retain"));
-                if (card.Def.Keywords.HasFlag(CardKeywords.Innate)) kw.Add(UiIcons.Chip("kw_innate"));
+                row.RegisterCallback<ClickEvent>(_ => OnCardClicked(captured));
+                row.RegisterCallback<PointerEnterEvent>(_ => Preview(captured));
+                row.RegisterCallback<PointerLeaveEvent>(_ => Preview(null));
+                _hand.Add(row);
+                index++;
+            }
+        }
 
-                el.Add(art);
-                el.Add(name);
-                el.Add(target);
-                el.Add(desc);
-                el.Add(kw);
+        /// <summary>右側卡片詳情：選定技能後才出現，顯示射程圖、效果、關鍵字與操作提示。</summary>
+        private void RefreshDetail()
+        {
+            var card = _pendingCard;
+            _detail.Clear();
+            if (card == null || !_battle.Hand.Contains(card)) { _detail.style.display = DisplayStyle.None; return; }
+            _detail.style.display = DisplayStyle.Flex;
+            var def = card.Def;
 
-                var captured = card;
-                el.RegisterCallback<ClickEvent>(_ => OnCardClicked(captured));
-                el.RegisterCallback<PointerEnterEvent>(_ => Preview(captured));
-                el.RegisterCallback<PointerLeaveEvent>(_ => Preview(null));
-                _hand.Add(el);
+            var head = new VisualElement { pickingMode = PickingMode.Ignore };
+            head.AddToClassList("bl-d-head");
+            head.Add(Face(card.Owner, "bl-d-face"));
+            var titles = new VisualElement { pickingMode = PickingMode.Ignore };
+            titles.AddToClassList("bl-d-titles");
+            titles.Add(new Label(def.Name) { pickingMode = PickingMode.Ignore }.WithClass("bl-d-name"));
+            titles.Add(new Label(card.Owner == null ? "全隊通用" : card.Owner.Name + (card.Owner.Alive ? "" : "（陣亡）")) { pickingMode = PickingMode.Ignore }.WithClass("bl-d-owner"));
+            head.Add(titles);
+            var cost = new Label(def.Cost.ToString()) { pickingMode = PickingMode.Ignore };
+            cost.AddToClassList("bl-row-cost");
+            var costIcon = UiIcons.Get("cost");
+            if (costIcon != null) cost.style.backgroundImage = new StyleBackground(costIcon);
+            head.Add(cost);
+            _detail.Add(head);
+
+            _detail.Add(RangeIcon.Build(def));
+            _detail.Add(new Label(CardText.Target(def)) { pickingMode = PickingMode.Ignore }.WithClass("bl-d-target"));
+            var desc = CardText.Description(def);
+            if (desc.Length > 0) _detail.Add(new Label(desc) { pickingMode = PickingMode.Ignore }.WithClass("bl-d-desc"));
+            string kw = CardText.Keywords(def.Keywords);
+            if (kw.Length > 0) _detail.Add(new Label("關鍵字：" + kw) { pickingMode = PickingMode.Ignore }.WithClass("bl-d-kw"));
+
+            var check = _battle.CanPlay(card);
+            string hint;
+            if (check != PlayResult.Ok) hint = Explain(check);
+            else if (def.Target == TargetRule.MoveDest)
+                hint = _pendingMover == null ? "先點選要移動的武將（棋盤或底部武將列），再點綠色格子" : $"移動 {_pendingMover.Name}：點選綠色格子";
+            else if (def.Target == TargetRule.Enemy) hint = "點選棋盤上射程內的格子施放，空格也可以（會打空）";
+            else hint = "";
+            if (hint.Length > 0) _detail.Add(new Label(hint) { pickingMode = PickingMode.Ignore }.WithClass(check == PlayResult.Ok ? "bl-d-hint" : "bl-d-warn"));
+
+            if (def.Target != TargetRule.MoveDest && def.Target != TargetRule.Enemy)
+            {
+                var use = new Button(UseSelected) { text = "使用" };
+                use.AddToClassList("bl-d-use");
+                use.SetEnabled(check == PlayResult.Ok);
+                _detail.Add(use);
+            }
+            var cancel = new Button(CancelTargeting) { text = "取消" };
+            cancel.AddToClassList("bl-d-cancel");
+            _detail.Add(cancel);
+        }
+
+        /// <summary>底部武將資訊列：頭像、生命、主要屬性（攻擊 / 謀略 / 防禦 / 移動力）與增減益；移動卡選武將時可以點這裡。</summary>
+        private void RefreshHeroBar()
+        {
+            _heroBar.Clear();
+            foreach (var unit in _battle.Units.Where(u => u.Side == Side.Player))
+            {
+                var captured = unit;
+                var box = new VisualElement();
+                box.AddToClassList("bl-hero");
+                if (!unit.Alive) box.AddToClassList("bl-hero-dead");
+                if (unit == _pendingMover || (_pendingCard?.Owner == unit)) box.AddToClassList("bl-hero-active");
+                else if (_pendingCard?.Def.Target == TargetRule.MoveDest && _pendingMover == null && _battle.CanMoveUnit(unit)) box.AddToClassList("bl-hero-pick");
+
+                box.Add(Face(unit, "bl-hero-face"));
+                var col = new VisualElement { pickingMode = PickingMode.Ignore };
+                col.AddToClassList("bl-hero-col");
+
+                var title = new VisualElement { pickingMode = PickingMode.Ignore };
+                title.AddToClassList("bl-hero-title");
+                string roleIcon = unit.Hero != null ? UiIcons.RoleIcon(unit.Hero.Role) : "role_warrior";
+                title.Add(UiIcons.Icon(roleIcon, "icon-sm"));
+                title.Add(new Label(unit.Name) { pickingMode = PickingMode.Ignore }.WithClass("bl-hero-name"));
+                if (unit.Hero != null) title.Add(new Label(CardText.RoleName(unit.Hero.Role)) { pickingMode = PickingMode.Ignore }.WithClass("bl-hero-role"));
+                col.Add(title);
+
+                var hpBg = new VisualElement { pickingMode = PickingMode.Ignore };
+                hpBg.AddToClassList("bl-hp-bg");
+                var fill = new VisualElement { pickingMode = PickingMode.Ignore };
+                fill.AddToClassList("bl-hp-fill");
+                fill.style.width = Length.Percent(unit.MaxHp <= 0 ? 0f : Mathf.Clamp01(unit.Hp / (float)unit.MaxHp) * 100f);
+                hpBg.Add(fill);
+                hpBg.Add(new Label($"{unit.Hp}/{unit.MaxHp}" + (unit.Armor > 0 ? $"  盾 {unit.Armor}" : "")) { pickingMode = PickingMode.Ignore }.WithClass("bl-hp-text"));
+                col.Add(hpBg);
+
+                // 法系把「謀略」放在最前面，其餘把「攻擊」放最前面（與傷害 / 治療實際吃的屬性一致）。
+                string primary = unit.IsCaster ? $"{CardText.IntName} {unit.EffectiveInt}" : $"{CardText.AtkName} {unit.EffectiveAtk}";
+                string secondary = unit.IsCaster ? $"{CardText.AtkName} {unit.EffectiveAtk}" : $"{CardText.IntName} {unit.EffectiveInt}";
+                var stats = new VisualElement { pickingMode = PickingMode.Ignore };
+                stats.AddToClassList("bl-stats");
+                stats.Add(new Label(primary) { pickingMode = PickingMode.Ignore }.WithClass("bl-stat-main"));
+                stats.Add(new Label(secondary) { pickingMode = PickingMode.Ignore }.WithClass("bl-stat"));
+                stats.Add(new Label($"防 {(int)Math.Round(unit.EffectiveDef)}") { pickingMode = PickingMode.Ignore }.WithClass("bl-stat"));
+                stats.Add(new Label($"移 {unit.Stats.Move}") { pickingMode = PickingMode.Ignore }.WithClass("bl-stat"));
+                col.Add(stats);
+
+                var chips = new VisualElement { pickingMode = PickingMode.Ignore };
+                chips.AddToClassList("bl-chips");
+                foreach (var st in unit.Statuses) chips.Add(UiIcons.Chip(UiIcons.Status(st.Key), st.Value.Turns.ToString()));
+                foreach (var br in unit.DefBreaks) chips.Add(UiIcons.Chip("status_armorbreak", $"{br.Percent * 100:0}%·{br.Turns}"));
+                col.Add(chips);
+
+                box.Add(col);
+                box.RegisterCallback<ClickEvent>(_ =>
+                {
+                    if (_pendingCard != null && _pendingCard.Def.Target == TargetRule.MoveDest && captured.Alive) PickMover(_pendingCard, captured);
+                });
+                _heroBar.Add(box);
             }
         }
 
@@ -834,16 +960,14 @@ namespace SanGuo.Client
                 : $"{where}　第 {_battle.Turn} 回合";
             _cost.Clear();
             var orb = new VisualElement { pickingMode = PickingMode.Ignore };
-            orb.AddToClassList("cost-orb");
+            orb.AddToClassList("bl-orb");
             var orbIcon = UiIcons.Get("cost");
             if (orbIcon != null) orb.style.backgroundImage = new StyleBackground(orbIcon);
-            orb.Add(new Label(_battle.Cost.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("cost-num"));
             _cost.Add(orb);
-            _cost.Add(new Label($"費用上限 {_battle.Setup.CostCap}") { pickingMode = PickingMode.Ignore }.WithClass("cost-caption"));
+            _cost.Add(new Label($"{_battle.Cost}") { pickingMode = PickingMode.Ignore }.WithClass("bl-cost-num"));
+            _cost.Add(new Label($"/ {_battle.Setup.CostCap}") { pickingMode = PickingMode.Ignore }.WithClass("bl-cost-cap"));
             _piles.Clear();
-            _piles.Add(PileRow("draw", "抽牌堆（不重洗）", _battle.DrawPile.Count.ToString()));
-            _piles.Add(PileRow("kw_retain", "手牌", $"{_battle.Hand.Count}/{Battle.MaxHandSize}"));
-            _piles.Add(PileRow("kw_exhaust", "已用 / 消耗", $"{_battle.DiscardPile.Count + _battle.ExhaustPile.Count}"));
+            _piles.Add(new Label($"抽牌堆 {_battle.DrawPile.Count}（不重洗）　手牌 {_battle.Hand.Count}/{Battle.MaxHandSize}") { pickingMode = PickingMode.Ignore }.WithClass("bl-pile-text"));
             _logLabel.text = string.Join("\n", _log.Skip(Math.Max(0, _log.Count - 4)));
             _logBox.style.display = _log.Count == 0 ? DisplayStyle.None : DisplayStyle.Flex;
         }

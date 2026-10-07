@@ -27,7 +27,7 @@ namespace SanGuo.Client
         public const float CameraPitchDegrees = 36f;   // 俯視角（等角視角約 45–55）
         public const float BoardLeftBias = 0f;
         private const float BoardZoom = 1.0f;         // 棋盤完整放進 field（手牌區不再蓋住棋盤）
-        public const float CameraYawDegrees = 90f;     // 左右旋轉 45° = 等角視角，地磚變菱形（0 = 正面平視棋盤）
+        public const float CameraYawDegrees = 120f;    // 棋盤繞 Y 軸轉 30°（原本 90° = 軸對齊；想轉另一邊改成 60）
         private const float TilePitch = 1.85f;      // 欄與欄之間（螢幕上下方向；參考 TS6Client 角色間距 1.5）
         private const float TilePitchX = 1.55f;     // 列與列之間（螢幕左右方向）
         private const float TileTop = 0.03f;

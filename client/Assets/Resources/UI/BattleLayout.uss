@@ -1,0 +1,139 @@
+/* 戰鬥畫面版面（仿超時空方舟）：左 = 結束回合 / 費用 + 手牌清單，右 = 選定技能後的卡片詳情，底 = 武將資訊列。
+   參考解析度 1920x1080；最後載入，覆蓋 Battle.uss / BattleTheme.uss 舊的底部手牌樣式。 */
+
+/* ---- 左側 ---- */
+.bl-left {
+    position: absolute;
+    left: 12px; top: 70px;
+    width: 316px;
+}
+.bl-top { flex-direction: row; align-items: center; margin-bottom: 4px; }
+.bl-end {
+    width: 168px; height: 56px;
+    margin: 0 10px 0 0; padding: 0;
+    border-radius: 10px;
+    border-width: 2px; border-color: rgb(255, 196, 120);
+    background-color: rgb(214, 96, 40);
+    font-size: 28px; -unity-font-style: bold; color: white;
+    -unity-text-align: middle-center;
+}
+.bl-end:hover { background-color: rgb(236, 116, 56); }
+.bl-end:active { background-color: rgb(170, 66, 30); }
+.bl-cost { flex-direction: row; align-items: center; }
+.bl-orb { width: 44px; height: 44px; background-size: 100% 100%; }
+.bl-cost-num { font-size: 40px; -unity-font-style: bold; color: white; margin-left: 4px; -unity-text-outline-width: 2px; -unity-text-outline-color: rgb(16, 30, 90); }
+.bl-cost-cap { font-size: 22px; color: rgb(190, 204, 240); margin-left: 4px; margin-top: 10px; }
+.bl-piles { margin-bottom: 6px; }
+.bl-pile-text { font-size: 19px; color: rgb(200, 214, 245); -unity-text-outline-width: 1px; -unity-text-outline-color: rgb(10, 14, 30); }
+
+.bl-list { flex-direction: column; }
+.bl-row {
+    flex-direction: row;
+    align-items: center;
+    height: 62px;
+    margin-bottom: 4px;
+    padding: 0 8px 0 6px;
+    border-radius: 8px;
+    border-width: 2px;
+    border-color: rgba(120, 150, 210, 0.55);
+    background-color: rgba(14, 22, 48, 0.86);
+    transition: translate 110ms ease-out, background-color 110ms ease-out;
+}
+.bl-row:hover { background-color: rgba(34, 52, 104, 0.92); border-color: rgb(170, 200, 255); }
+.bl-row-skill { border-color: rgba(230, 170, 70, 0.85); }
+.bl-row-move { border-color: rgba(90, 200, 130, 0.8); }
+.bl-row-disabled { opacity: 0.5; }
+.bl-row-selected { translate: 18px 0; border-color: rgb(255, 214, 80); background-color: rgba(60, 50, 16, 0.95); }
+.bl-row-index { width: 24px; font-size: 22px; color: rgb(170, 190, 235); -unity-text-align: middle-center; }
+.bl-row-face { width: 48px; height: 48px; border-radius: 24px; margin: 0 8px; background-color: rgba(0, 0, 0, 0.35); -unity-background-scale-mode: scale-and-crop; }
+.bl-row-name { flex-grow: 1; flex-shrink: 1; font-size: 26px; color: rgb(244, 246, 255); white-space: nowrap; overflow: hidden; }
+.bl-row-kind { width: 26px; height: 26px; margin-right: 6px; }
+.bl-row-cost {
+    width: 40px; height: 40px;
+    background-size: 100% 100%;
+    color: white;
+    font-size: 26px; -unity-font-style: bold; -unity-text-align: middle-center;
+    -unity-text-outline-width: 2px; -unity-text-outline-color: rgb(20, 30, 70);
+}
+
+/* ---- 右側：卡片詳情 ---- */
+.bl-detail {
+    position: absolute;
+    right: 14px; top: 200px;
+    width: 372px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border-width: 3px; border-color: rgb(255, 214, 80);
+    background-color: rgba(16, 20, 36, 0.95);
+}
+.bl-d-head { flex-direction: row; align-items: center; margin-bottom: 8px; }
+.bl-d-face { width: 84px; height: 84px; border-radius: 12px; background-color: rgba(0, 0, 0, 0.35); -unity-background-scale-mode: scale-and-crop; }
+.bl-d-titles { flex-grow: 1; margin-left: 12px; }
+.bl-d-name { font-size: 34px; -unity-font-style: bold; color: rgb(255, 240, 200); }
+.bl-d-owner { font-size: 20px; color: rgb(170, 184, 220); }
+.bl-detail .range-icon { align-self: flex-start; margin: 4px 0 6px 0; background-color: rgba(120, 140, 200, 0.2); }
+.bl-detail .range-cell { width: 20px; height: 16px; }
+.bl-detail .range-text { font-size: 22px; color: rgb(230, 236, 255); }
+.bl-d-target { font-size: 21px; color: rgb(190, 202, 235); white-space: normal; margin-bottom: 6px; }
+.bl-d-desc { font-size: 25px; color: rgb(246, 246, 250); white-space: normal; margin-bottom: 6px; }
+.bl-d-kw { font-size: 20px; color: rgb(255, 214, 120); margin-bottom: 6px; }
+.bl-d-hint { font-size: 20px; color: rgb(140, 224, 170); white-space: normal; margin-top: 4px; }
+.bl-d-warn { font-size: 20px; color: rgb(255, 150, 110); white-space: normal; margin-top: 4px; }
+.bl-d-use, .bl-d-cancel {
+    height: 48px; margin: 8px 0 0 0;
+    border-radius: 10px; border-width: 0;
+    font-size: 26px; -unity-font-style: bold; color: white;
+}
+.bl-d-use { background-color: rgb(60, 150, 96); }
+.bl-d-use:hover { background-color: rgb(80, 176, 116); }
+.bl-d-cancel { background-color: rgb(70, 76, 100); height: 40px; font-size: 22px; }
+.bl-d-cancel:hover { background-color: rgb(92, 100, 132); }
+
+/* ---- 底部：武將資訊列 ---- */
+.bl-bar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 168px;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 14px;
+    background-color: rgba(10, 14, 28, 0.9);
+    border-top-width: 2px; border-top-color: rgba(120, 150, 210, 0.5);
+}
+.bl-hero {
+    flex-direction: row;
+    width: 440px; height: 142px;
+    margin: 0 6px;
+    padding: 8px;
+    border-radius: 10px;
+    border-width: 2px; border-color: rgba(120, 150, 210, 0.5);
+    background-color: rgba(26, 34, 64, 0.9);
+}
+.bl-hero-dead { opacity: 0.4; }
+.bl-hero-active { border-color: rgb(255, 214, 80); background-color: rgba(70, 58, 20, 0.9); }
+.bl-hero-pick { border-color: rgb(110, 230, 150); }
+.bl-hero-pick:hover { background-color: rgba(40, 90, 60, 0.95); }
+.bl-hero-face { width: 112px; height: 124px; border-radius: 10px; background-color: rgba(0, 0, 0, 0.35); -unity-background-scale-mode: scale-and-crop; }
+.bl-hero-col { flex-grow: 1; margin-left: 10px; }
+.bl-hero-title { flex-direction: row; align-items: center; }
+.bl-hero-name { font-size: 28px; -unity-font-style: bold; color: rgb(255, 244, 214); margin-left: 4px; }
+.bl-hero-role { font-size: 18px; color: rgb(160, 176, 214); margin-left: 8px; }
+.bl-hp-bg { height: 24px; border-radius: 12px; margin: 4px 0; background-color: rgb(20, 22, 30); }
+.bl-hp-fill { height: 24px; border-radius: 12px; background-color: rgb(70, 170, 95); }
+.bl-hp-text { position: absolute; left: 0; right: 0; top: 0; bottom: 0; font-size: 18px; color: white; -unity-text-align: middle-center; -unity-text-outline-width: 1px; -unity-text-outline-color: black; }
+.bl-stats { flex-direction: row; flex-wrap: wrap; }
+.bl-stat-main { font-size: 24px; -unity-font-style: bold; color: rgb(255, 224, 140); margin-right: 12px; }
+.bl-stat { font-size: 21px; color: rgb(214, 222, 244); margin-right: 12px; }
+.bl-chips { flex-direction: row; flex-wrap: wrap; margin-top: 2px; }
+
+/* ---- 紀錄：右上 ---- */
+.bl-log {
+    position: absolute;
+    right: 14px; top: 66px;
+    width: 372px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background-color: rgba(10, 22, 56, 0.72);
+}
+.bl-log-line { font-size: 18px; color: rgb(214, 226, 250); white-space: normal; }
