@@ -28,9 +28,10 @@
 .nav-tab:hover { background-color: rgba(70, 108, 196, 0.8); border-color: rgb(170, 200, 255); }
 .nav-tab-on { background-color: rgb(52, 98, 196); border-color: rgb(255, 214, 120); }
 .nav-tab-on:hover { background-color: rgb(64, 112, 214); }
-.nav-icon { width: 58px; height: 58px; -unity-background-scale-mode: scale-to-fit; opacity: 0.8; }
+.nav-icon { width: 46px; height: 46px; margin-top: 2px; -unity-background-scale-mode: scale-to-fit; opacity: 0.8; }
 .nav-tab-on .nav-icon { opacity: 1; }
-.nav-label { color: rgb(200, 216, 250); font-size: 24px; }
+.nav-label { color: rgb(200, 216, 250); font-size: 23px; margin-top: 2px; }
+.nav { height: 124px; }
 .nav-icon-home { background-image: url("../UiSkin/nav_home.png"); }
 .nav-icon-map { background-image: url("../UiSkin/nav_map.png"); }
 .nav-icon-heroes { background-image: url("../UiSkin/nav_heroes.png"); }
@@ -62,9 +63,10 @@
 /* ---- 按鈕：橘（主要）／藍（一般）／灰（已完成），9 宮格貼圖 ---- */
 .page-host .btn, .page-host .btn-primary, .page-host .btn-on, .page-host .btn-done,
 .page-host .btn:hover, .page-host .btn-primary:hover, .page-host .btn-on:hover, .page-host .btn-done:hover {
-    min-height: 68px;
+    min-height: 76px;
+    min-width: 150px;
     margin: 4px 8px 4px 0;
-    padding: 6px 34px;
+    padding: 8px 34px;
     border-width: 0;
     border-radius: 0;
     background-color: rgba(0, 0, 0, 0);
@@ -85,9 +87,10 @@
 
 /* ---- 分頁籤：未選＝藍、選中＝橘 ---- */
 .page-host .tab, .page-host .tab:hover, .page-host .tab-on, .page-host .tab-on:hover {
-    min-height: 68px;
+    min-height: 76px;
     margin: 0 8px;
-    padding: 6px 44px;
+    padding: 8px 44px;
+    -unity-text-align: middle-center;
     border-width: 0;
     border-radius: 0;
     background-color: rgba(0, 0, 0, 0);
@@ -139,3 +142,6 @@
 .formation-label { color: rgb(255, 230, 160); }
 
 .page-container .toast { background-color: rgba(10, 22, 56, 0.95); border-color: rgb(255, 214, 120); }
+
+.row-center { max-width: 1500px; }
+.page-host .map-field { width: 1424px; }

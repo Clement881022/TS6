@@ -30,7 +30,7 @@ namespace SanGuo.Client
 
         public static Button Btn(string text, Action onClick, bool primary = false, bool on = false)
         {
-            var b = new Button(onClick) { text = text };
+            var b = new Button(() => { AudioManager.PlaySfx(Sfx.Click); onClick(); }) { text = text };
             b.AddToClassList("btn");
             if (primary) b.AddToClassList("btn-primary");
             if (on) b.AddToClassList("btn-on");
@@ -49,7 +49,7 @@ namespace SanGuo.Client
         /// <summary>分頁籤（卡池、任務類型）。</summary>
         public static Button Tab(string text, Action onClick, bool on)
         {
-            var b = new Button(onClick) { text = text };
+            var b = new Button(() => { AudioManager.PlaySfx(Sfx.Click); onClick(); }) { text = text };
             b.AddToClassList("tab");
             if (on) b.AddToClassList("tab-on");
             return b;

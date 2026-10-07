@@ -29,16 +29,16 @@ namespace SanGuo.Client
             yield return Wait(1.0f);
             Shot(dir, "home");
 
+            yield return Go(Page.Gacha);
+            if (PageHost.Current?.ActivePage is GachaPage gacha) _ = gacha.DebugTenPull();
+            yield return Wait(0.8f);
+            Shot(dir, "gacha");
+
             foreach (var page in new[] { Page.Map, Page.Heroes, Page.Dungeons, Page.Quests, Page.Shop })
             {
                 yield return Go(page);
                 Shot(dir, page.ToString().ToLowerInvariant());
             }
-
-            yield return Go(Page.Gacha);
-            if (PageHost.Current?.ActivePage is GachaPage gacha) _ = gacha.DebugTenPull();
-            yield return Wait(0.8f);
-            Shot(dir, "gacha");
 
             GameSession.SelectedLevel = Mathf.Max(2, GameSession.SelectedLevel);
             yield return Go(Page.Formation);

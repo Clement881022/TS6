@@ -79,6 +79,7 @@ namespace SanGuo.Client
             _container.AddToClassList("page-container");
             _root.Add(_container);
             ActivePage = view;
+            AudioManager.PlayBgm(page == Page.Battle ? Bgm.Battle : Bgm.Home);
             view.Open(_container);
         }
 

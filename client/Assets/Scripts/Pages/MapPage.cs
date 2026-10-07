@@ -26,7 +26,7 @@ namespace SanGuo.Client
             int total = DemoContent.LevelNames.Length;
             var centers = new List<Vector2>();
             for (int i = 0; i < total; i++)
-                centers.Add(new Vector2(90 + i * 169f, 250 + Mathf.Sin(i * 0.9f) * 140f));
+                centers.Add(new Vector2(90 + i * 138f, 250 + Mathf.Sin(i * 0.9f) * 140f));
 
             for (int i = 0; i < total - 1; i++)
             {
@@ -64,7 +64,7 @@ namespace SanGuo.Client
                 string status = cleared ? UiText.Stars(stars) : !implemented ? "未開放" : open ? "可挑戰" : "未解鎖";
                 var caption = new Label($"{DemoContent.LevelNames[i]}\n{status}") { pickingMode = PickingMode.Ignore };
                 caption.AddToClassList("map-caption");
-                caption.style.left = centers[i].x - 80;
+                caption.style.left = centers[i].x - 65;
                 caption.style.top = centers[i].y + size / 2 + 4;
                 field.Add(caption);
             }

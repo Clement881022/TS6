@@ -96,7 +96,7 @@ namespace SanGuo.Client
         private Task Pull(int count) => Act(async () =>
         {
             var r = await GameSession.Backend.Pull(_poolId, count);
-            if (r.Ok) _last = r.Results;
+            if (r.Ok) { _last = r.Results; AudioManager.PlaySfx(Sfx.Gacha); }
             return (BackendResult)r;
         });
     }
