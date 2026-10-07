@@ -33,6 +33,7 @@ namespace SanGuo.Client
         }
 
         private const float TagWidth = 146f;
+        private const float HeroTagWidth = 118f;
         private const float TagHeight = 76f;
 
         private readonly VisualElement _root;
@@ -184,7 +185,7 @@ namespace SanGuo.Client
                 var tag = new UnitTag { Root = new VisualElement { pickingMode = PickingMode.Ignore } };
                 tag.Root.AddToClassList("tag");
                 tag.Root.AddToClassList(unit.Side == Side.Enemy ? "tag-enemy" : "tag-hero");
-                tag.Root.style.width = TagWidth;
+                tag.Root.style.width = unit.Side == Side.Player ? HeroTagWidth : TagWidth;
                 tag.Name = new Label(unit.Name); tag.Name.AddToClassList("tag-name");
                 var hpBg = new VisualElement(); hpBg.AddToClassList("tag-hp-bg");
                 tag.HpFill = new VisualElement(); tag.HpFill.AddToClassList("tag-hp-fill");
@@ -478,12 +479,14 @@ namespace SanGuo.Client
             foreach (var unit in _battle.Units)
             {
                 if (!_tags.TryGetValue(unit.Id, out var tag)) continue;
-                var p = unit.Alive ? _stage.UnitHeadPanel(unit) : null;
+                // 敵方標籤在頭頂；我方在近端，頭頂方向是敵方棋盤，所以標籤放腳下。
+                bool below = unit.Side == Side.Player;
+                var p = unit.Alive ? (below ? _stage.UnitFootPanel(unit) : _stage.UnitHeadPanel(unit)) : null;
                 if (p == null) { tag.Root.style.visibility = Visibility.Hidden; continue; }
                 var local = _tagLayer.WorldToLocal(p.Value);
                 tag.Root.style.visibility = Visibility.Visible;
-                tag.Root.style.left = local.x - TagWidth * 0.5f;
-                tag.Root.style.top = local.y - TagHeight;
+                tag.Root.style.left = local.x - (below ? HeroTagWidth : TagWidth) * 0.5f;
+                tag.Root.style.top = below ? local.y + 2f : local.y - TagHeight;
             }
         }
 
@@ -551,8 +554,7 @@ namespace SanGuo.Client
 
                 var name = new Label(card.Def.Name) { pickingMode = PickingMode.Ignore };
                 name.AddToClassList("card-name");
-                var target = new Label(CardText.Target(card.Def)) { pickingMode = PickingMode.Ignore };
-                target.AddToClassList("card-target");
+                var target = RangeIcon.Build(card.Def);
                 var desc = new VisualElement { pickingMode = PickingMode.Ignore };
                 desc.AddToClassList("card-desc");
                 FillCardEffects(desc, card.Def);

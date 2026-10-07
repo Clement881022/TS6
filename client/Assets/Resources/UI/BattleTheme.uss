@@ -194,7 +194,7 @@
 .result-buttons .btn-primary { background-image: url("../UiSkin/btn_orange.png"); }
 
 /* 戰場只用手牌上方的區域：棋盤與手牌不重疊 */
-.field { margin-bottom: 268px; }
+.field { margin-bottom: 214px; }
 
 /* 手牌縮小一號，讓戰場有更多高度 */
 .card { width: 152px; height: 246px; margin: 0 4px; }
@@ -212,3 +212,41 @@
 .cost-num { font-size: 58px; }
 .end-turn { width: 130px; height: 130px; border-radius: 65px; font-size: 30px; margin-bottom: 24px; }
 .bottom-left, .bottom-right { width: 190px; }
+
+/* ---- 手牌：平時縮小貼底，滑鼠移上去整排往上放大 ---- */
+.bottom { padding-bottom: 6px; }
+.hand {
+    transform-origin: 50% 100%;
+    scale: 0.78 0.78;
+    translate: 0 4px;
+    transition: scale 160ms ease-out, translate 160ms ease-out;
+}
+.hand:hover { scale: 1.2 1.2; translate: 0 -10px; }
+.card { width: 168px; height: 266px; }
+.card-art { height: 108px; }
+.card-name { font-size: 27px; }
+
+/* ---- 範圍圖示（5 路 × 2 排的小棋盤）---- */
+.range-icon {
+    align-self: flex-start;
+    margin: 4px 8px 0 8px;
+    padding: 4px;
+    border-radius: 6px;
+    background-color: rgba(30, 40, 70, 0.14);
+    flex-direction: column;
+}
+.range-row { flex-direction: row; }
+.range-cell { width: 20px; height: 13px; margin: 1px; border-radius: 3px; background-color: rgba(40, 50, 80, 0.16); }
+.range-enemy .range-cell-on { background-color: rgb(214, 70, 60); }
+.range-ally .range-cell-on { background-color: rgb(60, 130, 224); }
+.range-cell-self { background-color: rgb(255, 196, 60); }
+.range-any .range-cell-on { background-color: rgba(214, 70, 60, 0.55); border-width: 1px; border-color: rgb(214, 70, 60); }
+.range-hp { position: absolute; right: -24px; top: 6px; width: 20px; height: 20px; }
+
+/* 我方標籤精簡：小頭像 + 血條 + 狀態，不顯示名字（避免蓋住後排角色） */
+.tag-hero { padding: 3px 6px 3px 3px; }
+.tag-hero .tag-name-row { display: none; }
+.tag-hero .tag-face { width: 38px; height: 38px; border-radius: 19px; margin-right: 5px; }
+.tag-hero .tag-hp-bg { margin: 0; height: 20px; }
+.tag-hero .tag-hp-fill { height: 20px; }
+.tag-hero .tag-hp-text { font-size: 15px; }

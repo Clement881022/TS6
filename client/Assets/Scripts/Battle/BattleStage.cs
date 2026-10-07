@@ -25,17 +25,17 @@ namespace SanGuo.Client
     /// </summary>
     public sealed class BattleStage : MonoBehaviour
     {
-        public const float CameraPitchDegrees = 40f;   // 俯視角（等角視角約 45–55）
+        public const float CameraPitchDegrees = 36f;   // 俯視角（等角視角約 45–55）
         public const float BoardLeftBias = 0f;
         private const float BoardZoom = 1.0f;         // 棋盤完整放進 field（手牌區不再蓋住棋盤）
-        public const float CameraYawDegrees = 0f;      // 左右旋轉 45° = 等角視角，地磚變菱形（0 = 正面平視棋盤）
-        private const float TilePitch = 1.4f;      // 路與路之間（參考 TS6Client 角色間距 1.5）
-        private const float TilePitchX = 1.8f;     // 排與排之間
-        private const float CenterGap = 2.4f;       // 兩陣營間距（參考 TS6Client CampSpacing 2）
+        public const float CameraYawDegrees = 90f;     // 左右旋轉 45° = 等角視角，地磚變菱形（0 = 正面平視棋盤）
+        private const float TilePitch = 1.85f;      // 路與路之間（參考 TS6Client 角色間距 1.5）
+        private const float TilePitchX = 1.55f;     // 排與排之間
+        private const float CenterGap = 1.5f;       // 兩陣營間距（參考 TS6Client CampSpacing 2）
         private const float TileTop = 0.03f;
         private const float ModelScale = 1.5f;
         private const float UnitHeadHeight = 3.1f;
-        private const float ViewYawDegrees = 55f;      // 面向對手的同時微微轉向鏡頭
+        private const float ViewYawDegrees = 18f;      // 面向對手的同時微微轉向鏡頭
 
         private sealed class UnitView
         {
@@ -197,6 +197,13 @@ namespace SanGuo.Client
         /// <summary>某個棋盤格上方（約角色頭頂）的面板座標，飄字用。</summary>
         public Vector2 TileHeadPanel(Side side, Position pos) =>
             WorldToPanel(TileWorld(side, pos) + Vector3.up * UnitHeadHeight);
+
+        /// <summary>角色目前（含移動動畫）腳下的面板座標；我方標籤放這裡（頭頂方向是敵方區域）。</summary>
+        public Vector2? UnitFootPanel(Unit unit)
+        {
+            if (!_views.TryGetValue(unit.Id, out var uv) || !uv.Anchor.activeSelf) return null;
+            return WorldToPanel(uv.Anchor.transform.position + Vector3.up * 0.05f);
+        }
 
         /// <summary>角色目前（含移動動畫）頭頂的面板座標，血條用；找不到回傳 null。</summary>
         public Vector2? UnitHeadPanel(Unit unit)

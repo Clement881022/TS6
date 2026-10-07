@@ -272,3 +272,121 @@
 
 .fcell { height: 190px; }
 .formation-board { align-items: center; }
+
+/* =====================================================================
+   主城 HUD：場景當底，入口是建築名牌，四周是玩家卡 / 資源 / 功能鍵 / 戰鬥圓章 / 巴豆妖
+   ===================================================================== */
+.bg-home { background-image: none; background-color: rgb(236, 210, 170); }
+.home-scene { position: absolute; -unity-background-scale-mode: scale-and-crop; }
+
+/* 建築名牌 */
+.home-spot {
+    position: absolute;
+    flex-direction: row;
+    align-items: center;
+    padding: 4px 14px;
+    margin: 0;
+    translate: -50% -50%;
+    border-width: 2px;
+    border-radius: 12px;
+    border-color: rgb(190, 214, 255);
+    background-color: rgba(26, 62, 150, 0.94);
+    transition: scale 120ms ease-out, background-color 120ms ease-out;
+}
+.home-spot:hover { scale: 1.1 1.1; background-color: rgba(52, 100, 210, 0.98); }
+.home-spot-text { font-size: 34px; -unity-font-style: bold; color: white; margin: 0 12px; }
+.home-diamond { width: 22px; height: 22px; background-image: url("../UiSkin/diamond.png"); -unity-background-scale-mode: scale-to-fit; }
+
+/* 左上：玩家卡 */
+.home-player {
+    position: absolute;
+    left: 22px; top: 18px;
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 26px 8px 8px;
+    border-radius: 60px;
+    border-width: 2px;
+    border-color: rgb(190, 214, 255);
+    background-color: rgba(14, 30, 72, 0.88);
+}
+.home-player .avatar { margin: 0 14px 0 0; }
+.home-player-info { width: 270px; }
+.home-player-top { flex-direction: row; align-items: flex-end; justify-content: space-between; }
+.home-player-name { font-size: 32px; -unity-font-style: bold; color: white; }
+.home-player-level { font-size: 28px; -unity-font-style: bold; color: rgb(255, 224, 140); }
+.home-player-exp { font-size: 19px; color: rgb(196, 214, 250); }
+
+/* 章節進度牌 */
+.home-chapter {
+    position: absolute;
+    left: 22px; top: 162px;
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 18px;
+    margin: 0;
+    border-width: 2px;
+    border-radius: 12px;
+    border-color: rgb(255, 214, 120);
+    background-color: rgba(26, 62, 150, 0.94);
+    transition: scale 120ms ease-out;
+}
+.home-chapter:hover { scale: 1.04 1.04; }
+.home-chapter-text { margin: 0 14px; align-items: center; }
+.home-chapter-title { font-size: 28px; -unity-font-style: bold; color: rgb(255, 230, 160); }
+.home-chapter-sub { font-size: 22px; color: white; }
+
+/* 右上資源 */
+.home-res { position: absolute; right: 22px; top: 24px; flex-direction: row; }
+
+/* 底部功能鍵 */
+.home-fn-bar { position: absolute; left: 0; right: 0; bottom: 14px; flex-direction: row; justify-content: center; }
+.home-fn { align-items: center; margin: 0 14px; padding: 0; border-width: 0; background-color: rgba(0, 0, 0, 0); transition: translate 120ms ease-out; }
+.home-fn:hover { translate: 0 -6px; background-color: rgba(0, 0, 0, 0); }
+.home-fn-circle {
+    width: 118px; height: 118px;
+    align-items: center; justify-content: center;
+    background-image: url("../UiSkin/circle_gold.png");
+    -unity-background-scale-mode: scale-to-fit;
+}
+.home-fn-icon { width: 78px; height: 78px; -unity-background-scale-mode: scale-to-fit; }
+.home-fn-label {
+    margin-top: 2px;
+    font-size: 28px; -unity-font-style: bold; color: white;
+    -unity-text-outline-width: 0px;
+    padding: 1px 12px; border-radius: 10px; background-color: rgba(14, 30, 72, 0.72);
+}
+
+/* 右下：戰鬥圓章 */
+.home-orb {
+    position: absolute;
+    right: 26px; bottom: 26px;
+    width: 250px; height: 250px;
+    margin: 0; padding: 0; border-width: 0;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("../UiSkin/orb_battle.png");
+    -unity-background-scale-mode: scale-to-fit;
+    transition: scale 120ms ease-out;
+}
+.home-orb:hover { scale: 1.07 1.07; background-color: rgba(0, 0, 0, 0); }
+
+/* 左下：巴豆妖 + 氣泡 */
+.home-mascot-box { position: absolute; left: 10px; bottom: 6px; width: 330px; height: 470px; }
+.home-mascot {
+    position: absolute; left: 0; bottom: 0;
+    width: 300px; height: 375px;
+    margin: 0; padding: 0; border-width: 0;
+    background-color: rgba(0, 0, 0, 0);
+    -unity-background-scale-mode: scale-to-fit;
+}
+.home-mascot:hover { background-color: rgba(0, 0, 0, 0); }
+.home-bubble {
+    position: absolute; left: 250px; top: 150px;
+    width: 300px;
+    padding: 12px 18px;
+    border-radius: 16px;
+    border-width: 2px;
+    border-color: rgb(190, 214, 255);
+    background-color: rgba(14, 34, 88, 0.94);
+    font-size: 26px; color: white;
+    white-space: normal;
+}

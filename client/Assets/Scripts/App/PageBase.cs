@@ -21,6 +21,8 @@ namespace SanGuo.Client
         protected abstract string Title { get; }
         /// <summary>false = 不顯示底部導覽（流程中的頁面，例如編隊）。</summary>
         protected virtual bool ShowNav => true;
+        /// <summary>false = 不用共用的頂欄 / 導覽外框，頁面自己鋪滿整個畫面（主城用）。</summary>
+        protected virtual bool UseFrame => true;
         protected abstract void BuildBody(VisualElement body);
 
         /// <summary>頁面內容區（Rebuild 時會清空重畫）；彈出視窗請加在這裡，會跟著重畫消失。</summary>
@@ -47,6 +49,7 @@ namespace SanGuo.Client
         public void Rebuild()
         {
             _host.Clear();
+            if (!UseFrame) { BuildBody(_host); return; }
             var body = UiKit.Frame(_host, Title, Id, ShowNav);
             BuildBody(body);
         }

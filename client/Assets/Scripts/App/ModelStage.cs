@@ -14,7 +14,8 @@ namespace SanGuo.Client
     {
         /// <summary>專用圖層（相機與燈光只看這層）。</summary>
         private const int StageLayer = 31;
-        private static readonly Vector3 Origin = new Vector3(4000f, 0f, 4000f);
+        private static int _count;
+        private Vector3 _origin;
 
         public RenderTexture Texture { get; private set; } = null!;
 
@@ -39,13 +40,14 @@ namespace SanGuo.Client
 
         private void Build(GameObject prefab, int width, int height)
         {
-            transform.position = Origin;
-            _model = Instantiate(prefab, Origin, Quaternion.identity, transform);
+            _origin = new Vector3(4000f + 80f * (_count++ % 20), 0f, 4000f);
+            transform.position = _origin;
+            _model = Instantiate(prefab, _origin, Quaternion.identity, transform);
             SetLayer(_model, StageLayer);
             _clips = _model.GetComponent<CharacterClipSet>();
 
             // 以模型的外框決定相機距離與高度
-            var bounds = new Bounds(Origin, Vector3.zero);
+            var bounds = new Bounds(_origin, Vector3.zero);
             bool first = true;
             foreach (var r in _model.GetComponentsInChildren<Renderer>())
             {
