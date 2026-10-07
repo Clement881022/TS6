@@ -119,10 +119,10 @@ namespace SanGuo.Client
             var list = new List<object?>();
             foreach (var a in actions)
             {
-                string kind = a.Kind == ReplayActionKind.Play ? "play" : a.Kind == ReplayActionKind.Move ? "move" : "end";
+                string kind = a.Kind == ReplayActionKind.Play ? "play" : "end";
                 list.Add(new Dictionary<string, object?>
                 {
-                    ["kind"] = kind, ["cardId"] = (long)a.CardId, ["unitId"] = (long)a.UnitId,
+                    ["kind"] = kind, ["cardId"] = (long)a.CardId, 
                     ["lane"] = (long)a.Lane, ["row"] = (long)a.Row, ["targetId"] = (long)a.TargetId,
                 });
             }

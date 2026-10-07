@@ -8,12 +8,11 @@ using Position = SanGuo.Core.Position;
 
 namespace SanGuo.Client
 {
-    public enum TileState { None, Target, Reach, Owner }
+    public enum TileState { None, Target, Reach, Range, Owner }
 
     /// <summary>掛在每塊地磚上，記錄它對應的棋盤格（點擊選格用）。</summary>
     public sealed class TileTag : MonoBehaviour
     {
-        public Side Side;
         public Position Pos;
         public Renderer Renderer = null!;
         public Color BaseColor;
@@ -29,9 +28,8 @@ namespace SanGuo.Client
         public const float BoardLeftBias = 0f;
         private const float BoardZoom = 1.0f;         // 棋盤完整放進 field（手牌區不再蓋住棋盤）
         public const float CameraYawDegrees = 90f;     // 左右旋轉 45° = 等角視角，地磚變菱形（0 = 正面平視棋盤）
-        private const float TilePitch = 1.85f;      // 路與路之間（參考 TS6Client 角色間距 1.5）
-        private const float TilePitchX = 1.55f;     // 排與排之間
-        private const float CenterGap = 1.5f;       // 兩陣營間距（參考 TS6Client CampSpacing 2）
+        private const float TilePitch = 1.85f;      // 欄與欄之間（螢幕上下方向；參考 TS6Client 角色間距 1.5）
+        private const float TilePitchX = 1.55f;     // 列與列之間（螢幕左右方向）
         private const float TileTop = 0.03f;
         private const float ModelScale = 1.5f;
         private const float UnitHeadHeight = 3.1f;
@@ -51,7 +49,7 @@ namespace SanGuo.Client
         private VisualElement? _field;
         private readonly Dictionary<int, UnitView> _views = new Dictionary<int, UnitView>();
         private readonly Dictionary<string, GameObject> _prefabs = new Dictionary<string, GameObject>();
-        private readonly Dictionary<(Side, int, int), TileTag> _tiles = new Dictionary<(Side, int, int), TileTag>();
+        private readonly Dictionary<(int, int), TileTag> _tiles = new Dictionary<(int, int), TileTag>();
         private GameObject? _tileRoot;
 
         private void Awake()
@@ -125,58 +123,55 @@ namespace SanGuo.Client
 
         public CharacterView? ViewOf(int unitId) => _views.TryGetValue(unitId, out var v) ? v.View : null;
 
+        /// <summary>敵我共用的 5x5 棋盤：上兩列（0–1）是敵方起始區、下兩列（3–4）是我方起始區，中間一列是空地。</summary>
         private void BuildTiles()
         {
             _tileRoot = new GameObject("Tiles");
             _tileRoot.transform.SetParent(transform, false);
-            for (int sideIndex = 0; sideIndex < 2; sideIndex++)
+            for (int lane = 0; lane < _battle!.Setup.Lanes; lane++)
             {
-                var side = sideIndex == 0 ? Side.Player : Side.Enemy;
-                for (int lane = 0; lane < _battle!.Setup.Lanes; lane++)
+                for (int row = 0; row < _battle.Setup.Rows; row++)
                 {
-                    for (int row = 0; row < _battle.Setup.Rows; row++)
-                    {
-                        var tile = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                        tile.name = $"Tile_{side}_{lane}_{row}";
-                        tile.transform.SetParent(_tileRoot.transform, false);
-                        var pos = new Position(lane, row);
-                        var center = TileWorld(side, pos);
-                        tile.transform.position = center + Vector3.down * (TileTop * 0.5f);
-                        tile.transform.localScale = new Vector3(TilePitchX * 0.94f, TileTop, TilePitch * 0.92f);
+                    var tile = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    tile.name = $"Tile_{lane}_{row}";
+                    tile.transform.SetParent(_tileRoot.transform, false);
+                    var pos = new Position(lane, row);
+                    var center = TileWorld(pos);
+                    tile.transform.position = center + Vector3.down * (TileTop * 0.5f);
+                    tile.transform.localScale = new Vector3(TilePitchX * 0.94f, TileTop, TilePitch * 0.92f);
 
-                        var tag = tile.AddComponent<TileTag>();
-                        tag.Side = side;
-                        tag.Pos = pos;
-                        tag.Renderer = tile.GetComponent<Renderer>();
-                        if (TileShader != null) tag.Renderer.sharedMaterial = new Material(TileShader);
-                        tag.BaseColor = side == Side.Player
-                            ? new Color(0.45f, 0.72f, 1.00f, 0.15f)
-                            : new Color(1.00f, 0.45f, 0.40f, 0.15f);
-                        tag.Renderer.material.color = tag.BaseColor;
-                        _tiles[(side, lane, row)] = tag;
-                    }
+                    var tag = tile.AddComponent<TileTag>();
+                    tag.Pos = pos;
+                    tag.Renderer = tile.GetComponent<Renderer>();
+                    if (TileShader != null) tag.Renderer.sharedMaterial = new Material(TileShader);
+                    tag.BaseColor = row <= 1 ? new Color(1.00f, 0.45f, 0.40f, 0.15f)
+                        : row >= 3 ? new Color(0.45f, 0.72f, 1.00f, 0.15f)
+                        : new Color(0.85f, 0.85f, 0.85f, 0.10f);
+                    tag.Renderer.material.color = tag.BaseColor;
+                    _tiles[(lane, row)] = tag;
                 }
             }
         }
 
-        /// <summary>棋盤格的世界座標（地磚頂面中心）。雙方左右相對，前排靠近中線；第 1 路在遠端。</summary>
-        public Vector3 TileWorld(Side side, Position pos)
+        /// <summary>棋盤格的世界座標（地磚頂面中心）。第 0 列（敵方底線）在右、第 4 列（我方底線）在左；第 0 欄在遠端。</summary>
+        public Vector3 TileWorld(Position pos)
         {
             int lanes = _battle != null ? _battle.Setup.Lanes : 5;
-            float x = CenterGap * 0.5f + 0.5f * TilePitchX + pos.Row * TilePitchX;
-            if (side == Side.Player) x = -x;
+            int rows = _battle != null ? _battle.Setup.Rows : 5;
+            float x = ((rows - 1) * 0.5f - pos.Row) * TilePitchX;
             float z = ((lanes - 1) * 0.5f - pos.Lane) * TilePitch;
             return new Vector3(x, 0f, z);
         }
 
-        public void SetTileStates(IEnumerable<(Side side, Position pos, TileState state)> states)
+        public void SetTileStates(IEnumerable<(Position pos, TileState state)> states)
         {
             foreach (var tag in _tiles.Values) tag.Renderer.material.color = tag.BaseColor;
-            foreach (var (side, pos, state) in states)
+            foreach (var (pos, state) in states)
             {
-                if (!_tiles.TryGetValue((side, pos.Lane, pos.Row), out var tag)) continue;
+                if (!_tiles.TryGetValue((pos.Lane, pos.Row), out var tag)) continue;
                 switch (state)
                 {
+                    case TileState.Range: tag.Renderer.material.color = new Color(0.55f, 0.75f, 1.00f, 0.38f); break;
                     case TileState.Target: tag.Renderer.material.color = new Color(1.00f, 0.86f, 0.20f, 0.55f); break;
                     case TileState.Reach: tag.Renderer.material.color = new Color(0.30f, 0.90f, 0.50f, 0.50f); break;
                     case TileState.Owner: tag.Renderer.material.color = new Color(1.00f, 1.00f, 1.00f, 0.45f); break;
@@ -196,7 +191,7 @@ namespace SanGuo.Client
 
         /// <summary>某個棋盤格上方（約角色頭頂）的面板座標，飄字用。</summary>
         public Vector2 TileHeadPanel(Side side, Position pos) =>
-            WorldToPanel(TileWorld(side, pos) + Vector3.up * UnitHeadHeight);
+            WorldToPanel(TileWorld(pos) + Vector3.up * UnitHeadHeight);
 
         /// <summary>角色目前（含移動動畫）腳下的面板座標；我方標籤放這裡（頭頂方向是敵方區域）。</summary>
         public Vector2? UnitFootPanel(Unit unit)
@@ -213,9 +208,8 @@ namespace SanGuo.Client
         }
 
         /// <summary>點擊選格：面板座標 → 射線打到的地磚。</summary>
-        public bool TryPick(Vector2 panelPoint, out Side side, out Position pos)
+        public bool TryPick(Vector2 panelPoint, out Position pos)
         {
-            side = Side.Player;
             pos = default;
             if (_panelRoot == null) return false;
             float w = _panelRoot.worldBound.width, h = _panelRoot.worldBound.height;
@@ -224,7 +218,6 @@ namespace SanGuo.Client
             if (!Physics.Raycast(ray, out var hit, 200f)) return false;
             var tag = hit.collider.GetComponent<TileTag>();
             if (tag == null) return false;
-            side = tag.Side;
             pos = tag.Pos;
             return true;
         }
@@ -278,7 +271,7 @@ namespace SanGuo.Client
                 if (uv == null) continue;
                 if (uv.View.Finished) { uv.Anchor.SetActive(false); continue; }
 
-                var target = TileWorld(unit.Side, unit.Pos);
+                var target = TileWorld(unit.Pos);
                 if (!uv.Placed)
                 {
                     uv.Anchor.transform.position = target;
@@ -312,7 +305,7 @@ namespace SanGuo.Client
             float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue;
             foreach (var key in _tiles.Keys)
             {
-                var center = TileWorld(key.Item1, new Position(key.Item2, key.Item3));
+                var center = TileWorld(new Position(key.Item1, key.Item2));
                 for (int cx = -1; cx <= 1; cx += 2)
                 {
                     for (int cz = -1; cz <= 1; cz += 2)

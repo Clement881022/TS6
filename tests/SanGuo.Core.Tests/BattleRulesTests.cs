@@ -16,29 +16,36 @@ namespace SanGuo.Core.Tests
 
         // ---- 測試用的最小武將 / 敵人 ----
 
-        private static CardDef Attack(string id = "atk", int cost = 1, TargetRule target = TargetRule.EnemyFront,
-            Shape shape = Shape.Single, double mult = 1.0, CardKeywords kw = CardKeywords.None) =>
+        // 棋盤 5x5：我方站下兩列（列 3–4）、敵方站上兩列（列 0–1）。測試用 PH / PE 取格。
+        private static Position PH(int lane, int row = 3) => new Position(lane, row);
+        private static Position PE(int lane, int row = 1) => new Position(lane, row);
+
+        /// <summary>手牌裡第一張非移動卡（手牌順序是洗過的，移動卡可能排在前面）。</summary>
+        private static CardInstance FirstCard(Battle b) => b.Hand.First(c => c.Def.Target != TargetRule.MoveDest);
+
+        private static CardDef Attack(string id = "atk", int cost = 1, TargetRule target = TargetRule.Enemy,
+            Shape shape = Shape.Single, double mult = 1.0, CardKeywords kw = CardKeywords.None, int range = 10) =>
             new CardDef
             {
-                Id = id, Name = id, Cost = cost, Target = target, Shape = shape, Keywords = kw,
+                Id = id, Name = id, Cost = cost, Target = target, Range = range, Shape = shape, Keywords = kw,
                 Effects = { new EffectDef { Type = EffectType.Damage, Multiplier = mult } },
             };
 
         private static HeroDef Hero(string name, IEnumerable<CardDef> deck, int atk = 100, int hp = 1000, int def = 0,
-            int speed = 1, AttackType type = AttackType.Melee) =>
+            int move = 1, AttackType type = AttackType.Melee, Role role = Role.Warrior, int intel = 0) =>
             new HeroDef
             {
-                Id = name, Name = name, AttackType = type,
-                Base = new Stats { Hp = hp, Atk = atk, Def = def, Speed = speed, Crit = 0, Dodge = 0 },
+                Id = name, Name = name, AttackType = type, Role = role,
+                Base = new Stats { Hp = hp, Atk = atk, Int = intel, Def = def, Move = move, Crit = 0, Dodge = 0 },
                 Deck = deck.ToList(),
             };
 
-        private static EnemyDef Enemy(string name, int hp = 500, int atk = 50, int def = 0, int speed = 1,
+        private static EnemyDef Enemy(string name, int hp = 500, int atk = 50, int def = 0, int move = 1,
             AttackType type = AttackType.Melee) =>
             new EnemyDef
             {
                 Id = name, Name = name, AttackType = type,
-                Base = new Stats { Hp = hp, Atk = atk, Def = def, Speed = speed, Crit = 0, Dodge = 0 },
+                Base = new Stats { Hp = hp, Atk = atk, Def = def, Move = move, Crit = 0, Dodge = 0 },
             };
 
         private static Unit EnemyUnit(Battle b, string name) => b.Units.First(u => u.Side == Side.Enemy && u.Name == name);
@@ -59,12 +66,12 @@ namespace SanGuo.Core.Tests
         {
             CardDef Breaker(string id, double pct, int turns) => new CardDef
             {
-                Id = id, Name = id, Cost = 0, Target = TargetRule.EnemyFront,
+                Id = id, Name = id, Cost = 0, Target = TargetRule.Enemy, Range = 10,
                 Effects = { new EffectDef { Type = EffectType.ApplyStatus, Status = StatusType.ArmorBreak, Multiplier = pct, Amount = turns } },
             };
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Breaker("b40", 0.4, 1), Breaker("b15", 0.15, 3), Attack() }, atk: 100, hp: 99999), new Position(0, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1, def: 100), new Position(0, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Breaker("b40", 0.4, 1), Breaker("b15", 0.15, 3), Attack() }, atk: 100, hp: 99999), PH(1)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1, def: 100), PE(1)));
             var battle = new Battle(setup);
             var enemy = EnemyUnit(battle, "e");
 
@@ -94,53 +101,59 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void Shape_Cross_Row_Column_Cells()
         {
-            var cross = Targeting.ExpandShape(new Position(2, 0), Shape.Cross, 5, 2);
-            Assert.Equal(4, cross.Count); // 中心 + 左右 + 後排（前排無更前）
+            var cross = Targeting.ExpandShape(new Position(2, 0), Shape.Cross, 5, 5);
+            Assert.Equal(4, cross.Count); // 中心 + 左右 + 下方（上方出界）
             Assert.Contains(cross, p => p.Lane == 1 && p.Row == 0);
             Assert.Contains(cross, p => p.Lane == 3 && p.Row == 0);
             Assert.Contains(cross, p => p.Lane == 2 && p.Row == 1);
 
-            Assert.Equal(5, Targeting.ExpandShape(new Position(2, 1), Shape.Row, 5, 2).Count);
-            Assert.Equal(2, Targeting.ExpandShape(new Position(2, 1), Shape.Column, 5, 2).Count);
-            Assert.Equal(10, Targeting.ExpandShape(new Position(0, 0), Shape.All, 5, 2).Count);
+            Assert.Equal(5, Targeting.ExpandShape(new Position(2, 1), Shape.Row, 5, 5).Count);
+            Assert.Equal(5, Targeting.ExpandShape(new Position(2, 1), Shape.Column, 5, 5).Count);
+            Assert.Equal(25, Targeting.ExpandShape(new Position(0, 0), Shape.All, 5, 5).Count);
         }
 
         [Fact]
-        public void Target_IsFrontMostInSameLane_ElseTopDownFallback()
+        public void Target_AutoPicksNearestInRange_AndRangeLimitsChoice()
         {
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }), new Position(2, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("front"), new Position(2, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("back"), new Position(2, 1)));
-            setup.Enemies.Add(new EnemySlot(Enemy("otherLane"), new Position(0, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack(range: 1) }), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("near"), new Position(2, 2)));     // 距離 1
+            setup.Enemies.Add(new EnemySlot(Enemy("far"), new Position(2, 1)));      // 距離 2，超出射程
             var battle = new Battle(setup);
+            var hero = battle.Units[0];
+            var def = FirstCard(battle).Def;
 
-            var targets = battle.ResolveTargets(battle.Units[0], battle.Hand[0].Def)!;
-            Assert.Single(targets);
-            Assert.Equal("front", targets[0].Name);
+            var auto = battle.ResolveTargets(hero, def)!;
+            Assert.Single(auto);
+            Assert.Equal("near", auto[0].Name);
 
-            // 同路沒有敵人 → 由上往下（第 0 路起）找第一條有敵人的路，打最前排。
-            var setup2 = new BattleSetup();
-            setup2.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }), new Position(4, 0)));
-            setup2.Enemies.Add(new EnemySlot(Enemy("low"), new Position(3, 0)));
-            setup2.Enemies.Add(new EnemySlot(Enemy("top"), new Position(1, 0)));
-            setup2.Enemies.Add(new EnemySlot(Enemy("topBack"), new Position(1, 1)));
-            var battle2 = new Battle(setup2);
-            var fallback = battle2.ResolveTargets(battle2.Units[0], battle2.Hand[0].Def)!;
-            Assert.Single(fallback);
-            Assert.Equal("top", fallback[0].Name);
+            var far = EnemyUnit(battle, "far");
+            Assert.Null(battle.ResolveTargets(hero, def, far));                      // 指定射程外的目標：不可
+            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(FirstCard(battle), far));
+            Assert.Equal(PlayResult.Ok, battle.PlayCard(FirstCard(battle), EnemyUnit(battle, "near")));
         }
 
         [Fact]
-        public void BackTargeting_PrefersBackRow()
+        public void Target_NoEnemyInRange_CannotPlay()
         {
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack(target: TargetRule.EnemyBack) }), new Position(2, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("front"), new Position(2, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("back"), new Position(2, 1)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack(range: 1) }), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e"), PE(2)));                     // 距離 2
             var battle = new Battle(setup);
-            var targets = battle.ResolveTargets(battle.Units[0], battle.Hand[0].Def)!;
-            Assert.Equal("back", targets[0].Name);
+            Assert.Equal(PlayResult.NoTarget, battle.CanPlay(FirstCard(battle)));
+        }
+
+        [Fact]
+        public void LowestHpRule_PicksWeakestInRange()
+        {
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack(target: TargetRule.EnemyLowestHp, range: 3) }), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("strong", hp: 900), new Position(2, 2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("weak", hp: 100), new Position(1, 1)));      // 距離 3
+            setup.Enemies.Add(new EnemySlot(Enemy("weakest", hp: 10), new Position(0, 0)));    // 距離 5，超出射程
+            var battle = new Battle(setup);
+            var targets = battle.ResolveTargets(battle.Units[0], FirstCard(battle).Def)!;
+            Assert.Equal("weak", targets[0].Name);
         }
 
         // ---- 費用與牌庫 ----
@@ -149,8 +162,8 @@ namespace SanGuo.Core.Tests
         public void Cost_StartsAtThree_StacksAndCapsAtTen()
         {
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }), new Position(0, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), new Position(4, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }), PH(0)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), PE(4, 0)));
             var battle = new Battle(setup);
             Assert.Equal(3, battle.Cost);
             battle.EndTurn();
@@ -160,26 +173,48 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void Hand_DrawsFive_DiscardPileReshufflesIntoDrawPile()
+        public void Hand_CarriesOver_DrawsPerTurn_AndCapsAtTen()
         {
-            var deck = Enumerable.Range(0, 7).Select(i => Attack("c" + i)).ToList();
+            var deck = Enumerable.Range(0, 20).Select(i => Attack("c" + i)).ToList();   // + 1 張移動卡
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("H", deck, hp: 99999), new Position(0, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), new Position(4, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", deck, hp: 99999), PH(0)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), PE(4, 0)));
             var battle = new Battle(setup);
             Assert.Equal(5, battle.Hand.Count);
-            Assert.Equal(2, battle.DrawPile.Count);
+            Assert.Equal(16, battle.DrawPile.Count);
 
-            battle.EndTurn(); // 手牌 5 張進棄牌堆，抽牌堆剩 2 → 抽 2 後洗回再抽 3
+            battle.EndTurn();                       // 手牌不棄：5 + 3
+            Assert.Equal(8, battle.Hand.Count);
+            battle.EndTurn();                       // 8 + 3 → 受手牌上限 10 限制
+            Assert.Equal(Battle.MaxHandSize, battle.Hand.Count);
+            Assert.Empty(battle.DiscardPile);
+        }
+
+        [Fact]
+        public void DrawPile_NeverReshuffles_WhenExhausted()
+        {
+            var deck = Enumerable.Range(0, 4).Select(i => Attack("c" + i, cost: 0)).ToList();   // + 1 張移動卡 = 5 張
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("H", deck, hp: 99999), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), new Position(2, 2)));
+            var battle = new Battle(setup);
             Assert.Equal(5, battle.Hand.Count);
-            Assert.Equal(7, battle.Hand.Count + battle.DrawPile.Count + battle.DiscardPile.Count);
+            Assert.Empty(battle.DrawPile);
+
+            battle.PlayCard(FirstCard(battle));
+            battle.PlayCard(FirstCard(battle));
+            Assert.Equal(2, battle.DiscardPile.Count);
+            battle.EndTurn();                       // 牌堆已空：不會把棄牌堆洗回來
+            Assert.Equal(3, battle.Hand.Count);
+            Assert.Empty(battle.DrawPile);
+            Assert.Equal(2, battle.DiscardPile.Count);
         }
 
         private static Battle SmallBattle(params CardDef[] deck)
         {
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("H", deck, hp: 99999), new Position(0, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), new Position(0, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", deck, hp: 99999), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), new Position(2, 2)));
             return new Battle(setup);
         }
 
@@ -187,19 +222,19 @@ namespace SanGuo.Core.Tests
         public void Keyword_Exhaust_MovesCardToExhaustPile()
         {
             var battle = SmallBattle(Attack("ex", cost: 0, kw: CardKeywords.Exhaust));
-            var card = battle.Hand[0];
+            var card = FirstCard(battle);
             battle.PlayCard(card);
             Assert.Contains(card, battle.ExhaustPile);
             Assert.DoesNotContain(card, battle.DiscardPile);
         }
 
         [Fact]
-        public void Keyword_Retain_StaysInHandAtTurnEnd()
+        public void UnplayedCards_StayInHandAtTurnEnd()
         {
-            var battle = SmallBattle(Attack("re", cost: 0, kw: CardKeywords.Retain), Attack("plain", cost: 0));
-            var retained = battle.Hand.First(c => c.Def.Id == "re");
+            var battle = SmallBattle(Attack("a", cost: 0), Attack("b", cost: 0));
+            var held = battle.Hand.ToList();
             battle.EndTurn();
-            Assert.Contains(retained, battle.Hand);
+            Assert.All(held, c => Assert.Contains(c, battle.Hand));
         }
 
         [Fact]
@@ -210,11 +245,84 @@ namespace SanGuo.Core.Tests
                 var deck = new List<CardDef> { Attack("in", kw: CardKeywords.Innate) };
                 deck.AddRange(Enumerable.Range(0, 20).Select(i => Attack("f" + i)));
                 var setup = new BattleSetup { Seed = seed };
-                setup.Heroes.Add(new HeroSlot(Hero("H", deck, hp: 99999), new Position(0, 0)));
-                setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), new Position(0, 0)));
+                setup.Heroes.Add(new HeroSlot(Hero("H", deck, hp: 99999), PH(2)));
+                setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), PE(2)));
                 var battle = new Battle(setup);
                 Assert.Contains(battle.Hand, c => c.Def.Id == "in");
             }
+        }
+
+        // ---- 謀略（法系屬性）----
+
+        private static CardDef HealCard(double mult) => new CardDef
+        {
+            Id = "heal", Name = "heal", Cost = 0, Target = TargetRule.AllyLowestHp, Range = 3,
+            Effects = { new EffectDef { Type = EffectType.Heal, Multiplier = mult } },
+        };
+
+        private static CardDef BuffCard() => new CardDef
+        {
+            Id = "buff", Name = "buff", Cost = 0, Target = TargetRule.Self,
+            Effects = { new EffectDef { Type = EffectType.ApplyStatus, Status = StatusType.DefUp, Multiplier = 0.3, Amount = 2, OnSelf = true } },
+        };
+
+        [Fact]
+        public void Caster_HealUsesIntellect_NotAttack()
+        {
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("Healer", new[] { HealCard(1.0) }, atk: 10, intel: 200, role: Role.Healer), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), PE(2)));
+            var battle = new Battle(setup);
+            var healer = battle.Units[0];
+            healer.Hp = 100;
+            battle.PlayCard(FirstCard(battle));
+            Assert.Equal(300, healer.Hp);               // 200（謀略）× 1.0；攻擊 10 不參與
+        }
+
+        [Fact]
+        public void NonCaster_HealStillUsesAttack()
+        {
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("Knight", new[] { HealCard(1.0) }, atk: 50, intel: 999, role: Role.Warrior), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), PE(2)));
+            var battle = new Battle(setup);
+            var knight = battle.Units[0];
+            knight.Hp = 100;
+            battle.PlayCard(FirstCard(battle));
+            Assert.Equal(150, knight.Hp);
+        }
+
+        [Fact]
+        public void Caster_BuffStrengthScalesWithIntellect()
+        {
+            Unit Cast(Role role, int intel)
+            {
+                var setup = new BattleSetup();
+                setup.Heroes.Add(new HeroSlot(Hero("H", new[] { BuffCard() }, intel: intel, role: role), PH(2)));
+                setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), PE(2)));
+                var battle = new Battle(setup);
+                battle.PlayCard(FirstCard(battle));
+                return battle.Units[0];
+            }
+            Assert.Equal(30, Cast(Role.Warrior, 300).Statuses[StatusType.DefUp].Power);           // 非法系：固定
+            Assert.Equal(30, Cast(Role.Strategist, DamageCalc.CasterReference).Statuses[StatusType.DefUp].Power);
+            Assert.Equal(60, Cast(Role.Strategist, DamageCalc.CasterReference * 2).Statuses[StatusType.DefUp].Power);
+        }
+
+        [Fact]
+        public void Caster_DamageUsesIntellect_ArcherUsesAttack()
+        {
+            int Hit(Role role)
+            {
+                var setup = new BattleSetup();
+                setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack(cost: 0) }, atk: 100, intel: 300, role: role), PH(2)));
+                setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), PE(2)));
+                var battle = new Battle(setup);
+                battle.PlayCard(FirstCard(battle));
+                return 99999 - EnemyUnit(battle, "e").Hp;
+            }
+            Assert.Equal(300, Hit(Role.Mage));
+            Assert.Equal(100, Hit(Role.Archer));
         }
 
         // ---- 護甲 / 狀態 ----
@@ -228,12 +336,12 @@ namespace SanGuo.Core.Tests
                 Effects = { new EffectDef { Type = EffectType.Armor, Multiplier = 1.0, OnSelf = true } },
             };
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { guard }, atk: 100), new Position(0, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", atk: 30, hp: 99999), new Position(0, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { guard }, atk: 100), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", atk: 30, hp: 99999), new Position(2, 2)));
             var battle = new Battle(setup);
             var hero = battle.Units[0];
 
-            battle.PlayCard(battle.Hand[0]);
+            battle.PlayCard(FirstCard(battle));
             Assert.Equal(100, hero.Armor);
             battle.EndTurn(); // 敵人攻擊 30 → 護甲 70，血量不變
             Assert.Equal(70, hero.Armor);
@@ -244,11 +352,11 @@ namespace SanGuo.Core.Tests
         public void DeadHero_CardsCannotBePlayed()
         {
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("A", new[] { Attack("a") }, hp: 10), new Position(0, 0)));
-            setup.Heroes.Add(new HeroSlot(Hero("B", new[] { Attack("b") }), new Position(1, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", atk: 999, hp: 99999), new Position(0, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("A", new[] { Attack("a") }, hp: 10), PH(1)));
+            setup.Heroes.Add(new HeroSlot(Hero("B", new[] { Attack("b") }), PH(3)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", atk: 999, hp: 99999), new Position(1, 2)));
             var battle = new Battle(setup);
-            var cardA = battle.Hand.First(c => c.Owner.Name == "A");
+            var cardA = battle.Hand.First(c => c.Owner.Name == "A" && c.Def.Id == "a");
 
             battle.EndTurn(); // 敵人殺死 A
             Assert.False(battle.Units[0].Alive);
@@ -259,11 +367,11 @@ namespace SanGuo.Core.Tests
         public void Stunned_HeroCannotPlayCards()
         {
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }), new Position(0, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999), new Position(0, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999), PE(2)));
             var battle = new Battle(setup);
             battle.Units[0].Statuses[StatusType.Stun] = new StatusState { Turns = 1 };
-            Assert.Equal(PlayResult.Stunned, battle.CanPlay(battle.Hand[0]));
+            Assert.Equal(PlayResult.Stunned, battle.CanPlay(FirstCard(battle)));
         }
 
         [Fact]
@@ -271,16 +379,16 @@ namespace SanGuo.Core.Tests
         {
             var fire = new CardDef
             {
-                Id = "fire", Name = "fire", Cost = 1, Target = TargetRule.EnemyFront,
+                Id = "fire", Name = "fire", Cost = 1, Target = TargetRule.Enemy, Range = 10,
                 Effects = { new EffectDef { Type = EffectType.ApplyStatus, Status = StatusType.Burn, Multiplier = 0.5, Amount = 2 } },
             };
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { fire }, atk: 100, hp: 99999), new Position(0, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 1000, atk: 1), new Position(0, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { fire }, atk: 100, hp: 99999), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 1000, atk: 1), PE(2)));
             var battle = new Battle(setup);
             var enemy = EnemyUnit(battle, "e");
 
-            battle.PlayCard(battle.Hand[0]);
+            battle.PlayCard(FirstCard(battle));
             battle.EndTurn(); // 敵方階段灼燒 50
             Assert.Equal(950, enemy.Hp);
             battle.EndTurn(); // 第二次灼燒（持續 2 輪）
@@ -289,104 +397,153 @@ namespace SanGuo.Core.Tests
             Assert.Equal(900, enemy.Hp); // 已到期
         }
 
-        // ---- 移動 ----
+        // ---- 移動卡 ----
 
         [Fact]
-        public void MoveButton_RespectsSpeed_AndSwapsWithAlly()
+        public void MoveCard_OnePerHeroWithCards_ZeroCost()
         {
-            var setup = new BattleSetup { MovesPerTurn = 1 };
-            setup.Heroes.Add(new HeroSlot(Hero("A", new[] { Attack() }, speed: 2), new Position(0, 0)));
-            setup.Heroes.Add(new HeroSlot(Hero("B", new[] { Attack() }), new Position(1, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), new Position(4, 0)));
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("A", Enumerable.Range(0, 8).Select(i => Attack("a" + i)), hp: 99999), PH(1)));
+            setup.Heroes.Add(new HeroSlot(Hero("B", Enumerable.Range(0, 8).Select(i => Attack("b" + i)), hp: 99999), PH(2)));
+            setup.Heroes.Add(new HeroSlot(Hero("Vip", new CardDef[0]), PH(3)) { IsProtected = true });   // 沒有牌的單位不洗入移動卡
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), PE(2)));
             var battle = new Battle(setup);
-            var a = battle.Units[0];
-            var b = battle.Units[1];
 
-            Assert.Equal(PlayResult.InvalidMove, battle.Move(a, new Position(3, 0))); // 超出速度
-            Assert.Equal(3, battle.Cost);                                              // 失敗不扣費
-            Assert.Equal(PlayResult.Ok, battle.Move(a, new Position(1, 0)));           // 與隊友換位
-            Assert.Equal(new Position(1, 0), a.Pos);
-            Assert.Equal(new Position(0, 0), b.Pos);
-            Assert.Same(a, battle.UnitAt(Side.Player, new Position(1, 0)));
-            Assert.Equal(2, battle.Cost);                                              // 花 1 費
+            var moves = battle.Hand.Concat(battle.DrawPile).Where(c => c.Def.Target == TargetRule.MoveDest).ToList();
+            Assert.Equal(2, moves.Count);
+            Assert.All(moves, c => Assert.Equal(0, c.Def.Cost));
+            Assert.Equal(new[] { "A", "B" }, moves.Select(c => c.Owner.Name).OrderBy(n => n).ToArray());
+        }
+
+        private static (Battle, Unit, CardInstance) MoveBattle(int move, Position heroPos, params (string, Position)[] others)
+        {
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("A", new[] { Attack() }, move: move), heroPos));
+            foreach (var (name, pos) in others)
+                setup.Enemies.Add(new EnemySlot(Enemy(name, hp: 99999, atk: 1), pos));
+            var battle = new Battle(setup);
+            return (battle, battle.Units[0], battle.Hand.First(c => c.Def.Target == TargetRule.MoveDest));
         }
 
         [Fact]
-        public void MoveButton_OncePerTurn_SharedByWholeTeam_ResetsNextTurn()
+        public void MoveCard_MovesWithinMoveRange_AndCostsNothing()
         {
-            var setup = new BattleSetup { MovesPerTurn = 1 };
-            setup.Heroes.Add(new HeroSlot(Hero("A", new[] { Attack() }, speed: 2), new Position(0, 0)));
-            setup.Heroes.Add(new HeroSlot(Hero("B", new[] { Attack() }, speed: 2), new Position(2, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), new Position(4, 0)));
-            var battle = new Battle(setup);
-            var a = battle.Units[0];
-            var b = battle.Units[1];
-
-            Assert.Equal(PlayResult.Ok, battle.Move(a, new Position(1, 0)));
-            Assert.Equal(PlayResult.MoveUsed, battle.CanMove(b));          // 全隊共用一次
-            Assert.Equal(PlayResult.MoveUsed, battle.Move(b, new Position(3, 0)));
-            battle.EndTurn();
-            Assert.Equal(PlayResult.Ok, battle.Move(b, new Position(3, 0))); // 下回合重置
+            var (battle, hero, card) = MoveBattle(2, PH(2), ("e", PE(0, 0)));
+            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(card, null, new Position(2, 0)));   // 3 格，超過移動力 2
+            Assert.Equal(3, battle.Cost);
+            Assert.Equal(PlayResult.Ok, battle.PlayCard(card, null, new Position(2, 1)));
+            Assert.Equal(new Position(2, 1), hero.Pos);
+            Assert.Same(hero, battle.UnitAt(new Position(2, 1)));
+            Assert.Null(battle.UnitAt(new Position(2, 3)));
+            Assert.Equal(3, battle.Cost);                                                            // 0 費
+            Assert.Contains(card, battle.DiscardPile);
         }
 
         [Fact]
-        public void MoveButton_NeedsCost_AndBlockedByStunOrDeath()
+        public void MoveCard_NeedsDestination_AndCannotLandOnOrPassThroughUnits()
         {
-            var setup = new BattleSetup { CostPerTurn = 0, MovesPerTurn = 1 };
-            setup.Heroes.Add(new HeroSlot(Hero("A", new[] { Attack() }, speed: 2), new Position(0, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), new Position(4, 0)));
-            var battle = new Battle(setup);
-            var a = battle.Units[0];
-            Assert.Equal(PlayResult.NotEnoughCost, battle.CanMove(a)); // 費用 0
+            var (battle, hero, card) = MoveBattle(2, PH(2), ("wall", new Position(2, 2)));
+            Assert.Equal(PlayResult.NoTarget, battle.PlayCard(card));                                // 沒給目的地
+            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(card, null, new Position(2, 2)));    // 不能停在單位上
+            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(card, null, new Position(2, 1)));    // 直線被擋，繞路要 4 步
+            Assert.Equal(PlayResult.OutOfRange, battle.PlayCard(card, null, hero.Pos));              // 原地不算移動
+            Assert.Equal(PlayResult.Ok, battle.PlayCard(card, null, new Position(1, 2)));
+        }
 
-            var setup2 = new BattleSetup { MovesPerTurn = 1 };
-            setup2.Heroes.Add(new HeroSlot(Hero("A", new[] { Attack() }, speed: 2), new Position(0, 0)));
-            setup2.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), new Position(4, 0)));
-            var battle2 = new Battle(setup2);
-            battle2.Units[0].Statuses[StatusType.Stun] = new StatusState { Turns = 1 };
-            Assert.Equal(PlayResult.Stunned, battle2.CanMove(battle2.Units[0]));
-            battle2.Units[0].Alive = false;
-            Assert.Equal(PlayResult.OwnerDead, battle2.CanMove(battle2.Units[0]));
+        [Fact]
+        public void MoveCard_BlockedByStunOrDeath()
+        {
+            var (battle, hero, card) = MoveBattle(2, PH(2), ("e", PE(0, 0)));
+            hero.Statuses[StatusType.Stun] = new StatusState { Turns = 1 };
+            Assert.Equal(PlayResult.Stunned, battle.CanPlay(card));
+            hero.Statuses.Clear();
+            hero.Alive = false;
+            Assert.Equal(PlayResult.OwnerDead, battle.CanPlay(card));
+        }
+
+        [Fact]
+        public void AutoPlayer_UsesMoveCardToCloseDistance()
+        {
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("A", Enumerable.Range(0, 6).Select(i => Attack("a" + i, range: 1)), hp: 99999, atk: 500, move: 3), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 600, atk: 1, move: 1), PE(2, 0)));
+            var battle = new Battle(setup);
+            Assert.Equal(BattleResult.Won, AutoPlayer.RunToEnd(battle, 30));
         }
 
         // ---- 敵方 AI ----
 
         [Fact]
-        public void EnemyAttacksTopLaneWhenSameLaneEmpty()
+        public void MeleeEnemy_MovesAndAttacksInSameTurn_WhenReachable()
         {
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("Top", new[] { Attack() }, hp: 99999), new Position(0, 0)));
-            setup.Heroes.Add(new HeroSlot(Hero("Low", new[] { Attack() }, hp: 99999), new Position(3, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999), new Position(1, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 99999), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 100, move: 2), PE(2, 0)));     // 距離 3，走 2 步就能貼身
             var battle = new Battle(setup);
             var enemy = EnemyUnit(battle, "e");
 
-            // 同路沒人 → 打最上方那路（預設坦克位），不需要移動。
             var intent = battle.GetIntent(enemy);
             Assert.Equal(Intent.Kind.Attack, intent.Type);
-            Assert.Equal("Top", intent.Target!.Name);
-            int hpBefore = battle.Units[0].Hp;
+            Assert.Equal(new Position(2, 2), intent.MoveTo);
             battle.EndTurn();
-            Assert.True(battle.Units[0].Hp < hpBefore);
+            Assert.Equal(new Position(2, 2), enemy.Pos);
+            Assert.True(battle.Units[0].Hp < 99999);
+        }
+
+        [Fact]
+        public void MeleeEnemy_ApproachesWhenOutOfReach_WithoutAttacking()
+        {
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 99999), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 100, move: 1), PE(2, 0)));
+            var battle = new Battle(setup);
+            var enemy = EnemyUnit(battle, "e");
+
+            Assert.Equal(Intent.Kind.Move, battle.GetIntent(enemy).Type);
+            battle.EndTurn();
+            Assert.Equal(new Position(2, 1), enemy.Pos);
+            Assert.Equal(99999, battle.Units[0].Hp);
+        }
+
+        [Fact]
+        public void MeleeEnemy_AttacksNearestHero()
+        {
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("Left", new[] { Attack() }, hp: 99999), PH(0)));
+            setup.Heroes.Add(new HeroSlot(Hero("Right", new[] { Attack() }, hp: 99999), PH(4)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999), PE(1, 2)));
+            var battle = new Battle(setup);
+            Assert.Equal("Left", battle.GetIntent(EnemyUnit(battle, "e")).Target!.Name);
+        }
+
+        [Fact]
+        public void RangedEnemy_PrefersRearmostHeroInRange()
+        {
+            var setup = new BattleSetup();
+            setup.Heroes.Add(new HeroSlot(Hero("Front", new[] { Attack() }, hp: 99999), PH(2, 3)));
+            setup.Heroes.Add(new HeroSlot(Hero("Back", new[] { Attack() }, hp: 99999), PH(2, 4)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, type: AttackType.Ranged), PE(2)));   // 距離 2 / 3，都在射程 3 內
+            var battle = new Battle(setup);
+            Assert.Equal("Back", battle.GetIntent(EnemyUnit(battle, "e")).Target!.Name);
         }
 
         [Fact]
         public void Taunt_ForcesEnemyToAttackTauntingHero()
         {
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("Tank", new[] { Attack() }, hp: 99999), new Position(0, 0)));
-            setup.Heroes.Add(new HeroSlot(Hero("Squishy", new[] { Attack() }, hp: 99999), new Position(1, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999), new Position(1, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("Tank", new[] { Attack() }, hp: 99999), PH(0)));
+            setup.Heroes.Add(new HeroSlot(Hero("Squishy", new[] { Attack() }, hp: 99999), PH(1)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999), new Position(1, 2)));
             var battle = new Battle(setup);
             var enemy = EnemyUnit(battle, "e");
             var tank = battle.Units[0];
 
-            // 沒挑釁：敵人打自己同路的 Squishy。
+            // 沒挑釁：敵人打貼身的 Squishy。
             Assert.Equal("Squishy", battle.GetIntent(enemy).Target!.Name);
 
             tank.Statuses[StatusType.Taunt] = new StatusState { Turns = 2 };
             var intent = battle.GetIntent(enemy);
-            Assert.Equal(Intent.Kind.Attack, intent.Type); // 不分路，強制打挑釁者
+            Assert.Equal(Intent.Kind.Attack, intent.Type); // 強制打挑釁者（必要時先走位）
             Assert.Equal("Tank", intent.Target!.Name);
         }
 
@@ -394,8 +551,8 @@ namespace SanGuo.Core.Tests
         public void Taunt_ReducesDamageTakenByTaunter()
         {
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("Tank", new[] { Attack() }, hp: 99999), new Position(0, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 100), new Position(0, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("Tank", new[] { Attack() }, hp: 99999), PH(0)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 100), new Position(0, 2)));
             var battle = new Battle(setup);
             var tank = battle.Units[0];
 
@@ -415,15 +572,15 @@ namespace SanGuo.Core.Tests
         public void KillingAllEnemies_Wins_AllHeroesDead_Loses()
         {
             var win = new BattleSetup();
-            win.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack(mult: 100) }), new Position(0, 0)));
-            win.Enemies.Add(new EnemySlot(Enemy("e", hp: 10), new Position(0, 0)));
+            win.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack(mult: 100) }), PH(2)));
+            win.Enemies.Add(new EnemySlot(Enemy("e", hp: 10), PE(2)));
             var b1 = new Battle(win);
-            b1.PlayCard(b1.Hand[0]);
+            b1.PlayCard(FirstCard(b1));
             Assert.Equal(BattleResult.Won, b1.Result);
 
             var lose = new BattleSetup();
-            lose.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 10), new Position(0, 0)));
-            lose.Enemies.Add(new EnemySlot(Enemy("e", atk: 999, hp: 99999), new Position(0, 0)));
+            lose.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 10), PH(2)));
+            lose.Enemies.Add(new EnemySlot(Enemy("e", atk: 999, hp: 99999), new Position(2, 2)));
             var b2 = new Battle(lose);
             b2.EndTurn();
             Assert.Equal(BattleResult.Lost, b2.Result);
@@ -433,8 +590,8 @@ namespace SanGuo.Core.Tests
         public void TurnLimit_LosesWhenExceeded()
         {
             var setup = new BattleSetup { TurnLimit = 3 };
-            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 99999), new Position(4, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), new Position(0, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 99999), PH(4, 4)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 1), PE(0, 0)));
             var battle = new Battle(setup);
             for (int i = 0; i < 5; i++) battle.EndTurn();
             Assert.Equal(BattleResult.Lost, battle.Result);
@@ -475,7 +632,7 @@ namespace SanGuo.Core.Tests
         private static bool SummonerAlive(Battle b) => b.AliveUnits(Side.Enemy).Any(e => e.Ability.HasFlag(EnemyAbility.Summoner));
 
         private static bool IsColumnPierce(CardInstance c) =>
-            c.Def.Shape == Shape.Column && c.Def.Target == TargetRule.EnemyFront && c.Def.Effects.Any(e => e.Type == EffectType.Damage);
+            c.Def.Shape == Shape.Column && c.Def.Target == TargetRule.Enemy && c.Def.Effects.Any(e => e.Type == EffectType.Damage);
 
         private static bool IsDetonate(CardInstance c) => c.Def.Effects.Any(e => e.Type == EffectType.Detonate);
 
@@ -494,7 +651,7 @@ namespace SanGuo.Core.Tests
         private static bool HealerAlive(Battle b) => b.AliveUnits(Side.Enemy).Any(e => e.Ability.HasFlag(EnemyAbility.Healer));
 
         private static bool IsBackShot(CardInstance c) =>
-            (c.Def.Target == TargetRule.EnemyBack || c.Def.Target == TargetRule.EnemyLowestHp || c.Def.Target == TargetRule.EnemyAny)
+            (c.Def.Target == TargetRule.EnemyLowestHp || (c.Def.Target == TargetRule.Enemy && c.Def.Range >= 3))
             && c.Def.Effects.Any(e => e.Type == EffectType.Damage);
 
         private static int TutorialPriority(Battle battle, CardInstance c)
@@ -590,9 +747,9 @@ namespace SanGuo.Core.Tests
         public void ProtectedUnitDying_LosesTheBattle()
         {
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("Vip", new CardDef[0], hp: 10), new Position(0, 1)) { IsProtected = true });
-            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 99999), new Position(1, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 999, type: AttackType.Ranged), new Position(0, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("Vip", new CardDef[0], hp: 10), PH(1, 4)) { IsProtected = true });
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 99999), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 99999, atk: 999, type: AttackType.Ranged), PE(0)));
             var battle = new Battle(setup);
             battle.EndTurn();                       // 遠程敵人優先打後排的保護目標
             Assert.Equal(BattleResult.Lost, battle.Result);
@@ -614,19 +771,19 @@ namespace SanGuo.Core.Tests
         {
             var fire = new CardDef
             {
-                Id = "fire", Name = "fire", Cost = 0, Target = TargetRule.EnemyFront, Shape = Shape.Single,
+                Id = "fire", Name = "fire", Cost = 0, Target = TargetRule.Enemy, Range = 10, Shape = Shape.Single,
                 Effects = { new EffectDef { Type = EffectType.ApplyStatus, Status = StatusType.Burn, Multiplier = 1.0, Amount = 3 } },
             };
             var boom = new CardDef
             {
-                Id = "boom", Name = "boom", Cost = 0, Target = TargetRule.EnemyFront, Shape = Shape.All,
+                Id = "boom", Name = "boom", Cost = 0, Target = TargetRule.AllEnemies, Shape = Shape.All,
                 Effects = { new EffectDef { Type = EffectType.Detonate, Status = StatusType.Burn, Amount = 2 } },
             };
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { fire, boom }, atk: 100, hp: 99999), new Position(2, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("left", hp: 1000, atk: 1), new Position(1, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("mid", hp: 1000, atk: 1), new Position(2, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("far", hp: 1000, atk: 1), new Position(4, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { fire, boom }, atk: 100, hp: 99999), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("left", hp: 1000, atk: 1), PE(1)));
+            setup.Enemies.Add(new EnemySlot(Enemy("mid", hp: 1000, atk: 1), PE(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("far", hp: 1000, atk: 1), PE(4)));
             var battle = new Battle(setup);
             var mid = EnemyUnit(battle, "mid");
             var left = EnemyUnit(battle, "left");
@@ -662,8 +819,8 @@ namespace SanGuo.Core.Tests
                 Base = new Stats { Hp = 99999, Atk = 1, Def = 0 },
             };
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 99999), new Position(0, 0)));
-            setup.Enemies.Add(new EnemySlot(summoner, new Position(2, 1)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 99999), PH(2, 4)));
+            setup.Enemies.Add(new EnemySlot(summoner, PE(2, 0)));
             var battle = new Battle(setup);
 
             Assert.Equal(1, battle.AliveUnits(Side.Enemy).Count);
@@ -693,7 +850,7 @@ namespace SanGuo.Core.Tests
         {
             var stunCard = new CardDef
             {
-                Id = "stun", Name = "stun", Cost = 0, Target = TargetRule.EnemyFront,
+                Id = "stun", Name = "stun", Cost = 0, Target = TargetRule.Enemy, Range = 10,
                 Effects = { new EffectDef { Type = EffectType.StunGauge, Amount = 60 } },
             };
             var chief = new EnemyDef
@@ -702,8 +859,8 @@ namespace SanGuo.Core.Tests
                 Base = new Stats { Hp = 99999, Atk = 100, Def = 0 },
             };
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { stunCard, stunCard, stunCard, Attack(), Attack() }, hp: 99999), new Position(0, 0)));
-            setup.Enemies.Add(new EnemySlot(chief, new Position(0, 0)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { stunCard, stunCard, stunCard, Attack(), Attack() }, hp: 99999), PH(2)));
+            setup.Enemies.Add(new EnemySlot(chief, PE(2)));
             var battle = new Battle(setup);
             var boss = EnemyUnit(battle, "c");
 
@@ -733,12 +890,12 @@ namespace SanGuo.Core.Tests
             var healer = new EnemyDef
             {
                 Id = "h", Name = "h", Ability = EnemyAbility.Healer, AbilityPower = 1.0,
-                Base = new Stats { Hp = 500, Atk = 100, Def = 0 },
+                Base = new Stats { Hp = 500, Atk = 100, Int = 100, Def = 0 },
             };
             var setup = new BattleSetup();
-            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 99999), new Position(0, 0)));
-            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 500, atk: 1), new Position(0, 0)));
-            setup.Enemies.Add(new EnemySlot(healer, new Position(1, 1)));
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack() }, hp: 99999), PH(0)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 500, atk: 1), PE(1)));
+            setup.Enemies.Add(new EnemySlot(healer, new Position(0, 2)));
             var battle = new Battle(setup);
             var ally = EnemyUnit(battle, "e");
             var priest = EnemyUnit(battle, "h");
@@ -748,7 +905,7 @@ namespace SanGuo.Core.Tests
             Assert.Equal(Intent.Kind.Heal, battle.GetIntent(priest).Type);
             Assert.Same(ally, battle.GetIntent(priest).Target);
             battle.EndTurn();
-            Assert.Equal(400, ally.Hp); // 治療 = 攻擊 100 × 1.0
+            Assert.Equal(400, ally.Hp); // 治療 = 謀略 100 × 1.0
         }
 
         [Fact]

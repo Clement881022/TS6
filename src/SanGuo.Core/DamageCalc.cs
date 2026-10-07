@@ -7,6 +7,9 @@ namespace SanGuo.Core
         /// <summary>挑釁期間，挑釁者受到的傷害減免比例（讓「把火力集中到坦克」真的划算）。</summary>
         public const double TauntDamageReduction = 0.3;
 
+        /// <summary>法系增減益強度的基準謀略：謀略 150 = 原本數值，200 = ×1.33。</summary>
+        public const int CasterReference = 150;
+
         /// <summary>
         /// 乘法減傷（類 LoL）：攻擊 × 倍率 × 100 / (100 + 防禦)，再套用爆擊。至少 1 點。
         /// 防禦傳入有效防禦（已套用破甲 / 防禦 buff）。
@@ -18,10 +21,10 @@ namespace SanGuo.Core
             return Math.Max(1, (int)Math.Round(d, MidpointRounding.AwayFromZero));
         }
 
-        /// <summary>治療 / 護甲等非傷害的數值：攻擊 × 倍率。</summary>
-        public static int Scale(int atk, double multiplier)
+        /// <summary>治療 / 護甲等非傷害的數值：威力（攻擊或謀略）× 倍率。</summary>
+        public static int Scale(int power, double multiplier)
         {
-            return Math.Max(0, (int)Math.Round(atk * multiplier, MidpointRounding.AwayFromZero));
+            return Math.Max(0, (int)Math.Round(power * multiplier, MidpointRounding.AwayFromZero));
         }
     }
 }

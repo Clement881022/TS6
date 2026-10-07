@@ -73,10 +73,11 @@ namespace SanGuo.Core.Meta
         {
             switch (stageId)
             {
-                case "res_exp": return (60, 70);
-                case "res_card": return (90, 90);
+                case "res_gold": return (35, 35);
+                case "res_exp": return (30, 35);
+                case "res_card": return (63, 63);
                 case "1-9": return (75, 85);
-                case "1-10": return (100, 100);
+                case "1-10": return (85, 85);
                 default: return (100, 100);
             }
         }
@@ -118,23 +119,23 @@ namespace SanGuo.Core.Meta
             switch (dungeonId)
             {
                 case "res_exp": // 校場操練：鐵甲力士擋路，後排妖道持續治療
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanIronBrute(), new Position(2, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), new Position(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), new Position(3, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanPriest(), new Position(2, 1)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanIronBrute(), DemoContent.EnemyPos(2, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), DemoContent.EnemyPos(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), DemoContent.EnemyPos(3, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanPriest(), DemoContent.EnemyPos(2, 1)));
                     break;
                 case "res_card": // 兵器鋪：渠帥與副將蓄力，要靠昏亂或集火打斷
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanChief(), new Position(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanLieutenant(), new Position(3, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), new Position(2, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), new Position(0, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanChief(), DemoContent.EnemyPos(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanLieutenant(), DemoContent.EnemyPos(3, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), DemoContent.EnemyPos(2, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), DemoContent.EnemyPos(0, 0)));
                     break;
                 default: // res_gold 糧倉護衛：黃巾兵衝陣，兩名弓手在後排放箭
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), new Position(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), new Position(2, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), new Position(3, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanArcher(), new Position(1, 1)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanArcher(), new Position(3, 1)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), DemoContent.EnemyPos(1, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), DemoContent.EnemyPos(2, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), DemoContent.EnemyPos(3, 0)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanArcher(), DemoContent.EnemyPos(1, 1)));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanArcher(), DemoContent.EnemyPos(3, 1)));
                     break;
             }
             return setup;
@@ -158,7 +159,7 @@ namespace SanGuo.Core.Meta
             }
             ScaleEnemies(setup, stageId);
             if (setup.FormationLocked) return setup;
-            if (profile == null || formation == null || FormationRules.Validate(profile, formation, setup.Lanes, setup.Rows) != null)
+            if (profile == null || formation == null || FormationRules.Validate(profile, formation) != null)
                 return null;
             FormationRules.Apply(setup, profile, formation);
             return setup;

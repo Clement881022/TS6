@@ -108,11 +108,11 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void StatScaling_IsIdentityAtLevel1_NoTable()
         {
-            var b = new Stats { Hp = 1000, Atk = 100, Def = 50, Speed = 2, Crit = 5 };
+            var b = new Stats { Hp = 1000, Atk = 100, Def = 50, Move = 2, Crit = 5 };
             Assert.Equal(1000, HeroGrowth.ScaleStats(b, new HeroState()).Hp);
             var s = HeroGrowth.ScaleStats(b, new HeroState { Level = 11, Stars = 5 }); // 沒給突破表：星級不加數值
             Assert.Equal(1800, s.Hp);   // 1 + 0.08×10
-            Assert.Equal(2, s.Speed);
+            Assert.Equal(2, s.Move);
             Assert.Equal(1000, b.Hp);
         }
 
@@ -120,7 +120,7 @@ namespace SanGuo.Core.Tests
         public void StatScaling_AppliesBreakthroughStatBonuses_Cumulatively()
         {
             var table = DemoBreakthroughs.Create();
-            var b = new Stats { Hp = 1000, Atk = 100, Def = 100, Speed = 2 };
+            var b = new Stats { Hp = 1000, Atk = 100, Def = 100, Move = 2 };
             var s1 = HeroGrowth.ScaleStats(b, new HeroState { HeroId = "zhangfei", Stars = 1 }, table);
             Assert.Equal(1100, s1.Hp);              // 1★ 血量 +10%
             Assert.Equal(100, s1.Atk);
@@ -133,7 +133,7 @@ namespace SanGuo.Core.Tests
             Assert.Equal(115, s4.Def);              // 防禦只有 4★ +15%
             var s5 = HeroGrowth.ScaleStats(b, new HeroState { HeroId = "zhangfei", Stars = 5 }, table);
             Assert.Equal(s4.Hp, s5.Hp);             // 5★ 是特殊效果，不再加屬性
-            Assert.Equal(2, s5.Speed);
+            Assert.Equal(2, s5.Move);
         }
 
         // ---- 突破：屬性與特殊效果混搭 ----

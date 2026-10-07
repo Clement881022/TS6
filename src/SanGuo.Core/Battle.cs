@@ -6,16 +6,17 @@ namespace SanGuo.Core
 {
     /// <summary>
     /// 戰鬥模擬核心（不依賴 Unity）。規則見 docs/combat.md。
-    /// 使用方式：new Battle(setup) 後呼叫 PlayCard / Move / EndTurn，並讀取 Events 做表現。
+    /// 使用方式：new Battle(setup) 後呼叫 PlayCard / EndTurn，並讀取 Events 做表現。
     /// </summary>
     public sealed class Battle
     {
         public const int MaxHandSize = 10;
         public const double LevelGrowthPerLevel = 0.1;
 
-        private readonly Unit?[,] _playerBoard;
-        private readonly Unit?[,] _enemyBoard;
+        private readonly Unit?[,] _board;
         private int _nextCardId;
+        /// <summary>移動卡結算時的目的地（<see cref="PlayCard"/> 暫存給 ResolveEffect）。</summary>
+        private Position? _moveDest;
 
         public BattleSetup Setup { get; }
         public Rng Rng { get; }
@@ -27,16 +28,13 @@ namespace SanGuo.Core
         public List<BattleEvent> Events { get; } = new List<BattleEvent>();
         public int Cost { get; private set; }
         public int Turn { get; private set; }
-        /// <summary>本回合已使用的移動次數。</summary>
-        public int MovesUsed { get; private set; }
         public BattleResult Result { get; private set; } = BattleResult.Ongoing;
 
         public Battle(BattleSetup setup)
         {
             Setup = setup;
             Rng = new Rng(setup.Seed);
-            _playerBoard = new Unit?[setup.Lanes, setup.Rows];
-            _enemyBoard = new Unit?[setup.Lanes, setup.Rows];
+            _board = new Unit?[setup.Lanes, setup.Rows];
 
             var allCards = new List<CardInstance>();
             var cardsByHero = new List<List<CardInstance>>();
@@ -50,6 +48,8 @@ namespace SanGuo.Core
                 var heroCards = new List<CardInstance>();
                 foreach (var cardDef in slot.Def.Deck)
                     heroCards.Add(new CardInstance(_nextCardId++, cardDef, unit));
+                // 隊伍每有一名帶牌的武將，就在牌堆洗入一張 0 費移動卡。
+                if (heroCards.Count > 0) heroCards.Add(new CardInstance(_nextCardId++, CardDef.CreateMove(), unit));
                 allCards.AddRange(heroCards);
                 cardsByHero.Add(heroCards);
             }
@@ -60,11 +60,14 @@ namespace SanGuo.Core
 
             if (setup.ScriptedDraw.Count > 0)
             {
-                // 寫死牌序時各武將的牌輪流穿插（不洗牌，但也不會整手都是同一個人的牌）。
+                // 寫死牌序時各武將的牌輪流穿插（不洗牌，但也不會整手都是同一個人的牌）；移動卡排在起手牌之後（第 2 回合起抽到）。
                 for (int i = 0; cardsByHero.Any(c => i < c.Count); i++)
                     foreach (var heroCards in cardsByHero)
                         if (i < heroCards.Count) DrawPile.Add(heroCards[i]);
                 OrderByScript(DrawPile);
+                var moves = DrawPile.Where(c => c.Def.Target == TargetRule.MoveDest).ToList();
+                DrawPile.RemoveAll(c => c.Def.Target == TargetRule.MoveDest);
+                DrawPile.InsertRange(Math.Min(setup.HandSize, DrawPile.Count), moves);
             }
             else
             {
@@ -79,13 +82,19 @@ namespace SanGuo.Core
 
         // ---------------------------------------------------------------- 查詢
 
-        public Unit? UnitAt(Side side, Position pos)
+        public Unit? UnitAt(Position pos)
         {
             if (!InBounds(pos)) return null;
-            return BoardOf(side)[pos.Lane, pos.Row];
+            return _board[pos.Lane, pos.Row];
         }
 
-        /// <summary>依「路 → 排」順序（左到右、前到後）列出該方存活單位。</summary>
+        public Unit? UnitAt(Side side, Position pos)
+        {
+            var u = UnitAt(pos);
+            return u != null && u.Side == side ? u : null;
+        }
+
+        /// <summary>依「欄 → 列」順序（左到右、上到下）列出該方存活單位。</summary>
         public List<Unit> AliveUnits(Side side)
         {
             return Units.Where(u => u.Side == side && u.Alive)
@@ -97,6 +106,34 @@ namespace SanGuo.Core
             return pos.Lane >= 0 && pos.Lane < Setup.Lanes && pos.Row >= 0 && pos.Row < Setup.Rows;
         }
 
+        private static readonly int[] DLane = { 1, -1, 0, 0 };
+        private static readonly int[] DRow = { 0, 0, 1, -1 };
+
+        /// <summary>
+        /// 單位在移動力內可到達的格子（含原地 = 0 步）及所需步數：正交移動、不可穿越任何單位，只能停在空格。
+        /// </summary>
+        public Dictionary<Position, int> ReachableTiles(Unit unit, int? steps = null)
+        {
+            int max = steps ?? unit.Stats.Move;
+            var dist = new Dictionary<Position, int> { [unit.Pos] = 0 };
+            var queue = new Queue<Position>();
+            queue.Enqueue(unit.Pos);
+            while (queue.Count > 0)
+            {
+                var p = queue.Dequeue();
+                int d = dist[p];
+                if (d >= max) continue;
+                for (int i = 0; i < 4; i++)
+                {
+                    var n = new Position(p.Lane + DLane[i], p.Row + DRow[i]);
+                    if (!InBounds(n) || dist.ContainsKey(n) || _board[n.Lane, n.Row] != null) continue;
+                    dist[n] = d + 1;
+                    queue.Enqueue(n);
+                }
+            }
+            return dist;
+        }
+
         /// <summary>檢查卡牌目前能否打出（不產生副作用）。</summary>
         public PlayResult CanPlay(CardInstance card)
         {
@@ -105,12 +142,19 @@ namespace SanGuo.Core
             if (!card.Owner.Alive) return PlayResult.OwnerDead;
             if (card.Owner.Has(StatusType.Stun)) return PlayResult.Stunned;
             if (Cost < card.Def.Cost) return PlayResult.NotEnoughCost;
-            if (ResolveTargets(card.Owner, card.Def) == null)
+            if (card.Def.Target == TargetRule.MoveDest)
+            {
+                if (ReachableTiles(card.Owner).Count <= 1) return PlayResult.NoTarget;
+            }
+            else if (ResolveTargets(card.Owner, card.Def) == null)
                 return PlayResult.NoTarget;
             return PlayResult.Ok;
         }
 
-        /// <summary>目標自動判定；回傳 null 表示沒有可選目標（卡牌不可打出）。</summary>
+        /// <summary>
+        /// 目標判定；回傳 null 表示沒有可選目標（卡牌不可打出）或指定的目標不在範圍內。
+        /// 單體目標限卡牌射程內（曼哈頓格距）；<paramref name="chosen"/> 只有 <see cref="TargetRule.Enemy"/> 的牌會採用。
+        /// </summary>
         public List<Unit>? ResolveTargets(Unit owner, CardDef def, Unit? chosen = null)
         {
             Side own = owner.Side;
@@ -128,23 +172,26 @@ namespace SanGuo.Core
                     Unit? best = null;
                     foreach (var u in AliveUnits(own))
                     {
+                        if (Position.Distance(owner.Pos, u.Pos) > def.Range) continue;
                         if (best == null || (long)u.Hp * best.MaxHp < (long)best.Hp * u.MaxHp) best = u;
                     }
                     return best == null ? null : new List<Unit> { best };
                 }
-                case TargetRule.EnemyFront:
-                case TargetRule.EnemyBack:
+                case TargetRule.Enemy:
                 case TargetRule.EnemyLowestHp:
-                case TargetRule.EnemyAny:
                 {
-                    Unit? center;
+                    var inRange = AliveUnits(foe).Where(u => Position.Distance(owner.Pos, u.Pos) <= def.Range).ToList();
+                    if (inRange.Count == 0) return null;
+                    Unit center;
                     if (def.Target == TargetRule.EnemyLowestHp)
-                        center = PickLowestHp(foe);
-                    else if (def.Target == TargetRule.EnemyAny && chosen != null && chosen.Alive && chosen.Side == foe)
+                        center = inRange.OrderBy(u => u.Hp).ThenByDescending(u => u.Pos.Row).ThenBy(u => u.Pos.Lane).First();
+                    else if (chosen != null)
+                    {
+                        if (!inRange.Contains(chosen)) return null;
                         center = chosen;
+                    }
                     else
-                        center = PickTarget(foe, owner.Pos.Lane, def.Target != TargetRule.EnemyFront);
-                    if (center == null) return null;
+                        center = inRange.OrderBy(u => Position.Distance(owner.Pos, u.Pos)).ThenBy(u => u.Hp).ThenBy(u => u.Pos.Lane).First();
                     var result = new List<Unit>();
                     foreach (var cell in Targeting.ExpandShape(center.Pos, def.Shape, Setup.Lanes, Setup.Rows))
                     {
@@ -177,11 +224,9 @@ namespace SanGuo.Core
                 && !enemy.Charging
                 && AliveUnits(Side.Enemy).Count < enemy.SummonCap)
             {
-                // 召喚：優先填前排的空格（由上往下），沒有再填後排。
-                for (int r = 0; r < Setup.Rows; r++)
-                    for (int l = 0; l < Setup.Lanes; l++)
-                        if (_enemyBoard[l, r] == null)
-                            return new Intent { Type = Intent.Kind.Summon, MoveTo = new Position(l, r) };
+                // 召喚：填離召喚者最近的空格（同距離優先靠近我方的那一列）。
+                var spawn = FindSpawnTile(enemy);
+                if (spawn != null) return new Intent { Type = Intent.Kind.Summon, MoveTo = spawn };
             }
 
             if (enemy.Ability.HasFlag(EnemyAbility.Charger) && !enemy.Charging)
@@ -199,32 +244,123 @@ namespace SanGuo.Core
                 if (hurt != null) return new Intent { Type = Intent.Kind.Heal, Target = hurt };
             }
 
-            Unit? forced = AliveUnits(Side.Player).FirstOrDefault(u => u.Has(StatusType.Taunt));
-            if (forced != null)
-                return new Intent { Type = Intent.Kind.Attack, Target = forced };
-
-            bool ranged = enemy.AttackType == AttackType.Ranged;
-            var target = PickTarget(Side.Player, enemy.Pos.Lane, ranged);
-            if (target != null) return new Intent { Type = Intent.Kind.Attack, Target = target };
-
             var heroes = AliveUnits(Side.Player);
             if (heroes.Count == 0) return new Intent { Type = Intent.Kind.None };
-            int bestLane = heroes
-                .OrderBy(h => Math.Abs(h.Pos.Lane - enemy.Pos.Lane)).ThenBy(h => h.Pos.Lane)
-                .First().Pos.Lane;
-            return MoveToward(enemy, bestLane);
+            Unit? forced = heroes.FirstOrDefault(u => u.Has(StatusType.Taunt));
+            return PlanAttack(enemy, forced != null ? new List<Unit> { forced } : heroes);
         }
+
+        private Position? FindSpawnTile(Unit summoner)
+        {
+            Position? best = null;
+            for (int l = 0; l < Setup.Lanes; l++)
+            {
+                for (int r = 0; r < Setup.Rows; r++)
+                {
+                    if (_board[l, r] != null) continue;
+                    var p = new Position(l, r);
+                    if (best == null || IsBetterSpawn(summoner, p, best.Value)) best = p;
+                }
+            }
+            return best;
+        }
+
+        private static bool IsBetterSpawn(Unit s, Position a, Position b)
+        {
+            int da = Position.Distance(s.Pos, a), db = Position.Distance(s.Pos, b);
+            if (da != db) return da < db;
+            if (a.Row != b.Row) return a.Row > b.Row;
+            return a.Lane < b.Lane;
+        }
+
+        /// <summary>
+        /// 敵方行動規劃：先看移動後（含原地）打得到的玩家單位——近戰挑最近者、遠程挑最後排者（同條件取血量最低），
+        /// 以最少步數走到可攻擊的位置後出手；誰都打不到就朝最近的玩家單位靠近。
+        /// </summary>
+        private Intent PlanAttack(Unit enemy, List<Unit> candidates)
+        {
+            int range = enemy.AttackRange;
+            bool ranged = enemy.AttackType == AttackType.Ranged;
+            var reach = ReachableTiles(enemy);
+
+            Unit? best = null;
+            Position bestTile = enemy.Pos;
+            foreach (var h in OrderTargets(enemy, candidates, ranged))
+            {
+                Position? tile = null;
+                int steps = int.MaxValue;
+                foreach (var kv in reach)
+                {
+                    if (Position.Distance(kv.Key, h.Pos) > range) continue;
+                    if (kv.Value < steps || (kv.Value == steps && TileBefore(kv.Key, tile!.Value)))
+                    {
+                        tile = kv.Key;
+                        steps = kv.Value;
+                    }
+                }
+                if (tile == null) continue;
+                best = h;
+                bestTile = tile.Value;
+                break;
+            }
+            if (best != null)
+                return new Intent { Type = Intent.Kind.Attack, Target = best, MoveTo = bestTile == enemy.Pos ? (Position?)null : bestTile };
+
+            // 誰都打不到：朝最近的玩家單位靠近。
+            var nearest = candidates.OrderBy(h => Position.Distance(enemy.Pos, h.Pos)).ThenBy(h => h.Hp).First();
+            Position dest = enemy.Pos;
+            int destDist = Position.Distance(enemy.Pos, nearest.Pos);
+            int destSteps = 0;
+            foreach (var kv in reach)
+            {
+                int d = Position.Distance(kv.Key, nearest.Pos);
+                if (d < destDist || (d == destDist && kv.Value < destSteps))
+                {
+                    dest = kv.Key;
+                    destDist = d;
+                    destSteps = kv.Value;
+                }
+            }
+            if (dest == enemy.Pos) return new Intent { Type = Intent.Kind.None };
+            return new Intent { Type = Intent.Kind.Move, MoveTo = dest };
+        }
+
+        private static IEnumerable<Unit> OrderTargets(Unit enemy, List<Unit> candidates, bool ranged)
+        {
+            if (ranged)
+                return candidates.OrderByDescending(h => h.Pos.Row).ThenBy(h => h.Hp).ThenBy(h => h.Pos.Lane);
+            return candidates.OrderBy(h => Position.Distance(enemy.Pos, h.Pos)).ThenBy(h => h.Hp).ThenBy(h => h.Pos.Lane);
+        }
+
+        /// <summary>同步數時的固定偏好：較靠下（近我方）的列優先，再取較左的欄。</summary>
+        private static bool TileBefore(Position a, Position b) => a.Row != b.Row ? a.Row > b.Row : a.Lane < b.Lane;
 
         // ---------------------------------------------------------------- 玩家行動
 
-        /// <param name="target">指定目標；只有 <see cref="TargetRule.EnemyAny"/> 的牌會採用（沒給或無效就退回後排優先）。</param>
-        public PlayResult PlayCard(CardInstance card, Unit? target = null)
+        /// <param name="target">指定的敵方目標（只有 <see cref="TargetRule.Enemy"/> 的牌會採用）；沒給就自動挑範圍內最近者。</param>
+        /// <param name="dest">移動卡的目的地格子。</param>
+        public PlayResult PlayCard(CardInstance card, Unit? target = null, Position? dest = null)
         {
             var check = CanPlay(card);
             if (check != PlayResult.Ok) return check;
 
             var owner = card.Owner;
-            var targets = ResolveTargets(owner, card.Def, target)!;
+            List<Unit> targets;
+            if (card.Def.Target == TargetRule.MoveDest)
+            {
+                if (dest == null) return PlayResult.NoTarget;
+                var d = dest.Value;
+                if (d == owner.Pos || !ReachableTiles(owner).ContainsKey(d)) return PlayResult.OutOfRange;
+                _moveDest = d;
+                targets = new List<Unit> { owner };
+            }
+            else
+            {
+                var resolved = ResolveTargets(owner, card.Def, target);
+                if (resolved == null) return target != null ? PlayResult.OutOfRange : PlayResult.NoTarget;
+                targets = resolved;
+            }
+
             Cost -= card.Def.Cost;
             Hand.Remove(card);
             Emit(EventType.CardPlayed, owner.Id, -1, card.Def.Cost, card.Def.Name);
@@ -234,46 +370,10 @@ namespace SanGuo.Core
                 var affected = effect.OnSelf ? new List<Unit> { owner } : targets;
                 ResolveEffect(owner, effect, affected);
             }
+            _moveDest = null;
 
             Discard(card);
             CheckEnd();
-            return PlayResult.Ok;
-        }
-
-        /// <summary>檢查該武將現在能否使用移動按鈕（不檢查目的地）。</summary>
-        public PlayResult CanMove(Unit hero)
-        {
-            if (Result != BattleResult.Ongoing) return PlayResult.BattleOver;
-            if (hero.Side != Side.Player || !hero.Alive) return PlayResult.OwnerDead;
-            if (hero.Has(StatusType.Stun)) return PlayResult.Stunned;
-            if (MovesUsed >= Setup.MovesPerTurn) return PlayResult.MoveUsed;
-            if (Cost < Setup.MoveCost) return PlayResult.NotEnoughCost;
-            return PlayResult.Ok;
-        }
-
-        /// <summary>
-        /// 移動按鈕：全隊每回合限用 MovesPerTurn 次、花 MoveCost 費。
-        /// 距離（格數）不得超過速度；落在隊友格會與之換位。
-        /// </summary>
-        public PlayResult Move(Unit hero, Position dest)
-        {
-            var check = CanMove(hero);
-            if (check != PlayResult.Ok) return check;
-            if (!InBounds(dest)) return PlayResult.InvalidMove;
-            int dist = Math.Abs(dest.Lane - hero.Pos.Lane) + Math.Abs(dest.Row - hero.Pos.Row);
-            if (dist < 1 || dist > hero.Stats.Speed) return PlayResult.InvalidMove;
-
-            Cost -= Setup.MoveCost;
-            MovesUsed++;
-
-            var board = BoardOf(hero.Side);
-            var other = board[dest.Lane, dest.Row];
-            var from = hero.Pos;
-            board[from.Lane, from.Row] = other;
-            if (other != null) other.Pos = from;
-            board[dest.Lane, dest.Row] = hero;
-            hero.Pos = dest;
-            Emit(EventType.Move, hero.Id, other?.Id ?? -1, dist, $"{from}->{dest}");
             return PlayResult.Ok;
         }
 
@@ -300,21 +400,15 @@ namespace SanGuo.Core
         private void StartPlayerTurn()
         {
             Turn++;
-            MovesUsed = 0;
             Cost = Math.Min(Cost + Setup.CostPerTurn, Setup.CostCap);
             Emit(EventType.TurnStart, -1, -1, Turn, "");
 
             TickDamageOverTime(Side.Player);
             if (CheckEnd()) return;
 
-            // 回合開始時棄掉未保留的手牌，再抽到手牌上限（蓄勢的牌佔手牌數）。
-            foreach (var card in Hand.ToList())
-            {
-                if ((card.Def.Keywords & CardKeywords.Retain) != 0) continue;
-                Hand.Remove(card);
-                Discard(card, forceDiscardPile: true);
-            }
-            while (Hand.Count < Setup.HandSize && DrawOne()) { }
+            // 手牌不會在回合結束時棄掉（取後不放回）：首回合抽起手牌，之後每回合抽 DrawPerTurn 張，手牌上限 MaxHandSize。
+            int draw = Turn == 1 ? Setup.HandSize : Setup.DrawPerTurn;
+            for (int i = 0; i < draw && DrawOne(); i++) { }
         }
 
         private void RunEnemyPhase()
@@ -329,6 +423,7 @@ namespace SanGuo.Core
                 switch (intent.Type)
                 {
                     case Intent.Kind.Attack:
+                        if (intent.MoveTo != null) RelocateEnemy(enemy, intent.MoveTo.Value);
                         Emit(EventType.EnemyAttack, enemy.Id, intent.Target!.Id, intent.Big ? 1 : 0, intent.Big ? "big" : "");
                         DealAttackDamage(enemy, intent.Target!, intent.Big ? enemy.AbilityPower : enemy.AttackMultiplier);
                         if (intent.Big) enemy.Charging = false;
@@ -346,7 +441,7 @@ namespace SanGuo.Core
                     case Intent.Kind.Heal:
                     {
                         var ally = intent.Target!;
-                        int amount = DamageCalc.Scale(enemy.EffectiveAtk, enemy.AbilityPower);
+                        int amount = DamageCalc.Scale(enemy.EffectivePower, enemy.AbilityPower);
                         int healed = Math.Min(amount, ally.MaxHp - ally.Hp);
                         ally.Hp += healed;
                         Emit(EventType.Heal, enemy.Id, ally.Id, healed, "");
@@ -408,7 +503,7 @@ namespace SanGuo.Core
                     foreach (var t in affected)
                     {
                         if (!t.Alive) continue;
-                        int amount = DamageCalc.Scale(owner.EffectiveAtk, effect.Multiplier);
+                        int amount = DamageCalc.Scale(owner.EffectivePower, effect.Multiplier);
                         int healed = Math.Min(amount, t.MaxHp - t.Hp);
                         t.Hp += healed;
                         Emit(EventType.Heal, owner.Id, t.Id, healed, "");
@@ -418,7 +513,7 @@ namespace SanGuo.Core
                     foreach (var t in affected)
                     {
                         if (!t.Alive) continue;
-                        int amount = DamageCalc.Scale(owner.EffectiveAtk, effect.Multiplier);
+                        int amount = DamageCalc.Scale(owner.EffectivePower, effect.Multiplier);
                         t.Armor += amount;
                         Emit(EventType.Armor, owner.Id, t.Id, amount, "");
                     }
@@ -433,14 +528,14 @@ namespace SanGuo.Core
                             // 各筆各自計時、彼此乘算（例：40% 與 15% 並存 → 防禦 ×0.6×0.85）。
                             t.DefBreaks.Add(new DefBreak
                             {
-                                Percent = Math.Min(0.95, Math.Max(0.0, effect.Multiplier)),
+                                Percent = Math.Min(0.95, Math.Max(0.0, effect.Multiplier * owner.StatusPotency)),
                                 Turns = effect.Amount,
                             });
                         }
                         else if (IsBuff(effect.Status))
                         {
                             // 增益：Multiplier 是加成比例；已有同種增益時取較大的加成與較長的回合數。
-                            int percent = (int)Math.Round(effect.Multiplier * 100, MidpointRounding.AwayFromZero);
+                            int percent = (int)Math.Round(effect.Multiplier * 100 * owner.StatusPotency, MidpointRounding.AwayFromZero);
                             if (t.Statuses.TryGetValue(effect.Status, out var cur))
                             {
                                 cur.Power = Math.Max(cur.Power, percent);
@@ -455,7 +550,7 @@ namespace SanGuo.Core
                         {
                             t.Statuses[effect.Status] = new StatusState
                             {
-                                Power = DamageCalc.Scale(owner.EffectiveAtk, effect.Multiplier),
+                                Power = DamageCalc.Scale(owner.EffectivePower, effect.Multiplier),
                                 Turns = effect.Amount,
                             };
                         }
@@ -503,6 +598,17 @@ namespace SanGuo.Core
                     for (int i = 0; i < effect.Amount && DrawOne(); i++) drawn++;
                     Emit(EventType.Draw, owner.Id, -1, drawn, "");
                     break;
+                case EffectType.Move:
+                    if (_moveDest != null && owner.Alive)
+                    {
+                        var from = owner.Pos;
+                        var to = _moveDest.Value;
+                        _board[from.Lane, from.Row] = null;
+                        _board[to.Lane, to.Row] = owner;
+                        owner.Pos = to;
+                        Emit(EventType.Move, owner.Id, -1, Position.Distance(from, to), $"{from}->{to}");
+                    }
+                    break;
                 case EffectType.GainCost:
                     Cost = Math.Min(Setup.CostCap, Cost + effect.Amount);
                     Emit(EventType.GainCost, owner.Id, -1, effect.Amount, "");
@@ -521,7 +627,7 @@ namespace SanGuo.Core
                 return;
             }
             bool crit = !Setup.NoRandomness && Rng.Roll(attacker.EffectiveCrit);
-            int dmg = DamageCalc.Compute(attacker.EffectiveAtk, multiplier, target.EffectiveDef,
+            int dmg = DamageCalc.Compute(attacker.EffectivePower, multiplier, target.EffectiveDef,
                 crit, attacker.Stats.CritDmg);
             if (target.Has(StatusType.Taunt))
                 dmg = Math.Max(1, (int)Math.Round(dmg * (1.0 - DamageCalc.TauntDamageReduction), MidpointRounding.AwayFromZero));
@@ -545,62 +651,28 @@ namespace SanGuo.Core
         {
             unit.Hp = 0;
             unit.Alive = false;
-            BoardOf(unit.Side)[unit.Pos.Lane, unit.Pos.Row] = null;
+            _board[unit.Pos.Lane, unit.Pos.Row] = null;
             Emit(EventType.Death, -1, unit.Id, 0, "");
         }
 
         // ---------------------------------------------------------------- 敵方移動
 
-        private Intent MoveToward(Unit enemy, int targetLane)
-        {
-            int currentDist = Math.Abs(enemy.Pos.Lane - targetLane);
-            // 在速度範圍內的空格中，選離目標路最近者（同距離取步數少、再取較前排）；必須比現在更靠近才移動。
-            Position? best = null;
-            int bestLaneDist = int.MaxValue;
-            int bestStep = int.MaxValue;
-            for (int lane = 0; lane < Setup.Lanes; lane++)
-            {
-                for (int row = 0; row < Setup.Rows; row++)
-                {
-                    if (_enemyBoard[lane, row] != null) continue;
-                    int step = Math.Abs(lane - enemy.Pos.Lane) + Math.Abs(row - enemy.Pos.Row);
-                    if (step < 1 || step > enemy.Stats.Speed) continue;
-                    int laneDist = Math.Abs(lane - targetLane);
-                    if (laneDist < bestLaneDist || (laneDist == bestLaneDist && step < bestStep))
-                    {
-                        best = new Position(lane, row);
-                        bestLaneDist = laneDist;
-                        bestStep = step;
-                    }
-                }
-            }
-            if (best == null || bestLaneDist >= currentDist)
-                return new Intent { Type = Intent.Kind.None };
-            return new Intent { Type = Intent.Kind.Move, MoveTo = best };
-        }
-
         private void RelocateEnemy(Unit enemy, Position dest)
         {
             var from = enemy.Pos;
-            _enemyBoard[from.Lane, from.Row] = null;
-            _enemyBoard[dest.Lane, dest.Row] = enemy;
+            _board[from.Lane, from.Row] = null;
+            _board[dest.Lane, dest.Row] = enemy;
             enemy.Pos = dest;
-            Emit(EventType.EnemyMove, enemy.Id, -1, 0, $"{from}->{dest}");
+            Emit(EventType.EnemyMove, enemy.Id, -1, Position.Distance(from, dest), $"{from}->{dest}");
         }
 
         // ---------------------------------------------------------------- 牌庫
 
+        /// <summary>抽一張：取後不放回，牌堆抽完就沒有了（不重洗棄牌堆）；手牌上限 <see cref="MaxHandSize"/>。</summary>
         private bool DrawOne()
         {
             if (Hand.Count >= MaxHandSize) return false;
-            if (DrawPile.Count == 0)
-            {
-                if (DiscardPile.Count == 0) return false;
-                DrawPile.AddRange(DiscardPile);
-                DiscardPile.Clear();
-                if (Setup.ScriptedDraw.Count > 0) OrderByScript(DrawPile);
-                else Shuffle(DrawPile);
-            }
+            if (DrawPile.Count == 0) return false;
             var card = DrawPile[0];
             DrawPile.RemoveAt(0);
             Hand.Add(card);
@@ -663,8 +735,7 @@ namespace SanGuo.Core
         private Unit CreateUnit(string name, Side side, AttackType attackType, Stats stats, Position pos)
         {
             if (!InBounds(pos)) throw new ArgumentException($"{name} 的位置 {pos} 超出棋盤");
-            var board = BoardOf(side);
-            if (board[pos.Lane, pos.Row] != null) throw new ArgumentException($"{name} 的位置 {pos} 已有單位");
+            if (_board[pos.Lane, pos.Row] != null) throw new ArgumentException($"{name} 的位置 {pos} 已有單位");
             var unit = new Unit
             {
                 Id = Units.Count,
@@ -676,7 +747,7 @@ namespace SanGuo.Core
                 Pos = pos,
             };
             Units.Add(unit);
-            board[pos.Lane, pos.Row] = unit;
+            _board[pos.Lane, pos.Row] = unit;
             return unit;
         }
 
@@ -687,62 +758,8 @@ namespace SanGuo.Core
             s.Hp = (int)Math.Round(s.Hp * factor);
             s.Atk = (int)Math.Round(s.Atk * factor);
             s.Def = (int)Math.Round(s.Def * factor);
+            s.Int = (int)Math.Round(s.Int * factor);
             return s;
-        }
-
-        private Unit?[,] BoardOf(Side side) => side == Side.Player ? _playerBoard : _enemyBoard;
-
-        /// <summary>
-        /// 目標判定：同路優先；同路沒人就由上往下（第 0 路起）找第一條有人的路。
-        /// 因此 0 號位（最上方）是預設的「坦克位」。
-        /// </summary>
-        private Unit? PickTarget(Side side, int lane, bool backFirst)
-        {
-            if (backFirst) return PickBackPriority(side);
-            var inLane = PickInLane(side, lane, false);
-            if (inLane != null) return inLane;
-            for (int l = 0; l < Setup.Lanes; l++)
-            {
-                if (l == lane) continue;
-                var found = PickInLane(side, l, false);
-                if (found != null) return found;
-            }
-            return null;
-        }
-
-        /// <summary>血量最低的存活單位；同血量取較後排、再取較上路。</summary>
-        private Unit? PickLowestHp(Side side) =>
-            AliveUnits(side).OrderBy(u => u.Hp).ThenByDescending(u => u.Pos.Row).ThenBy(u => u.Pos.Lane).FirstOrDefault();
-
-        /// <summary>
-        /// 後排優先（弓手 / 遠程）：不分路，先找最後一排，依路由上往下取第一個；
-        /// 最後一排沒人才往前一排，同樣由上往下。
-        /// </summary>
-        private Unit? PickBackPriority(Side side)
-        {
-            var board = BoardOf(side);
-            for (int r = Setup.Rows - 1; r >= 0; r--)
-                for (int l = 0; l < Setup.Lanes; l++)
-                    if (board[l, r] != null) return board[l, r];
-            return null;
-        }
-
-        /// <summary>某一路上最前排（或最後排優先）的存活單位。</summary>
-        private Unit? PickInLane(Side side, int lane, bool backFirst)
-        {
-            var board = BoardOf(side);
-            if (lane < 0 || lane >= Setup.Lanes) return null;
-            if (backFirst)
-            {
-                for (int r = Setup.Rows - 1; r >= 0; r--)
-                    if (board[lane, r] != null) return board[lane, r];
-            }
-            else
-            {
-                for (int r = 0; r < Setup.Rows; r++)
-                    if (board[lane, r] != null) return board[lane, r];
-            }
-            return null;
         }
 
         private static List<Unit>? NonEmpty(List<Unit> list) => list.Count == 0 ? null : list;

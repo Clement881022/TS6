@@ -106,8 +106,9 @@ namespace SanGuo.Client
         /// <summary>教學關：隊伍固定，不經過編隊畫面。</summary>
         public static bool FormationLocked(int level) => DemoMeta.FormationLocked(level);
 
-        private static readonly (int Lane, int Row)[] FrontCells = { (1, 0), (2, 0), (3, 0), (0, 0), (4, 0) };
-        private static readonly (int Lane, int Row)[] BackCells = { (2, 1), (1, 1), (3, 1), (0, 1), (4, 1) };
+        // 列陣區只有 3x2（欄 1–3、列 3 = 前排、列 4 = 後排）。
+        private static readonly (int Lane, int Row)[] FrontCells = { (2, 3), (1, 3), (3, 3) };
+        private static readonly (int Lane, int Row)[] BackCells = { (2, 4), (1, 4), (3, 4) };
 
         /// <summary>已擁有的武將（照名冊順序：UR 在前、R 在後）。</summary>
         public static List<HeroDef> OwnedHeroes() =>
@@ -125,7 +126,8 @@ namespace SanGuo.Client
             foreach (var def in OwnedHeroes().Take(MaxTeamSize))
             {
                 bool isFront = def.Role == Role.Tank || def.Role == Role.Warrior;
-                var cell = isFront ? FrontCells[front++] : BackCells[back++];
+                // 優先放在自己偏好的那一排，滿了就放另一排（3x2 列陣區，上限 4 人一定放得下）。
+                var cell = (isFront && front < FrontCells.Length) || back >= BackCells.Length ? FrontCells[front++] : BackCells[back++];
                 Formation[def.Id] = new Position(cell.Lane, cell.Row);
             }
         }

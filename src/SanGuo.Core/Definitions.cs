@@ -2,11 +2,10 @@ using System.Collections.Generic;
 
 namespace SanGuo.Core
 {
-    public struct Position
+    /// <summary>共用 5x5 棋盤上的格子：Lane = 欄（0–4，左到右）、Row = 列（0–4，上到下；敵方在上、我方在下）。</summary>
+    public struct Position : System.IEquatable<Position>
     {
-        /// <summary>路（0 起算，雙方同路相對）。</summary>
         public int Lane;
-        /// <summary>排（0 = 前排，數字越大越後排）。</summary>
         public int Row;
 
         public Position(int lane, int row)
@@ -14,6 +13,15 @@ namespace SanGuo.Core
             Lane = lane;
             Row = row;
         }
+
+        /// <summary>曼哈頓格距。</summary>
+        public static int Distance(Position a, Position b) => System.Math.Abs(a.Lane - b.Lane) + System.Math.Abs(a.Row - b.Row);
+
+        public bool Equals(Position other) => Lane == other.Lane && Row == other.Row;
+        public override bool Equals(object? obj) => obj is Position p && Equals(p);
+        public override int GetHashCode() => Lane * 31 + Row;
+        public static bool operator ==(Position a, Position b) => a.Equals(b);
+        public static bool operator !=(Position a, Position b) => !a.Equals(b);
 
         public override string ToString() => $"({Lane},{Row})";
     }
@@ -25,8 +33,10 @@ namespace SanGuo.Core
         public int Def;
         /// <summary>閃避，百分比。</summary>
         public int Dodge;
-        /// <summary>速度 = 移動卡可移動的格數（1–3，隨職業固定）。</summary>
-        public int Speed = 1;
+        /// <summary>移動力 = 移動卡可移動的格數（1–3，隨職業固定）。</summary>
+        public int Move = 1;
+        /// <summary>謀略：法系（法師 / 醫療 / 軍師）的治療、法術傷害、護甲與增減益強度吃這個，其餘職業吃攻擊力。</summary>
+        public int Int;
         /// <summary>爆擊率，百分比。</summary>
         public int Crit;
         /// <summary>爆擊傷害，百分比（150 = 1.5 倍）。</summary>
@@ -57,9 +67,18 @@ namespace SanGuo.Core
         public bool Basic;
         public int Cost;
         public CardKeywords Keywords;
-        public TargetRule Target = TargetRule.EnemyFront;
+        public TargetRule Target = TargetRule.Enemy;
+        /// <summary>攻擊 / 施放範圍：與施放者的曼哈頓格距上限（Self / 全體目標忽略；移動卡用移動力）。</summary>
+        public int Range = 1;
         public Shape Shape = Shape.Single;
         public List<EffectDef> Effects = new List<EffectDef>();
+
+        /// <summary>移動卡（0 費）：隊伍每有一名武將，開局就在牌堆洗入一張；移動格數 = 持有者移動力。</summary>
+        public static CardDef CreateMove() => new CardDef
+        {
+            Id = "move", Name = "移動", Basic = true, Cost = 0, Target = TargetRule.MoveDest,
+            Effects = new List<EffectDef> { new EffectDef { Type = EffectType.Move, OnSelf = true } },
+        };
     }
 
     public sealed class HeroDef
@@ -129,15 +148,17 @@ namespace SanGuo.Core
 
     public sealed class BattleSetup
     {
+        /// <summary>棋盤（敵我共用）：5 欄 × 5 列；敵方起始在上兩列、我方在下兩列。</summary>
         public int Lanes = 5;
-        public int Rows = 2;
+        public int Rows = 5;
+        /// <summary>我方列陣區：3 欄 × 2 列（欄 1–3、列 3–4）。</summary>
+        public const int FormationMinLane = 1, FormationMaxLane = 3, FormationMinRow = 3, FormationMaxRow = 4;
         public ulong Seed = 1;
         public int HandSize = 5;
         public int CostPerTurn = 3;
         public int CostCap = 10;
-        /// <summary>全隊共用移動按鈕（已停用，預設 0 次；站位改為戰前編隊，推拉 / 換位日後做成特定武將的技能）。</summary>
-        public int MoveCost = 1;
-        public int MovesPerTurn = 0;
+        /// <summary>第 2 回合起每回合抽幾張（首回合抽 <see cref="HandSize"/> 張）。手牌不會在回合結束時棄掉，上限 10；牌堆抽完就不再重洗。</summary>
+        public int DrawPerTurn = 3;
         /// <summary>0 = 無回合限制。</summary>
         public int TurnLimit;
         /// <summary>是否開放自動戰鬥（教學關關閉，讓玩家親手體驗該關要教的機制）。</summary>
@@ -145,7 +166,7 @@ namespace SanGuo.Core
         /// <summary>true = 隊伍與站位由關卡決定，玩家不能編隊（教學關）。</summary>
         public bool FormationLocked;
         /// <summary>
-        /// 教學關用的寫死牌序：每次抽牌堆重建（開局與重洗）時，這些卡牌 id 依序排在最前面，
+        /// 教學關用的寫死牌序：開局時這些卡牌 id 依序排在最前面，
         /// 其餘維持套牌順序，不隨機洗牌。空 = 一般隨機洗牌。
         /// </summary>
         public List<string> ScriptedDraw = new List<string>();

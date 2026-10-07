@@ -15,27 +15,26 @@ namespace SanGuo.Core
     [Flags]
     public enum EnemyAbility { None = 0, Healer = 1, Charger = 2, Summoner = 4 }
 
-    /// <summary>卡牌如何選出中心目標（見 docs/combat.md 4.1）。</summary>
+    /// <summary>卡牌如何選出中心目標（見 docs/combat.md 4.1）；單體目標都受卡牌 <see cref="CardDef.Range"/>（格距）限制。</summary>
     public enum TargetRule
     {
-        /// <summary>施放者同路，敵方最前排。</summary>
-        EnemyFront,
-        /// <summary>施放者同路，敵方最後排優先（弓手 / 遠程）。</summary>
-        EnemyBack,
+        /// <summary>玩家點選範圍內的一名敵人（沒指定時自動挑範圍內最近者）。</summary>
+        Enemy,
         Self,
+        /// <summary>範圍內血量比例最低的友軍（含自己）。</summary>
         AllyLowestHp,
         AllAllies,
         AllEnemies,
-        /// <summary>敵方目前血量最低的單位（同血量取較後排、較上路）。</summary>
+        /// <summary>範圍內血量最低的敵人（自動選取）。</summary>
         EnemyLowestHp,
-        /// <summary>玩家指定的任意敵人（<see cref="Battle.PlayCard"/> 的 target 參數）；沒指定時退回後排優先。</summary>
-        EnemyAny,
+        /// <summary>移動卡：玩家點選一格可到達的空格（步數不超過移動力）。</summary>
+        MoveDest,
     }
 
     /// <summary>以中心目標展開的範圍形狀。</summary>
     public enum Shape { Single, Row, Column, Cross, All }
 
-    public enum EffectType { Damage, Heal, Armor, ApplyStatus, Draw, GainCost, StunGauge, Detonate }
+    public enum EffectType { Damage, Heal, Armor, ApplyStatus, Draw, GainCost, StunGauge, Detonate, Move }
 
     /// <summary>
     /// DefUp / AtkUp / CritUp 為增益：<see cref="EffectDef.Multiplier"/> 是加成比例（DefUp / AtkUp 的 0.3 = +30%；CritUp 的 0.25 = +25 個百分點爆擊率），
@@ -64,9 +63,8 @@ namespace SanGuo.Core
         OwnerDead,
         Stunned,
         NoTarget,
-        InvalidMove,
-        /// <summary>本回合移動次數已用完。</summary>
-        MoveUsed,
+        /// <summary>指定的目標 / 格子不在範圍內或不合法。</summary>
+        OutOfRange,
     }
 
     public enum EventType

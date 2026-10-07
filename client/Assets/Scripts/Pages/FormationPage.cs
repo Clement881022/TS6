@@ -8,7 +8,7 @@ using Position = SanGuo.Core.Position;
 namespace SanGuo.Client
 {
     /// <summary>
-    /// 戰前編隊：5x2 站位與上場武將（最多 4 人，只能帶已擁有的武將，戰鬥會套用他們的等級、突破與卡牌強化）。
+    /// 戰前編隊：3x2 站位（共用 5x5 戰場的我方下兩排中央）與上場武將（最多 4 人，只能帶已擁有的武將，戰鬥會套用他們的等級、突破與卡牌強化）。
     /// 教學關之後的主線關卡與資源副本才會來這裡；按「開戰」才向後端開始並扣體力。
     /// </summary>
     public sealed class FormationPage : PageBase
@@ -77,7 +77,7 @@ namespace SanGuo.Client
             strip.Add(UiKit.Text("敵方", "form-strip-label"));
             strip.Add(UiKit.Text(string.Join("　", foes), "txt-gold"));
             body.Add(strip);
-            var hint = UiKit.Hint(_message.Length > 0 ? _message : "點武將再點格子可移動 / 換位，最多上場 4 人；同路沒有對手時，攻擊會落在第 1 路", _message.Length > 0);
+            var hint = UiKit.Hint(_message.Length > 0 ? _message : "點武將再點格子可移動 / 換位，最多上場 4 人；戰場是敵我共用的 5x5，開戰後靠「移動」卡走位", _message.Length > 0);
             hint.AddToClassList("form-hint");
             body.Add(hint);
 
@@ -92,13 +92,15 @@ namespace SanGuo.Client
             board.Add(UiKit.Text("站位", "bpanel-title"));
             var laneHead = new VisualElement { style = { flexDirection = FlexDirection.Row } };
             laneHead.Add(FormLabel("", 80));
-            for (int lane = 0; lane < level.Lanes; lane++) laneHead.Add(FormLabel($"第 {lane + 1} 路", 150, 5));
+            string[] laneNames = { "左", "中", "右" };
+            for (int lane = BattleSetup.FormationMinLane; lane <= BattleSetup.FormationMaxLane; lane++)
+                laneHead.Add(FormLabel(laneNames[lane - BattleSetup.FormationMinLane], 150, 5));
             board.Add(laneHead);
-            for (int r = 0; r < level.Rows; r++)
+            for (int r = BattleSetup.FormationMinRow; r <= BattleSetup.FormationMaxRow; r++)
             {
                 var row = new VisualElement { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center } };
-                row.Add(FormLabel(r == 0 ? "前排" : "後排", 80));
-                for (int lane = 0; lane < level.Lanes; lane++)
+                row.Add(FormLabel(r == BattleSetup.FormationMinRow ? "前排" : "後排", 80));
+                for (int lane = BattleSetup.FormationMinLane; lane <= BattleSetup.FormationMaxLane; lane++)
                 {
                     int l = lane, rr = r;
                     string? id = HeroAtCell(lane, r);

@@ -58,8 +58,8 @@ namespace SanGuo.Core.Tests
             var zf = DemoContent.ZhangFei();
             var state = new HeroState { HeroId = "zhangfei", Level = 10 };
             var setup = new BattleSetup { NoRandomness = true };
-            setup.Heroes.Add(HeroGrowth.BuildSlot(zf, state, new Position(2, 0)));
-            setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), new Position(2, 0)));
+            setup.Heroes.Add(HeroGrowth.BuildSlot(zf, state, new Position(2, 3)));
+            setup.Enemies.Add(new EnemySlot(DemoContent.YellowTurbanSoldier(), new Position(2, 1)));
 
             var battle = new Battle(setup);
 

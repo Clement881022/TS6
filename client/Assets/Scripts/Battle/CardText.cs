@@ -36,6 +36,9 @@ namespace SanGuo.Client
             }
         }
 
+        /// <summary>屬性名稱（懸停面板用）。謀略 = 法系（法師 / 醫療 / 軍師）的治療、法傷與增減益強度。</summary>
+        public const string AtkName = "攻擊", IntName = "謀略", DefName = "防禦", MoveName = "移動力";
+
         public static string Keywords(CardKeywords kw)
         {
             var list = new List<string>();
@@ -50,12 +53,11 @@ namespace SanGuo.Client
             string who;
             switch (def.Target)
             {
-                case TargetRule.EnemyFront: who = "同路最前排敵人"; break;
-                case TargetRule.EnemyBack: who = "後排敵人（由上往下）"; break;
-                case TargetRule.EnemyLowestHp: who = "血量最低的敵人"; break;
-                case TargetRule.EnemyAny: who = "任意敵人"; break;
+                case TargetRule.Enemy: who = $"{def.Range} 格內的敵人（點選）"; break;
+                case TargetRule.EnemyLowestHp: who = $"{def.Range} 格內血量最低的敵人"; break;
+                case TargetRule.MoveDest: return "移動力內可到達的空格（點選）";
                 case TargetRule.Self: return "自己";
-                case TargetRule.AllyLowestHp: return "血量比例最低的隊友";
+                case TargetRule.AllyLowestHp: return $"{def.Range} 格內血量比例最低的隊友";
                 case TargetRule.AllAllies: return "全體隊友";
                 case TargetRule.AllEnemies: return "全體敵人";
                 default: who = ""; break;
@@ -63,8 +65,8 @@ namespace SanGuo.Client
             string shape;
             switch (def.Shape)
             {
-                case Shape.Row: shape = "（同排）"; break;
-                case Shape.Column: shape = "（同路）"; break;
+                case Shape.Row: shape = "（整排）"; break;
+                case Shape.Column: shape = "（整欄）"; break;
                 case Shape.Cross: shape = "（十字）"; break;
                 case Shape.All: shape = "（全體）"; break;
                 default: shape = ""; break;
@@ -92,6 +94,7 @@ namespace SanGuo.Client
                         break;
                     case EffectType.Draw: parts.Add($"抽 {e.Amount} 張"); break;
                     case EffectType.GainCost: parts.Add($"獲得 {e.Amount} 費"); break;
+                    case EffectType.Move: parts.Add("移動至多「移動力」格"); break;
                 }
             }
             return string.Join("\n", parts);

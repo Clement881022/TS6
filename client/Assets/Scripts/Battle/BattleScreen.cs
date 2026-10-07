@@ -54,9 +54,15 @@ namespace SanGuo.Client
         private List<FormationEntry>? _formation;
         private int _eventCursor;
         private bool _auto;
-        private HashSet<(Side, int, int)> _previewTargets = new HashSet<(Side, int, int)>();
-        /// <summary>已點下、正在等玩家點選敵人的指定目標牌（<see cref="TargetRule.EnemyAny"/>，例如破甲箭）。</summary>
+        /// <summary>地磚高亮：會被打到 / 治療的目標（黃）、卡牌射程（淺藍）、移動可到達格（綠）。</summary>
+        private readonly HashSet<Position> _previewTargets = new HashSet<Position>();
+        private readonly HashSet<Position> _previewRange = new HashSet<Position>();
+        private readonly HashSet<Position> _previewReach = new HashSet<Position>();
+        /// <summary>已點下、正在等玩家點選格子的牌：指定敵人（<see cref="TargetRule.Enemy"/>，範圍內有多個目標時）或移動卡的目的地。</summary>
         private CardInstance? _pendingCard;
+        /// <summary>滑鼠懸停的單位（顯示屬性與增減益面板）。</summary>
+        private Unit? _hoverUnit;
+        private VisualElement _unitInfo = null!;
 
         private VisualElement _content = null!;
         private VisualElement _field = null!;
@@ -122,6 +128,8 @@ namespace SanGuo.Client
             _field = new VisualElement();
             _field.AddToClassList("field");
             _field.RegisterCallback<ClickEvent>(OnFieldClicked);
+            _field.RegisterCallback<PointerMoveEvent>(OnFieldHover);
+            _field.RegisterCallback<PointerLeaveEvent>(_ => HideUnitInfo());
             _content.Add(_field);
 
             // 底部：左 = 費用與牌堆，中 = 手牌，右 = 結束回合。
@@ -162,6 +170,12 @@ namespace SanGuo.Client
             _tagLayer = new VisualElement { pickingMode = PickingMode.Ignore };
             _tagLayer.AddToClassList("tag-layer");
             _content.Add(_tagLayer);
+
+            // 單位懸停面板：跟著游標、不擋點擊。
+            _unitInfo = new VisualElement { pickingMode = PickingMode.Ignore };
+            _unitInfo.AddToClassList("unit-info");
+            _unitInfo.style.display = DisplayStyle.None;
+            _content.Add(_unitInfo);
         }
 
         private static Button MakeButton(string text, Action onClick, bool primary = false)
@@ -274,7 +288,9 @@ namespace SanGuo.Client
             _eventCursor = 0;
             _fx.Reset();
             _log.Clear();
-            _previewTargets.Clear();
+            ClearPreview();
+            _pendingCard = null;
+            HideUnitInfo();
             if (_overlay != null) { _overlay.RemoveFromHierarchy(); _overlay = null; }
             _stage.Bind(_battle, _root, _field);
             BuildTags();
@@ -285,7 +301,8 @@ namespace SanGuo.Client
                 {
                     "戰鬥是回合制出牌。點下方的手牌打出，每張牌要消耗費用，剩餘費用顯示在左下角。",
                     "費用用完（或不想出牌）就按「結束回合」，敵人才會行動；敵人頭上的圖示是牠下一步的行動預告。",
-                    "攻擊只打得到同一路的敵人。打倒全部敵人就獲勝，快試試看吧！",
+                    "戰場是敵我共用的 5x5 棋盤，每張牌都有攻擊範圍（格數）：近戰只打得到相鄰的敵人，弓手與法師射程較遠。",
+                    "牌堆裡每名武將都有一張 0 費的「移動」牌：點它再點綠色的格子，就能依移動力走位。牌抽完就沒有了，不會重洗。打倒全部敵人就獲勝！",
                 }, speaker: "巴豆妖", model: "badou");
         }
 
@@ -319,8 +336,8 @@ namespace SanGuo.Client
         {
             if (!_auto || _battle.Result != BattleResult.Ongoing || Blocked) return;
             if (_fx.PendingSeconds > 0.05f) return; // 等上一段演出播完
-            var card = _battle.Hand.FirstOrDefault(c => _battle.CanPlay(c) == PlayResult.Ok);
-            if (card != null) _recorder!.Play(card);
+            var (card, dest) = AutoPlayer.Pick(_battle);
+            if (card != null) _recorder!.Play(card, null, dest);
             else _recorder!.EndTurn();
             PumpEvents();
             Refresh();
@@ -334,25 +351,40 @@ namespace SanGuo.Client
             if (_pendingCard == card) { CancelTargeting(); return; } // 再點一次同一張 = 取消
             CancelTargeting();
 
-            // 指定目標的牌：先高亮所有敵人，等玩家點選；場上只剩一個敵人就不用選了。
-            if (card.Def.Target == TargetRule.EnemyAny && _battle.CanPlay(card) == PlayResult.Ok
-                && _battle.AliveUnits(Side.Enemy).Count > 1)
+            var check = _battle.CanPlay(card);
+            if (check != PlayResult.Ok) { Toast(Explain(check)); return; }
+
+            // 移動卡：先標出可到達的格子，等玩家點選目的地。
+            if (card.Def.Target == TargetRule.MoveDest)
             {
-                _pendingCard = card;
-                _previewTargets.Clear();
-                foreach (var u in _battle.AliveUnits(Side.Enemy)) _previewTargets.Add((u.Side, u.Pos.Lane, u.Pos.Row));
-                RefreshTiles();
+                BeginPending(card);
+                Toast("點選綠色格子移動（再點一次卡牌取消）");
+                return;
+            }
+            // 單體敵人目標：射程內有多個敵人才需要玩家點選，只有一個就直接打。
+            if (card.Def.Target == TargetRule.Enemy && EnemiesInRange(card).Count > 1)
+            {
+                BeginPending(card);
                 Toast("點選要攻擊的敵人（再點一次卡牌取消）");
                 return;
             }
-            PlayCardAt(card, null);
+            PlayCardAt(card, null, null);
         }
 
-        private void PlayCardAt(CardInstance card, Unit? target)
+        private List<Unit> EnemiesInRange(CardInstance card) =>
+            _battle.AliveUnits(Side.Enemy).Where(u => Position.Distance(card.Owner.Pos, u.Pos) <= card.Def.Range).ToList();
+
+        private void BeginPending(CardInstance card)
         {
-            var result = _recorder!.Play(card, target);
+            _pendingCard = card;
+            ShowCardRange(card);
+        }
+
+        private void PlayCardAt(CardInstance card, Unit? target, Position? dest)
+        {
+            var result = _recorder!.Play(card, target, dest);
             if (result != PlayResult.Ok) { Toast(Explain(result)); Refresh(); return; }
-            _previewTargets.Clear();
+            ClearPreview();
             PumpEvents();
             Refresh();
         }
@@ -361,37 +393,180 @@ namespace SanGuo.Client
         {
             if (_pendingCard == null) return;
             _pendingCard = null;
-            _previewTargets.Clear();
+            ClearPreview();
             RefreshTiles();
         }
 
-        /// <summary>等待指定目標時，點戰場上的敵方格就出牌；點別處取消。</summary>
+        /// <summary>等待指定目標 / 目的地時，點戰場上的格子就出牌；點到不合法的格子會提示，點場外取消。</summary>
         private void OnFieldClicked(ClickEvent evt)
         {
             var card = _pendingCard;
             if (card == null || _battle.Result != BattleResult.Ongoing || Blocked) return;
-            if (!_stage.TryPick(evt.position, out var side, out var pos) || side != Side.Enemy)
+            if (!_stage.TryPick(evt.position, out var pos))
             {
                 CancelTargeting();
                 return;
             }
+            if (card.Def.Target == TargetRule.MoveDest)
+            {
+                if (pos == card.Owner.Pos || !_battle.ReachableTiles(card.Owner).ContainsKey(pos)) { Toast("請點選綠色的可移動格"); return; }
+                _pendingCard = null;
+                PlayCardAt(card, null, pos);
+                return;
+            }
             var target = _battle.UnitAt(Side.Enemy, pos);
-            if (target == null || !target.Alive) { Toast("請點選敵人"); return; }
+            if (target == null || !target.Alive || Position.Distance(card.Owner.Pos, pos) > card.Def.Range)
+            {
+                Toast("請點選射程內的敵人");
+                return;
+            }
             _pendingCard = null;
-            PlayCardAt(card, target);
+            PlayCardAt(card, target, null);
         }
 
+        // ------------------------------------------------------------ 單位懸停面板
+
+        private void OnFieldHover(PointerMoveEvent evt)
+        {
+            var unit = PickUnit(evt.position);
+            if (unit == null) { HideUnitInfo(); return; }
+            if (_hoverUnit != unit)
+            {
+                _hoverUnit = unit;
+                RenderUnitInfo(unit);
+            }
+            // 面板跟著游標，靠近右 / 下緣時翻到另一側，避免被切掉。
+            var local = _content.WorldToLocal(evt.position);
+            float w = _content.layout.width, h = _content.layout.height;
+            const float panelW = 262f, panelH = 340f;
+            float left = local.x + 28f;
+            if (left + panelW > w - 8f) left = local.x - 28f - panelW;
+            float top = Mathf.Clamp(local.y - 40f, 8f, Mathf.Max(8f, h - panelH - 8f));
+            _unitInfo.style.left = Mathf.Max(8f, left);
+            _unitInfo.style.top = top;
+            _unitInfo.style.display = DisplayStyle.Flex;
+        }
+
+        private void HideUnitInfo()
+        {
+            _hoverUnit = null;
+            _unitInfo.style.display = DisplayStyle.None;
+        }
+
+        /// <summary>游標下的單位：先看角色身體（頭頂到腳下的範圍），沒有再用射線打到的地磚找格上的單位。</summary>
+        private Unit? PickUnit(Vector2 panelPoint)
+        {
+            Unit? best = null;
+            float bestDx = float.MaxValue;
+            foreach (var unit in _battle.Units)
+            {
+                if (!unit.Alive) continue;
+                var foot = _stage.UnitFootPanel(unit);
+                var head = _stage.UnitHeadPanel(unit);
+                if (foot == null || head == null) continue;
+                float dx = Mathf.Abs(panelPoint.x - foot.Value.x);
+                if (dx > 46f || panelPoint.y < head.Value.y - 6f || panelPoint.y > foot.Value.y + 14f) continue;
+                if (dx < bestDx) { bestDx = dx; best = unit; }
+            }
+            if (best != null) return best;
+            return _stage.TryPick(panelPoint, out var pos) ? _battle.UnitAt(pos) : null;
+        }
+
+        private void RenderUnitInfo(Unit unit)
+        {
+            _unitInfo.Clear();
+            _unitInfo.EnableInClassList("unit-info-hero", unit.Side == Side.Player);
+            _unitInfo.EnableInClassList("unit-info-enemy", unit.Side == Side.Enemy);
+
+            string roleIcon = unit.Hero != null ? UiIcons.RoleIcon(unit.Hero.Role) : unit.AttackType == AttackType.Ranged ? "role_archer" : "role_warrior";
+            string roleName = unit.Hero != null ? CardText.RoleName(unit.Hero.Role) : unit.Side == Side.Enemy ? "敵軍" : "";
+            var title = new VisualElement { pickingMode = PickingMode.Ignore };
+            title.AddToClassList("ui-title");
+            title.Add(UiIcons.Icon(roleIcon, "icon-sm"));
+            title.Add(new Label(unit.Protected ? $"{unit.Name}（保護目標）" : unit.Name) { pickingMode = PickingMode.Ignore }.WithClass("ui-name"));
+            title.Add(new Label(roleName) { pickingMode = PickingMode.Ignore }.WithClass("ui-role"));
+            _unitInfo.Add(title);
+
+            string hp = $"生命 {unit.Hp}/{unit.MaxHp}" + (unit.Armor > 0 ? $"　護甲 {unit.Armor}" : "");
+            _unitInfo.Add(new Label(hp) { pickingMode = PickingMode.Ignore }.WithClass("ui-hp"));
+
+            var grid = new VisualElement { pickingMode = PickingMode.Ignore };
+            grid.AddToClassList("ui-grid");
+            var st = unit.Stats;
+            // 法系（法師 / 醫療 / 軍師）的治療、法傷與增減益強度吃謀略，其餘吃攻擊：把主屬性排在前面。
+            var atk = (CardText.AtkName, st.Atk, unit.EffectiveAtk);
+            var intl = (CardText.IntName, st.Int, unit.EffectiveInt);
+            var first = unit.IsCaster ? intl : atk;
+            var second = unit.IsCaster ? atk : intl;
+            AddStat(grid, first.Item1 + "★", first.Item2, first.Item3);
+            AddStat(grid, second.Item1, second.Item2, second.Item3);
+            AddStat(grid, CardText.DefName, st.Def, (int)Math.Round(unit.EffectiveDef));
+            AddStat(grid, CardText.MoveName, st.Move, st.Move);
+            AddStat(grid, "射程", unit.AttackRange, unit.AttackRange);
+            AddStat(grid, "閃避", st.Dodge, st.Dodge, "%");
+            AddStat(grid, "暴擊", st.Crit, unit.EffectiveCrit, "%");
+            AddStat(grid, "暴傷", st.CritDmg, st.CritDmg, "%");
+            _unitInfo.Add(grid);
+
+            _unitInfo.Add(new Label("增減益") { pickingMode = PickingMode.Ignore }.WithClass("ui-sec"));
+            int before = _unitInfo.childCount;
+            foreach (var kv in unit.Statuses) AddStatusRow(UiIcons.Status(kv.Key), StatusLine(kv.Key, kv.Value));
+            foreach (var br in unit.DefBreaks) AddStatusRow("status_armorbreak", $"破甲　防禦 -{br.Percent * 100:0}%・剩 {br.Turns} 回合");
+            if (unit.Side == Side.Enemy && unit.Ability.HasFlag(EnemyAbility.Charger))
+            {
+                AddStatusRow("status_stun", $"昏亂條 {unit.StunGauge}/{unit.StunGaugeMax}");
+                if (unit.Charging) AddStatusRow("charge", "蓄力中：下回合放大招");
+            }
+            if (_unitInfo.childCount == before)
+                _unitInfo.Add(new Label("目前沒有增減益") { pickingMode = PickingMode.Ignore }.WithClass("ui-none"));
+        }
+
+        private static void AddStat(VisualElement grid, string name, int baseValue, int effective, string suffix = "")
+        {
+            var row = new VisualElement { pickingMode = PickingMode.Ignore };
+            row.AddToClassList("ui-stat");
+            row.Add(new Label(name) { pickingMode = PickingMode.Ignore }.WithClass("ui-stat-name"));
+            var val = new Label(effective == baseValue ? $"{effective}{suffix}" : $"{effective}{suffix}（{baseValue}）") { pickingMode = PickingMode.Ignore };
+            val.AddToClassList("ui-stat-val");
+            if (effective > baseValue) val.AddToClassList("ui-up");
+            else if (effective < baseValue) val.AddToClassList("ui-down");
+            grid.Add(row);
+            row.Add(val);
+        }
+
+        private void AddStatusRow(string icon, string text)
+        {
+            var row = new VisualElement { pickingMode = PickingMode.Ignore };
+            row.AddToClassList("ui-status");
+            row.Add(UiIcons.Icon(icon, "icon-sm"));
+            row.Add(new Label(text) { pickingMode = PickingMode.Ignore }.WithClass("ui-status-text"));
+            _unitInfo.Add(row);
+        }
+
+        private static string StatusLine(StatusType type, StatusState state)
+        {
+            string name = CardText.StatusName(type);
+            switch (type)
+            {
+                case StatusType.Burn:
+                case StatusType.Poison: return $"{name}　每回合 {state.Power} 傷害・剩 {state.Turns} 回合";
+                case StatusType.AtkUp: return $"{name}　攻擊 / 謀略 +{state.Power}%・剩 {state.Turns} 回合";
+                case StatusType.DefUp: return $"{name}　防禦 +{state.Power}%・剩 {state.Turns} 回合";
+                case StatusType.CritUp: return $"{name}　暴擊 +{state.Power}%・剩 {state.Turns} 回合";
+                case StatusType.Taunt: return $"{name}　吸引敵人攻擊、受傷 -{DamageCalc.TauntDamageReduction * 100:0}%・剩 {state.Turns} 回合";
+                default: return $"{name}・剩 {state.Turns} 回合";
+            }
+        }
 
         private static string Explain(PlayResult result)
         {
             switch (result)
             {
                 case PlayResult.NotEnoughCost: return "費用不足";
-                case PlayResult.NoTarget: return "同路沒有目標，無法打出";
+                case PlayResult.NoTarget: return "射程內沒有目標，無法打出（先用「移動」卡走位）";
+                case PlayResult.OutOfRange: return "超出射程或無法到達那裡";
                 case PlayResult.OwnerDead: return "該武將已陣亡";
                 case PlayResult.Stunned: return "該武將昏亂，無法行動";
-                case PlayResult.InvalidMove: return "無法移動到那裡";
-                case PlayResult.MoveUsed: return "本回合已經移動過了";
                 case PlayResult.BattleOver: return "戰鬥已結束";
                 default: return result.ToString();
             }
@@ -399,13 +574,46 @@ namespace SanGuo.Client
 
         private void Preview(CardInstance? card)
         {
-            if (_pendingCard != null) return; // 等待選目標時保持敵人高亮
+            if (_pendingCard != null) return; // 等待選目標時保持高亮
+            ClearPreview();
+            if (card != null && _battle.CanPlay(card) != PlayResult.NotInHand) ShowCardRange(card);
+            RefreshTiles();
+        }
+
+        private void ClearPreview()
+        {
             _previewTargets.Clear();
-            if (card != null && _battle.CanPlay(card) != PlayResult.NotInHand)
+            _previewRange.Clear();
+            _previewReach.Clear();
+        }
+
+        /// <summary>標出這張牌的射程（淺藍）、會被選中的目標（黃）或移動可到達的格子（綠）。</summary>
+        private void ShowCardRange(CardInstance card)
+        {
+            ClearPreview();
+            var def = card.Def;
+            if (def.Target == TargetRule.MoveDest)
             {
-                var targets = _battle.ResolveTargets(card.Owner, card.Def);
+                foreach (var kv in _battle.ReachableTiles(card.Owner))
+                    if (kv.Value > 0) _previewReach.Add(kv.Key);
+            }
+            else
+            {
+                if (def.Target == TargetRule.Enemy || def.Target == TargetRule.EnemyLowestHp || def.Target == TargetRule.AllyLowestHp)
+                {
+                    for (int lane = 0; lane < _battle.Setup.Lanes; lane++)
+                        for (int row = 0; row < _battle.Setup.Rows; row++)
+                        {
+                            var p = new Position(lane, row);
+                            if (p != card.Owner.Pos && Position.Distance(card.Owner.Pos, p) <= def.Range) _previewRange.Add(p);
+                        }
+                }
+                var targets = _battle.ResolveTargets(card.Owner, def);
                 if (targets != null)
-                    foreach (var u in targets) _previewTargets.Add((u.Side, u.Pos.Lane, u.Pos.Row));
+                    foreach (var u in targets) _previewTargets.Add(u.Pos);
+                // 單體敵人牌在等玩家點選時，所有射程內的敵人都是可選目標。
+                if (def.Target == TargetRule.Enemy && _pendingCard == card)
+                    foreach (var u in EnemiesInRange(card)) _previewTargets.Add(u.Pos);
             }
             RefreshTiles();
         }
@@ -428,15 +636,21 @@ namespace SanGuo.Client
             RefreshHand();
             RefreshHud();
             RefreshOverlay();
+            if (_hoverUnit != null)
+            {
+                if (_hoverUnit.Alive) RenderUnitInfo(_hoverUnit);
+                else HideUnitInfo();
+            }
         }
 
-        /// <summary>地磚顏色：技能目標預覽（黃）、移動可選武將 / 可到達格（綠）、已選武將（白）。</summary>
+        /// <summary>地磚顏色：射程（淺藍）、技能目標（黃）、移動可到達格（綠）、等待出牌的武將（白）。</summary>
         private void RefreshTiles()
         {
-            var states = new List<(Side, Position, TileState)>();
-            foreach (var key in _previewTargets)
-                states.Add((key.Item1, new Position(key.Item2, key.Item3), TileState.Target));
-
+            var states = new List<(Position, TileState)>();
+            foreach (var p in _previewRange) states.Add((p, TileState.Range));
+            foreach (var p in _previewReach) states.Add((p, TileState.Reach));
+            foreach (var p in _previewTargets) states.Add((p, TileState.Target));
+            if (_pendingCard != null) states.Add((_pendingCard.Owner.Pos, TileState.Owner));
             _stage.SetTileStates(states);
         }
 
@@ -495,10 +709,13 @@ namespace SanGuo.Client
             var intent = _battle.GetIntent(enemy);
             switch (intent.Type)
             {
-                case Intent.Kind.Attack: host.Add(UiIcons.Chip(intent.Big ? "charge" : "damage", intent.Target!.Name)); break;
+                case Intent.Kind.Attack:
+                    if (intent.MoveTo != null) host.Add(UiIcons.Chip("draw", "→"));
+                    host.Add(UiIcons.Chip(intent.Big ? "charge" : "damage", intent.Target!.Name));
+                    break;
                 case Intent.Kind.Charge: host.Add(UiIcons.Chip("charge")); break;
                 case Intent.Kind.Heal: host.Add(UiIcons.Chip("heal", intent.Target!.Name)); break;
-                case Intent.Kind.Move: host.Add(UiIcons.Chip("draw", (intent.MoveTo!.Value.Lane + 1).ToString())); break;
+                case Intent.Kind.Move: host.Add(UiIcons.Chip("draw", "逼近")); break;
                 case Intent.Kind.Stunned: host.Add(UiIcons.Chip("status_stun")); break;
             }
         }
@@ -518,6 +735,7 @@ namespace SanGuo.Client
                         break;
                     case EffectType.Draw: host.Add(UiIcons.Chip("draw", e.Amount.ToString())); break;
                     case EffectType.GainCost: host.Add(UiIcons.Chip("cost", "+" + e.Amount)); break;
+                    case EffectType.Move: host.Add(UiIcons.Chip("draw", "走位")); break;
                 }
             }
         }
@@ -554,7 +772,7 @@ namespace SanGuo.Client
 
                 var name = new Label(card.Def.Name) { pickingMode = PickingMode.Ignore };
                 name.AddToClassList("card-name");
-                var target = RangeIcon.Build(card.Def);
+                var target = RangeIcon.Build(card.Def, card.Owner.Stats.Move);
                 var desc = new VisualElement { pickingMode = PickingMode.Ignore };
                 desc.AddToClassList("card-desc");
                 FillCardEffects(desc, card.Def);
@@ -593,20 +811,20 @@ namespace SanGuo.Client
             _cost.Add(orb);
             _cost.Add(new Label($"費用上限 {_battle.Setup.CostCap}") { pickingMode = PickingMode.Ignore }.WithClass("cost-caption"));
             _piles.Clear();
-            _piles.Add(PileRow("draw", "抽牌堆", _battle.DrawPile.Count));
-            _piles.Add(PileRow("kw_retain", "棄牌堆", _battle.DiscardPile.Count));
-            _piles.Add(PileRow("kw_exhaust", "消耗", _battle.ExhaustPile.Count));
+            _piles.Add(PileRow("draw", "抽牌堆（不重洗）", _battle.DrawPile.Count.ToString()));
+            _piles.Add(PileRow("kw_retain", "手牌", $"{_battle.Hand.Count}/{Battle.MaxHandSize}"));
+            _piles.Add(PileRow("kw_exhaust", "已用 / 消耗", $"{_battle.DiscardPile.Count + _battle.ExhaustPile.Count}"));
             _logLabel.text = string.Join("\n", _log.Skip(Math.Max(0, _log.Count - 4)));
             _logBox.style.display = _log.Count == 0 ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
-        private static VisualElement PileRow(string icon, string label, int count)
+        private static VisualElement PileRow(string icon, string label, string count)
         {
             var row = new VisualElement { pickingMode = PickingMode.Ignore };
             row.AddToClassList("pile-row");
             row.Add(UiIcons.Icon(icon, "icon-sm"));
             row.Add(new Label(label) { pickingMode = PickingMode.Ignore }.WithClass("pile-name"));
-            row.Add(new Label(count.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("pile-count"));
+            row.Add(new Label(count) { pickingMode = PickingMode.Ignore }.WithClass("pile-count"));
             return row;
         }
 

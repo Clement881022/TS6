@@ -65,6 +65,7 @@ namespace SanGuo.Core.Meta
             s.Hp = (int)Math.Round(s.Hp * m * (1 + hp / 100.0));
             s.Atk = (int)Math.Round(s.Atk * m * (1 + atk / 100.0));
             s.Def = (int)Math.Round(s.Def * m * (1 + def / 100.0));
+            s.Int = (int)Math.Round(s.Int * m * (1 + atk / 100.0));
             return s;
         }
 
@@ -119,6 +120,7 @@ namespace SanGuo.Core.Meta
                 Cost = card.Cost,
                 Keywords = card.Keywords,
                 Target = card.Target,
+                Range = card.Range,
                 Shape = card.Shape,
                 Effects = effects,
             };

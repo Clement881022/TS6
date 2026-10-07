@@ -71,6 +71,25 @@ namespace SanGuo.Core
         /// <summary>有效攻擊力：基礎攻擊 × 攻擊增益。傷害 / 治療 / 護甲 / 狀態威力都以它計算。</summary>
         public int EffectiveAtk => (int)System.Math.Round(Stats.Atk * (1.0 + BuffPercent(StatusType.AtkUp) / 100.0), System.MidpointRounding.AwayFromZero);
 
+        /// <summary>法系（法師 / 醫療 / 軍師，以及會治療的敵人）：傷害、治療、護甲、增減益強度吃謀略而非攻擊力。</summary>
+        public bool IsCaster => Hero != null
+            ? (Hero.Role == Role.Mage || Hero.Role == Role.Healer || Hero.Role == Role.Strategist)
+            : Ability.HasFlag(EnemyAbility.Healer);
+
+        /// <summary>有效謀略：基礎謀略 × 攻擊增益（鼓舞同時提升法系的威力）。</summary>
+        public int EffectiveInt => (int)System.Math.Round(Stats.Int * (1.0 + BuffPercent(StatusType.AtkUp) / 100.0), System.MidpointRounding.AwayFromZero);
+
+        /// <summary>施放威力：法系吃有效謀略，其餘吃有效攻擊。治療 / 護甲 / 狀態威力都以它計算。</summary>
+        public int EffectivePower => IsCaster ? EffectiveInt : EffectiveAtk;
+
+        /// <summary>增減益強度倍率：法系 = 謀略 / <see cref="DamageCalc.CasterReference"/>，其餘 1。</summary>
+        public double StatusPotency => IsCaster ? Stats.Int / (double)DamageCalc.CasterReference : 1.0;
+
+        /// <summary>普通攻擊 / 敵人的攻擊距離：近戰 1 格、遠程 3 格。</summary>
+        public int AttackRange => AttackType == AttackType.Melee ? MeleeRange : RangedRange;
+        public const int MeleeRange = 1;
+        public const int RangedRange = 3;
+
         /// <summary>有效爆擊率（百分比）：基礎爆擊 + 爆擊增益。</summary>
         public int EffectiveCrit => Stats.Crit + BuffPercent(StatusType.CritUp);
 

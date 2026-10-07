@@ -226,22 +226,51 @@
 .card-art { height: 108px; }
 .card-name { font-size: 27px; }
 
-/* ---- 範圍圖示（5 路 × 2 排的小棋盤）---- */
+/* ---- 範圍圖示（5x5 小棋盤，中央是施放者；右側文字標射程）---- */
 .range-icon {
     align-self: flex-start;
-    margin: 4px 8px 0 8px;
-    padding: 4px;
+    margin: 4px 4px 0 4px;
+    padding: 3px;
     border-radius: 6px;
     background-color: rgba(30, 40, 70, 0.14);
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
 }
+.range-grid { flex-direction: column; }
 .range-row { flex-direction: row; }
-.range-cell { width: 20px; height: 13px; margin: 1px; border-radius: 3px; background-color: rgba(40, 50, 80, 0.16); }
+.range-cell { width: 11px; height: 9px; margin: 1px; border-radius: 2px; background-color: rgba(40, 50, 80, 0.16); }
 .range-enemy .range-cell-on { background-color: rgb(214, 70, 60); }
 .range-ally .range-cell-on { background-color: rgb(60, 130, 224); }
+.range-move .range-cell-on { background-color: rgb(60, 180, 100); }
 .range-cell-self { background-color: rgb(255, 196, 60); }
-.range-any .range-cell-on { background-color: rgba(214, 70, 60, 0.55); border-width: 1px; border-color: rgb(214, 70, 60); }
+.range-text { font-size: 17px; margin-left: 6px; color: rgb(60, 50, 40); white-space: nowrap; }
 .range-hp { position: absolute; right: -24px; top: 6px; width: 20px; height: 20px; }
+
+/* ---- 單位懸停資訊面板（屬性與增減益）---- */
+.unit-info {
+    position: absolute;
+    width: 262px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border-width: 2px;
+    background-color: rgba(14, 16, 24, 0.92);
+}
+.unit-info-hero { border-color: rgba(80, 130, 190, 0.95); }
+.unit-info-enemy { border-color: rgba(190, 80, 80, 0.95); }
+.ui-title { flex-direction: row; align-items: center; margin-bottom: 4px; }
+.ui-name { font-size: 24px; -unity-font-style: bold; color: rgb(246, 238, 214); margin-left: 6px; flex-grow: 1; }
+.ui-role { font-size: 17px; color: rgb(170, 176, 196); }
+.ui-hp { font-size: 19px; color: rgb(200, 240, 200); margin-bottom: 4px; }
+.ui-grid { flex-direction: row; flex-wrap: wrap; }
+.ui-stat { width: 50%; flex-direction: row; justify-content: space-between; padding-right: 10px; }
+.ui-stat-name { font-size: 18px; color: rgb(160, 166, 186); }
+.ui-stat-val { font-size: 18px; color: rgb(236, 238, 246); -unity-font-style: bold; }
+.ui-up { color: rgb(110, 224, 130); }
+.ui-down { color: rgb(240, 110, 100); }
+.ui-sec { font-size: 17px; color: rgb(214, 190, 120); margin-top: 6px; margin-bottom: 2px; -unity-font-style: bold; }
+.ui-status { flex-direction: row; align-items: center; margin-top: 2px; }
+.ui-status-text { font-size: 17px; color: rgb(230, 232, 242); margin-left: 4px; white-space: normal; flex-shrink: 1; }
+.ui-none { font-size: 17px; color: rgb(130, 136, 154); }
 
 /* 我方標籤精簡：小頭像 + 血條 + 狀態，不顯示名字（避免蓋住後排角色） */
 .tag-hero { padding: 3px 6px 3px 3px; }

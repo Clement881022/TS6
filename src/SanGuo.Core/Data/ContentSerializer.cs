@@ -24,7 +24,7 @@ namespace SanGuo.Core.Data
         public static Dictionary<string, object?> StatsToObject(Stats s) => new Dictionary<string, object?>
         {
             ["hp"] = (long)s.Hp, ["atk"] = (long)s.Atk, ["def"] = (long)s.Def, ["dodge"] = (long)s.Dodge,
-            ["speed"] = (long)s.Speed, ["crit"] = (long)s.Crit, ["critDmg"] = (long)s.CritDmg,
+            ["move"] = (long)s.Move, ["int"] = (long)s.Int, ["crit"] = (long)s.Crit, ["critDmg"] = (long)s.CritDmg,
         };
 
         public static Dictionary<string, object?> CardToObject(CardDef c)
@@ -45,7 +45,7 @@ namespace SanGuo.Core.Data
             {
                 ["id"] = c.Id, ["name"] = c.Name, ["basic"] = c.Basic, ["cost"] = (long)c.Cost,
                 ["keywords"] = c.Keywords.ToString(),
-                ["target"] = c.Target.ToString(), ["shape"] = c.Shape.ToString(),
+                ["target"] = c.Target.ToString(), ["range"] = (long)c.Range, ["shape"] = c.Shape.ToString(),
                 ["effects"] = effects,
             };
         }
@@ -94,7 +94,7 @@ namespace SanGuo.Core.Data
             {
                 ["lanes"] = (long)s.Lanes, ["rows"] = (long)s.Rows, ["seed"] = (long)s.Seed,
                 ["handSize"] = (long)s.HandSize, ["costPerTurn"] = (long)s.CostPerTurn, ["costCap"] = (long)s.CostCap,
-                ["moveCost"] = (long)s.MoveCost, ["movesPerTurn"] = (long)s.MovesPerTurn,
+                ["drawPerTurn"] = (long)s.DrawPerTurn,
                 ["turnLimit"] = (long)s.TurnLimit, ["autoAllowed"] = s.AutoAllowed,
                 ["formationLocked"] = s.FormationLocked, ["scriptedDraw"] = draw, ["noRandomness"] = s.NoRandomness,
                 ["heroes"] = heroes, ["enemies"] = enemies,
@@ -117,7 +117,7 @@ namespace SanGuo.Core.Data
         {
             var s = new Stats();
             s.Hp = I(d, "hp", s.Hp); s.Atk = I(d, "atk", s.Atk); s.Def = I(d, "def", s.Def);
-            s.Dodge = I(d, "dodge", s.Dodge); s.Speed = I(d, "speed", s.Speed);
+            s.Dodge = I(d, "dodge", s.Dodge); s.Move = I(d, "move", s.Move); s.Int = I(d, "int", s.Int);
             s.Crit = I(d, "crit", s.Crit); s.CritDmg = I(d, "critDmg", s.CritDmg);
             return s;
         }
@@ -127,7 +127,7 @@ namespace SanGuo.Core.Data
             var c = new CardDef
             {
                 Id = S(d, "id", ""), Name = S(d, "name", ""), Basic = B(d, "basic", false), Cost = I(d, "cost", 0),
-                Keywords = E(d, "keywords", CardKeywords.None), Target = E(d, "target", TargetRule.EnemyFront),
+                Keywords = E(d, "keywords", CardKeywords.None), Target = E(d, "target", TargetRule.Enemy), Range = I(d, "range", 1),
                 Shape = E(d, "shape", Shape.Single),
             };
             foreach (var eo in List(d, "effects"))
@@ -179,9 +179,9 @@ namespace SanGuo.Core.Data
         {
             var s = new BattleSetup
             {
-                Lanes = I(d, "lanes", 5), Rows = I(d, "rows", 2), Seed = (ulong)L(d, "seed", 1),
+                Lanes = I(d, "lanes", 5), Rows = I(d, "rows", 5), Seed = (ulong)L(d, "seed", 1),
                 HandSize = I(d, "handSize", 5), CostPerTurn = I(d, "costPerTurn", 3), CostCap = I(d, "costCap", 10),
-                MoveCost = I(d, "moveCost", 1), MovesPerTurn = I(d, "movesPerTurn", 0),
+                DrawPerTurn = I(d, "drawPerTurn", 3),
                 TurnLimit = I(d, "turnLimit", 0), AutoAllowed = B(d, "autoAllowed", true),
                 FormationLocked = B(d, "formationLocked", false), NoRandomness = B(d, "noRandomness", false),
             };

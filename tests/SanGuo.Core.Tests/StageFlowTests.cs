@@ -29,8 +29,8 @@ namespace SanGuo.Core.Tests
             foreach (var id in ids) p.Heroes[id] = new HeroState { HeroId = id };
             return new List<FormationEntry>
             {
-                new FormationEntry("zhangfei", 0, 0), new FormationEntry("guanyu", 1, 0),
-                new FormationEntry("huangzhong", 1, 1), new FormationEntry("liubei", 2, 1),
+                new FormationEntry("zhangfei", 1, 3), new FormationEntry("guanyu", 2, 3),
+                new FormationEntry("huangzhong", 2, 4), new FormationEntry("liubei", 3, 4),
             };
         }
 
@@ -128,11 +128,13 @@ namespace SanGuo.Core.Tests
             {
                 null,
                 new List<FormationEntry>(),
-                new List<FormationEntry> { new FormationEntry("zhugeliang", 0, 0) },                    // 沒有這名武將
-                new List<FormationEntry> { team[0], new FormationEntry("guanyu", 0, 0) },                // 站位重疊
-                new List<FormationEntry> { team[0], new FormationEntry("zhangfei", 3, 0) },              // 同一武將上兩次
-                new List<FormationEntry> { new FormationEntry("zhangfei", 9, 0) },                      // 站位在場外
-                team.Concat(new[] { new FormationEntry("zhaoyun", 3, 1) }).ToList(),                    // 超過 4 人（且沒有趙雲）
+                new List<FormationEntry> { new FormationEntry("zhugeliang", 1, 3) },                    // 沒有這名武將
+                new List<FormationEntry> { team[0], new FormationEntry("guanyu", 1, 3) },                // 站位重疊
+                new List<FormationEntry> { team[0], new FormationEntry("zhangfei", 3, 3) },              // 同一武將上兩次
+                new List<FormationEntry> { new FormationEntry("zhangfei", 9, 3) },                      // 站位在場外
+                new List<FormationEntry> { new FormationEntry("zhangfei", 0, 3) },                      // 在棋盤內但不在 3x2 列陣區
+                new List<FormationEntry> { new FormationEntry("zhangfei", 2, 2) },                      // 敵我之間的中線列
+                team.Concat(new[] { new FormationEntry("zhaoyun", 3, 3) }).ToList(),                    // 超過 4 人（且沒有趙雲）
             };
             foreach (var bad in cases)
             {

@@ -140,7 +140,7 @@ public sealed class ServerApiTests : IDisposable
     {
         await c.PostAsJsonAsync("/gacha/pull", new { poolId = "newbie", count = 10 });
         var profile = SanGuo.Core.Data.ProfileSerializer.FromJson((await Json(await c.GetAsync("/profile"))).GetProperty("data").GetRawText());
-        var cells = new[] { (0, 0), (1, 0), (2, 0), (1, 1) };
+        var cells = new[] { (1, 3), (2, 3), (3, 3), (2, 4) };
         return profile.Heroes.Keys.Take(cells.Length)
             .Select((id, i) => new SanGuo.Core.Meta.FormationEntry(id, cells[i].Item1, cells[i].Item2)).ToList();
     }
@@ -158,8 +158,8 @@ public sealed class ServerApiTests : IDisposable
         for (int i = 0; i < 100 && rec.Battle.Result == SanGuo.Core.BattleResult.Ongoing; i++) rec.PlayAuto();
         return rec.Actions.Select(a => (object)new
         {
-            kind = a.Kind == SanGuo.Core.Data.ReplayActionKind.Play ? "play" : a.Kind == SanGuo.Core.Data.ReplayActionKind.Move ? "move" : "end",
-            cardId = a.CardId, unitId = a.UnitId, lane = a.Lane, row = a.Row,
+            kind = a.Kind == SanGuo.Core.Data.ReplayActionKind.Play ? "play" : "end",
+            cardId = a.CardId, targetId = a.TargetId, lane = a.Lane, row = a.Row,
         }).ToList();
     }
 

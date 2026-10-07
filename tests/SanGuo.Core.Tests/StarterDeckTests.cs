@@ -61,14 +61,14 @@ namespace SanGuo.Core.Tests
         private static Battle Fight(HeroDef hero, params EnemySlot[] enemies)
         {
             var setup = new BattleSetup { NoRandomness = true };
-            setup.Heroes.Add(new HeroSlot(hero, new Position(2, 0)));
+            setup.Heroes.Add(new HeroSlot(hero, new Position(2, 3)));
             setup.Enemies.AddRange(enemies);
             return new Battle(setup);
         }
 
-        private static HeroDef Hero(Role role, Rarity rarity = Rarity.UR, int atk = 100, int def = 0) => new HeroDef
+        private static HeroDef Hero(Role role, Rarity rarity = Rarity.UR, int atk = 100, int def = 0, int? intel = null) => new HeroDef
         {
-            Id = "t", Name = "t", Role = role, Rarity = rarity, Base = new Stats { Hp = 5000, Atk = atk, Def = def, Crit = 0 },
+            Id = "t", Name = "t", Role = role, Rarity = rarity, Base = new Stats { Hp = 5000, Atk = atk, Int = intel ?? atk, Def = def, Crit = 0 },
             Deck = DemoContent.BuildDeck("t", role, rarity),
         };
 
@@ -85,9 +85,9 @@ namespace SanGuo.Core.Tests
         private static Unit Enemy(Battle b, string name) => b.Units.First(u => u.Side == Side.Enemy && u.Name == name);
 
         [Fact]
-        public void Sweep_HitsTheFrontRow_AndCleave_HitsTheLane()
+        public void Sweep_HitsTheTargetsRow_AndCleave_HitsItsColumn()
         {
-            var b = Fight(Hero(Role.Warrior), Foe("a", 1, 0), Foe("b", 2, 0), Foe("c", 3, 0), Foe("back", 2, 1));
+            var b = Fight(Hero(Role.Warrior), Foe("a", 1, 2), Foe("b", 2, 2), Foe("c", 3, 2), Foe("back", 2, 1));
             var sweep = Card(b, "旋風斬");
             var cleave = Card(b, "豎劈斬");
 
@@ -98,9 +98,9 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void Snipe_TargetsTheLowestHpEnemy_WhereverItStands()
+        public void Snipe_TargetsTheLowestHpEnemy_WithinRange()
         {
-            var b = Fight(Hero(Role.Archer), Foe("tank", 2, 0, hp: 900), Foe("weak", 4, 1, hp: 200), Foe("mid", 0, 0, hp: 500));
+            var b = Fight(Hero(Role.Archer), Foe("tank", 2, 1, hp: 900), Foe("weak", 4, 1, hp: 200), Foe("mid", 0, 1, hp: 500));
             var snipe = Card(b, "狙擊");
 
             var targets = b.ResolveTargets(snipe.Owner, snipe.Def)!;
@@ -111,13 +111,13 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void PierceArrow_UsesTheChosenEnemy_AndFallsBackToBackRow()
+        public void PierceArrow_UsesTheChosenEnemy_AndDefaultsToTheNearest()
         {
-            var b = Fight(Hero(Role.Archer), Foe("front", 2, 0), Foe("back", 4, 1));
+            var b = Fight(Hero(Role.Archer), Foe("front", 2, 1), Foe("back", 3, 3));
             var pierce = Card(b, "破甲箭");
             ToHand(b, pierce);
 
-            Assert.Equal("back", b.ResolveTargets(pierce.Owner, pierce.Def)!.Single().Name); // 沒指定 → 後排優先
+            Assert.Equal("back", b.ResolveTargets(pierce.Owner, pierce.Def)!.Single().Name); // 沒指定 → 最近者
             Assert.Equal("front", b.ResolveTargets(pierce.Owner, pierce.Def, Enemy(b, "front"))!.Single().Name);
 
             Assert.Equal(PlayResult.Ok, b.PlayCard(pierce, Enemy(b, "front")));
@@ -129,7 +129,7 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void DefenseStance_RaisesOwnDefense_ForTwoTurns()
         {
-            var b = Fight(Hero(Role.Tank, def: 100), Foe("e", 2, 0, atk: 100));
+            var b = Fight(Hero(Role.Tank, def: 100), Foe("e", 2, 2, atk: 100));
             var stance = Card(b, "防禦姿態");
             var tank = stance.Owner;
             Assert.Equal(100, tank.EffectiveDef);
@@ -148,7 +148,7 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void Taunt_AddsSmallerDefenseThanStance_AndTheLargerBuffWins()
         {
-            var b = Fight(Hero(Role.Tank, def: 100), Foe("e", 2, 0));
+            var b = Fight(Hero(Role.Tank, def: 100), Foe("e", 2, 2));
             var taunt = Card(b, "嘲諷");
             var stance = Card(b, "防禦姿態");
             var tank = taunt.Owner;
@@ -166,12 +166,12 @@ namespace SanGuo.Core.Tests
         public void StrategistBuffs_ApplyToTheWholeTeam_AndRaiseDamageAndCrit()
         {
             var setup = new BattleSetup { NoRandomness = false };
-            var strategist = Hero(Role.Strategist);
-            setup.Heroes.Add(new HeroSlot(strategist, new Position(0, 0)));
-            setup.Heroes.Add(new HeroSlot(Hero(Role.Warrior, atk: 200), new Position(2, 0)));
-            setup.Enemies.Add(Foe("e", 2, 0, hp: 100000));
+            var strategist = Hero(Role.Strategist, intel: DamageCalc.CasterReference);
+            setup.Heroes.Add(new HeroSlot(strategist, new Position(1, 3)));
+            setup.Heroes.Add(new HeroSlot(Hero(Role.Warrior, atk: 200), new Position(3, 3)));
+            setup.Enemies.Add(Foe("e", 2, 1, hp: 100000));
             var b = new Battle(setup);
-            var warrior = b.AliveUnits(Side.Player).First(u => u.Pos.Lane == 2);
+            var warrior = b.AliveUnits(Side.Player).First(u => u.Pos.Lane == 3);
 
             var atkUp = Card(b, "攻擊鼓舞");
             var critUp = Card(b, "暴擊鼓舞");
@@ -189,27 +189,27 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void AtkUp_ScalesCardDamage()
         {
-            var b = Fight(Hero(Role.Strategist, atk: 100), Foe("e", 2, 0, hp: 100000, def: 0));
+            var b = Fight(Hero(Role.Strategist, atk: 100, intel: DamageCalc.CasterReference), Foe("e", 2, 1, hp: 100000, def: 0));
             var enemy = Enemy(b, "e");
             var attack = b.Hand.First(c => IsAttack(c.Def));
             var atkUp = Card(b, "攻擊鼓舞");
             ToHand(b, atkUp);
 
             b.PlayCard(attack);
-            int before = 100000 - enemy.Hp;                 // 100 × 1.0
+            int before = 100000 - enemy.Hp;                 // 謀略 150 × 1.0
             b.PlayCard(atkUp);
             var attack2 = b.Hand.First(c => IsAttack(c.Def));
             int hp = enemy.Hp;
             b.PlayCard(attack2);
 
-            Assert.Equal(100, before);
-            Assert.Equal(130, hp - enemy.Hp);               // 攻擊 +30%
+            Assert.Equal(150, before);
+            Assert.Equal(195, hp - enemy.Hp);               // 威力 +30%（謀略 150 = 基準，強度不變）
         }
 
         [Fact]
         public void Mage_FireThenInferno_BurnsAndDetonates()
         {
-            var b = Fight(Hero(Role.Mage), Foe("a", 1, 0, hp: 5000), Foe("b", 2, 0, hp: 5000), Foe("c", 3, 0, hp: 5000));
+            var b = Fight(Hero(Role.Mage), Foe("a", 1, 2, hp: 5000), Foe("b", 2, 2, hp: 5000), Foe("c", 3, 2, hp: 5000));
             var fire = Card(b, "火計");
             var inferno = Card(b, "火燒連營");
             ToHand(b, fire); ToHand(b, inferno);
@@ -225,9 +225,9 @@ namespace SanGuo.Core.Tests
         private static BattleSetup PierceSetup()
         {
             var setup = new BattleSetup { NoRandomness = true, ScriptedDraw = new List<string> { "t_pierce" } };
-            setup.Heroes.Add(new HeroSlot(Hero(Role.Archer), new Position(2, 0)));
-            setup.Enemies.Add(Foe("front", 2, 0));
-            setup.Enemies.Add(Foe("back", 4, 1));
+            setup.Heroes.Add(new HeroSlot(Hero(Role.Archer), new Position(2, 3)));
+            setup.Enemies.Add(Foe("front", 2, 1));
+            setup.Enemies.Add(Foe("back", 3, 3));
             return setup;
         }
 
@@ -262,7 +262,7 @@ namespace SanGuo.Core.Tests
             var heroes = Data.ContentSerializer.HeroesFromJson(json);
             Assert.Contains(heroes[0].Deck, c => c.Effects.Any(e => e.Status == StatusType.CritUp));
             Assert.Contains(heroes[1].Deck, c => c.Target == TargetRule.EnemyLowestHp);
-            Assert.Contains(heroes[1].Deck, c => c.Target == TargetRule.EnemyAny);
+            Assert.Contains(heroes[1].Deck, c => c.Target == TargetRule.Enemy && c.Range == 3);
             Assert.Equal(json, Data.ContentSerializer.HeroesToJson(heroes));
         }
     }
