@@ -84,9 +84,9 @@ namespace SanGuo.Client
             // ---- 右上：資源 ----
             var res = new VisualElement { pickingMode = PickingMode.Ignore };
             res.AddToClassList("home-res");
-            res.Add(UiKit.Pill($"體力 {v.Stamina}/{v.StaminaCap}", "stamina"));
-            res.Add(UiKit.Pill($"{v.Gold:N0}", "gold"));
-            res.Add(UiKit.Pill($"{v.Yuanbao:N0}", "yuanbao"));
+            res.Add(UiKit.ResPill("item_stamina", $"{v.Stamina}/{v.StaminaCap}"));
+            res.Add(UiKit.ResPill("item_gold", v.Gold.ToString("N0")));
+            res.Add(UiKit.ResPill("item_yuanbao", v.Yuanbao.ToString("N0")));
             root.Add(res);
 
             // ---- 底部：圓形功能鍵 + 戰鬥圓章 ----
