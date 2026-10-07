@@ -71,6 +71,10 @@ namespace SanGuo.Client
             overlay.Add(band);
 
             int index = 0;
+            // 驗證畫面用：-sanguoStoryLine <n> 從第 n 句開始（0 起算）。
+            var args = Environment.GetCommandLineArgs();
+            int dbg = Array.IndexOf(args, "-sanguoStoryLine");
+            if (dbg >= 0 && dbg + 1 < args.Length && int.TryParse(args[dbg + 1], out int startAt)) index = Mathf.Clamp(startAt, 0, lines.Count - 1);
             int shown = 0;
             bool closed = false;
             IVisualElementScheduledItem? typer = null;
@@ -94,25 +98,17 @@ namespace SanGuo.Client
 
             void ShowPortrait(StoryLine line)
             {
-                portrait.Clear();
                 portrait.style.backgroundImage = StyleKeyword.None;
-                portrait.RemoveFromClassList("tut-hero");
-                portrait.RemoveFromClassList("tut-model");
+                portrait.RemoveFromClassList("story-bust");
                 if (line.Portrait == "") return;
-                var full = HeroArt.Full(line.Portrait);
-                if (full != null)
-                {
-                    portrait.AddToClassList("tut-hero");
-                    portrait.style.backgroundImage = new StyleBackground(full);
-                    return;
-                }
+                // 劇情一律用半身像：把 3D 角色只框住上半身畫到 RenderTexture（背景透明）。
                 if (!stages.TryGetValue(line.Portrait, out var model))
                 {
-                    model = ModelStage.Create(line.Portrait);
+                    model = ModelStage.Create(line.Portrait, 640, 600, bust: true);
                     stages[line.Portrait] = model;
                 }
                 if (model == null) return;
-                portrait.AddToClassList("tut-model");
+                portrait.AddToClassList("story-bust");
                 portrait.style.backgroundImage = new StyleBackground(Background.FromRenderTexture(model.Texture));
                 model.Cheer();
             }

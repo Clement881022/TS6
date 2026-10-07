@@ -69,3 +69,11 @@
     width: 460px; height: 575px;
     -unity-background-scale-mode: scale-to-fit;
 }
+
+/* 劇情半身像（StoryPlayer）：3D 角色上半身，底緣貼著對話帶上緣 */
+.story-bust {
+    position: absolute;
+    right: 80px; bottom: 296px;
+    width: 620px; height: 580px;
+    -unity-background-scale-mode: scale-to-fit;
+}

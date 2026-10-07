@@ -27,18 +27,19 @@ namespace SanGuo.Client
         private AnimationClip? _current;
         private bool _once;
 
-        public static ModelStage? Create(string characterName, int width = 512, int height = 640)
+        /// <param name="bust">true = 半身像：鏡頭只框住上半身（劇情對白用）。</param>
+        public static ModelStage? Create(string characterName, int width = 512, int height = 640, bool bust = false)
         {
             var prefab = Resources.Load<GameObject>("Characters/" + characterName);
             if (prefab == null) return null;
 
             var go = new GameObject("ModelStage_" + characterName);
             var stage = go.AddComponent<ModelStage>();
-            stage.Build(prefab, width, height);
+            stage.Build(prefab, width, height, bust);
             return stage;
         }
 
-        private void Build(GameObject prefab, int width, int height)
+        private void Build(GameObject prefab, int width, int height, bool bust)
         {
             _origin = new Vector3(4000f + 80f * (_count++ % 20), 0f, 4000f);
             transform.position = _origin;
@@ -56,6 +57,14 @@ namespace SanGuo.Client
             }
             float fov = 24f;
             float size = Mathf.Max(bounds.size.y, bounds.size.x * height / (float)width, 0.1f);
+            var focus = bounds.center;
+            if (bust)
+            {
+                // 半身像：只取最上面約 52% 的身高，鏡頭對準那一段的中心。
+                float bustHeight = bounds.size.y * 0.52f;
+                focus = new Vector3(bounds.center.x, bounds.max.y - bustHeight * 0.5f, bounds.center.z);
+                size = Mathf.Max(bustHeight, bounds.size.x * 0.8f * height / (float)width, 0.1f);
+            }
             float dist = size * 0.5f / Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad) * 1.12f;
 
             Texture = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32) { name = "ModelStageRT" };
@@ -63,8 +72,8 @@ namespace SanGuo.Client
 
             var camGo = new GameObject("Camera");
             camGo.transform.SetParent(transform, false);
-            camGo.transform.position = bounds.center + new Vector3(0f, size * 0.02f, dist);
-            camGo.transform.LookAt(bounds.center);
+            camGo.transform.position = focus + new Vector3(0f, size * 0.02f, dist);
+            camGo.transform.LookAt(focus);
             _camera = camGo.AddComponent<Camera>();
             _camera.fieldOfView = fov;
             _camera.clearFlags = CameraClearFlags.SolidColor;

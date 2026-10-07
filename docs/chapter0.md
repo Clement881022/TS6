@@ -39,7 +39,7 @@
 - **序章**（`DemoStory.Intro`）：新帳號第一次進主城播放——在茅屋裡被劉備叫醒、搞不清楚自己穿越了的日常對話，播完進大地圖；取代原本直白的歡迎教學。第 1 關戰前劇情從村口遇襲開始。
 
 - 對白資料：`src/SanGuo.Core/Data/DemoStory.cs`（每關 `Before` 戰前、`After` 首通後）。
-- 客戶端：`StoryPlayer`（`client/Assets/Scripts/App/StoryPlayer.cs`），沿用新手引導的視覺小說版面，逐句換說話者與立繪（有全身立繪用立繪，沒有用 3D 模型）。
+- 客戶端：`StoryPlayer`（`client/Assets/Scripts/App/StoryPlayer.cs`），沿用新手引導的視覺小說版面，逐句換說話者與**半身像**（3D 角色只框上半身、背景透明，貼在對話帶上緣；不使用全身立繪）。
 - 戰前劇情只在該關尚未通關時播放，且每關只播一次（記在本機 PlayerPrefs）；首通結算後播 `After`，並顯示「獲得武將」。可略過。
 
 ## 5. 未完成 / 待決
