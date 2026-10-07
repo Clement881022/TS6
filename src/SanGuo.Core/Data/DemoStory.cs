@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace SanGuo.Core.Data
 {
-    /// <summary>一句對白。旁白由巴豆妖擔任；<see cref="Speaker"/> 空字串＝內心獨白以外的無名說話者（目前不用）；<see cref="Portrait"/> 是武將 / 角色 id（客戶端找立繪或 3D 模型，找不到就不顯示）。</summary>
+    /// <summary>一句對白。<see cref="Speaker"/> 空字串＝旁白；<see cref="Portrait"/> 是武將 / 角色 id（客戶端找立繪或 3D 模型，找不到就不顯示）。</summary>
     public sealed class StoryLine
     {
         public string Speaker;
@@ -23,14 +23,13 @@ namespace SanGuo.Core.Data
         /// <summary>主角（穿越者）的對白署名；名字尚未定案，暫以第一人稱「我」帶過。</summary>
         public const string Protagonist = "我";
 
-        /// <summary>旁白由吉祥物巴豆妖擔任（客戶端用 3D 模型 badou 當立繪）。</summary>
-        public const string Narrator = "巴豆妖";
-        public const string NarratorPortrait = "badou";
+        /// <summary>劇情旁白：無說話者、無立繪（客戶端不顯示名牌）。巴豆妖只負責系統性教學，不出現在劇情裡。</summary>
+        public const string Narrator = "";
         private const string LiuBei = "劉備";
         private const string ZhangFei = "張飛";
         private const string GuanYu = "關羽";
 
-        private static StoryLine N(string text) => new StoryLine(Narrator, NarratorPortrait, text);
+        private static StoryLine N(string text) => new StoryLine(Narrator, "", text);
         private static StoryLine Me(string text) => new StoryLine(Protagonist, "", text);
         private static StoryLine Lb(string text) => new StoryLine(LiuBei, "liubei", text);
         private static StoryLine Zf(string text) => new StoryLine(ZhangFei, "zhangfei", text);
@@ -40,7 +39,7 @@ namespace SanGuo.Core.Data
         /// <summary>序章：新帳號第一次進遊戲播放（日常對話中搞不清楚自己穿越了）。</summary>
         public static List<StoryLine> Intro() => new List<StoryLine>
         {
-            N("叮咚——歡迎來到東漢末年。話說，涿縣一間漏風的茅屋裡，有個人睡得口水直流，還說著奇怪的夢話。"),
+            N("涿縣，清晨。一間漏風的茅屋裡，有個人睡得口水直流，嘴裡還說著奇怪的夢話。"),
             Lb("賢弟？賢弟！日頭都曬屁股了，再不起來，今天的草鞋可要賣不掉啦！"),
             Me("（頭好痛……草鞋？賢弟？這是什麼劇組……）"),
             Me("你……是誰？"),

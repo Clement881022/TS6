@@ -27,8 +27,20 @@ namespace SanGuo.Client
         protected override void OnReady()
         {
             if (GameSession.View.ClearedStages.Count > 0) return;
-            // 序章：日常對話裡搞不清楚自己穿越了，巴豆妖當旁白；播完進大地圖。
-            StoryPlayer.ShowIntro(Host, () => Nav.Go(Page.Map));
+            // 先看序章（劇情）；再由巴豆妖講系統性教學（主城功能），最後進大地圖。
+            StoryPlayer.ShowIntro(Host, ShowSystemTutorial);
+            if (GameSession.View.ClearedStages.Count == 0 && Tutorial.Seen("story_intro")) ShowSystemTutorial();
+        }
+
+        /// <summary>巴豆妖負責系統性教學，不參與劇情。</summary>
+        private void ShowSystemTutorial()
+        {
+            Tutorial.Show(Host, "home", "主城功能", new[]
+            {
+                "嗨嗨，主公！我是巴豆妖，負責教你遊戲怎麼玩。主城裡每棟建築都是一個功能。",
+                "「征戰」推進主線關卡；「招募」抽取新武將；「武將」升級與強化；「副本」和「任務」能取得養成素材。",
+                "先從第一關開始，戰鬥裡我會再教你出牌。",
+            }, "前往征戰", () => Nav.Go(Page.Map), speaker: "巴豆妖", model: "badou");
         }
 
         private void OnDestroy()
