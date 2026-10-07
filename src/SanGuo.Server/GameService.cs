@@ -182,11 +182,12 @@ public sealed class GameService
 
     /// <summary>
     /// 開始關卡：檢查等級門檻、扣體力，伺服器發亂數種子並記為「進行中」。
+    /// 開放編隊的關卡 / 副本要帶玩家編隊（只能用已擁有的武將），伺服器記下來結算時重建同一場戰鬥。
     /// 客戶端用這個種子建立戰鬥；再開始別的關卡會取代進行中的關卡（舊的體力不退）。
     /// </summary>
-    public Task<ApiResult> StartStage(string accountId, string stageId) => Run(accountId, (p, now) =>
+    public Task<ApiResult> StartStage(string accountId, string stageId, IReadOnlyList<FormationEntry>? formation = null) => Run(accountId, (p, now) =>
     {
-        var r = StageFlow.Start(p, stageId, now, RandomSeed());
+        var r = StageFlow.Start(p, stageId, now, RandomSeed(), formation);
         return r.Ok ? ApiResult.Success(new { stageId, seed = (long)r.Seed }) : ApiResult.Fail(r.Code);
     });
 

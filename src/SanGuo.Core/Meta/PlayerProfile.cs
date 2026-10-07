@@ -60,6 +60,8 @@ namespace SanGuo.Core.Meta
         /// <summary>進行中的關卡（已扣體力、伺服器發了種子，等待戰鬥重播驗證）；沒有則為空字串。</summary>
         public string PendingStageId = "";
         public long PendingSeed;
+        /// <summary>進行中的關卡若開放編隊，這裡記下玩家送來的編隊（結算時用同一份重建戰鬥）。</summary>
+        public List<FormationEntry> PendingFormation = new List<FormationEntry>();
 
         /// <summary>建立帳號的遊戲日（<see cref="DailyClock.DayIndex"/>），七日目標從這天起算。</summary>
         public long CreatedDay;

@@ -135,13 +135,26 @@ public sealed class ServerApiTests : IDisposable
         Assert.Equal(1400, ok.GetProperty("data").GetProperty("gold").GetInt32()); // 700 × 2
     }
 
-    /// <summary>扮演客戶端：向伺服器開始關卡、用伺服器給的種子自動打完並錄下操作。</summary>
-    private async Task<List<object>> PlayStageAuto(HttpClient c, string stageId)
+    /// <summary>扮演客戶端：抽卡取得武將，再從已擁有的武將排出編隊（最多 4 人）。</summary>
+    private async Task<List<SanGuo.Core.Meta.FormationEntry>> BuildTeam(HttpClient c)
     {
-        var start = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId }));
+        await c.PostAsJsonAsync("/gacha/pull", new { poolId = "newbie", count = 10 });
+        var profile = SanGuo.Core.Data.ProfileSerializer.FromJson((await Json(await c.GetAsync("/profile"))).GetProperty("data").GetRawText());
+        var cells = new[] { (0, 0), (1, 0), (2, 0), (1, 1) };
+        return profile.Heroes.Keys.Take(cells.Length)
+            .Select((id, i) => new SanGuo.Core.Meta.FormationEntry(id, cells[i].Item1, cells[i].Item2)).ToList();
+    }
+
+    /// <summary>扮演客戶端：向伺服器開始關卡、用伺服器給的種子自動打完並錄下操作。開放編隊的關卡 / 副本要帶 team。</summary>
+    private async Task<List<object>> PlayStageAuto(HttpClient c, string stageId, List<SanGuo.Core.Meta.FormationEntry>? team = null)
+    {
+        var formation = team?.Select(f => new { heroId = f.HeroId, lane = f.Lane, row = f.Row }).ToList();
+        var start = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId, formation }));
         Assert.True(start.GetProperty("ok").GetBoolean());
         ulong seed = (ulong)start.GetProperty("data").GetProperty("seed").GetInt64();
-        var rec = new SanGuo.Core.Data.ReplayRecorder(new SanGuo.Core.Battle(SanGuo.Core.Meta.DemoMeta.BuildSetup(stageId, seed)!));
+        SanGuo.Core.Meta.PlayerProfile? profile = team == null ? null
+            : SanGuo.Core.Data.ProfileSerializer.FromJson((await Json(await c.GetAsync("/profile"))).GetProperty("data").GetRawText());
+        var rec = new SanGuo.Core.Data.ReplayRecorder(new SanGuo.Core.Battle(SanGuo.Core.Meta.DemoMeta.BuildSetup(stageId, seed, profile, team)!));
         for (int i = 0; i < 100 && rec.Battle.Result == SanGuo.Core.BattleResult.Ongoing; i++) rec.PlayAuto();
         return rec.Actions.Select(a => (object)new
         {
@@ -180,7 +193,8 @@ public sealed class ServerApiTests : IDisposable
         var level = (await Json(await c.GetAsync("/profile"))).GetProperty("data").GetProperty("level").GetInt32();
         Assert.True(level >= 3);
 
-        var actions = await PlayStageAuto(c, "res_gold"); // 週一：糧倉護衛開放
+        var team = await BuildTeam(c);
+        var actions = await PlayStageAuto(c, "res_gold", team); // 週一：糧倉護衛開放
         var done = await Json(await c.PostAsJsonAsync("/stage/finish", new { stageId = "res_gold", actions }));
         Assert.True(done.GetProperty("ok").GetBoolean());
         Assert.True(done.GetProperty("data").GetProperty("won").GetBoolean());
@@ -188,6 +202,25 @@ public sealed class ServerApiTests : IDisposable
 
         var sweep = await Json(await c.PostAsJsonAsync("/dungeon/sweep", new { id = "res_gold", count = 1 }));
         Assert.True(sweep.GetProperty("ok").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Dungeon_StartWithoutValidFormation_IsRejected_AndSpendsNothing()
+    {
+        var c = Client();
+        await c.PostAsync("/login", null);
+        for (int i = 0; i < 6; i++)
+            await c.PostAsJsonAsync("/stage/finish", new { stageId = "1-1", actions = await PlayStageAuto(c, "1-1") });
+
+        // 沒帶編隊、帶了沒擁有的武將：都被拒絕，體力不扣。
+        var before = (await Json(await c.GetAsync("/profile"))).GetProperty("data").GetProperty("stamina").GetProperty("current").GetInt32();
+        var none = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId = "res_gold" }));
+        Assert.Equal("invalid_formation", none.GetProperty("code").GetString());
+        var stranger = await Json(await c.PostAsJsonAsync("/stage/start",
+            new { stageId = "res_gold", formation = new[] { new { heroId = "zhugeliang", lane = 0, row = 0 } } }));
+        Assert.Equal("invalid_formation", stranger.GetProperty("code").GetString());
+        var after = (await Json(await c.GetAsync("/profile"))).GetProperty("data").GetProperty("stamina").GetProperty("current").GetInt32();
+        Assert.Equal(before, after);
     }
 
     [Fact]

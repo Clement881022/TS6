@@ -35,8 +35,16 @@ namespace SanGuo.Core.Meta
     {
         public static bool IsDungeon(string stageId) => DemoMeta.FindDungeon(stageId) != null;
 
-        public static StageStartOutcome Start(PlayerProfile p, string stageId, long now, ulong seed)
+        /// <param name="formation">開放編隊的關卡 / 副本必須帶（見 <see cref="DemoMeta.UsesPlayerFormation"/>）；教學關忽略。</param>
+        public static StageStartOutcome Start(PlayerProfile p, string stageId, long now, ulong seed,
+            IReadOnlyList<FormationEntry>? formation = null)
         {
+            bool open = DemoMeta.UsesPlayerFormation(stageId);
+            if (open)
+            {
+                string? bad = FormationRules.Validate(p, formation);
+                if (bad != null) return new StageStartOutcome { Code = bad };
+            }
             seed &= 0x7FFFFFFFFFFFFFFF; // 存成有號數字，不要溢位
             string code;
             var dungeon = DemoMeta.FindDungeon(stageId);
@@ -55,15 +63,17 @@ namespace SanGuo.Core.Meta
             if (code != "ok") return new StageStartOutcome { Code = code };
             p.PendingStageId = stageId;
             p.PendingSeed = (long)seed;
+            p.PendingFormation = open ? new List<FormationEntry>(formation!) : new List<FormationEntry>();
             return new StageStartOutcome { Ok = true, Seed = seed };
         }
 
         public static StageFinishOutcome Finish(PlayerProfile p, string stageId, IReadOnlyList<ReplayAction> actions, long now)
         {
             if (p.PendingStageId == "" || p.PendingStageId != stageId) return new StageFinishOutcome { Code = "no_pending_stage" };
-            var setup = DemoMeta.BuildSetup(stageId, (ulong)p.PendingSeed);
+            var setup = DemoMeta.BuildSetup(stageId, (ulong)p.PendingSeed, p, p.PendingFormation);
             p.PendingStageId = "";
             p.PendingSeed = 0;
+            p.PendingFormation = new List<FormationEntry>();
             if (setup == null) return new StageFinishOutcome { Code = "unknown_stage", Persist = true };
 
             var replay = ReplayVerifier.Verify(setup, actions);

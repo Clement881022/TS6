@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using SanGuo.Core.Data;
 using SanGuo.Core.Meta;
@@ -21,6 +22,18 @@ namespace SanGuo.Core.Tests
             return p;
         }
 
+        /// <summary>發四名武將給玩家並回傳站好位的編隊。</summary>
+        private static List<FormationEntry> Team(PlayerProfile p)
+        {
+            var ids = new[] { "zhangfei", "guanyu", "huangzhong", "liubei" };
+            foreach (var id in ids) p.Heroes[id] = new HeroState { HeroId = id };
+            return new List<FormationEntry>
+            {
+                new FormationEntry("zhangfei", 0, 0), new FormationEntry("guanyu", 1, 0),
+                new FormationEntry("huangzhong", 1, 1), new FormationEntry("liubei", 2, 1),
+            };
+        }
+
         private static ReplayRecorder Play(BattleSetup setup)
         {
             var rec = new ReplayRecorder(new Battle(setup));
@@ -33,12 +46,13 @@ namespace SanGuo.Core.Tests
         {
             long now = Sunday();
             var p = Player(now);
-            var start = StageFlow.Start(p, "res_gold", now, 7);
+            var team = Team(p);
+            var start = StageFlow.Start(p, "res_gold", now, 7, team);
             Assert.True(start.Ok);
             Assert.Equal(110, p.Stamina.Get(now));
             Assert.Equal("res_gold", p.PendingStageId);
 
-            var rec = Play(DemoMeta.BuildSetup("res_gold", start.Seed)!);
+            var rec = Play(DemoMeta.BuildSetup("res_gold", start.Seed, p, team)!);
             int goldBefore = p.Gold;
             var done = StageFlow.Finish(p, "res_gold", rec.Actions, now);
             Assert.True(done.Ok && done.Won);
@@ -57,7 +71,7 @@ namespace SanGuo.Core.Tests
         {
             long now = Sunday();
             var p = Player(now, level: 1);
-            var start = StageFlow.Start(p, "res_gold", now, 7);
+            var start = StageFlow.Start(p, "res_gold", now, 7, Team(p));
             Assert.False(start.Ok);
             Assert.Equal("LevelTooLow", start.Code);
             Assert.Equal("", p.PendingStageId);
@@ -69,7 +83,7 @@ namespace SanGuo.Core.Tests
         {
             long now = Sunday();
             var p = Player(now);
-            StageFlow.Start(p, "res_gold", now, 7);
+            StageFlow.Start(p, "res_gold", now, 7, Team(p));
             var done = StageFlow.Finish(p, "res_gold", new[] { ReplayAction.Play(99999) }, now);
             Assert.False(done.Ok);
             Assert.True(done.Persist);
@@ -100,6 +114,76 @@ namespace SanGuo.Core.Tests
             Assert.Equal("no_pending_stage", StageFlow.Finish(p, "1-1", new ReplayAction[0], now).Code);
             StageFlow.Start(p, "1-1", now, 3);
             Assert.Equal("no_pending_stage", StageFlow.Finish(p, "1-2", new ReplayAction[0], now).Code);
+        }
+
+        [Fact]
+        public void OpenStage_RequiresValidFormation_AndSpendsNothingWhenInvalid()
+        {
+            long now = Sunday();
+            var p = Player(now);
+            var team = Team(p);
+            int stamina = p.Stamina.Get(now);
+
+            var cases = new List<IReadOnlyList<FormationEntry>?>
+            {
+                null,
+                new List<FormationEntry>(),
+                new List<FormationEntry> { new FormationEntry("zhugeliang", 0, 0) },                    // 沒有這名武將
+                new List<FormationEntry> { team[0], new FormationEntry("guanyu", 0, 0) },                // 站位重疊
+                new List<FormationEntry> { team[0], new FormationEntry("zhangfei", 3, 0) },              // 同一武將上兩次
+                new List<FormationEntry> { new FormationEntry("zhangfei", 9, 0) },                      // 站位在場外
+                team.Concat(new[] { new FormationEntry("zhaoyun", 3, 1) }).ToList(),                    // 超過 4 人（且沒有趙雲）
+            };
+            foreach (var bad in cases)
+            {
+                var r = StageFlow.Start(p, "res_gold", now, 7, bad);
+                Assert.False(r.Ok);
+                Assert.Equal("invalid_formation", r.Code);
+            }
+            Assert.Equal(stamina, p.Stamina.Get(now));
+            Assert.Equal("", p.PendingStageId);
+
+            Assert.True(StageFlow.Start(p, "res_gold", now, 7, team).Ok);
+        }
+
+        [Fact]
+        public void TutorialLevels_IgnoreFormation_AndLevel9PlusUsesIt()
+        {
+            long now = Sunday();
+            var p = Player(now, level: 9);
+            Assert.True(StageFlow.Start(p, "1-1", now, 3).Ok); // 教學關不用編隊
+            Assert.True(DemoMeta.BuildSetup("1-1", 3)!.FormationLocked);
+
+            Assert.Null(DemoMeta.BuildSetup("1-9", 3));        // 開放編隊的關卡沒給編隊就建不出來
+            Assert.Equal("invalid_formation", StageFlow.Start(p, "1-9", now, 3).Code);
+
+            var team = Team(p);
+            var setup = DemoMeta.BuildSetup("1-9", 3, p, team)!;
+            Assert.False(setup.FormationLocked);
+            Assert.True(setup.AutoAllowed);
+            Assert.Empty(setup.ScriptedDraw);
+            Assert.Equal(new[] { "zhangfei", "guanyu", "huangzhong", "liubei" }, setup.Heroes.Select(h => h.Def.Id).ToArray());
+            Assert.Equal(3, setup.Enemies.Count); // 敵人沿用第 9 關配置
+        }
+
+        [Fact]
+        public void Formation_AppliesHeroGrowthToBattle_AndSurvivesSaveLoad()
+        {
+            long now = Sunday();
+            var p = Player(now);
+            var team = Team(p);
+            var baseAtk = DemoMeta.BuildSetup("res_gold", 1, p, team)!.Heroes[0].Def.Base.Atk;
+
+            p.Heroes["zhangfei"].Level = 5;
+            var grown = DemoMeta.BuildSetup("res_gold", 1, p, team)!.Heroes[0].Def.Base.Atk;
+            Assert.True(grown > baseAtk);
+
+            // 進行中的編隊要存得下來（伺服器重啟後仍能結算）。
+            Assert.True(StageFlow.Start(p, "res_gold", now, 7, team).Ok);
+            var loaded = ProfileSerializer.FromJson(ProfileSerializer.ToJson(p));
+            Assert.Equal(team.Select(e => (e.HeroId, e.Lane, e.Row)), loaded.PendingFormation.Select(e => (e.HeroId, e.Lane, e.Row)));
+            var rec = Play(DemoMeta.BuildSetup("res_gold", 7, p, team)!);
+            Assert.True(StageFlow.Finish(loaded, "res_gold", rec.Actions, now).Won);
         }
     }
 }

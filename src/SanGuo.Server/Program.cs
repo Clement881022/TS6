@@ -1,5 +1,6 @@
 using SanGuo.Core;
 using SanGuo.Core.Data;
+using SanGuo.Core.Meta;
 using SanGuo.Server;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,7 +43,8 @@ app.MapPost("/hero/breakthrough", (HttpRequest req, GameService g, HeroRequest b
     Handle(req, a => g.Breakthrough(a, body.HeroId)));
 
 app.MapPost("/stage/start", (HttpRequest req, GameService g, StageRequest body) =>
-    Handle(req, a => g.StartStage(a, body.StageId)));
+    Handle(req, a => g.StartStage(a, body.StageId,
+        body.Formation?.ConvertAll(f => new FormationEntry(f.HeroId, f.Lane, f.Row)))));
 app.MapPost("/stage/finish", (HttpRequest req, GameService g, FinishRequest body) =>
 {
     var actions = new List<ReplayAction>();
@@ -83,7 +85,8 @@ app.MapPost("/dev/clear", (HttpRequest req, GameService g, DevClearRequest body)
 app.Run();
 
 public sealed record PullRequest(string PoolId, int Count);
-public sealed record StageRequest(string StageId);
+public sealed record FormationEntryDto(string HeroId, int Lane, int Row);
+public sealed record StageRequest(string StageId, List<FormationEntryDto>? Formation = null);
 public sealed record ReplayActionDto(string Kind, int CardId = 0, int UnitId = 0, int Lane = 0, int Row = 0, int TargetId = -1);
 public sealed record FinishRequest(string StageId, List<ReplayActionDto>? Actions);
 public sealed record HeroRequest(string HeroId);

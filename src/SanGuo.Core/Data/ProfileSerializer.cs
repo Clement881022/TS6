@@ -58,6 +58,10 @@ namespace SanGuo.Core.Data
             {
                 ["pendingStageId"] = p.PendingStageId,
                 ["pendingSeed"] = p.PendingSeed,
+                ["pendingFormation"] = p.PendingFormation.ConvertAll<object?>(e => new Dictionary<string, object?>
+                {
+                    ["heroId"] = e.HeroId, ["lane"] = (long)e.Lane, ["row"] = (long)e.Row,
+                }),
                 ["stageStars"] = IntMap(p.StageStars),
                 ["createdDay"] = p.CreatedDay,
                 ["dailyDay"] = p.DailyDay == long.MinValue ? (object?)null : p.DailyDay,
@@ -156,6 +160,12 @@ namespace SanGuo.Core.Data
 
             p.PendingStageId = root.TryGetValue("pendingStageId", out var psi) && psi is string psid ? psid : "";
             p.PendingSeed = Int(root, "pendingSeed", 0);
+            if (root.TryGetValue("pendingFormation", out var pf) && pf is List<object?> pfl)
+                foreach (var x in pfl)
+                    if (x is Dictionary<string, object?> fd)
+                        p.PendingFormation.Add(new FormationEntry(
+                            fd.TryGetValue("heroId", out var hid) && hid is string heroIdStr ? heroIdStr : "",
+                            (int)Int(fd, "lane", 0), (int)Int(fd, "row", 0)));
             ReadIntMap(root, "stageStars", p.StageStars);
             p.CreatedDay = Int(root, "createdDay", 0);
             p.DailyDay = root.TryGetValue("dailyDay", out var dd) && dd != null ? ToLong(dd) : long.MinValue;
