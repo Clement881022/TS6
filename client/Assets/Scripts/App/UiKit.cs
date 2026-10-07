@@ -316,6 +316,8 @@ namespace SanGuo.Client
                 var top = StarsRow(stars, HeroGrowth.MaxStars, "htile-stars");
                 b.Add(top);
             }
+            // 稀有度角標（R / SR / UR），不靠邊框顏色也看得出品階。
+            b.Add(new Label(def.Rarity.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("htile-rarity").WithClass("htile-rarity-" + RarityClass(def.Rarity)));
             var role = new VisualElement { pickingMode = PickingMode.Ignore };
             role.AddToClassList("htile-role");
             var rt = UiIcons.Get(UiIcons.RoleIcon(def.Role));

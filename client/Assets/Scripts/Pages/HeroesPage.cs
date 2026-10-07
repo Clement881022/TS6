@@ -105,23 +105,37 @@ namespace SanGuo.Client
             bar.Add(UiKit.RarityBadge(def.Rarity));
             bar.Add(new Label(def.Name) { pickingMode = PickingMode.Ignore }.WithClass("hero-namebar-name"));
             bar.Add(UiKit.Badge(CardText.RoleName(def.Role), "badge-role"));
+            bar.Add(new Label($"Lv.{hero.Level}") { pickingMode = PickingMode.Ignore }.WithClass("hero-namebar-level"));
             center.Add(bar);
 
-            // 屬性：目前 → 升級後
+            // 屬性：目前 → 升級後（只有隨等級成長的四項會顯示預覽）
             var now = HeroGrowth.ScaleStats(def.Base, hero, _breakthroughs);
             var next = HeroGrowth.ScaleStats(def.Base, new HeroState { HeroId = hero.HeroId, Level = hero.Level + 1, Stars = hero.Stars, CardLevels = hero.CardLevels }, _breakthroughs);
             bool canLevel = hero.Level < v.Level;
             var stats = new VisualElement { pickingMode = PickingMode.Ignore };
             stats.AddToClassList("hero-stats");
-            stats.Add(StatLine("等級", hero.Level.ToString(), canLevel ? (hero.Level + 1).ToString() : null));
-            stats.Add(StatLine("生命值", now.Hp.ToString(), canLevel ? next.Hp.ToString() : null));
-            stats.Add(StatLine("攻擊", now.Atk.ToString(), canLevel ? next.Atk.ToString() : null));
-            stats.Add(StatLine("防禦", now.Def.ToString(), canLevel ? next.Def.ToString() : null));
+            var colA = new VisualElement { pickingMode = PickingMode.Ignore };
+            colA.AddToClassList("hero-stats-col");
+            colA.Add(StatLine("生命值", now.Hp.ToString(), canLevel ? next.Hp.ToString() : null));
+            colA.Add(StatLine("攻擊", now.Atk.ToString(), canLevel ? next.Atk.ToString() : null));
+            colA.Add(StatLine("防禦", now.Def.ToString(), canLevel ? next.Def.ToString() : null));
+            colA.Add(StatLine("謀略", now.Int.ToString(), canLevel ? next.Int.ToString() : null));
+            var colB = new VisualElement { pickingMode = PickingMode.Ignore };
+            colB.AddToClassList("hero-stats-col");
+            colB.Add(StatLine("爆擊率", now.Crit + "%", null));
+            colB.Add(StatLine("爆擊傷害", now.CritDmg + "%", null));
+            colB.Add(StatLine("閃避", now.Dodge + "%", null));
+            colB.Add(StatLine("移動力", now.Move.ToString(), null));
+            stats.Add(colA);
+            stats.Add(colB);
             center.Add(stats);
 
-            var stars = UiKit.StarsRow(hero.Stars, HeroGrowth.MaxStars, "stars-lg");
-            stars.style.marginBottom = 14;
-            center.Add(stars);
+            // 品階（突破星級）：星星下方標示數字，沒突破時暗星也看得到。
+            var grade = new VisualElement { pickingMode = PickingMode.Ignore };
+            grade.AddToClassList("hero-grade");
+            grade.Add(UiKit.StarsRow(hero.Stars, HeroGrowth.MaxStars, "stars-lg"));
+            grade.Add(new Label($"突破 {hero.Stars}/{HeroGrowth.MaxStars}") { pickingMode = PickingMode.Ignore }.WithClass("hero-grade-text"));
+            center.Add(grade);
             return center;
         }
 

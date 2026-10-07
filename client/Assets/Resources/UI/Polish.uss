@@ -72,7 +72,18 @@
 .cost-chip-bad .cost-chip-have { color: rgb(255, 150, 130); }
 
 /* ---- 武將卡 ---- */
+.htile-stars { padding: 2px 6px; border-radius: 9px; background-color: rgba(150, 170, 215, 0.62); }
 .htile-stars .star { width: 16px; height: 16px; }
+.htile-rarity {
+    position: absolute; left: 5px; bottom: 34px;
+    padding: 0 8px; border-radius: 8px;
+    font-size: 20px; -unity-font-style: bold; color: white;
+    background-color: rgb(58, 110, 190);
+}
+.htile-rarity-sr { background-color: rgb(136, 78, 200); }
+.htile-rarity-ur { background-color: rgb(214, 148, 30); color: rgb(40, 24, 8); }
+.htile-md .htile-rarity { bottom: 44px; font-size: 22px; }
+.htile-lg .htile-rarity { bottom: 48px; font-size: 24px; }
 .htile-level {
     right: 5px; bottom: 34px;
     padding: 0 8px; border-radius: 8px;
@@ -95,7 +106,12 @@
 .side-caption { font-size: 24px; color: rgb(184, 204, 244); margin: 2px 0 8px 0; }
 .stat-line-name { font-size: 28px; }
 .stat-line-val { font-size: 30px; }
-.hero-stats { width: 480px; }
+.hero-stats { width: 800px; flex-direction: row; padding: 12px 12px; margin-bottom: 8px; }
+.hero-stats-col { flex-grow: 1; flex-basis: 0; margin: 0 14px; }
+.hero-namebar-level { font-size: 32px; -unity-font-style: bold; color: rgb(255, 232, 170); margin-left: 14px; }
+.hero-grade { align-items: center; margin-bottom: 10px; }
+.hero-grade .star { width: 44px; height: 44px; }
+.hero-grade-text { font-size: 24px; color: rgb(214, 226, 252); margin-top: 2px; }
 .break-row { flex-direction: row; align-items: center; margin: 5px 0; }
 .break-row-mark { width: 30px; font-size: 26px; color: rgb(120, 146, 200); }
 .break-row-text { flex-grow: 1; flex-shrink: 1; font-size: 25px; color: rgb(184, 204, 244); white-space: normal; }

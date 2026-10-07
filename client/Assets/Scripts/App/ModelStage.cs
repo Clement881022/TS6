@@ -56,14 +56,17 @@ namespace SanGuo.Client
                 else bounds.Encapsulate(r.bounds);
             }
             float fov = 24f;
-            float size = Mathf.Max(bounds.size.y, bounds.size.x * height / (float)width, 0.1f);
-            var focus = bounds.center;
+            // 水平方向以身體（模型原點）為中心，不用整個外框：武器 / 披風往一側伸出時，外框中心會偏，角色就看起來歪在一邊。
+            float halfW = Mathf.Max(Mathf.Abs(bounds.max.x - _origin.x), Mathf.Abs(bounds.min.x - _origin.x));
+            float fullW = Mathf.Max(halfW * 2f, 0.1f);
+            float size = Mathf.Max(bounds.size.y, fullW * height / (float)width, 0.1f);
+            var focus = new Vector3(_origin.x, bounds.center.y, bounds.center.z);
             if (bust)
             {
                 // 半身像：只取最上面約 52% 的身高，鏡頭對準那一段的中心。
                 float bustHeight = bounds.size.y * 0.52f;
-                focus = new Vector3(bounds.center.x, bounds.max.y - bustHeight * 0.5f, bounds.center.z);
-                size = Mathf.Max(bustHeight, bounds.size.x * 0.8f * height / (float)width, 0.1f);
+                focus = new Vector3(_origin.x, bounds.max.y - bustHeight * 0.5f, bounds.center.z);
+                size = Mathf.Max(bustHeight, fullW * 0.8f * height / (float)width, 0.1f);
             }
             float dist = size * 0.5f / Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad) * 1.12f;
 
@@ -119,6 +122,13 @@ namespace SanGuo.Client
             _graph.Play();
             _current = clip;
             _once = !loop;
+        }
+
+        /// <summary>false = 暫停這台相機的渲染（畫面上沒在顯示時關掉，省下每幀的繪製）。</summary>
+        public bool Visible
+        {
+            get => _camera != null && _camera.enabled;
+            set { if (_camera != null) _camera.enabled = value; }
         }
 
         /// <summary>播一次歡呼 / 施法動作，結束後回到待機。</summary>
