@@ -90,10 +90,20 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void StoryPortraits_AreKnownCharacters()
         {
-            var known = new HashSet<string>(DemoContent.Roster().Select(h => h.Id)) { "r_villager" };
+            var known = new HashSet<string>(DemoContent.Roster().Select(h => h.Id)) { "r_villager", DemoStory.NarratorPortrait };
             for (int level = 1; level <= DemoContent.ChapterLevelCount; level++)
                 foreach (var l in DemoStory.Before(level).Concat(DemoStory.After(level)).Where(l => l.Portrait != ""))
                     Assert.Contains(l.Portrait, known);
+        }
+
+        [Fact]
+        public void Intro_IsNarratedByTheMascot_AndMeetsLiuBeiBeforeAnyBattle()
+        {
+            var intro = DemoStory.Intro();
+            Assert.NotEmpty(intro);
+            Assert.Equal(DemoStory.Narrator, intro[0].Speaker);
+            Assert.Contains(intro, l => l.Speaker == "劉備");
+            Assert.All(intro.Where(l => l.Speaker == DemoStory.Narrator), l => Assert.Equal(DemoStory.NarratorPortrait, l.Portrait));
         }
 
         [Fact]

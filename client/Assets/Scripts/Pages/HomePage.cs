@@ -27,12 +27,8 @@ namespace SanGuo.Client
         protected override void OnReady()
         {
             if (GameSession.View.ClearedStages.Count > 0) return;
-            Tutorial.Show(Host, "home", "歡迎，主公！", new[]
-            {
-                "嗨嗨，主公！我是巴豆妖，負責帶你熟悉三國亂世。你要運籌帷幄，帶領劉備、關羽、張飛等英雄，從涿縣起兵一路打下去。",
-                "「征戰」推進主線關卡；「招募」抽取新武將；「武將」升級與強化；「副本」和「任務」能取得養成素材。",
-                "先從第一關開始，教學會一步步帶你熟悉出牌。",
-            }, "前往征戰", () => Nav.Go(Page.Map), speaker: "巴豆妖", model: "badou");
+            // 序章：日常對話裡搞不清楚自己穿越了，巴豆妖當旁白；播完進大地圖。
+            StoryPlayer.ShowIntro(Host, () => Nav.Go(Page.Map));
         }
 
         private void OnDestroy()

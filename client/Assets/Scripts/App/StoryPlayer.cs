@@ -16,6 +16,14 @@ namespace SanGuo.Client
     {
         private const long CharIntervalMs = 28;
 
+        /// <summary>序章：新帳號（沒通關過任何關卡）第一次進主城時播放，播完（或略過）呼叫 <paramref name="proceed"/>。</summary>
+        public static void ShowIntro(VisualElement layer, Action proceed)
+        {
+            const string key = "story_intro";
+            if (GameSession.View.ClearedStages.Count > 0 || Tutorial.Seen(key)) return;
+            Show(layer, "序章　涿縣的清晨", DemoStory.Intro(), () => { Tutorial.MarkSeen(key); proceed(); });
+        }
+
         /// <summary>主線關卡戰前劇情：該關尚未通關才播，播完（或沒有劇情）呼叫 <paramref name="proceed"/>。</summary>
         public static void ShowBefore(VisualElement layer, int level, Action proceed)
         {

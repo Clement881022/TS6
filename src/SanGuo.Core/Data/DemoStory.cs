@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace SanGuo.Core.Data
 {
-    /// <summary>一句對白。<see cref="Speaker"/> 空字串＝旁白；<see cref="Portrait"/> 是武將 / 角色 id（客戶端找立繪或 3D 模型，找不到就不顯示）。</summary>
+    /// <summary>一句對白。旁白由巴豆妖擔任；<see cref="Speaker"/> 空字串＝內心獨白以外的無名說話者（目前不用）；<see cref="Portrait"/> 是武將 / 角色 id（客戶端找立繪或 3D 模型，找不到就不顯示）。</summary>
     public sealed class StoryLine
     {
         public string Speaker;
@@ -23,16 +23,34 @@ namespace SanGuo.Core.Data
         /// <summary>主角（穿越者）的對白署名；名字尚未定案，暫以第一人稱「我」帶過。</summary>
         public const string Protagonist = "我";
 
-        private const string Narrator = "";
+        /// <summary>旁白由吉祥物巴豆妖擔任（客戶端用 3D 模型 badou 當立繪）。</summary>
+        public const string Narrator = "巴豆妖";
+        public const string NarratorPortrait = "badou";
         private const string LiuBei = "劉備";
         private const string ZhangFei = "張飛";
         private const string GuanYu = "關羽";
 
-        private static StoryLine N(string text) => new StoryLine(Narrator, "", text);
+        private static StoryLine N(string text) => new StoryLine(Narrator, NarratorPortrait, text);
         private static StoryLine Me(string text) => new StoryLine(Protagonist, "", text);
         private static StoryLine Lb(string text) => new StoryLine(LiuBei, "liubei", text);
         private static StoryLine Zf(string text) => new StoryLine(ZhangFei, "zhangfei", text);
         private static StoryLine Gy(string text) => new StoryLine(GuanYu, "guanyu", text);
+
+
+        /// <summary>序章：新帳號第一次進遊戲播放（日常對話中搞不清楚自己穿越了）。</summary>
+        public static List<StoryLine> Intro() => new List<StoryLine>
+        {
+            N("叮咚——歡迎來到東漢末年。話說，涿縣一間漏風的茅屋裡，有個人睡得口水直流，還說著奇怪的夢話。"),
+            Lb("賢弟？賢弟！日頭都曬屁股了，再不起來，今天的草鞋可要賣不掉啦！"),
+            Me("（頭好痛……草鞋？賢弟？這是什麼劇組……）"),
+            Me("你……是誰？"),
+            Lb("哈哈，睡糊塗啦？我是玄德啊！昨夜你一直說夢話，什麼「加班」、「專案」的，那是什麼？"),
+            Me("（玄德……劉玄德？不會吧。我昨晚明明還在公司趕報告……）"),
+            N("他還不知道，眼前這位賣草鞋的，往後會讓天下人都記住他的名字。"),
+            Lb("來，我早上賣草鞋換了兩個饅頭，分你一個。吃完陪我去村口看看，聽說有流寇在騷擾鄉親。"),
+            Me("（先吃再說……總之，先搞清楚狀況。）"),
+            N("就這樣，一個摸不著頭腦的上班族，被推出了茅屋的門。"),
+        };
 
         /// <summary>戰前劇情。關卡編號 1–10（對應 <see cref="DemoContent.LevelNames"/>）。</summary>
         public static List<StoryLine> Before(int level)
@@ -41,11 +59,11 @@ namespace SanGuo.Core.Data
             {
                 case 1: return new List<StoryLine>
                 {
-                    N("睜開眼，頭頂是發黃的茅草屋梁。昨晚明明還在公司加班趕專案……"),
-                    Me("（這是哪裡？涿縣？我記得歷史課本說過，黃巾之亂前夕，劉備還在這裡賣草鞋……）"),
-                    Lb("賢弟，你醒啦！村口來了一夥流寇搶糧，鄉親們都躲起來了。"),
-                    N("奇怪的是，我看得見每個賊人頭上的行動預告，手裡還多了一疊微微發光的牌。"),
-                    Me("（先別管為什麼了。這些牌，好像能讓人活下來。）"),
+                    N("村口的銅鑼忽然被人敲得震天響——是流寇進村搶糧了！"),
+                    Lb("賢弟，快躲到我身後！鄉親們都躲起來了，咱們得想辦法擋一擋。"),
+                    Me("（擋？我連架都沒打過……等等，我手裡這是什麼？）"),
+                    N("不知何時，主角的手心裡多了一疊微微發光的牌，每個賊人的頭上，還飄著他們下一步的行動預告。"),
+                    Me("（遊戲介面……？不管了，這些牌好像能讓人活下來。）"),
                     Lb("你向來多謀。這回你來指揮，我在後頭照應傷者！"),
                 };
                 case 2: return new List<StoryLine>
