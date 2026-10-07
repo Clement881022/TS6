@@ -35,8 +35,13 @@ namespace SanGuo.Client
         public static float BgmVolume { get; set; } = 0.35f;
         public static float SfxVolume { get; set; } = 0.8f;
 
+        /// <summary>啟動時就建立（含 AudioListener）：場景裡沒有任何 AudioListener，Editor 會每幀印一次警告拖慢編輯器，玩家版也聽不到聲音。</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void Bootstrap() => _ = Inst;
+
         private void Awake()
         {
+            if (FindFirstObjectByType<AudioListener>() == null) gameObject.AddComponent<AudioListener>();
             _bgm = gameObject.AddComponent<AudioSource>();
             _bgm.loop = true;
             _sfx = gameObject.AddComponent<AudioSource>();

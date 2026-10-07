@@ -108,6 +108,23 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
+        public void PartyOfThree_DrivesTheStory_MoreThanGuestsCombined()
+        {
+            var all = new List<StoryLine>(DemoStory.Intro());
+            for (int level = 1; level <= DemoContent.ChapterLevelCount; level++)
+            {
+                all.AddRange(DemoStory.Before(level));
+                all.AddRange(DemoStory.After(level));
+            }
+            int Count(params string[] who) => all.Count(l => who.Contains(l.Speaker));
+            int party = Count("劉備", "關羽", "張飛");
+            int guests = Count("黃忠", "趙雲", "龐統", "張世平");
+            Assert.True(party > guests * 3, $"主角團 {party} 句、客串 {guests} 句");
+            Assert.True(Count("劉備") >= 20 && Count("關羽") >= 12 && Count("張飛") >= 12);
+            Assert.True(Count(DemoStory.Protagonist) >= 40);
+        }
+
+        [Fact]
         public void HeroesJoinStoryAfterTheirStages()
         {
             Assert.Contains(DemoStory.After(1), l => l.Text.Contains("劉備加入"));
