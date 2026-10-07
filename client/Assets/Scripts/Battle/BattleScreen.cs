@@ -32,9 +32,9 @@ namespace SanGuo.Client
             public VisualElement Intent = null!;
         }
 
-        private const float TagWidth = 128f;
-        private const float HeroTagWidth = 104f;
-        private const float TagHeight = 66f;
+        private const float TagWidth = 150f;
+        private const float HeroTagWidth = 124f;
+        private const float TagHeight = 74f;
 
         private readonly VisualElement _root;
         private readonly BattleStage _stage;
@@ -124,6 +124,7 @@ namespace SanGuo.Client
             var buttons = new VisualElement { style = { flexDirection = FlexDirection.Row } };
             _autoButton = MakeButton("自動", ToggleAuto);
             buttons.Add(_autoButton);
+            buttons.Add(MakeButton("重置視角", () => _stage.ResetView()));
             buttons.Add(MakeButton("撤退", Leave));
             buttons.Add(MakeButton("重來", () => { _ = BeginStageId(_stageId); }));
             header.Add(buttons);
@@ -133,10 +134,13 @@ namespace SanGuo.Client
             _field = new VisualElement();
             _field.AddToClassList("field");
             // 左側是手牌清單、底部是武將資訊列：戰場（鏡頭取景範圍）讓出這兩塊。
-            _field.style.marginLeft = 330f;
-            _field.style.marginBottom = 176f;
+            _field.style.marginLeft = 370f;
+            _field.style.marginBottom = 200f;
             _field.RegisterCallback<ClickEvent>(OnFieldClicked);
-            _field.RegisterCallback<PointerMoveEvent>(OnFieldHover);
+            _field.RegisterCallback<PointerDownEvent>(OnFieldDown);
+            _field.RegisterCallback<PointerMoveEvent>(OnFieldMove);
+            _field.RegisterCallback<PointerUpEvent>(OnFieldUp);
+            _field.RegisterCallback<WheelEvent>(OnFieldWheel);
             _field.RegisterCallback<PointerLeaveEvent>(_ => HideUnitInfo());
             _content.Add(_field);
 
@@ -411,6 +415,7 @@ namespace SanGuo.Client
         /// <summary>等待指定格子時：點格出牌；移動卡先點武將再點目的地；點場外取消。</summary>
         private void OnFieldClicked(ClickEvent evt)
         {
+            if (_dragged) { _dragged = false; return; }   // 拖曳視角結束後的 click 不算點格
             var card = _pendingCard;
             if (card == null || _battle.Result != BattleResult.Ongoing || Blocked) return;
             if (!_stage.TryPick(evt.position, out var pos))
@@ -449,6 +454,47 @@ namespace SanGuo.Client
 
         // ------------------------------------------------------------ 單位懸停面板
 
+        // ---- 視角：左鍵 / 中鍵拖曳平移、滾輪縮放 ----
+        private bool _dragging, _dragged;
+        private Vector2 _dragStart, _dragLast;
+
+        private void OnFieldDown(PointerDownEvent evt)
+        {
+            if (evt.button != 0 && evt.button != 2) return;
+            _dragging = true;
+            _dragged = false;
+            _dragStart = _dragLast = evt.position;
+            _field.CapturePointer(evt.pointerId);
+        }
+
+        private void OnFieldMove(PointerMoveEvent evt)
+        {
+            if (_dragging)
+            {
+                if (!_dragged && ((Vector2)evt.position - _dragStart).magnitude > 8f) { _dragged = true; HideUnitInfo(); }
+                if (_dragged)
+                {
+                    _stage.PanBy((Vector2)evt.position - _dragLast);
+                    _dragLast = evt.position;
+                    return;
+                }
+            }
+            OnFieldHover(evt);
+        }
+
+        private void OnFieldUp(PointerUpEvent evt)
+        {
+            if (!_dragging) return;
+            _dragging = false;
+            if (_field.HasPointerCapture(evt.pointerId)) _field.ReleasePointer(evt.pointerId);
+        }
+
+        private void OnFieldWheel(WheelEvent evt)
+        {
+            _stage.ZoomBy(Mathf.Pow(1.12f, -Mathf.Sign(evt.delta.y)));
+            evt.StopPropagation();
+        }
+
         private void OnFieldHover(PointerMoveEvent evt)
         {
             var unit = PickUnit(evt.position);
@@ -461,7 +507,7 @@ namespace SanGuo.Client
             // 面板跟著游標，靠近右 / 下緣時翻到另一側，避免被切掉。
             var local = _content.WorldToLocal(evt.position);
             float w = _content.layout.width, h = _content.layout.height;
-            const float panelW = 262f, panelH = 340f;
+            const float panelW = 330f, panelH = 400f;
             float left = local.x + 28f;
             if (left + panelW > w - 8f) left = local.x - 28f - panelW;
             float top = Mathf.Clamp(local.y - 40f, 8f, Mathf.Max(8f, h - panelH - 8f));
@@ -521,10 +567,10 @@ namespace SanGuo.Client
             var intl = (CardText.IntName, st.Int, unit.EffectiveInt);
             var first = unit.IsCaster ? intl : atk;
             var second = unit.IsCaster ? atk : intl;
-            AddStat(grid, first.Item1 + "★", first.Item2, first.Item3);
-            AddStat(grid, second.Item1, second.Item2, second.Item3);
-            AddStat(grid, CardText.DefName, st.Def, (int)Math.Round(unit.EffectiveDef));
-            AddStat(grid, CardText.MoveName, st.Move, st.Move);
+            AddStat(grid, "stat_" + (unit.IsCaster ? "int" : "atk"), first.Item2, first.Item3);
+            AddStat(grid, "stat_" + (unit.IsCaster ? "atk" : "int"), second.Item2, second.Item3);
+            AddStat(grid, "stat_def", st.Def, (int)Math.Round(unit.EffectiveDef));
+            AddStat(grid, "stat_move", st.Move, st.Move);
             AddStat(grid, "射程", unit.AttackRange, unit.AttackRange);
             AddStat(grid, "閃避", st.Dodge, st.Dodge, "%");
             AddStat(grid, "暴擊", st.Crit, unit.EffectiveCrit, "%");
@@ -544,11 +590,13 @@ namespace SanGuo.Client
                 _unitInfo.Add(new Label("目前沒有增減益") { pickingMode = PickingMode.Ignore }.WithClass("ui-none"));
         }
 
+        /// <summary>懸停面板的一格屬性；name 是 stat_* 圖示名，或純文字（閃避 / 暴擊等沒有圖示的屬性）。</summary>
         private static void AddStat(VisualElement grid, string name, int baseValue, int effective, string suffix = "")
         {
             var row = new VisualElement { pickingMode = PickingMode.Ignore };
             row.AddToClassList("ui-stat");
-            row.Add(new Label(name) { pickingMode = PickingMode.Ignore }.WithClass("ui-stat-name"));
+            if (name.StartsWith("stat_")) row.Add(UiIcons.Icon(name, "ui-stat-icon"));
+            else row.Add(new Label(name) { pickingMode = PickingMode.Ignore }.WithClass("ui-stat-name"));
             var val = new Label(effective == baseValue ? $"{effective}{suffix}" : $"{effective}{suffix}（{baseValue}）") { pickingMode = PickingMode.Ignore };
             val.AddToClassList("ui-stat-val");
             if (effective > baseValue) val.AddToClassList("ui-up");
@@ -892,6 +940,20 @@ namespace SanGuo.Client
             _detail.Add(cancel);
         }
 
+        /// <summary>圖示 + 數值（有增減益時以綠 / 紅標示）：攻擊、謀略、防禦、移動力。主屬性（該職業實際吃的）放大。</summary>
+        private static VisualElement StatChip(string icon, int effective, int baseValue, bool main = false)
+        {
+            var chip = new VisualElement { pickingMode = PickingMode.Ignore };
+            chip.AddToClassList("bl-stat-chip");
+            chip.Add(UiIcons.Icon(icon, main ? "bl-stat-icon-main" : "bl-stat-icon"));
+            var l = new Label(effective.ToString()) { pickingMode = PickingMode.Ignore };
+            l.AddToClassList(main ? "bl-stat-main" : "bl-stat");
+            if (effective > baseValue) l.AddToClassList("ui-up");
+            else if (effective < baseValue) l.AddToClassList("ui-down");
+            chip.Add(l);
+            return chip;
+        }
+
         /// <summary>底部武將資訊列：頭像、生命、主要屬性（攻擊 / 謀略 / 防禦 / 移動力）與增減益；移動卡選武將時可以點這裡。</summary>
         private void RefreshHeroBar()
         {
@@ -927,14 +989,16 @@ namespace SanGuo.Client
                 col.Add(hpBg);
 
                 // 法系把「謀略」放在最前面，其餘把「攻擊」放最前面（與傷害 / 治療實際吃的屬性一致）。
-                string primary = unit.IsCaster ? $"{CardText.IntName} {unit.EffectiveInt}" : $"{CardText.AtkName} {unit.EffectiveAtk}";
-                string secondary = unit.IsCaster ? $"{CardText.AtkName} {unit.EffectiveAtk}" : $"{CardText.IntName} {unit.EffectiveInt}";
                 var stats = new VisualElement { pickingMode = PickingMode.Ignore };
                 stats.AddToClassList("bl-stats");
-                stats.Add(new Label(primary) { pickingMode = PickingMode.Ignore }.WithClass("bl-stat-main"));
-                stats.Add(new Label(secondary) { pickingMode = PickingMode.Ignore }.WithClass("bl-stat"));
-                stats.Add(new Label($"防 {(int)Math.Round(unit.EffectiveDef)}") { pickingMode = PickingMode.Ignore }.WithClass("bl-stat"));
-                stats.Add(new Label($"移 {unit.Stats.Move}") { pickingMode = PickingMode.Ignore }.WithClass("bl-stat"));
+                var atkStat = ("stat_atk", unit.EffectiveAtk, unit.Stats.Atk);
+                var intStat = ("stat_int", unit.EffectiveInt, unit.Stats.Int);
+                var first = unit.IsCaster ? intStat : atkStat;
+                var second = unit.IsCaster ? atkStat : intStat;
+                stats.Add(StatChip(first.Item1, first.Item2, first.Item3, main: true));
+                stats.Add(StatChip(second.Item1, second.Item2, second.Item3));
+                stats.Add(StatChip("stat_def", (int)Math.Round(unit.EffectiveDef), unit.Stats.Def));
+                stats.Add(StatChip("stat_move", unit.Stats.Move, unit.Stats.Move));
                 col.Add(stats);
 
                 var chips = new VisualElement { pickingMode = PickingMode.Ignore };

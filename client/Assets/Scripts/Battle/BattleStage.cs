@@ -27,7 +27,7 @@ namespace SanGuo.Client
         public const float CameraPitchDegrees = 36f;   // 俯視角（等角視角約 45–55）
         public const float BoardLeftBias = 0f;
         private const float BoardZoom = 1.0f;         // 棋盤完整放進 field（手牌區不再蓋住棋盤）
-        public const float CameraYawDegrees = 120f;    // 棋盤繞 Y 軸轉 30°（原本 90° = 軸對齊；想轉另一邊改成 60）
+        public const float CameraYawDegrees = 60f;     // 棋盤繞 Y 軸轉 30°（原本 90° = 軸對齊；轉向相反就改成 120）
         private const float TilePitch = 1.85f;      // 欄與欄之間（螢幕上下方向；參考 TS6Client 角色間距 1.5）
         private const float TilePitchX = 1.55f;     // 列與列之間（螢幕左右方向）
         private const float TileTop = 0.03f;
@@ -44,6 +44,23 @@ namespace SanGuo.Client
             public bool Placed;
             public Vector3 Facing;
         }
+
+        // 視角：滾輪縮放、拖曳平移（BattleScreen 轉送輸入）。預設比「剛好塞進戰場區」再近一些，讓棋盤與角色更大。
+        private const float DefaultZoom = 1.3f, MinZoom = 0.7f, MaxZoom = 3.2f;
+        private float _zoom = DefaultZoom;
+        private Vector2 _panScreenPx;
+
+        public void ZoomBy(float factor) => _zoom = Mathf.Clamp(_zoom * factor, MinZoom, MaxZoom);
+
+        /// <summary>拖曳平移（面板座標的位移量；往右拖 = 棋盤往右）。</summary>
+        public void PanBy(Vector2 panelDelta)
+        {
+            float k = _panelRoot != null && _panelRoot.worldBound.width > 1f ? Screen.width / _panelRoot.worldBound.width : 1f;
+            _panScreenPx += panelDelta * k;
+            _panScreenPx = new Vector2(Mathf.Clamp(_panScreenPx.x, -Screen.width, Screen.width), Mathf.Clamp(_panScreenPx.y, -Screen.height, Screen.height));
+        }
+
+        public void ResetView() { _zoom = DefaultZoom; _panScreenPx = Vector2.zero; }
 
         private Camera _camera = null!;
         private Battle? _battle;
@@ -117,6 +134,7 @@ namespace SanGuo.Client
             if (_tileRoot != null) Destroy(_tileRoot);
             _tiles.Clear();
 
+            ResetView();
             _battle = battle;
             _panelRoot = panelRoot;
             _field = field;
@@ -358,13 +376,14 @@ namespace SanGuo.Client
             }
             float needW = (maxX - minX) / BoardZoom + 0.4f;
             float needH = (maxY - minY) / BoardZoom + 0.3f;
-            float worldPerPx = Mathf.Max(needH / fieldH, needW / fieldW);
+            float worldPerPx = Mathf.Max(needH / fieldH, needW / fieldW) / _zoom;
             _camera.orthographicSize = worldPerPx * Screen.height * 0.5f;
 
             // 包圍盒中心要落在 field 中心：在攝影機空間反向平移。
             float dx = (fieldCenter.x - Screen.width * 0.5f) * worldPerPx;
             float dy = (fieldCenter.y - Screen.height * 0.5f) * worldPerPx;
-            var camLocal = new Vector3((minX + maxX) * 0.5f - dx, (minY + maxY) * 0.5f - dy, -40f);
+            // 拖曳平移：棋盤往右拖 → 鏡頭往左；往下拖 → 鏡頭往上（攝影機空間 y 向上）。
+            var camLocal = new Vector3((minX + maxX) * 0.5f - dx - _panScreenPx.x * worldPerPx, (minY + maxY) * 0.5f - dy + _panScreenPx.y * worldPerPx, -40f);
             _camera.transform.rotation = rot;
             _camera.transform.position = rot * camLocal;
         }
