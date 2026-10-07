@@ -192,3 +192,23 @@
 .result-buttons { flex-direction: row; flex-wrap: wrap; justify-content: center; margin-top: 18px; }
 .result-buttons .btn { min-width: 170px; min-height: 76px; margin: 0 6px; font-size: 28px; }
 .result-buttons .btn-primary { background-image: url("../UiSkin/btn_orange.png"); }
+
+/* 戰場只用手牌上方的區域：棋盤與手牌不重疊 */
+.field { margin-bottom: 268px; }
+
+/* 手牌縮小一號，讓戰場有更多高度 */
+.card { width: 152px; height: 246px; margin: 0 4px; }
+.card-art { height: 100px; }
+.card-cost { width: 46px; height: 46px; font-size: 28px; }
+.card-tag { width: 30px; height: 30px; border-radius: 15px; }
+.card-owner { font-size: 17px; }
+.card-name { font-size: 25px; margin: 4px 6px 0 6px; }
+.card-target { font-size: 15px; margin: 0 6px; }
+.card-desc { margin: 2px 6px 0 6px; }
+.card .chip-text { font-size: 19px; }
+.card .icon { width: 24px; height: 24px; }
+.card:hover { translate: 0 -16px; }
+.cost-orb { width: 108px; height: 108px; }
+.cost-num { font-size: 58px; }
+.end-turn { width: 130px; height: 130px; border-radius: 65px; font-size: 30px; margin-bottom: 24px; }
+.bottom-left, .bottom-right { width: 190px; }

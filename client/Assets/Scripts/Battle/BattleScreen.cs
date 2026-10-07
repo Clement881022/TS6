@@ -32,7 +32,7 @@ namespace SanGuo.Client
             public VisualElement Intent = null!;
         }
 
-        private const float TagWidth = 158f;
+        private const float TagWidth = 146f;
         private const float TagHeight = 76f;
 
         private readonly VisualElement _root;

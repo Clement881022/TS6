@@ -25,17 +25,17 @@ namespace SanGuo.Client
     /// </summary>
     public sealed class BattleStage : MonoBehaviour
     {
-        public const float CameraPitchDegrees = 50f;   // 俯視角（等角視角約 45–55）
-        public const float BoardLeftBias = 0.05f;
-        private const float BoardZoom = 1.2f;         // >1 讓棋盤略大於 field，邊角蓋在 UI 底下，場面更滿
-        public const float CameraYawDegrees = 45f;     // 左右旋轉 45° = 等角視角，地磚變菱形（0 = 正面平視棋盤）
-        private const float TilePitch = 1.5f;      // 路與路之間（參考 TS6Client 角色間距 1.5）
-        private const float TilePitchX = 1.5f;     // 排與排之間
-        private const float CenterGap = 2.0f;       // 兩陣營間距（參考 TS6Client CampSpacing 2）
-        private const float TileTop = 0.08f;
-        private const float ModelScale = 1.45f;
+        public const float CameraPitchDegrees = 40f;   // 俯視角（等角視角約 45–55）
+        public const float BoardLeftBias = 0f;
+        private const float BoardZoom = 1.0f;         // 棋盤完整放進 field（手牌區不再蓋住棋盤）
+        public const float CameraYawDegrees = 0f;      // 左右旋轉 45° = 等角視角，地磚變菱形（0 = 正面平視棋盤）
+        private const float TilePitch = 1.4f;      // 路與路之間（參考 TS6Client 角色間距 1.5）
+        private const float TilePitchX = 1.8f;     // 排與排之間
+        private const float CenterGap = 2.4f;       // 兩陣營間距（參考 TS6Client CampSpacing 2）
+        private const float TileTop = 0.03f;
+        private const float ModelScale = 1.5f;
         private const float UnitHeadHeight = 3.1f;
-        private const float ViewYawDegrees = 38f;      // 面向對手的同時微微轉向鏡頭
+        private const float ViewYawDegrees = 55f;      // 面向對手的同時微微轉向鏡頭
 
         private sealed class UnitView
         {
@@ -142,17 +142,16 @@ namespace SanGuo.Client
                         var pos = new Position(lane, row);
                         var center = TileWorld(side, pos);
                         tile.transform.position = center + Vector3.down * (TileTop * 0.5f);
-                        tile.transform.localScale = new Vector3(TilePitchX * 0.9f, TileTop, TilePitch * 0.88f);
+                        tile.transform.localScale = new Vector3(TilePitchX * 0.94f, TileTop, TilePitch * 0.92f);
 
                         var tag = tile.AddComponent<TileTag>();
                         tag.Side = side;
                         tag.Pos = pos;
                         tag.Renderer = tile.GetComponent<Renderer>();
                         if (TileShader != null) tag.Renderer.sharedMaterial = new Material(TileShader);
-                        bool alt = (lane + row) % 2 == 0;
                         tag.BaseColor = side == Side.Player
-                            ? (alt ? new Color(0.28f, 0.44f, 0.76f) : new Color(0.23f, 0.38f, 0.70f))
-                            : (alt ? new Color(0.70f, 0.28f, 0.28f) : new Color(0.62f, 0.23f, 0.24f));
+                            ? new Color(0.45f, 0.72f, 1.00f, 0.15f)
+                            : new Color(1.00f, 0.45f, 0.40f, 0.15f);
                         tag.Renderer.material.color = tag.BaseColor;
                         _tiles[(side, lane, row)] = tag;
                     }
@@ -178,9 +177,9 @@ namespace SanGuo.Client
                 if (!_tiles.TryGetValue((side, pos.Lane, pos.Row), out var tag)) continue;
                 switch (state)
                 {
-                    case TileState.Target: tag.Renderer.material.color = new Color(0.95f, 0.78f, 0.2f); break;
-                    case TileState.Reach: tag.Renderer.material.color = new Color(0.25f, 0.75f, 0.4f); break;
-                    case TileState.Owner: tag.Renderer.material.color = new Color(0.9f, 0.9f, 0.95f); break;
+                    case TileState.Target: tag.Renderer.material.color = new Color(1.00f, 0.86f, 0.20f, 0.55f); break;
+                    case TileState.Reach: tag.Renderer.material.color = new Color(0.30f, 0.90f, 0.50f, 0.50f); break;
+                    case TileState.Owner: tag.Renderer.material.color = new Color(1.00f, 1.00f, 1.00f, 0.45f); break;
                 }
             }
         }
@@ -226,7 +225,7 @@ namespace SanGuo.Client
         // ------------------------------------------------------------ 模型
 
         // URP 專案裡 CreatePrimitive 的預設材質是 Built-in Standard（會變粉紅），地磚改用 URP/Lit。
-        private static Shader? TileShader => Shader.Find("Universal Render Pipeline/Lit");
+        private static Shader? TileShader => Resources.Load<Shader>("Shaders/TileOverlay");
 
         private UnitView? Ensure(Unit unit)
         {
