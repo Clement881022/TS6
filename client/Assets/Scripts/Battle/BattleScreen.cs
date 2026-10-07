@@ -32,9 +32,9 @@ namespace SanGuo.Client
             public VisualElement Intent = null!;
         }
 
-        private const float TagWidth = 146f;
-        private const float HeroTagWidth = 118f;
-        private const float TagHeight = 76f;
+        private const float TagWidth = 128f;
+        private const float HeroTagWidth = 104f;
+        private const float TagHeight = 66f;
 
         private readonly VisualElement _root;
         private readonly BattleStage _stage;

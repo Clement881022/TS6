@@ -31,8 +31,10 @@ namespace SanGuo.Client
         private const float TilePitch = 1.85f;      // 欄與欄之間（螢幕上下方向；參考 TS6Client 角色間距 1.5）
         private const float TilePitchX = 1.55f;     // 列與列之間（螢幕左右方向）
         private const float TileTop = 0.03f;
-        private const float ModelScale = 1.5f;
-        private const float UnitHeadHeight = 3.1f;
+        private const float ModelScale = 1.15f;
+        private const float UnitHeadHeight = 2.4f;     // 模型縮小後的頭頂高度（ModelScale 1.5 時為 3.1）
+        private const float TagRoomAbove = 1.3f;       // 頭頂血量標籤的預留高度（世界單位），避免被切到畫面外
+        private const float TagRoomBelow = 0.9f;       // 我方標籤在腳下
         private const float ViewYawDegrees = 18f;      // 面向對手的同時微微轉向鏡頭
 
         private sealed class UnitView
@@ -123,11 +125,12 @@ namespace SanGuo.Client
 
         public CharacterView? ViewOf(int unitId) => _views.TryGetValue(unitId, out var v) ? v.View : null;
 
-        /// <summary>敵我共用的 5x5 棋盤：上兩列（0–1）是敵方起始區、下兩列（3–4）是我方起始區，中間一列是空地。</summary>
+        /// <summary>敵我共用的 5x5 棋盤，全部是中立格；底下鋪一塊石板地板與木框，做成戰鬥場地。</summary>
         private void BuildTiles()
         {
             _tileRoot = new GameObject("Tiles");
             _tileRoot.transform.SetParent(transform, false);
+            BuildFloor(_tileRoot.transform);
             for (int lane = 0; lane < _battle!.Setup.Lanes; lane++)
             {
                 for (int row = 0; row < _battle.Setup.Rows; row++)
@@ -144,13 +147,46 @@ namespace SanGuo.Client
                     tag.Pos = pos;
                     tag.Renderer = tile.GetComponent<Renderer>();
                     if (TileShader != null) tag.Renderer.sharedMaterial = new Material(TileShader);
-                    tag.BaseColor = row <= 1 ? new Color(1.00f, 0.45f, 0.40f, 0.15f)
-                        : row >= 3 ? new Color(0.45f, 0.72f, 1.00f, 0.15f)
-                        : new Color(0.85f, 0.85f, 0.85f, 0.10f);
+                    // 共用棋盤沒有敵我領土：所有格子都是中立色（只有技能預覽才會上色）。
+                    tag.BaseColor = new Color(1f, 1f, 1f, 0.12f);
                     tag.Renderer.material.color = tag.BaseColor;
                     _tiles[(lane, row)] = tag;
                 }
             }
+        }
+
+        private static Shader? FloorShader => Resources.Load<Shader>("Shaders/BattleFloor");
+
+        private void BuildFloor(Transform parent)
+        {
+            var shader = FloorShader;
+            if (shader == null) return;
+            int lanes = _battle!.Setup.Lanes, rows = _battle.Setup.Rows;
+            float w = rows * TilePitchX, d = lanes * TilePitch;   // x 軸 = 列方向、z 軸 = 欄方向
+
+            // 木框底座：比石板大一圈、略低，形成立體邊緣。
+            var frame = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            frame.name = "FloorFrame";
+            Destroy(frame.GetComponent<Collider>());
+            frame.transform.SetParent(parent, false);
+            frame.transform.localScale = new Vector3(w + 0.9f, 0.4f, d + 0.9f);
+            frame.transform.position = new Vector3(0f, -0.2f - 0.02f, 0f);
+            var frameMat = new Material(shader);
+            frameMat.SetColor("_ColorA", new Color(0.30f, 0.22f, 0.16f));
+            frameMat.SetColor("_ColorB", new Color(0.30f, 0.22f, 0.16f));
+            frameMat.SetFloat("_Vignette", 0.35f);
+            frame.GetComponent<Renderer>().sharedMaterial = frameMat;
+
+            // 石板地面（兩色棋盤紋）。
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floor.name = "FloorSlab";
+            Destroy(floor.GetComponent<Collider>());
+            floor.transform.SetParent(parent, false);
+            floor.transform.localScale = new Vector3(w + 0.1f, 0.12f, d + 0.1f);
+            floor.transform.position = new Vector3(0f, -0.06f - 0.012f, 0f);
+            var floorMat = new Material(shader);
+            floorMat.SetVector("_Tiles", new Vector4(rows, lanes, 0, 0));
+            floor.GetComponent<Renderer>().sharedMaterial = floorMat;
         }
 
         /// <summary>棋盤格的世界座標（地磚頂面中心）。第 0 列（敵方底線）在右、第 4 列（我方底線）在左；第 0 欄在遠端。</summary>
@@ -310,9 +346,9 @@ namespace SanGuo.Client
                 {
                     for (int cz = -1; cz <= 1; cz += 2)
                     {
-                        for (int h = 0; h < 2; h++)
+                        for (int h = 0; h < 2; h++) // 0 = 腳下（再往下留給我方標籤），1 = 頭頂（再往上留給敵方標籤）
                         {
-                            var p = center + new Vector3(cx * TilePitchX * 0.5f, h * UnitHeadHeight, cz * TilePitch * 0.5f);
+                            var p = center + new Vector3(cx * TilePitchX * 0.5f, h == 0 ? -TagRoomBelow : UnitHeadHeight + TagRoomAbove, cz * TilePitch * 0.5f);
                             var c = inv * p;
                             minX = Mathf.Min(minX, c.x); maxX = Mathf.Max(maxX, c.x);
                             minY = Mathf.Min(minY, c.y); maxY = Mathf.Max(maxY, c.y);
