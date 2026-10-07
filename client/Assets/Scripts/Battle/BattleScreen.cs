@@ -25,14 +25,15 @@ namespace SanGuo.Client
             public VisualElement Root = null!;
             public Label Name = null!;
             public VisualElement Role = null!;
+            public VisualElement Face = null!;
             public VisualElement HpFill = null!;
             public Label HpText = null!;
             public VisualElement Extra = null!;
             public VisualElement Intent = null!;
         }
 
-        private const float TagWidth = 132f;
-        private const float TagHeight = 62f;
+        private const float TagWidth = 158f;
+        private const float TagHeight = 76f;
 
         private readonly VisualElement _root;
         private readonly BattleStage _stage;
@@ -48,9 +49,9 @@ namespace SanGuo.Client
         private string _stageId = "1-1";
         /// <summary>目前進行的是資源副本時不為 null（主線關卡為 null）。</summary>
         private ResourceDungeonDef? _dungeon;
-        private int _eventCursor;
         /// <summary>開放編隊的關卡 / 副本：向後端開始時送出的編隊；教學關為 null。</summary>
         private List<FormationEntry>? _formation;
+        private int _eventCursor;
         private bool _auto;
         private HashSet<(Side, int, int)> _previewTargets = new HashSet<(Side, int, int)>();
         /// <summary>已點下、正在等玩家點選敵人的指定目標牌（<see cref="TargetRule.EnemyAny"/>，例如破甲箭）。</summary>
@@ -65,6 +66,7 @@ namespace SanGuo.Client
         private VisualElement _cost = null!;
         private VisualElement _piles = null!;
         private Label _logLabel = null!;
+        private VisualElement _logBox = null!;
         private Button _autoButton = null!;
         private VisualElement? _overlay;
 
@@ -121,24 +123,30 @@ namespace SanGuo.Client
             _field.RegisterCallback<ClickEvent>(OnFieldClicked);
             _content.Add(_field);
 
-            // 右下角：手牌 + 費用 / 結束回合；左下角：戰鬥紀錄。
+            // 底部：左 = 費用與牌堆，中 = 手牌，右 = 結束回合。
             var bottom = new VisualElement { pickingMode = PickingMode.Ignore };
             bottom.AddToClassList("bottom");
 
-            var info = new VisualElement();
-            info.AddToClassList("info");
-            _cost = new VisualElement();
+            var left = new VisualElement { pickingMode = PickingMode.Ignore };
+            left.AddToClassList("bottom-left");
+            _cost = new VisualElement { pickingMode = PickingMode.Ignore };
             _cost.AddToClassList("cost-label");
-            _piles = new VisualElement();
+            _piles = new VisualElement { pickingMode = PickingMode.Ignore };
             _piles.AddToClassList("pile-label");
-            info.Add(_cost);
-            info.Add(_piles);
-            info.Add(MakeButton("結束回合", EndTurn, primary: true));
-            bottom.Add(info);
+            left.Add(_cost);
+            left.Add(_piles);
+            bottom.Add(left);
 
             _hand = new VisualElement();
             _hand.AddToClassList("hand");
             bottom.Add(_hand);
+
+            var right = new VisualElement { pickingMode = PickingMode.Ignore };
+            right.AddToClassList("bottom-right");
+            var endTurn = new Button(EndTurn) { text = "結束\n回合" };
+            endTurn.AddToClassList("end-turn");
+            right.Add(endTurn);
+            bottom.Add(right);
             _content.Add(bottom);
 
             var log = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -146,6 +154,7 @@ namespace SanGuo.Client
             _logLabel = new Label { pickingMode = PickingMode.Ignore };
             _logLabel.AddToClassList("log-line");
             log.Add(_logLabel);
+            _logBox = log;
             _content.Add(log);
 
             // 角色頭上的資訊層：蓋在最上面但不擋點擊。
@@ -187,10 +196,21 @@ namespace SanGuo.Client
                 tag.Extra = new VisualElement { pickingMode = PickingMode.Ignore }; tag.Extra.AddToClassList("tag-extra");
                 tag.Intent = new VisualElement { pickingMode = PickingMode.Ignore }; tag.Intent.AddToClassList("tag-intent");
                 tag.Role = new VisualElement { pickingMode = PickingMode.Ignore }; tag.Role.AddToClassList("tag-role");
+                tag.Face = new VisualElement { pickingMode = PickingMode.Ignore }; tag.Face.AddToClassList("tag-face");
+                var faceTex = HeroArt.Face(unit.DefId);
+                if (faceTex != null) tag.Face.style.backgroundImage = new StyleBackground(faceTex);
+                else tag.Face.style.display = DisplayStyle.None;
                 var nameRow = new VisualElement { pickingMode = PickingMode.Ignore }; nameRow.AddToClassList("tag-name-row");
                 nameRow.Add(tag.Role); nameRow.Add(tag.Name);
-                tag.Root.Add(nameRow);
-                tag.Root.Add(hpBg);
+                var column = new VisualElement { pickingMode = PickingMode.Ignore };
+                column.AddToClassList("tag-column");
+                column.Add(nameRow);
+                column.Add(hpBg);
+                var mainRow = new VisualElement { pickingMode = PickingMode.Ignore };
+                mainRow.AddToClassList("tag-main");
+                mainRow.Add(tag.Face);
+                mainRow.Add(column);
+                tag.Root.Add(mainRow);
                 tag.Root.Add(tag.Extra);
                 tag.Root.Add(tag.Intent);
                 _tagLayer.Add(tag.Root);
@@ -204,6 +224,7 @@ namespace SanGuo.Client
         {
             _stageId = ticket.StageId;
             _dungeon = ticket.Dungeon;
+            _formation = ticket.Formation;
             _level = ticket.Level;
             _seed = ticket.Seed;
         }
@@ -224,7 +245,6 @@ namespace SanGuo.Client
         private async Task BeginStageId(string stageId)
         {
             if (_busy) return;
-            _formation = ticket.Formation;
             _busy = true;
             try
             {
@@ -507,29 +527,31 @@ namespace SanGuo.Client
                 var ok = _battle.CanPlay(card);
                 var el = new VisualElement();
                 el.AddToClassList("card");
+                bool attack = card.Def.Effects.Any(e => e.Type == EffectType.Damage);
+                bool heal = card.Def.Effects.Any(e => e.Type == EffectType.Heal);
+                el.AddToClassList(attack ? "card-attack" : heal ? "card-heal" : "card-support");
                 if (!card.Def.Basic) el.AddToClassList("card-skill");
                 if (ok != PlayResult.Ok) el.AddToClassList("card-disabled");
 
-                var cost = new Label(card.Def.Cost.ToString());
+                // 卡面插圖：出牌武將的頭像（TS6Client 美術），沒有圖就維持純色。
+                var art = new VisualElement { pickingMode = PickingMode.Ignore };
+                art.AddToClassList("card-art");
+                var portrait = HeroArt.Face(card.Owner.DefId);
+                if (portrait != null) art.style.backgroundImage = new StyleBackground(portrait);
+
+                var cost = new Label(card.Def.Cost.ToString()) { pickingMode = PickingMode.Ignore };
                 cost.AddToClassList("card-cost");
                 var costIcon = UiIcons.Get("cost");
                 if (costIcon != null) cost.style.backgroundImage = new StyleBackground(costIcon);
-                var tag = UiIcons.Icon(card.Def.Basic ? "damage" : "charge", "card-tag");
-                var top = new VisualElement { pickingMode = PickingMode.Ignore };
-                top.AddToClassList("card-top");
-                top.Add(cost);
-                top.Add(tag);
-
-                // 卡面插圖：Resources/HeroArt/<heroId>.png（占位 / 正式美術都放這裡），沒有圖就維持純色。
-                var art = new VisualElement { pickingMode = PickingMode.Ignore };
-                art.AddToClassList("card-art");
-                var portrait = Resources.Load<Texture2D>("HeroArt/" + card.Owner.DefId);
-                if (portrait != null) art.style.backgroundImage = new StyleBackground(portrait);
-                var name = new Label(card.Def.Name);
-                name.AddToClassList("card-name");
-                var owner = new Label(card.Owner.Name + (card.Owner.Alive ? "" : "（陣亡）"));
+                art.Add(cost);
+                art.Add(UiIcons.Icon(attack ? "damage" : heal ? "heal" : "armor", "card-tag"));
+                var owner = new Label(card.Owner.Name + (card.Owner.Alive ? "" : "（陣亡）")) { pickingMode = PickingMode.Ignore };
                 owner.AddToClassList("card-owner");
-                var target = new Label(CardText.Target(card.Def));
+                art.Add(owner);
+
+                var name = new Label(card.Def.Name) { pickingMode = PickingMode.Ignore };
+                name.AddToClassList("card-name");
+                var target = new Label(CardText.Target(card.Def)) { pickingMode = PickingMode.Ignore };
                 target.AddToClassList("card-target");
                 var desc = new VisualElement { pickingMode = PickingMode.Ignore };
                 desc.AddToClassList("card-desc");
@@ -541,9 +563,7 @@ namespace SanGuo.Client
                 if (card.Def.Keywords.HasFlag(CardKeywords.Innate)) kw.Add(UiIcons.Chip("kw_innate"));
 
                 el.Add(art);
-                el.Add(top);
                 el.Add(name);
-                el.Add(owner);
                 el.Add(target);
                 el.Add(desc);
                 el.Add(kw);
@@ -563,12 +583,29 @@ namespace SanGuo.Client
                 ? $"{where}　第 {_battle.Turn} / {_battle.Setup.TurnLimit} 回合"
                 : $"{where}　第 {_battle.Turn} 回合";
             _cost.Clear();
-            _cost.Add(UiIcons.Chip("cost", $"{_battle.Cost}/{_battle.Setup.CostCap}", "chip-big"));
+            var orb = new VisualElement { pickingMode = PickingMode.Ignore };
+            orb.AddToClassList("cost-orb");
+            var orbIcon = UiIcons.Get("cost");
+            if (orbIcon != null) orb.style.backgroundImage = new StyleBackground(orbIcon);
+            orb.Add(new Label(_battle.Cost.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("cost-num"));
+            _cost.Add(orb);
+            _cost.Add(new Label($"費用上限 {_battle.Setup.CostCap}") { pickingMode = PickingMode.Ignore }.WithClass("cost-caption"));
             _piles.Clear();
-            _piles.Add(UiIcons.Chip("draw", _battle.DrawPile.Count.ToString()));
-            _piles.Add(UiIcons.Chip("kw_retain", _battle.DiscardPile.Count.ToString()));
-            _piles.Add(UiIcons.Chip("kw_exhaust", _battle.ExhaustPile.Count.ToString()));
+            _piles.Add(PileRow("draw", "抽牌堆", _battle.DrawPile.Count));
+            _piles.Add(PileRow("kw_retain", "棄牌堆", _battle.DiscardPile.Count));
+            _piles.Add(PileRow("kw_exhaust", "消耗", _battle.ExhaustPile.Count));
             _logLabel.text = string.Join("\n", _log.Skip(Math.Max(0, _log.Count - 4)));
+            _logBox.style.display = _log.Count == 0 ? DisplayStyle.None : DisplayStyle.Flex;
+        }
+
+        private static VisualElement PileRow(string icon, string label, int count)
+        {
+            var row = new VisualElement { pickingMode = PickingMode.Ignore };
+            row.AddToClassList("pile-row");
+            row.Add(UiIcons.Icon(icon, "icon-sm"));
+            row.Add(new Label(label) { pickingMode = PickingMode.Ignore }.WithClass("pile-name"));
+            row.Add(new Label(count.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("pile-count"));
+            return row;
         }
 
         private void RefreshOverlay()
@@ -611,9 +648,14 @@ namespace SanGuo.Client
                 return;
             }
 
+            var card = new VisualElement();
+            card.AddToClassList("result-card");
+            overlay.Add(card);
             var text = new Label(result.Won ? "勝利" : "敗北");
             text.AddToClassList("overlay-text");
-            overlay.Add(text);
+            card.Add(text);
+            var btnRow = new VisualElement();
+            btnRow.AddToClassList("result-buttons");
             var dungeon = DemoMeta.FindDungeon(stageId);
             if (result.Won && dungeon != null)
             {
@@ -621,26 +663,38 @@ namespace SanGuo.Client
                 if (result.Gold > 0) gains.Add($"金幣 +{result.Gold}");
                 if (result.Yuanbao > 0) gains.Add($"元寶 +{result.Yuanbao}");
                 foreach (var m in result.Materials) gains.Add($"{UiText.MaterialName(m.Key)} +{m.Value}");
-                AddInfo(overlay, "獎勵：" + string.Join("　", gains));
+                AddInfo(card, "獎勵：" + string.Join("　", gains));
             }
             else if (result.Won)
             {
-                AddInfo(overlay, UiText.Stars(result.Stars) + (result.FirstClear ? "　首次通關" : ""));
-                AddInfo(overlay, $"經驗 +{result.Exp}　金幣 +{result.Gold}" + (result.Yuanbao > 0 ? $"　元寶 +{result.Yuanbao}" : ""));
-                if (result.LevelsGained > 0) AddInfo(overlay, $"帳號升級！Lv.{GameSession.View.Level}（體力已回滿）");
+                var stars = new VisualElement();
+                stars.AddToClassList("result-stars");
+                for (int i = 0; i < 3; i++)
+                {
+                    var star = new VisualElement();
+                    star.AddToClassList("result-star");
+                    if (i < result.Stars) star.AddToClassList("result-star-on");
+                    stars.Add(star);
+                }
+                card.Add(stars);
+                if (result.FirstClear) AddInfo(card, "首次通關");
+                AddInfo(card, $"經驗 +{result.Exp}　金幣 +{result.Gold}" + (result.Yuanbao > 0 ? $"　元寶 +{result.Yuanbao}" : ""));
+                if (result.LevelsGained > 0) AddInfo(card, $"帳號升級！Lv.{GameSession.View.Level}（體力已回滿）");
             }
 
             if (dungeon != null)
             {
-                overlay.Add(MakeButton("再打一次", () => _ = BeginStageId(stageId), primary: true));
-                overlay.Add(MakeButton("回副本", () => Nav.Go(Page.Dungeons)));
+                btnRow.Add(MakeButton("再打一次", () => _ = BeginStageId(stageId), primary: true));
+                btnRow.Add(MakeButton("回副本", () => Nav.Go(Page.Dungeons)));
+                card.Add(btnRow);
                 return;
             }
             int level = _level;
             bool hasNext = result.Won && level < DemoContent.ChapterLevelCount;
-            if (hasNext) overlay.Add(MakeButton("下一關", () => EnterLevel(level + 1), primary: true));
-            overlay.Add(MakeButton("再打一次", () => EnterLevel(level), primary: !hasNext));
-            overlay.Add(MakeButton("回地圖", () => Nav.Go(Page.Map)));
+            if (hasNext) btnRow.Add(MakeButton("下一關", () => EnterLevel(level + 1), primary: true));
+            btnRow.Add(MakeButton("再打一次", () => EnterLevel(level), primary: !hasNext));
+            btnRow.Add(MakeButton("回地圖", () => Nav.Go(Page.Map)));
+            card.Add(btnRow);
         }
 
         // ------------------------------------------------------------ 戰鬥紀錄

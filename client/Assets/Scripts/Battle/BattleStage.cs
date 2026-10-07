@@ -72,11 +72,43 @@ namespace SanGuo.Client
                 light.color = new Color(1f, 0.97f, 0.92f);
                 lightGo.transform.rotation = Quaternion.Euler(52f, -25f, 0f);
             }
+            CreateBackdrop();
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.56f, 0.56f, 0.62f);
         }
 
         // ------------------------------------------------------------ 綁定戰鬥
+
+        private Transform? _backdrop;
+        private const float BackdropDistance = 60f;
+
+        /// <summary>戰場背景：貼圖貼在攝影機正後方的一張 Quad，跟著鏡頭縮放、永遠填滿畫面（Resources/UiBg/battle）。</summary>
+        private void CreateBackdrop()
+        {
+            var tex = Resources.Load<Texture2D>("UiBg/battle");
+            var shader = Resources.Load<Shader>("Shaders/Backdrop");
+            if (tex == null || shader == null) return;
+            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            quad.name = "Backdrop";
+            Destroy(quad.GetComponent<Collider>());
+            quad.transform.SetParent(_camera.transform, false);
+            quad.transform.localPosition = new Vector3(0f, 0f, BackdropDistance);
+            quad.transform.localRotation = Quaternion.identity;
+            var mat = new Material(shader) { mainTexture = tex, color = new Color(0.86f, 0.88f, 0.95f) };
+            quad.GetComponent<Renderer>().sharedMaterial = mat;
+            _backdrop = quad.transform;
+        }
+
+        private void UpdateBackdrop()
+        {
+            if (_backdrop == null) return;
+            float h = _camera.orthographicSize * 2f;
+            float w = h * _camera.aspect;
+            // 貼圖是 16:9：以「填滿」的方式放大（寬或高其中一邊剛好、另一邊裁掉）
+            float imageAspect = 16f / 9f;
+            if (_camera.aspect > imageAspect) h = w / imageAspect; else w = h * imageAspect;
+            _backdrop.localScale = new Vector3(w, h, 1f);
+        }
 
         public void Bind(Battle battle, VisualElement panelRoot, VisualElement field)
         {
@@ -119,8 +151,8 @@ namespace SanGuo.Client
                         if (TileShader != null) tag.Renderer.sharedMaterial = new Material(TileShader);
                         bool alt = (lane + row) % 2 == 0;
                         tag.BaseColor = side == Side.Player
-                            ? (alt ? new Color(0.20f, 0.29f, 0.42f) : new Color(0.17f, 0.25f, 0.37f))
-                            : (alt ? new Color(0.42f, 0.22f, 0.24f) : new Color(0.36f, 0.19f, 0.21f));
+                            ? (alt ? new Color(0.28f, 0.44f, 0.76f) : new Color(0.23f, 0.38f, 0.70f))
+                            : (alt ? new Color(0.70f, 0.28f, 0.28f) : new Color(0.62f, 0.23f, 0.24f));
                         tag.Renderer.material.color = tag.BaseColor;
                         _tiles[(side, lane, row)] = tag;
                     }
@@ -232,6 +264,7 @@ namespace SanGuo.Client
         {
             if (_battle == null || _panelRoot == null || _field == null) return;
             FitCamera();
+            UpdateBackdrop();
 
             foreach (var unit in _battle.Units)
             {
