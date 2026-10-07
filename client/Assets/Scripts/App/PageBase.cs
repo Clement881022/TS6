@@ -38,6 +38,7 @@ namespace SanGuo.Client
             _host = new VisualElement();
             _host.AddToClassList("page-host");
             _host.AddToClassList("bg-" + Id.ToString().ToLowerInvariant());
+            if (Id != Page.Battle) _host.AddToClassList("meta-page"); // Polish.uss 的統一尺寸只作用於非戰鬥頁面
             container.Add(_host);
             Rebuild();
             if (await GameSession.Refresh()) Rebuild();

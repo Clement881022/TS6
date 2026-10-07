@@ -153,12 +153,12 @@ namespace SanGuo.Client
         {
             var plate = new Button(() => Nav.Go(Page.Map));
             plate.AddToClassList("home-chapter");
-            string next = cleared >= total ? "章節已通關" : $"{cleared + 1}　{DemoContent.LevelNames[Math.Min(cleared, total - 1)]}";
+            string next = cleared >= total ? "章節已通關" : $"下一關　{DemoContent.LevelNames[Math.Min(cleared, total - 1)]}";
             plate.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-diamond"));
             var text = new VisualElement { pickingMode = PickingMode.Ignore };
             text.AddToClassList("home-chapter-text");
             text.Add(new Label("第零章　涿縣盜匪") { pickingMode = PickingMode.Ignore }.WithClass("home-chapter-title"));
-            text.Add(new Label($"{next}　{cleared}/{total}") { pickingMode = PickingMode.Ignore }.WithClass("home-chapter-sub"));
+            text.Add(new Label($"{next}　（{cleared}/{total}）") { pickingMode = PickingMode.Ignore }.WithClass("home-chapter-sub"));
             plate.Add(text);
             plate.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-diamond"));
             return plate;

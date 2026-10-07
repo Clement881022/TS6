@@ -32,6 +32,8 @@ namespace SanGuo.Client
             yield return Wait(0.4f);
 
             yield return Go(Page.Gacha);
+            Shot(dir, "gacha-main");
+            yield return Wait(0.4f);
             if (PageHost.Current?.ActivePage is GachaPage gacha) _ = gacha.DebugTenPull();
             yield return Wait(0.8f);
             Shot(dir, "gacha");
@@ -42,6 +44,17 @@ namespace SanGuo.Client
                 yield return Go(page);
                 Shot(dir, page.ToString().ToLowerInvariant());
                 yield return Wait(0.4f);
+
+                // 各頁的次要畫面：關卡面板、武將的突破 / 卡牌強化分頁、七日目標。
+                var active = PageHost.Current?.ActivePage;
+                if (active is MapPage map) { map.DebugOpenStage(1); yield return Wait(0.4f); Shot(dir, "map-stage"); }
+                else if (active is HeroesPage heroes)
+                {
+                    heroes.DebugSetTab(1); yield return Wait(0.5f); Shot(dir, "heroes-break"); yield return Wait(0.3f); // 截圖在幀尾才擷取，下一步要等一下
+                    heroes.DebugSetTab(2); yield return Wait(0.5f); Shot(dir, "heroes-cards");
+                }
+                else if (active is QuestsPage quests) { quests.DebugShowSevenDay(); yield return Wait(0.5f); Shot(dir, "quests-seven"); }
+                yield return Wait(0.2f);
             }
 
             GameSession.SelectedLevel = Mathf.Max(2, GameSession.SelectedLevel);

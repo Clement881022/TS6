@@ -79,10 +79,13 @@ namespace SanGuo.Client
             // 底部：章節進度條
             var info = new VisualElement { pickingMode = PickingMode.Ignore };
             info.AddToClassList("map-info");
-            info.Add(UiKit.Text($"章節進度 {cleared}/{DemoContent.ChapterLevelCount}", "txt-gold"));
+            info.Add(UiKit.Text($"章節進度  {cleared}/{DemoContent.ChapterLevelCount}", "txt-gold"));
             info.Add(UiKit.Bar(100f * cleared / DemoContent.ChapterLevelCount, "bar-gold bar-slim"));
             body.Add(info);
         }
+
+        /// <summary>截圖 / 除錯用：直接開啟關卡面板。</summary>
+        public void DebugOpenStage(int level) => OpenStageDetail(level);
 
         // ---- 關卡面板（獎勵 / 敵人 / 挑戰 / 掃蕩）----
 
@@ -96,9 +99,12 @@ namespace SanGuo.Client
 
             var overlay = new VisualElement();
             overlay.AddToClassList("overlay");
+            // 點面板外的暗處也能關閉
+            overlay.RegisterCallback<ClickEvent>(e => { if (e.target == overlay) overlay.RemoveFromHierarchy(); });
             var panel = new VisualElement();
             panel.AddToClassList("bpanel");
             panel.AddToClassList("stage-panel");
+            panel.Add(new Button(() => overlay.RemoveFromHierarchy()).WithClass("popup-close"));
 
             var head = new VisualElement();
             head.AddToClassList("stage-head");
@@ -118,8 +124,9 @@ namespace SanGuo.Client
             tiles.Add(UiKit.ItemTile("item_gold", stage.Gold.ToString()));
             if (first && stage.FirstClearYuanbao > 0) tiles.Add(UiKit.ItemTile("item_yuanbao", stage.FirstClearYuanbao.ToString(), "item-first"));
             rewards.Add(tiles);
-            string par = stage.StarTurnPar > 0 ? $"　★★★ {stage.StarTurnPar} 回合內" : "";
-            rewards.Add(UiKit.Text("★ 通關　★★ 無武將陣亡" + par, "line-sub"));
+            rewards.Add(StarCondition(1, "通關", stars));
+            rewards.Add(StarCondition(2, "無武將陣亡", stars));
+            if (stage.StarTurnPar > 0) rewards.Add(StarCondition(3, $"{stage.StarTurnPar} 回合內通關", stars));
             cols.Add(rewards);
 
             var foes = new VisualElement();
@@ -130,28 +137,37 @@ namespace SanGuo.Client
             cols.Add(foes);
             panel.Add(cols);
 
-            var cost = new VisualElement();
-            cost.AddToClassList("cost-chip");
+            var cost = UiKit.Cost("item_stamina", stage.StaminaCost, v.Stamina);
             cost.AddToClassList("stage-cost");
-            if (v.Stamina < stage.StaminaCost) cost.AddToClassList("cost-chip-bad");
-            cost.Add(new Label("消耗體力") { pickingMode = PickingMode.Ignore }.WithClass("line-sub"));
-            cost.Add(UiKit.ItemTile("item_stamina"));
-            cost.Add(new Label($"{stage.StaminaCost}（現有 {v.Stamina}）") { pickingMode = PickingMode.Ignore }.WithClass("cost-chip-text"));
             panel.Add(cost);
 
+            // 左：掃蕩（三星後才有）；右：戰鬥。關閉靠右上角 ✕ 或點暗處。
             var row = new VisualElement();
             row.AddToClassList("stage-buttons");
+            var sweeps = new VisualElement();
+            sweeps.AddToClassList("stage-sweeps");
             if (stars >= 3)
             {
-                row.Add(UiKit.Btn("掃蕩 ×1", () => _ = Sweep(level, 1)));
-                row.Add(UiKit.Btn($"掃蕩 ×{PlayerProfile.MaxSweepCount}", () => _ = Sweep(level, PlayerProfile.MaxSweepCount)));
+                sweeps.Add(UiKit.Btn("掃蕩 ×1", () => _ = Sweep(level, 1)).WithClass("btn-sm"));
+                sweeps.Add(UiKit.Btn($"掃蕩 ×{PlayerProfile.MaxSweepCount}", () => _ = Sweep(level, PlayerProfile.MaxSweepCount)).WithClass("btn-sm"));
             }
-            row.Add(UiKit.Btn("返回", () => overlay.RemoveFromHierarchy()));
-            row.Add(UiKit.Btn("戰鬥", () => EnterLevel(level), primary: true));
+            row.Add(sweeps);
+            row.Add(UiKit.Btn("戰鬥", () => EnterLevel(level), primary: true).WithClass("btn-lg"));
             panel.Add(row);
 
             overlay.Add(panel);
             Host.Add(overlay);
+        }
+
+        /// <summary>星級條件一行：已達成的打勾變綠。</summary>
+        private static VisualElement StarCondition(int need, string text, int stars)
+        {
+            var row = new VisualElement { pickingMode = PickingMode.Ignore };
+            row.AddToClassList("star-cond");
+            if (stars >= need) row.AddToClassList("star-cond-on");
+            row.Add(new Label(new string('★', need)) { pickingMode = PickingMode.Ignore }.WithClass("star-cond-stars"));
+            row.Add(new Label((stars >= need ? "● " : "") + text) { pickingMode = PickingMode.Ignore }.WithClass("star-cond-text"));
+            return row;
         }
 
         private Task Sweep(int level, int count) => Act(

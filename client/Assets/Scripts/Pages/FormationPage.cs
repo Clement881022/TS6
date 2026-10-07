@@ -77,9 +77,12 @@ namespace SanGuo.Client
             strip.Add(UiKit.Text("敵方", "form-strip-label"));
             strip.Add(UiKit.Text(string.Join("　", foes), "txt-gold"));
             body.Add(strip);
-            var hint = UiKit.Hint(_message.Length > 0 ? _message : "點武將再點格子可移動 / 換位，最多上場 4 人；戰場是敵我共用的 5x5，開戰後靠「移動」卡走位", _message.Length > 0);
-            hint.AddToClassList("form-hint");
-            body.Add(hint);
+            if (_message.Length > 0)
+            {
+                string msg = _message;
+                _message = "";
+                body.schedule.Execute(() => Toast(msg)).ExecuteLater(0);
+            }
 
             var main = new VisualElement();
             main.AddToClassList("form-main");
@@ -94,7 +97,7 @@ namespace SanGuo.Client
             laneHead.Add(FormLabel("", 80));
             string[] laneNames = { "左", "中", "右" };
             for (int lane = BattleSetup.FormationMinLane; lane <= BattleSetup.FormationMaxLane; lane++)
-                laneHead.Add(FormLabel(laneNames[lane - BattleSetup.FormationMinLane], 150, 5));
+                laneHead.Add(FormLabel(laneNames[lane - BattleSetup.FormationMinLane], 190, 6)); // 與 htile-md（190 寬 + 左右各 6）對齊
             board.Add(laneHead);
             for (int r = BattleSetup.FormationMinRow; r <= BattleSetup.FormationMaxRow; r++)
             {
@@ -109,13 +112,14 @@ namespace SanGuo.Client
                     {
                         var slot = new Button(() => OnCell(l, rr));
                         slot.AddToClassList("slot-empty");
+                        slot.AddToClassList("slot-md");
                         slot.Add(new Label("＋") { pickingMode = PickingMode.Ignore }.WithClass("slot-plus"));
                         row.Add(slot);
                     }
                     else
                     {
                         int lv = GameSession.View.Heroes.TryGetValue(def.Id, out var st) ? st.Level : 1;
-                        row.Add(UiKit.HeroTile(def, lv, -1, () => OnCell(l, rr), selected: id == _pick, extraClass: "htile-sm"));
+                        row.Add(UiKit.HeroTile(def, lv, -1, () => OnCell(l, rr), selected: id == _pick, extraClass: "htile-md"));
                     }
                 }
                 board.Add(row);
@@ -126,10 +130,12 @@ namespace SanGuo.Client
             var bench = new VisualElement();
             bench.AddToClassList("bpanel");
             bench.AddToClassList("form-bench");
-            bench.Add(UiKit.Text($"待命武將（上場 {formation.Count}/{GameSession.MaxTeamSize}）", "bpanel-title"));
+            bench.Add(UiKit.Text("待命武將", "bpanel-title"));
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("grow");
             scroll.contentContainer.AddToClassList("hero-grid");
+            if (GameSession.OwnedHeroes().All(d => formation.ContainsKey(d.Id)))
+                scroll.Add(UiKit.Text("所有武將都已上場", "quest-more"));
             foreach (var def in GameSession.OwnedHeroes().Where(d => !formation.ContainsKey(d.Id)))
             {
                 string id = def.Id;
@@ -139,15 +145,17 @@ namespace SanGuo.Client
             bench.Add(scroll);
             main.Add(bench);
 
-            var buttons = new VisualElement();
-            buttons.AddToClassList("form-buttons");
-            buttons.Add(UiKit.Btn("返回", Back).WithClass("btn-wide"));
-            buttons.Add(UiKit.Btn("戰鬥", () =>
+            // 底部操作列：返回（左）、上場人數（中）、戰鬥（右）。
+            var footer = new VisualElement();
+            footer.AddToClassList("form-footer");
+            footer.Add(UiKit.Btn("返回", Back));
+            footer.Add(UiKit.Text($"上場 {formation.Count}/{GameSession.MaxTeamSize}", "form-count"));
+            footer.Add(UiKit.Btn("戰鬥", () =>
             {
                 if (formation.Count == 0) { _message = "至少要有 1 名武將上場"; Rebuild(); return; }
                 _ = StartBattle(stageId);
-            }, primary: true).WithClass("btn-wide"));
-            body.Add(buttons);
+            }, primary: true).WithClass("btn-lg"));
+            body.Add(footer);
         }
 
         private static Label FormLabel(string text, float width, float margin = 0)

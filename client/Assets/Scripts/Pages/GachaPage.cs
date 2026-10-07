@@ -50,7 +50,10 @@ namespace SanGuo.Client
             var showcase = new VisualElement();
             showcase.AddToClassList("gacha-showcase");
             var heroes = current.UrHeroes.Select(DefOf).Where(d => d != null).Take(3).ToList();
-            for (int i = 0; i < heroes.Count; i++)
+            // 主打放正中間，其餘左右對稱。
+            var order = Enumerable.Range(0, heroes.Count).ToList();
+            if (order.Count == 3) order = new List<int> { 1, 0, 2 };
+            foreach (int i in order)
             {
                 var d = heroes[i]!;
                 var card = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -86,30 +89,30 @@ namespace SanGuo.Client
                 info.Add(UiKit.Text($"距離保底還有 {current.HardPityUr - since} 抽（累計 {state?.TotalPulls ?? 0} 抽）", "line-title"));
                 info.Add(UiKit.Bar(100f * since / current.HardPityUr, "bar-gold bar-slim"));
             }
-            if (current.FirstTenGuaranteesUr && (state?.TenPulls ?? 0) == 0)
-                info.Add(UiKit.Text("首次十連必定獲得 1 名 UR", "txt-warn"));
             stage.Add(info);
             page.Add(stage);
 
-            // ---- 底部：抽卡按鈕 ----
+            // ---- 底部：抽卡按鈕（首次十連保底 UR 以紅色角標提示）----
             var actions = new VisualElement();
             actions.AddToClassList("gacha-actions");
-            actions.Add(PullButton("單抽", current.SingleCost, 1, false));
-            actions.Add(PullButton("十連", current.TenCost, 10, true));
+            bool firstTen = current.FirstTenGuaranteesUr && (state?.TenPulls ?? 0) == 0;
+            actions.Add(PullButton("單抽", current.SingleCost, 1, false, null));
+            actions.Add(PullButton("十連", current.TenCost, 10, true, firstTen ? "首次必出 UR" : null));
             page.Add(actions);
 
             if (_last != null) body.Add(BuildResults());
         }
 
-        private Button PullButton(string label, int cost, int count, bool primary)
+        private Button PullButton(string label, int cost, int count, bool primary, string? tag)
         {
-            var b = UiKit.Btn("", () => _ = Pull(count), primary: primary);
+            var b = UiKit.Btn("", () => _ = Pull(count), primary: primary).WithClass("btn-lg");
             var row = new VisualElement { pickingMode = PickingMode.Ignore };
             row.AddToClassList("gacha-cost");
-            row.Add(new Label(label + "　") { pickingMode = PickingMode.Ignore }.WithClass("cost-chip-text"));
+            row.Add(new Label(label) { pickingMode = PickingMode.Ignore }.WithClass("cost-chip-text").WithClass("gacha-cost-label"));
             row.Add(UiKit.ItemTile("item_yuanbao"));
             row.Add(new Label(cost.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("cost-chip-text"));
             b.Add(row);
+            if (tag != null) b.Add(new Label(tag) { pickingMode = PickingMode.Ignore }.WithClass("btn-tag"));
             return b;
         }
 

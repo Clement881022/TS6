@@ -17,9 +17,7 @@ namespace SanGuo.Client
             var v = GameSession.View;
             var p = v.Raw;
             body.style.flexDirection = FlexDirection.Column;
-            var hint = UiKit.Hint("目前為測試付款：按「購買」會直接模擬付款成功，不會真的扣款。", warn: true);
-            hint.AddToClassList("form-hint");
-            body.Add(hint);
+            body.AddToClassList("page-centered");
 
             var row = new VisualElement();
             row.AddToClassList("dun-row");
@@ -43,38 +41,34 @@ namespace SanGuo.Client
                 art.Add(UiKit.ItemTile("item_yuanbao", month ? pr.ImmediateYuanbao.ToString() : Shop.GrowthFundTiers().Sum(t => t.Yuanbao).ToString(), "shop-icon"));
                 card.Add(art);
 
+                var text = new VisualElement { pickingMode = PickingMode.Ignore };
+                text.AddToClassList("card-body");
+                var btns = new VisualElement();
+                btns.AddToClassList("card-footer");
                 if (month)
                 {
                     int left = Shop.MonthCardDaysLeft(p, pr.Id, v.Now);
                     bool claimed = Shop.MonthCardClaimedToday(p, pr.Id, v.Now);
-                    card.Add(UiKit.Text($"購買即得 {pr.ImmediateYuanbao} 元寶", "line-title").WithClass("dun-center"));
-                    card.Add(UiKit.Text($"每日領 {pr.DailyYuanbao}（{pr.Days} 天）", "line-sub").WithClass("dun-center"));
-                    card.Add(UiKit.Text(left > 0 ? $"剩餘 {left} 天" : "未持有", left > 0 ? "txt-good" : "line-sub").WithClass("dun-center"));
-                    var btns = new VisualElement();
-                    btns.AddToClassList("dun-buttons");
+                    text.Add(UiKit.Text($"購買即得 {pr.ImmediateYuanbao} 元寶", "line-title").WithClass("dun-center"));
+                    text.Add(UiKit.Text($"每日領 {pr.DailyYuanbao}（{pr.Days} 天）", "line-sub").WithClass("dun-center"));
+                    text.Add(UiKit.Text(left > 0 ? $"剩餘 {left} 天" : "未持有", left > 0 ? "txt-good" : "line-sub").WithClass("dun-center"));
                     if (left > 0)
                     {
                         if (claimed) btns.Add(UiKit.DoneBtn("今日已領"));
                         else btns.Add(UiKit.Btn($"領取 {pr.DailyYuanbao}", () => _ = Act(() => GameSession.Backend.ClaimMonthCard(pr.Id), "已領取"), primary: true));
                     }
                     btns.Add(UiKit.Btn($"{(left > 0 ? "續購" : "購買")}　¥{pr.PriceCny}", () => _ = Act(() => GameSession.Backend.BuyWithTestPayment(pr.Id), "購買成功"), primary: left <= 0));
-                    card.Add(btns);
                 }
                 else
                 {
-                    card.Add(UiKit.Text("依帳號等級分階段領取", "line-title").WithClass("dun-center"));
+                    text.Add(UiKit.Text("依帳號等級分階段領取", "line-title").WithClass("dun-center"));
                     if (!p.GrowthFundOwned)
                     {
-                        card.Add(UiKit.Text($"合計 {Shop.GrowthFundTiers().Sum(t => t.Yuanbao)} 元寶", "line-sub").WithClass("dun-center"));
-                        var btns = new VisualElement();
-                        btns.AddToClassList("dun-buttons");
+                        text.Add(UiKit.Text($"合計 {Shop.GrowthFundTiers().Sum(t => t.Yuanbao)} 元寶", "line-sub").WithClass("dun-center"));
                         btns.Add(UiKit.Btn($"購買　¥{pr.PriceCny}", () => _ = Act(() => GameSession.Backend.BuyWithTestPayment(pr.Id), "購買成功"), primary: true));
-                        card.Add(btns);
                     }
                     else
                     {
-                        var tiers = new VisualElement();
-                        tiers.AddToClassList("shop-tiers");
                         foreach (var t in Shop.GrowthFundTiers())
                         {
                             int level = t.PlayerLevel;
@@ -83,14 +77,18 @@ namespace SanGuo.Client
                             var b = claimed
                                 ? UiKit.DoneBtn($"Lv.{level} 已領")
                                 : UiKit.Btn($"Lv.{level}　{t.Yuanbao}", () => _ = Act(() => GameSession.Backend.ClaimGrowthFund(level), "已領取"), primary: ready);
+                            b.AddToClassList("btn-sm");
                             b.AddToClassList("shop-tier-btn");
-                            tiers.Add(b);
+                            btns.Add(b);
                         }
-                        card.Add(tiers);
                     }
                 }
+                card.Add(text);
+                card.Add(btns);
                 row.Add(card);
             }
+
+            body.Add(UiKit.Text("測試環境：購買不會實際扣款", "foot-note"));
         }
     }
 }

@@ -56,6 +56,25 @@ namespace SanGuo.Client
             return b;
         }
 
+        /// <summary>在按鈕 / 分頁右上角加紅點（有可領取 / 可操作的項目）。</summary>
+        public static T RedDot<T>(this T el, bool show) where T : VisualElement
+        {
+            if (show) el.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("reddot"));
+            return el;
+        }
+
+        /// <summary>費用：圖示 + 需要數量，後面接暗色的「/持有量」（have &lt; 0 不顯示）；不足時整組變紅。</summary>
+        public static VisualElement Cost(string icon, int need, int have = -1)
+        {
+            var chip = new VisualElement { pickingMode = PickingMode.Ignore };
+            chip.AddToClassList("cost-chip");
+            if (have >= 0 && have < need) chip.AddToClassList("cost-chip-bad");
+            chip.Add(ItemTile(icon));
+            chip.Add(new Label(need.ToString("N0")) { pickingMode = PickingMode.Ignore }.WithClass("cost-chip-text"));
+            if (have >= 0) chip.Add(new Label("/" + have.ToString("N0")) { pickingMode = PickingMode.Ignore }.WithClass("cost-chip-have"));
+            return chip;
+        }
+
         public static VisualElement Row(string extraClass = "")
         {
             var row = new VisualElement();
@@ -302,8 +321,8 @@ namespace SanGuo.Client
             var rt = UiIcons.Get(UiIcons.RoleIcon(def.Role));
             if (rt != null) role.style.backgroundImage = new StyleBackground(rt);
             b.Add(role);
-            if (level > 0) b.Add(new Label(level.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("htile-level"));
             b.Add(new Label(def.Name) { pickingMode = PickingMode.Ignore }.WithClass("htile-name"));
+            if (level > 0) b.Add(new Label("Lv." + level) { pickingMode = PickingMode.Ignore }.WithClass("htile-level")); // 要在名牌之後加，才會畫在名牌上面
             return b;
         }
 

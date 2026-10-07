@@ -30,6 +30,13 @@ namespace SanGuo.Client
             _stage = null;
         }
 
+        /// <summary>截圖 / 除錯用：切到指定分頁（0 升級、1 突破、2 卡牌強化）。</summary>
+        public void DebugSetTab(int tab)
+        {
+            _tab = (Tab)tab;
+            Rebuild();
+        }
+
         protected override void BuildBody(VisualElement body)
         {
             var v = GameSession.View;
@@ -146,98 +153,100 @@ namespace SanGuo.Client
             var right = new VisualElement();
             right.AddToClassList("hero-right");
 
-            right.Add(SideTab("升級", Tab.Level));
-            right.Add(SideTab("突破", Tab.Break));
-            right.Add(SideTab("卡牌強化", Tab.Cards));
+            var seg = new VisualElement();
+            seg.AddToClassList("seg");
+            seg.Add(SegTab("升級", Tab.Level));
+            seg.Add(SegTab("突破", Tab.Break));
+            seg.Add(SegTab("卡牌強化", Tab.Cards));
+            right.Add(seg);
 
+            // 面板分上下兩塊：內容（撐滿）與底部主要操作（貼底），三個分頁的按鈕位置一致。
             var panel = new VisualElement();
             panel.AddToClassList("bpanel");
             panel.AddToClassList("side-panel");
+            if (_tab == Tab.Cards) panel.AddToClassList("side-panel-fill"); // 卡牌清單長，撐滿；其餘分頁依內容高度
+            var content = new VisualElement();
+            content.AddToClassList("side-body");
+            var footer = new VisualElement();
+            footer.AddToClassList("side-footer");
             switch (_tab)
             {
-                case Tab.Level: BuildLevel(panel, def, hero, v); break;
-                case Tab.Break: BuildBreak(panel, def, hero, v); break;
-                default: BuildCards(panel, def, hero); break;
+                case Tab.Level: BuildLevel(content, footer, def, hero, v); break;
+                case Tab.Break: BuildBreak(content, footer, def, hero, v); break;
+                default: BuildCards(content, def, hero, v); break;
             }
+            panel.Add(content);
+            if (footer.childCount > 0) panel.Add(footer);
             right.Add(panel);
             return right;
         }
 
-        private Button SideTab(string text, Tab tab)
-        {
-            var b = UiKit.Tab(text, () => { _tab = tab; Rebuild(); }, _tab == tab);
-            b.AddToClassList("side-tab");
-            return b;
-        }
+        private Button SegTab(string text, Tab tab) =>
+            UiKit.Tab(text, () => { _tab = tab; Rebuild(); }, _tab == tab).WithClass("seg-tab");
 
-        private static VisualElement Cost(string icon, int have, int need)
+        private void BuildLevel(VisualElement content, VisualElement footer, HeroDef def, HeroState hero, ProfileView v)
         {
-            var chip = new VisualElement { pickingMode = PickingMode.Ignore };
-            chip.AddToClassList("cost-chip");
-            if (have < need) chip.AddToClassList("cost-chip-bad");
-            chip.Add(UiKit.ItemTile(icon));
-            chip.Add(new Label($"{need}") { pickingMode = PickingMode.Ignore }.WithClass("cost-chip-text"));
-            return chip;
-        }
-
-        private void BuildLevel(VisualElement panel, HeroDef def, HeroState hero, ProfileView v)
-        {
-            panel.Add(UiKit.Text("升級", "bpanel-title"));
-            panel.Add(UiKit.Text($"目前 Lv.{hero.Level}　上限為帳號等級 {v.Level}", "line-sub"));
             int gold = HeroGrowth.LevelUpGold(hero.Level), books = HeroGrowth.LevelUpBooks(hero.Level);
-            var cost = UiKit.Row();
-            cost.Add(Cost("item_gold", v.Gold, gold));
-            cost.Add(Cost("item_expbook", v.Material(HeroGrowth.ExpBook), books));
-            panel.Add(cost);
-            panel.Add(UiKit.Text($"持有：金幣 {v.Gold:N0}　經驗書 {v.Material(HeroGrowth.ExpBook)}", "line-sub"));
-            var btn = UiKit.Btn("升級", () => _ = Act(() => GameSession.Backend.LevelUp(def.Id)), primary: true);
-            btn.AddToClassList("btn-wide");
-            panel.Add(btn);
+            bool atCap = hero.Level >= v.Level;
+            content.Add(UiKit.Text($"Lv.{hero.Level}  /  帳號等級上限 {v.Level}", "side-caption"));
+            content.Add(UiKit.Text("升級消耗", "txt-sub"));
+            var cost = new VisualElement();
+            cost.AddToClassList("cost-line");
+            cost.Add(UiKit.Cost("item_gold", gold, v.Gold));
+            cost.Add(UiKit.Cost("item_expbook", books, v.Material(HeroGrowth.ExpBook)));
+            content.Add(cost);
+
+            if (atCap) footer.Add(UiKit.DoneBtn("已達等級上限").WithClass("btn-lg").WithClass("btn-block"));
+            else footer.Add(UiKit.Btn("升級", () => _ = Act(() => GameSession.Backend.LevelUp(def.Id)), primary: true).WithClass("btn-lg").WithClass("btn-block"));
         }
 
-        private void BuildBreak(VisualElement panel, HeroDef def, HeroState hero, ProfileView v)
+        private void BuildBreak(VisualElement content, VisualElement footer, HeroDef def, HeroState hero, ProfileView v)
         {
-            panel.Add(UiKit.Text("突破", "bpanel-title"));
             int shards = v.Material(HeroGrowth.ShardKey(def.Id));
-            panel.Add(UiKit.Text($"{hero.Stars}/{HeroGrowth.MaxStars} 星　碎片 {shards}/{HeroGrowth.CopyShards}", "line-title"));
-            panel.Add(UiKit.Bar(100f * shards / HeroGrowth.CopyShards, "bar-gold bar-slim"));
+            content.Add(UiKit.Text($"{hero.Stars}/{HeroGrowth.MaxStars} 星　碎片 {shards}/{HeroGrowth.CopyShards}", "line-title"));
+            content.Add(UiKit.Bar(100f * shards / HeroGrowth.CopyShards, "bar-gold"));
             foreach (var e in _breakthroughs.Get(def.Id))
-                panel.Add(UiKit.Text($"{(e.Stars <= hero.Stars ? "●" : "○")} {e.Stars}★　{e.Description}", e.Stars <= hero.Stars ? "txt-good" : "line-sub"));
-            if (hero.Stars < HeroGrowth.MaxStars)
             {
-                var btn = UiKit.Btn("突破", () => _ = Act(() => GameSession.Backend.Breakthrough(def.Id)), primary: shards >= HeroGrowth.CopyShards);
-                btn.AddToClassList("btn-wide");
-                panel.Add(btn);
+                bool got = e.Stars <= hero.Stars;
+                var row = new VisualElement { pickingMode = PickingMode.Ignore };
+                row.AddToClassList("break-row");
+                if (got) row.AddToClassList("break-row-on");
+                row.Add(new Label(got ? "●" : "○") { pickingMode = PickingMode.Ignore }.WithClass("break-row-mark"));
+                row.Add(new Label($"{e.Stars}★　{e.Description}") { pickingMode = PickingMode.Ignore }.WithClass("break-row-text"));
+                content.Add(row);
             }
-            else panel.Add(UiKit.DoneBtn("已滿星"));
+            if (hero.Stars < HeroGrowth.MaxStars)
+                footer.Add(UiKit.Btn("突破", () => _ = Act(() => GameSession.Backend.Breakthrough(def.Id)), primary: shards >= HeroGrowth.CopyShards).WithClass("btn-lg").WithClass("btn-block"));
+            else footer.Add(UiKit.DoneBtn("已滿星").WithClass("btn-lg").WithClass("btn-block"));
         }
 
-        private void BuildCards(VisualElement panel, HeroDef def, HeroState hero)
+        private void BuildCards(VisualElement content, HeroDef def, HeroState hero, ProfileView v)
         {
-            panel.Add(UiKit.Text("卡牌強化", "bpanel-title"));
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("grow");
             foreach (var card in def.Deck.GroupBy(c => c.Id).Select(g => g.First()))
             {
                 hero.CardLevels.TryGetValue(card.Id, out int cl);
                 int copies = def.Deck.Count(c => c.Id == card.Id);
+                // 上排：名稱 + 強化按鈕；下排：說明與等級點，整列寬度都給說明用。
                 var row = new VisualElement();
                 row.AddToClassList("card-row");
-                var text = new VisualElement();
-                text.AddToClassList("grow");
-                text.Add(UiKit.Text($"{card.Name} ×{copies}", "card-row-name"));
-                text.Add(UiKit.Text(CardText.Description(card), "card-row-desc"));
-                text.Add(UiKit.Pips(cl, HeroGrowth.MaxCardLevel));
-                row.Add(text);
+                var head = new VisualElement();
+                head.AddToClassList("card-row-head");
+                head.Add(UiKit.Text($"{card.Name} ×{copies}", "card-row-name"));
                 if (cl < HeroGrowth.MaxCardLevel)
                 {
                     string cid = card.Id;
-                    row.Add(UiKit.Btn($"強化 {HeroGrowth.CardUpgradeGold(cl)}", () => _ = Act(() => GameSession.Backend.Enhance(def.Id, cid))));
+                    int need = HeroGrowth.CardUpgradeGold(cl);
+                    head.Add(UiKit.Btn($"強化 {need:N0}", () => _ = Act(() => GameSession.Backend.Enhance(def.Id, cid)), primary: v.Gold >= need).WithClass("btn-sm"));
                 }
-                else row.Add(UiKit.DoneBtn("滿級"));
+                else head.Add(UiKit.DoneBtn("滿級").WithClass("btn-sm"));
+                row.Add(head);
+                row.Add(UiKit.Text(CardText.Description(card), "card-row-desc"));
+                row.Add(UiKit.Pips(cl, HeroGrowth.MaxCardLevel));
                 scroll.Add(row);
             }
-            panel.Add(scroll);
+            content.Add(scroll);
         }
     }
 }

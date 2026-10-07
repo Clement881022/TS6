@@ -20,9 +20,7 @@ namespace SanGuo.Client
         {
             var v = GameSession.View;
             body.style.flexDirection = FlexDirection.Column;
-            var hint = UiKit.Hint("每日輪替、每天固定次數；通關一次後可掃蕩");
-            hint.AddToClassList("form-hint");
-            body.Add(hint);
+            body.AddToClassList("page-centered");
 
             var row = new VisualElement();
             row.AddToClassList("dun-row");
@@ -31,9 +29,11 @@ namespace SanGuo.Client
             {
                 var dungeon = d;
                 bool open = d.IsOpen(v.Now);
+                bool levelOk = v.Level >= d.MinPlayerLevel;
                 int left = ResourceDungeons.Remaining(v.Raw, d, v.Now);
                 bool cleared = v.ClearedStages.Contains(d.Id);
                 string days = "週" + string.Join("", d.Weekdays.Select(x => WeekdayNames[x]));
+                SplitName(d.Name, out string title, out string output);
 
                 var card = new VisualElement();
                 card.AddToClassList("dun-card");
@@ -41,7 +41,8 @@ namespace SanGuo.Client
 
                 var head = new VisualElement { pickingMode = PickingMode.Ignore };
                 head.AddToClassList("dun-head");
-                head.Add(UiKit.Text(d.Name, "dun-name"));
+                head.Add(UiKit.Text(title, "dun-name"));
+                if (output.Length > 0) head.Add(UiKit.Text("產出：" + output, "dun-sub"));
                 card.Add(head);
 
                 var art = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -49,36 +50,59 @@ namespace SanGuo.Client
                 art.Add(UiKit.RewardTiles(d.Reward).WithClass("dun-reward"));
                 card.Add(art);
 
-                var tags = UiKit.Row("row-center");
-                tags.Add(UiKit.Badge(open ? "今日開放" : "今日未開放", open ? "badge-up" : ""));
+                var body2 = new VisualElement { pickingMode = PickingMode.Ignore };
+                body2.AddToClassList("card-body");
+                var tags = new VisualElement { pickingMode = PickingMode.Ignore };
+                tags.AddToClassList("dun-meta");
+                tags.Add(UiKit.Badge(open ? "今日開放" : "未開放", open ? "badge-up" : ""));
                 tags.Add(UiKit.Badge(days, "badge-role"));
-                card.Add(tags);
-                card.Add(UiKit.Text($"剩餘 {left}/{d.DailyLimit}　需帳號 Lv.{d.MinPlayerLevel}", "line-sub").WithClass("dun-center"));
-
-                var cost = new VisualElement { pickingMode = PickingMode.Ignore };
-                cost.AddToClassList("cost-chip");
+                body2.Add(tags);
+                if (!levelOk) body2.Add(UiKit.Text($"帳號 Lv.{d.MinPlayerLevel} 解鎖", "dun-lock"));
+                else body2.Add(UiKit.Text($"今日剩餘 {left}/{d.DailyLimit}", "line-sub").WithClass("dun-center"));
+                var cost = UiKit.Cost("item_stamina", d.StaminaCost, v.Stamina);
                 cost.AddToClassList("dun-cost");
-                if (v.Stamina < d.StaminaCost) cost.AddToClassList("cost-chip-bad");
-                cost.Add(UiKit.ItemTile("item_stamina"));
-                cost.Add(new Label(d.StaminaCost.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("cost-chip-text"));
-                card.Add(cost);
+                body2.Add(cost);
+                card.Add(body2);
 
                 var btns = new VisualElement();
-                btns.AddToClassList("dun-buttons");
-                if (open)
+                btns.AddToClassList("card-footer");
+                if (!open) btns.Add(UiKit.DoneBtn($"{NextOpen(d, v.Now)}開放"));
+                else if (!levelOk) btns.Add(UiKit.DoneBtn($"Lv.{d.MinPlayerLevel} 解鎖"));
+                else if (left <= 0) btns.Add(UiKit.DoneBtn("今日次數已用完"));
+                else
                 {
                     btns.Add(UiKit.Btn("挑戰", () => EnterDungeon(dungeon.Id), primary: true));
                     if (cleared)
                     {
-                        btns.Add(UiKit.Btn("掃蕩 ×1", () => _ = Act(() => GameSession.Backend.SweepDungeon(dungeon.Id, 1), "掃蕩完成")));
-                        btns.Add(UiKit.Btn($"×{ResourceDungeons.MaxSweepCount}",
-                            () => _ = Act(() => GameSession.Backend.SweepDungeon(dungeon.Id, ResourceDungeons.MaxSweepCount), "掃蕩完成")));
+                        btns.Add(UiKit.Btn("掃蕩 ×1", () => _ = Act(() => GameSession.Backend.SweepDungeon(dungeon.Id, 1), "掃蕩完成")).WithClass("btn-sm"));
+                        btns.Add(UiKit.Btn($"掃蕩 ×{ResourceDungeons.MaxSweepCount}",
+                            () => _ = Act(() => GameSession.Backend.SweepDungeon(dungeon.Id, ResourceDungeons.MaxSweepCount), "掃蕩完成")).WithClass("btn-sm"));
                     }
                 }
-                else btns.Add(UiKit.DoneBtn("今日未開放"));
                 card.Add(btns);
                 row.Add(card);
             }
+        }
+
+        /// <summary>「糧倉護衛（金幣）」→ 標題「糧倉護衛」、產出「金幣」。</summary>
+        private static void SplitName(string name, out string title, out string output)
+        {
+            int i = name.IndexOf('（');
+            if (i < 0 || !name.EndsWith("）")) { title = name; output = ""; return; }
+            title = name.Substring(0, i);
+            output = name.Substring(i + 1, name.Length - i - 2);
+        }
+
+        /// <summary>下一個開放日（「明天」或「週三」）。</summary>
+        private static string NextOpen(ResourceDungeonDef d, long now)
+        {
+            int today = DailyClock.Weekday(now);
+            for (int i = 1; i <= 7; i++)
+            {
+                int w = (today + i) % 7;
+                if (d.Weekdays.Contains(w)) return i == 1 ? "明天" : "週" + WeekdayNames[w];
+            }
+            return "";
         }
     }
 }
