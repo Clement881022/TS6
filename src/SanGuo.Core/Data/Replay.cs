@@ -11,7 +11,7 @@ namespace SanGuo.Core.Data
         public ReplayActionKind Kind;
         /// <summary>Play：<see cref="CardInstance.Id"/>。</summary>
         public int CardId;
-        /// <summary>Play：玩家指定的目標格（單體敵人牌可空放；移動卡的目的地）；-1 = 沒指定（自動挑目標）。</summary>
+        /// <summary>Play：玩家指定的目標格（單體敵人牌的中心格；移動卡的目的地）；-1 = 沒指定（自動挑目標）。</summary>
         public int Lane = -1;
         public int Row = -1;
         /// <summary>Play：移動卡要移動的武將 <see cref="Unit.Id"/>；-1 = 不是移動卡。</summary>
@@ -105,7 +105,7 @@ namespace SanGuo.Core.Data
 
         public ReplayRecorder(Battle battle) { Battle = battle; }
 
-        /// <param name="target">指定的目標格（單體敵人牌可空放 / 移動卡的目的地）。</param>
+        /// <param name="target">指定的目標格（單體敵人牌的中心格 / 移動卡的目的地）。</param>
         /// <param name="mover">移動卡要移動的武將。</param>
         public PlayResult Play(CardInstance card, Position? target = null, Unit? mover = null)
         {

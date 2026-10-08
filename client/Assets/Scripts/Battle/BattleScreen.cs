@@ -59,7 +59,7 @@ namespace SanGuo.Client
         private readonly HashSet<Position> _previewTargets = new HashSet<Position>();
         private readonly HashSet<Position> _previewRange = new HashSet<Position>();
         private readonly HashSet<Position> _previewReach = new HashSet<Position>();
-        /// <summary>已點下、正在等玩家點選格子的牌：單體敵人牌的施放格（可空放），或移動卡（先選武將、再選目的地）。</summary>
+        /// <summary>已點下、正在等玩家點選格子的牌：單體敵人牌的施放格（範圍內必須有敵人），或移動卡（先選武將、再選目的地）。</summary>
         private CardInstance? _pendingCard;
         /// <summary>移動卡已選好的武將（null = 還在選武將）。</summary>
         private Unit? _pendingMover;
@@ -342,7 +342,7 @@ namespace SanGuo.Client
                         "戰鬥是回合制出牌。點下方的手牌打出，每張牌要消耗費用，剩餘費用顯示在左下角；沒用完的費用與手牌都會留到下回合（費用、手牌上限各 10）。",
                         "費用用完（或不想出牌）就按「結束回合」，換敵人行動；敵人頭上的圖示是牠下一步的行動預告。",
                         "戰場是敵我共用的 5x5 棋盤。每名武將有攻擊範圍（格數）：坦克與戰士只打得到相鄰的敵人，遊俠、術士、軍師與醫者射程較遠。",
-                        "牌庫裡有幾張 0 費的通用「移動」牌（隊伍每有一人就有一張）：點牌後先選要移動的武將，再點綠色的格子走位。攻擊牌要自己點選射程內的格子施放，空格也可以點（會打空）。牌庫抽完會把棄牌洗回去。打倒全部敵人就獲勝！",
+                        "牌庫裡有幾張 0 費的通用「移動」牌（隊伍每有一人就有一張）：點牌後先選要移動的武將，再點綠色的格子走位。攻擊牌射程內要有敵人才能打出，點選敵人所在的格子施放，不能空揮。牌庫抽完會把棄牌洗回去。打倒全部敵人就獲勝！",
                     };
                     break;
                 case 2:
@@ -488,7 +488,7 @@ namespace SanGuo.Client
             bool selfOk = card.Def.Target == TargetRule.Ally;
             if (!_battle.InBounds(pos) || (pos == owner.Pos && !selfOk) || Position.Distance(owner.Pos, pos) > owner.AttackRange)
             {
-                Toast("請點選射程內的格子");
+                Toast("請點選射程內有敵人的格子");
                 return;
             }
             PlayCardAt(card, pos, null);
@@ -986,7 +986,7 @@ namespace SanGuo.Client
             if (check != PlayResult.Ok) hint = Explain(check);
             else if (def.Target == TargetRule.MoveDest)
                 hint = _pendingMover == null ? "先點選要移動的武將（棋盤或底部武將列），再點綠色格子" : $"移動 {_pendingMover.Name}：點選綠色格子";
-            else if (def.Target == TargetRule.Enemy) hint = "點選棋盤上射程內的格子施放，空格也可以（會打空）";
+            else if (def.Target == TargetRule.Enemy) hint = "點選棋盤上射程內的敵人施放（範圍內沒有敵人不可施放）";
             else if (def.Target == TargetRule.Ally) hint = "點選射程內的隊友，或直接按「使用」（自動選血量比例最低者）";
             else hint = "";
             if (hint.Length > 0) _detail.Add(new Label(hint) { pickingMode = PickingMode.Ignore }.WithClass(check == PlayResult.Ok ? "bl-d-hint" : "bl-d-warn"));

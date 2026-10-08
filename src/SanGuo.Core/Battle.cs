@@ -152,8 +152,7 @@ namespace SanGuo.Core
             u.Side == Side.Player && u.Alive && ReachableTiles(u).Count > 1;
 
         /// <summary>
-        /// 檢查卡牌目前能否打出（不產生副作用）。單體敵人牌（<see cref="TargetRule.Enemy"/>）可以空放：
-        /// 只要持有者活著、費用夠就行，目標格在 <see cref="PlayCard"/> 指定。
+        /// 檢查卡牌目前能否打出（不產生副作用）。敵人牌（<see cref="TargetRule.Enemy"/>）射程內沒有敵人就不可打出。
         /// </summary>
         public PlayResult CanPlay(CardInstance card)
         {
@@ -163,14 +162,14 @@ namespace SanGuo.Core
             if (card.Owner == null)
                 return AliveUnits(Side.Player).Any(CanMoveUnit) ? PlayResult.Ok : PlayResult.NoTarget;
             if (!card.Owner.Alive) return PlayResult.OwnerDead;
-            if (card.Def.Target != TargetRule.Enemy && ResolveTargets(card.Owner, card.Def) == null)
+            if (ResolveTargets(card.Owner, card.Def) == null)
                 return PlayResult.NoTarget;
             return PlayResult.Ok;
         }
 
         /// <summary>
         /// 目標判定；回傳 null 表示沒有可選目標（卡牌不可打出）或指定的格子不在攻擊範圍內。
-        /// 單體牌（敵人 / 友軍）的射程為施放者的攻擊範圍；範圍形狀以中心格展開，只影響格上的單位（可能一個都沒有）。
+        /// 單體牌（敵人 / 友軍）的射程為施放者的攻擊範圍；範圍形狀以中心格展開，只影響格上的單位；敵人牌範圍內沒有敵人時不可施放（不能空揮）。
         /// </summary>
         public List<Unit>? ResolveTargets(Unit owner, CardDef def, Position? chosen = null)
         {
@@ -221,7 +220,8 @@ namespace SanGuo.Core
                         var u = UnitAt(foe, cell);
                         if (u != null && u.Alive) result.Add(u);
                     }
-                    return result;
+                    // 不能空揮：範圍內至少要有一名敵人才能施放。
+                    return result.Count == 0 ? null : result;
                 }
                 default:
                     return null;
@@ -316,7 +316,7 @@ namespace SanGuo.Core
 
         // ---------------------------------------------------------------- 玩家行動
 
-        /// <param name="target">玩家指定的格子：單體牌的中心格（敵人牌可空放）；移動牌的目的地。沒給的單體牌自動挑範圍內的目標。</param>
+        /// <param name="target">玩家指定的格子：單體牌的中心格（敵人牌的範圍內必須有敵人）；移動牌的目的地。沒給的單體牌自動挑範圍內的目標。</param>
         /// <param name="mover">移動牌要移動的武將（通用牌必填）。</param>
         public PlayResult PlayCard(CardInstance card, Position? target = null, Unit? mover = null)
         {

@@ -44,7 +44,7 @@ namespace SanGuo.Client
             string who;
             switch (def.Target)
             {
-                case TargetRule.Enemy: who = $"{range} 格內任一格（點選，可空放）"; break;
+                case TargetRule.Enemy: who = $"{range} 格內的敵人（點選；範圍內沒有敵人不可施放）"; break;
                 case TargetRule.MoveDest: return "選一名武將，移動到其移動力內的空格";
                 case TargetRule.Self: return "自己";
                 case TargetRule.Ally: return $"{range} 格內任一隊友（點選，未指定則血量比例最低者）";

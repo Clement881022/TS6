@@ -415,8 +415,31 @@ namespace SanGuo.Core.Tests
             var b = Fight(Hero("H", new[] { Attack() }, range: 2), Enemy("e"), heroPos: PH(2, 3), enemyPos: PE(2, 1)); // 距離 2
             Assert.Equal(PlayResult.Ok, b.CanPlay(Find(b, "atk")));
             var far = Fight(Hero("H", new[] { Attack() }, range: 1), Enemy("e"), heroPos: PH(2, 3), enemyPos: PE(2, 1));
-            Assert.Equal(PlayResult.OutOfRange, far.PlayCard(Find(far, "atk"), PE(2, 1)));
+            Assert.Equal(PlayResult.NoTarget, far.CanPlay(Find(far, "atk")));   // 射程內沒有敵人：不可施放
+            Assert.Equal(PlayResult.NoTarget, far.PlayCard(Find(far, "atk"), PE(2, 1)));
             Assert.Equal(PlayResult.NoTarget, far.PlayCard(Find(far, "atk")));
+        }
+
+        [Fact]
+        public void EnemyCards_CannotBeSwungAtEmptyCells()
+        {
+            var b = Fight(Hero("H", new[] { Attack() }, range: 5), Enemy("e", hp: 500), enemyPos: PE(2, 1));
+            int cost = b.Cost;
+            Assert.Equal(PlayResult.OutOfRange, b.PlayCard(Find(b, "atk"), PE(0, 0)));   // 空格：拒絕
+            Assert.Equal(cost, b.Cost);                                                    // 不扣費、不出牌
+            Assert.Contains(b.Hand, c => c.Def.Id == "atk");
+            Assert.Equal(PlayResult.Ok, b.PlayCard(Find(b, "atk"), PE(2, 1)));
+        }
+
+        [Fact]
+        public void AreaCards_NeedAtLeastOneEnemyInShape()
+        {
+            var setup = new BattleSetup { Seed = 1, NoRandomness = true };
+            setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack(shape: Shape.Row3) }, range: 5), PH(2)));
+            setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 500), PE(2, 1), EnemyLevelForUnitScale));
+            var b = new Battle(setup);
+            Assert.Equal(PlayResult.OutOfRange, b.PlayCard(Find(b, "atk"), PE(0, 1)));  // 橫向 3 格 (0..1) 不含敵人
+            Assert.Equal(PlayResult.Ok, b.PlayCard(Find(b, "atk"), PE(1, 1)));          // 中心是空格，但範圍擦到敵人
         }
 
         [Fact]

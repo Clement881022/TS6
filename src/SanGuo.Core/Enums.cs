@@ -21,7 +21,7 @@ namespace SanGuo.Core
     /// <summary>卡牌如何選出中心目標；單體目標都受施放者攻擊範圍（格距）限制。</summary>
     public enum TargetRule
     {
-        /// <summary>玩家點選範圍內的一格（可空放，沒指定時自動挑範圍內最近的敵人）。</summary>
+        /// <summary>玩家點選範圍內的一格（範圍內必須有敵人，不能空揮；沒指定時自動挑範圍內最近的敵人）。</summary>
         Enemy,
         Self,
         /// <summary>友軍單體：玩家點選範圍內的友軍；沒指定時挑範圍內血量比例最低者（含自己）。</summary>

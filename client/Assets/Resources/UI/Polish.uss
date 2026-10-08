@@ -241,3 +241,135 @@
 .htile-md .htile-role { width: 40px; height: 40px; }
 .slot-md { width: 190px; height: 250px; margin: 6px; }
 .form-board { align-self: flex-start; }
+
+/* ---- 商用品質視覺收斂：墨色底、朱砂主操作、暖金焦點 ---- */
+.page-host {
+    background-color: rgb(19, 17, 19);
+}
+.topbar {
+    height: 100px;
+    padding: 0 40px;
+    background-color: rgb(27, 23, 24);
+    border-bottom-width: 2px;
+    border-bottom-color: rgb(132, 96, 52);
+}
+.topbar-seal {
+    width: 5px;
+    height: 42px;
+    border-radius: 3px;
+    background-color: rgb(196, 72, 54);
+}
+.topbar-title { color: rgb(247, 224, 178); }
+.nav {
+    height: 112px;
+    padding: 9px 30px;
+    background-color: rgb(25, 22, 23);
+    border-top-width: 2px;
+    border-top-color: rgb(88, 69, 48);
+}
+.nav-tab {
+    margin: 3px 7px;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: rgba(132, 104, 70, 0.55);
+    background-color: rgba(48, 40, 38, 0.72);
+    transition: background-color 140ms ease-out, border-color 140ms ease-out, scale 140ms ease-out;
+}
+.nav-tab:hover {
+    background-color: rgb(66, 50, 43);
+    border-color: rgb(174, 132, 70);
+}
+.nav-tab-on, .nav-tab-on:hover {
+    background-color: rgb(112, 47, 39);
+    border-color: rgb(224, 180, 98);
+}
+.nav-label { color: rgb(207, 195, 177); }
+.nav-tab-on .nav-label { color: rgb(255, 244, 220); }
+.nav-glyph { color: rgb(184, 166, 142); }
+.nav-tab-on .nav-glyph { color: rgb(255, 220, 145); }
+
+.meta-page .panel {
+    border-width: 1px;
+    border-top-width: 2px;
+    border-color: rgb(75, 62, 54);
+    border-top-color: rgb(151, 111, 57);
+    border-radius: 16px;
+    background-color: rgb(35, 30, 31);
+}
+.meta-page .btn, .meta-page .btn:hover {
+    border-width: 1px;
+    border-color: rgb(111, 88, 65);
+    border-radius: 11px;
+    background-color: rgb(57, 47, 45);
+    color: rgb(246, 237, 219);
+    transition: background-color 140ms ease-out, border-color 140ms ease-out, scale 100ms ease-out;
+}
+.meta-page .btn:hover {
+    background-color: rgb(76, 59, 51);
+    border-color: rgb(181, 137, 71);
+}
+.meta-page .btn:active { scale: 0.98 0.98; }
+.meta-page .btn-primary, .meta-page .btn-primary:hover {
+    background-color: rgb(151, 57, 45);
+    border-color: rgb(226, 183, 99);
+    color: rgb(255, 249, 233);
+}
+.meta-page .btn-primary:hover { background-color: rgb(176, 69, 51); }
+.meta-page .btn-on, .meta-page .btn-on:hover {
+    background-color: rgb(48, 105, 77);
+    border-color: rgb(126, 196, 145);
+}
+.meta-page .btn-done, .meta-page .btn-done:hover {
+    background-color: rgb(39, 35, 35);
+    border-color: rgb(68, 59, 53);
+    color: rgb(148, 137, 123);
+}
+.meta-page .tab, .meta-page .tab:hover {
+    border-width: 1px;
+    border-color: rgb(91, 73, 57);
+    background-color: rgb(39, 33, 34);
+    color: rgb(196, 184, 163);
+}
+.meta-page .tab:hover { background-color: rgb(61, 47, 43); }
+.meta-page .tab-on, .meta-page .tab-on:hover {
+    border-color: rgb(220, 177, 93);
+    background-color: rgb(112, 47, 39);
+    color: rgb(255, 244, 220);
+}
+.meta-page .bar-bg {
+    border-width: 1px;
+    border-color: rgb(82, 67, 52);
+    background-color: rgb(18, 16, 17);
+}
+
+/* 主城浮層沿用場景金色，降低飽和藍色 UI 與整體美術的衝突。 */
+.home-player, .home-chapter, .home-spot, .home-bubble {
+    border-color: rgb(218, 178, 101);
+    background-color: rgba(35, 27, 27, 0.92);
+}
+.home-player { border-width: 1px; }
+.home-player-level, .home-chapter-title { color: rgb(255, 222, 151); }
+.home-player-exp, .home-chapter-sub { color: rgb(237, 226, 208); }
+.home-spot {
+    border-width: 1px;
+    border-radius: 9px;
+    transition: scale 140ms ease-out, background-color 140ms ease-out;
+}
+.home-spot-icon {
+    width: 30px;
+    height: 30px;
+    margin: 0 8px 0 2px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+.home-spot-text { margin: 0 8px; }
+.home-spot:hover, .home-chapter:hover {
+    background-color: rgba(111, 52, 38, 0.96);
+}
+.home-spot-text { color: rgb(255, 245, 225); }
+.home-chapter-text { min-width: 340px; }
+.home-chapter-progress { width: 100%; margin: 6px 0 2px 0; }
+.home-bubble {
+    border-width: 1px;
+    color: rgb(250, 241, 221);
+}
+.home-fn-label { background-color: rgba(29, 24, 24, 0.86); }
