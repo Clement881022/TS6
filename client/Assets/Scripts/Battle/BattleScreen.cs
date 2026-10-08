@@ -47,6 +47,7 @@ namespace SanGuo.Client
         private ReplayRecorder? _recorder;
         private bool _busy;
         private ulong _seed;
+        private int _chapter;
         private int _level = 1;
         private string _stageId = "1-1";
         /// <summary>目前進行的是資源副本時不為 null（主線關卡為 null）。</summary>
@@ -104,9 +105,10 @@ namespace SanGuo.Client
             }
             else
             {
+                _chapter = GameSession.SelectedChapter;
                 _level = GameSession.SelectedLevel;
                 StartBattle(recording: false);
-                _ = BeginStageId(GameSession.StageIdOf(_level));
+                _ = BeginStageId(GameSession.StageIdOf(_chapter, _level));
             }
             _root.schedule.Execute(AutoStep).Every(650);
             _root.schedule.Execute(UpdateTagPositions).Every(16);
@@ -271,6 +273,7 @@ namespace SanGuo.Client
             _stageId = ticket.StageId;
             _dungeon = ticket.Dungeon;
             _formation = ticket.Formation;
+            _chapter = ticket.Chapter;
             _level = ticket.Level;
             _seed = ticket.Seed;
         }
@@ -279,14 +282,14 @@ namespace SanGuo.Client
         private void Leave() => Nav.Go(_dungeon != null ? Page.Dungeons : Page.Map);
 
         /// <summary>進入主線關卡：可編隊的關卡先到編隊頁（開戰才扣體力）；鎖定編隊的直接開戰。</summary>
-        private void EnterLevel(int level)
+        private void EnterLevel(int chapter, int level)
         {
-            if (_busy || level < 1 || level > DemoContent.ChapterLevelCount) return;
-            GameSession.SelectedLevel = level;
-            StoryPlayer.ShowBefore(_root, level, () =>
+            if (_busy || !Campaign.IsValid(chapter, level)) return;
+            GameSession.Select(chapter, level);
+            StoryPlayer.ShowBefore(_root, chapter, level, () =>
             {
-                if (GameSession.FormationLocked(level)) _ = BeginStageId(GameSession.StageIdOf(level));
-                else { GameSession.FormationStageId = GameSession.StageIdOf(level); Nav.Go(Page.Formation); }
+                if (GameSession.FormationLocked(chapter, level)) _ = BeginStageId(GameSession.StageIdOf(chapter, level));
+                else { GameSession.FormationStageId = GameSession.StageIdOf(chapter, level); Nav.Go(Page.Formation); }
             });
         }
 
@@ -312,7 +315,7 @@ namespace SanGuo.Client
         {
             // 已向後端開始的戰鬥用與伺服器相同的規則重建（含玩家編隊與養成）；開發用預覽走教學版關卡。
             var setup = (recording ? DemoMeta.BuildSetup(_stageId, _seed, GameSession.View.Raw, _formation) : null)
-                ?? DemoContent.Level(_level, _seed);
+                ?? Campaign.Setup(_chapter, _level, _seed);
             _battle = new Battle(setup);
             _recorder = recording ? new ReplayRecorder(_battle) : null;
             _finishing = false;
@@ -331,7 +334,7 @@ namespace SanGuo.Client
             BuildTags();
             PumpEvents();
             Refresh();
-            if (_dungeon == null) ShowLevelTutorial();
+            if (_dungeon == null && _chapter == 0) ShowLevelTutorial();
         }
 
         /// <summary>第零章各關的戰鬥教學（巴豆妖旁白，每關只講該關要教的機制）。</summary>
@@ -1225,7 +1228,7 @@ namespace SanGuo.Client
 
         private void RefreshHud()
         {
-            string where = _dungeon != null && _recorder != null ? _dungeon.Name : $"第 {_level} 關";
+            string where = _dungeon != null && _recorder != null ? _dungeon.Name : $"{_chapter}-{_level}　{Campaign.LevelName(_chapter, _level)}";
             _title.text = _battle.Setup.TurnLimit > 0
                 ? $"{where}　第 {_battle.Turn} / {_battle.Setup.TurnLimit} 回合"
                 : $"{where}　第 {_battle.Turn} 回合";
@@ -1343,8 +1346,8 @@ namespace SanGuo.Client
                 if (result.LevelsGained > 0) AddInfo(card, $"帳號升級！Lv.{GameSession.View.Level}（體力已回滿）");
             }
 
-            if (result.Won && result.FirstClear && dungeon == null && _level >= 1 && _level <= DemoContent.ChapterLevelCount)
-                StoryPlayer.Show(_root, $"第 {_level} 關　{DemoContent.LevelNames[_level - 1]}", DemoStory.After(_level));
+            if (result.Won && result.FirstClear && dungeon == null)
+                StoryPlayer.ShowAfter(_root, _chapter, _level);
 
             if (dungeon != null)
             {
@@ -1353,10 +1356,10 @@ namespace SanGuo.Client
                 card.Add(btnRow);
                 return;
             }
-            int level = _level;
-            bool hasNext = result.Won && level < DemoContent.ChapterLevelCount;
-            if (hasNext) btnRow.Add(MakeButton("下一關", () => EnterLevel(level + 1), primary: true));
-            btnRow.Add(MakeButton("再打一次", () => EnterLevel(level), primary: !hasNext));
+            int chapter = _chapter, level = _level;
+            bool hasNext = Campaign.Next(chapter, level, out int nextChapter, out int nextLevel) && result.Won;
+            if (hasNext) btnRow.Add(MakeButton(nextChapter != chapter ? "下一章" : "下一關", () => EnterLevel(nextChapter, nextLevel), primary: true));
+            btnRow.Add(MakeButton("再打一次", () => EnterLevel(chapter, level), primary: !hasNext));
             btnRow.Add(MakeButton("回地圖", () => Nav.Go(Page.Map)));
             card.Add(btnRow);
         }
@@ -1394,6 +1397,7 @@ namespace SanGuo.Client
                 case EventType.EnemyMove: return $"{NameOf(e.Source)} 移動 {e.Text}";
                 case EventType.EnemyCharge: return $"{NameOf(e.Source)} 開始蓄力！";
                 case EventType.EnemyChargeBreak: return $"{NameOf(e.Target)} 的蓄力被打斷了";
+                case EventType.EnemyPhase: return $"{NameOf(e.Source)} 怒氣爆發，蓄力變快了！";
                 case EventType.Death: return $"{NameOf(e.Target)} 倒下了";
                 case EventType.BattleEnd: return $"戰鬥結束：{e.Text}";
                 default: return null;
@@ -1459,7 +1463,7 @@ namespace SanGuo.Client
 
         public void DebugReviewScenario(int level)
         {
-            _level = level; _seed = 12345; StartBattle(false);
+            _chapter = 0; _level = level; _seed = 12345; StartBattle(false);
         }
 
         public void DebugReviewActions()

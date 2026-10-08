@@ -136,7 +136,7 @@ namespace SanGuo.Core.Content
 
         /// <summary>第 4 章 Boss。</summary>
         public static EnemyDef HuaXiong() => Make("hua_xiong_boss", "華雄", Role.Warrior,
-            new Stats { Hp = 500, Atk = 120, Def = 55, Move = 1, Crit = 15, Range = 1 }, EnemyTier.Boss, art: "bandit_king")
+            new Stats { Hp = 500, Atk = 120, Def = 55, Move = 1, Crit = 15, Range = 1 }, EnemyTier.Boss, art: "huaxiong")
             .Charge(2, 2, 1.3).Phase(50, 1, 1.5);
 
         /// <summary>第 5 章第 5 關：陷陣營統領，防禦極高。</summary>
@@ -145,7 +145,7 @@ namespace SanGuo.Core.Content
 
         /// <summary>第 5 章 Boss：移動力 2、爆擊高。</summary>
         public static EnemyDef LvBu() => Make("lv_bu_boss", "呂布", Role.Warrior,
-            new Stats { Hp = 520, Atk = 125, Def = 55, Move = 2, Crit = 20, Range = 1 }, EnemyTier.Boss, art: "bandit_king")
+            new Stats { Hp = 520, Atk = 125, Def = 55, Move = 2, Crit = 20, Range = 1 }, EnemyTier.Boss, art: "lvbu")
             .Charge(2, 2, 1.4).Phase(50, 1, 1.6);
 
         /// <summary>第 6 章第 5 關：滎陽伏兵的主將。</summary>

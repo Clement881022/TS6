@@ -72,6 +72,9 @@ namespace SanGuo.Client
                         Float(e.TargetSide, e.TargetPos, "倒下", new Color(0.8f, 0.8f, 0.85f), 40);
                     }, 0.25f, advance: true);
                     break;
+                case EventType.EnemyPhase: // Boss 生命跌破門檻，蓄力變快
+                    Enqueue(() => { AudioManager.PlaySfx(Sfx.Crit); Float(e.TargetSide, e.TargetPos, "怒氣爆發！", new Color(1f, 0.3f, 0.25f), 46); }, 0f, advance: true);
+                    break;
                 case EventType.BattleEnd:
                     Enqueue(() => AudioManager.PlaySfx(e.Text == nameof(BattleResult.Won) ? Sfx.Win : Sfx.Lose), 0.3f);
                     break;

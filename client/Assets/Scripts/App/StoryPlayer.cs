@@ -9,7 +9,7 @@ namespace SanGuo.Client
 {
     /// <summary>
     /// 劇情對白播放（視覺小說式）：沿用新手引導的版面，每句話可換說話者與立繪（有全身立繪用立繪，沒有就用 3D 模型）。
-    /// 劇情資料在 <see cref="DemoStory"/>；看過與否由呼叫端決定（戰前＝關卡尚未通關、戰後＝首通）。
+    /// 劇情資料在 <see cref="CampaignStory"/>（序章在 <see cref="DemoStory"/>）；看過與否由呼叫端決定（戰前＝關卡尚未通關、戰後＝首通）。
     /// 截圖模式（-sanguoShot）不彈，除非加 -sanguoShowTutorial。
     /// </summary>
     public static class StoryPlayer
@@ -25,14 +25,25 @@ namespace SanGuo.Client
         }
 
         /// <summary>主線關卡戰前劇情：該關尚未通關才播，播完（或沒有劇情）呼叫 <paramref name="proceed"/>。</summary>
-        public static void ShowBefore(VisualElement layer, int level, Action proceed)
+        public static void ShowBefore(VisualElement layer, int chapter, int level, Action proceed)
         {
-            string key = "story_before_" + level;
-            bool cleared = GameSession.View.ClearedStages.Contains(GameSession.StageIdOf(level));
-            if (cleared || Tutorial.Seen(key) || level < 1 || level > SanGuo.Core.DemoContent.ChapterLevelCount
-                || !Show(layer, $"第 {level} 關　{SanGuo.Core.DemoContent.LevelNames[level - 1]}", DemoStory.Before(level), () => { Tutorial.MarkSeen(key); proceed(); }))
+            // 第零章沿用舊 key（已看過的玩家不重播）。
+            string key = chapter == 0 ? "story_before_" + level : $"story_before_{chapter}_{level}";
+            bool cleared = GameSession.View.ClearedStages.Contains(GameSession.StageIdOf(chapter, level));
+            if (cleared || Tutorial.Seen(key) || !SanGuo.Core.Campaign.IsValid(chapter, level)
+                || !Show(layer, StageTitle(chapter, level), CampaignStory.Before(chapter, level), () => { Tutorial.MarkSeen(key); proceed(); }))
                 proceed();
         }
+
+        /// <summary>主線關卡首通後劇情。</summary>
+        public static void ShowAfter(VisualElement layer, int chapter, int level)
+        {
+            if (SanGuo.Core.Campaign.IsValid(chapter, level))
+                Show(layer, StageTitle(chapter, level), CampaignStory.After(chapter, level));
+        }
+
+        /// <summary>劇情標題：「2-10　張角」。</summary>
+        public static string StageTitle(int chapter, int level) => $"{chapter}-{level}　{SanGuo.Core.Campaign.LevelName(chapter, level)}";
 
         /// <summary>播放對白；播完或略過都呼叫 <paramref name="onDone"/>。沒有對白或截圖模式時直接回傳 false（不呼叫 onDone）。</summary>
         public static bool Show(VisualElement layer, string title, IReadOnlyList<StoryLine> lines, Action? onDone = null)

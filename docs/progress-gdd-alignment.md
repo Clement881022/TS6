@@ -42,11 +42,13 @@
 - 戰鬥畫面、卡牌文字、範圍圖示、特效對齊新核心；第零章逐關教學。
 - 武將頁（升級／突破／裝備）、素材副本頁（五階）、商店頁（儲值／將魂商店）。
 - 新武將尚無專屬模型，依職業借用現有模型（`HeroArt.Model`）。
+- 主線改為（章, 關）：`GameSession.SelectedChapter/SelectedLevel/Select`、首頁顯示目前該打的那一章（跨章）、地圖底部切換章節（下一章要等第一關開放）、關卡面板顯示護送／守城／擊殺／限時目標、戰鬥結算「下一關／下一章」跨章、戰前與首通後劇情改用 `CampaignStory`（第零章的看過紀錄 key 不變）、第零章的巴豆妖戰鬥教學只在第零章出現。
+- 戰場模型改用 `unit.ArtId`（敵人借用模型）；護送／守城目標沒有專屬模型時借 `r_villager`；Boss 進入第二階段時飄字「怒氣爆發！」並寫入戰鬥紀錄。華雄、呂布改用 Codex 新做的專屬模型（`huaxiong`、`lvbu`）。
 
 ## 驗證狀態
 - `dotnet test SanGuo.sln`：Core 239、Server 23，全數通過。
 - 章末戰力門檻（`CampaignBalanceTests`，自動戰鬥 40 場）：照預期養成勝率 62–88%，停在上一章養成 5–25%；60 關照章末養成皆 ≥ 30%。
-- **client 尚未改**：Plugins 裡的 `SanGuo.Core.dll` 仍是舊版（未執行 sync-core），client 程式碼仍用舊 API（`Chapter1Stage`、`LevelOf`、`FormationLocked(int)`、`OpenLevel(int, ulong)`），同步 DLL 前要先改 client。
+- Plugins 的 `SanGuo.Core.dll` 已同步到最新（含第 1–6 章劇情）。
 - Unity client 以 Unity 6000.3.25f1 的參考 DLL 另行編譯檢查為 0 錯誤，**尚未在 Unity 編輯器內實際開啟與遊玩驗證**。
 - 教學關平衡（`TutorialBalanceTests`）：依教學流程可通關，第 3、10 關無視機制會失敗；其餘關卡的機制必要性尚未逐關驗證。
 
@@ -64,7 +66,7 @@
 
 ## 下一步（階段 3）
 1. ~~劇情第 3–6 章~~（已完成）。
-2. Client 改為（章, 關）：`GameSession.SelectedChapter`、`MapPage` 章節切換、`HomePage` 跨章下一關、`BattleScreen`／`StoryPlayer` 改用 `Campaign`／`CampaignStory`、`EnemyPhase` 飄字、`BattleStage` 改用 `unit.ArtId` 載模型（玩家方 NPC 缺模型時借 `r_villager`）；之後跑 `tools/sync-core.ps1`。
+2. ~~Client 改為（章, 關）~~（已完成）：`GameSession.SelectedChapter`、`MapPage` 章節切換、`HomePage` 跨章下一關、`BattleScreen`／`StoryPlayer` 改用 `Campaign`／`CampaignStory`、`EnemyPhase` 飄字、`BattleStage` 改用 `unit.ArtId` 載模型（玩家方 NPC 缺模型時借 `r_villager`）；之後跑 `tools/sync-core.ps1`。
 3. ~~`docs/story-chapters.md` 60 關審稿總表~~（已完成）。
 4. ~~素材副本平衡重跑~~（已完成，見上）。
 4. 世界 Boss（待決事項多）。

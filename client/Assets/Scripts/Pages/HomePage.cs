@@ -44,10 +44,12 @@ namespace SanGuo.Client
         protected override void BuildBody(VisualElement root)
         {
             var v = GameSession.View;
-            int total = DemoContent.ChapterLevelCount;
+            // 首頁的主線面板顯示目前該打的那一章。
+            var (chapter, _) = GameSession.Frontier();
+            int total = Campaign.LevelsPerChapter;
             int cleared = 0;
             for (int i = 1; i <= total; i++)
-                if (v.ClearedStages.Contains(GameSession.StageIdOf(i))) cleared++;
+                if (v.ClearedStages.Contains(GameSession.StageIdOf(chapter, i))) cleared++;
 
             // ---- 新城景與全螢幕 HUD ----
             _scene = new VisualElement();
@@ -82,7 +84,7 @@ namespace SanGuo.Client
 
             // 主線進度、下一關與主操作放在同一個面板，直接引導當前目標。
             root.Add(BuildFunctionBar());
-            root.Add(BuildCampaign(v, cleared, total));
+            root.Add(BuildCampaign(v, chapter, cleared, total));
         }
 
         // ------------------------------------------------------------ 版面
@@ -121,17 +123,18 @@ namespace SanGuo.Client
             return card;
         }
 
-        private static VisualElement BuildCampaign(ProfileView v, int cleared, int total)
+        private static VisualElement BuildCampaign(ProfileView v, int chapter, int cleared, int total)
         {
             var plate = new VisualElement().WithClass("home-campaign");
             var heading = new VisualElement().WithClass("home-campaign-heading");
             heading.Add(UiKit.Text("主線征戰", "home-campaign-kicker"));
-            heading.Add(UiKit.Text("第零章", "home-campaign-chapter"));
+            // Campaign.Title 為「第一章　黃巾烽火（上）」：章號與標題分兩行。
+            var title = Campaign.Title(chapter).Split('　');
+            heading.Add(UiKit.Text(title[0], "home-campaign-chapter"));
             plate.Add(heading);
-            plate.Add(UiKit.Text("涿縣盜匪", "home-campaign-title"));
-            int nextLevel = 1;
-            while (nextLevel < total && v.ClearedStages.Contains(GameSession.StageIdOf(nextLevel))) nextLevel++;
-            plate.Add(UiKit.Text(cleared >= total ? "章節已通關 · 可重返關卡" : $"第 {nextLevel} 關 · {DemoContent.LevelNames[nextLevel - 1]}", "home-campaign-next"));
+            plate.Add(UiKit.Text(title.Length > 1 ? title[1] : "", "home-campaign-title"));
+            var (_, nextLevel) = GameSession.Frontier();
+            plate.Add(UiKit.Text(cleared >= total ? "主線已全數通關 · 可重返關卡" : $"{chapter}-{nextLevel} · {Campaign.LevelName(chapter, nextLevel)}", "home-campaign-next"));
             var status = new VisualElement().WithClass("home-campaign-status");
             status.Add(UiKit.Text("章節進度", "home-campaign-progress-label"));
             status.Add(UiKit.Text($"{cleared} / {total}", "home-campaign-progress-value"));
@@ -139,14 +142,15 @@ namespace SanGuo.Client
             var progress = UiKit.Bar(total <= 0 ? 0 : 100f * cleared / total, "bar-gold bar-slim");
             progress.AddToClassList("home-campaign-progress");
             plate.Add(progress);
-            plate.Add(UiKit.Text(HintFor(v, cleared, total), "home-campaign-hint"));
-            var expedition = UiKit.Btn("", () => { GameSession.SelectedLevel = nextLevel; GameSession.OpenSelectedStageOnMap = true; Nav.Go(Page.Map); }, primary: true).WithClass("home-primary");
-            expedition.tooltip = $"前往第 {nextLevel} 關，查看敵軍與出戰條件";
-            expedition.Add(UiKit.Text(cleared == 0 ? "開始出征" : cleared >= total ? "重返戰場" : "繼續出征", "home-primary-title"));
+            plate.Add(UiKit.Text(HintFor(v, chapter, cleared, total), "home-campaign-hint"));
+            var expedition = UiKit.Btn("", () => { GameSession.Select(chapter, nextLevel); GameSession.OpenSelectedStageOnMap = true; Nav.Go(Page.Map); }, primary: true).WithClass("home-primary");
+            expedition.tooltip = $"前往 {chapter}-{nextLevel}，查看敵軍與出戰條件";
+            bool fresh = v.ClearedStages.Count == 0;
+            expedition.Add(UiKit.Text(fresh ? "開始出征" : cleared >= total ? "重返戰場" : "繼續出征", "home-primary-title"));
             expedition.Add(UiKit.Text("›", "home-primary-arrow"));
             plate.Add(expedition);
-            bool formationUnlocked = GameSession.IsUnlocked(DemoMeta.FirstOpenFormationLevel);
-            var formation = UiKit.Btn("排兵布陣", () => { GameSession.FormationStageId = GameSession.StageIdOf(DemoMeta.FirstOpenFormationLevel); Nav.Go(Page.Formation); }).WithClass("home-formation");
+            bool formationUnlocked = GameSession.IsUnlocked(0, DemoMeta.FirstOpenFormationLevel);
+            var formation = UiKit.Btn("排兵布陣", () => { GameSession.FormationStageId = GameSession.StageIdOf(0, DemoMeta.FirstOpenFormationLevel); Nav.Go(Page.Formation); }).WithClass("home-formation");
             formation.SetEnabled(formationUnlocked);
             formation.tooltip = formationUnlocked ? "編輯主線出戰陣容" : $"通關第 {DemoMeta.FirstOpenFormationLevel - 1} 關後開放";
             var preparation = new VisualElement().WithClass("home-preparation");
@@ -186,12 +190,13 @@ namespace SanGuo.Client
             return b;
         }
 
-        private static string HintFor(ProfileView v, int cleared, int total)
+        private static string HintFor(ProfileView v, int chapter, int cleared, int total)
         {
-            if (cleared == 0) return "主公，先從第一關開始吧！";
+            if (v.ClearedStages.Count == 0) return "主公，先從第一關開始吧！";
             if (cleared < total && v.Stamina >= v.StaminaCap) return "體力滿了，快去征戰！";
             if (v.Heroes.Count < 5) return "多招募幾位武將，隊伍才強！";
-            return cleared >= total ? "第零章通關了，黃巾之亂就要來了！" : "繼續推進主線吧，主公！";
+            if (cleared >= total) return "討董之戰告一段落，天書第三卷仍下落不明……";
+            return cleared == 0 && chapter > 0 ? $"{Campaign.Title(chapter).Split('　')[0]}開始了，敵人更強了，記得養成武將！" : "繼續推進主線吧，主公！";
         }
     }
 }

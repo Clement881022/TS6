@@ -335,11 +335,13 @@ namespace SanGuo.Client
         private UnitView? Ensure(Unit unit)
         {
             if (_views.TryGetValue(unit.Id, out var existing)) return existing;
-            if (!_prefabs.TryGetValue(unit.DefId, out var prefab))
+            // 敵人可借用模型（ArtId）；護送 / 守城目標沒有專屬模型時借用村民。
+            string art = unit.Protected && !HeroArt.HasOwnModel(unit.ArtId) ? "r_villager" : unit.ArtId;
+            if (!_prefabs.TryGetValue(art, out var prefab))
             {
-                prefab = HeroArt.Model(unit.DefId);
-                _prefabs[unit.DefId] = prefab;
-                if (prefab == null) Debug.LogWarning("找不到角色模型：Characters/" + unit.DefId);
+                prefab = HeroArt.Model(art);
+                _prefabs[art] = prefab;
+                if (prefab == null) Debug.LogWarning("找不到角色模型：" + art);
             }
             if (prefab == null) return null;
 

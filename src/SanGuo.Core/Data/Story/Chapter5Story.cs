@@ -8,7 +8,7 @@ namespace SanGuo.Core.Data
     {
         private static StoryLine GongsunZan(string text) => S("公孫瓚", "gongsunzan", text);
         private static StoryLine GaoShun(string text) => S("高順", "bandit_ironbrute", text);
-        private static StoryLine LvBu(string text) => S("呂布", "bandit_king", text);
+        private static StoryLine LvBu(string text) => S("呂布", "lvbu", text);
 
         public static List<StoryLine> Before(int level)
         {

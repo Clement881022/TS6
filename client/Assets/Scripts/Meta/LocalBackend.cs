@@ -30,6 +30,24 @@ namespace SanGuo.Client
         {
             _persist = persist;
             _profile = (persist ? Load() : null) ?? NewProfile();
+            // 開發用：-sanguoClearTo <章-關> 把該關之前的主線全標為三星通關（含首通贈送的武將），擁有的武將拉到上一章章末等級（驗證後面章節的畫面）。
+            string? clearTo = GameSession.CommandLineValue("-sanguoClearTo");
+            if (clearTo != null && Campaign.TryParse(clearTo, out int toChapter, out int toLevel)) DebugClearTo(toChapter, toLevel);
+        }
+
+        private void DebugClearTo(int chapter, int level)
+        {
+            for (int c = Campaign.FirstChapter; c <= Campaign.LastChapter; c++)
+                for (int l = 1; l <= Campaign.LevelsPerChapter; l++)
+                {
+                    if (c > chapter || (c == chapter && l >= level)) continue;
+                    _profile.ClearedStages.Add(Campaign.StageId(c, l));
+                    _profile.StageStars[Campaign.StageId(c, l)] = 3;
+                    string hero = DemoMeta.Stage(c, l).FirstClearHero;
+                    if (hero != "" && !_profile.Heroes.ContainsKey(hero)) _profile.Grant(new Reward().WithHero(hero), Now);
+                }
+            int heroLevel = Campaign.ChapterEndLevel[Math.Max(0, chapter - 1)];
+            foreach (var hero in _profile.Heroes.Values) hero.Level = Math.Max(hero.Level, heroLevel);
         }
 
         private static long Now => DateTimeOffset.UtcNow.ToUnixTimeSeconds();

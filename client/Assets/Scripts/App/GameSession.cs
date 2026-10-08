@@ -15,6 +15,7 @@ namespace SanGuo.Client
     {
         public string StageId = "";
         public ulong Seed;
+        public int Chapter;
         public int Level = 1;
         /// <summary>資源副本時不為 null（主線關卡為 null）。</summary>
         public ResourceDungeonDef? Dungeon;
@@ -43,7 +44,11 @@ namespace SanGuo.Client
         public static readonly Dictionary<string, Position> Formation = new Dictionary<string, Position>();
         /// <summary>編隊頁要為哪個關卡 / 副本排兵（主線 "1-9" 或副本 id）。</summary>
         public static string FormationStageId = "";
+        /// <summary>目前選的主線關卡（章、關）；地圖顯示 SelectedChapter 這一章。</summary>
+        public static int SelectedChapter;
         public static int SelectedLevel = 1;
+        /// <summary>false = 還沒選過關卡，第一次進地圖時跳到目前該打的那一章。</summary>
+        public static bool StageChosen;
         public static bool OpenSelectedStageOnMap;
         public static BattleTicket? Ticket;
         public static string? ShotDir { get; private set; }
@@ -55,7 +60,9 @@ namespace SanGuo.Client
             View = new ProfileView();
             Formation.Clear();
             FormationStageId = "";
+            SelectedChapter = 0;
             SelectedLevel = 1;
+            StageChosen = false;
             OpenSelectedStageOnMap = false;
             Ticket = null;
             ShotDir = null;
@@ -71,7 +78,9 @@ namespace SanGuo.Client
                 ? new RemoteBackend(server, CommandLineValue("-sanguoAccount") ?? "dev-" + SystemInfo.deviceUniqueIdentifier)
                 : new LocalBackend(persist: ShotDir == null);
             string? levelArg = CommandLineValue("-sanguoLevel");
-            if (levelArg != null && int.TryParse(levelArg, out int level)) SelectedLevel = Math.Clamp(level, 1, DemoContent.ChapterLevelCount);
+            // -sanguoLevel 接受 "章-關"（如 3-10）或只給關數（第零章）。
+            if (levelArg != null && Campaign.TryParse(levelArg, out int argChapter, out int argLevel)) Select(argChapter, argLevel);
+            else if (levelArg != null && int.TryParse(levelArg, out int level)) Select(0, Math.Clamp(level, 1, Campaign.LevelsPerChapter));
         }
 
         public static string? CommandLineValue(string key)
@@ -101,12 +110,30 @@ namespace SanGuo.Client
 
         public static HeroDef? DefOf(string id) => Roster.Find(h => h.Id == id);
 
-        public static string StageIdOf(int level) => DemoMeta.StageId(0, level);
+        public static string StageIdOf(int chapter, int level) => Campaign.StageId(chapter, level);
 
-        public static bool IsUnlocked(int level) => level == 1 || View.ClearedStages.Contains(StageIdOf(level - 1));
+        public static bool IsUnlocked(int chapter, int level) => Campaign.IsUnlocked(View.ClearedStages, chapter, level);
 
         /// <summary>教學關：隊伍固定，不經過編隊畫面。</summary>
-        public static bool FormationLocked(int level) => DemoMeta.FormationLocked(0, level);
+        public static bool FormationLocked(int chapter, int level) => DemoMeta.FormationLocked(chapter, level);
+
+        public static void Select(int chapter, int level)
+        {
+            SelectedChapter = chapter;
+            SelectedLevel = level;
+            StageChosen = true;
+        }
+
+        /// <summary>目前該打的關卡（第一個未通關的關卡，跨章）。</summary>
+        public static (int Chapter, int Level) Frontier() => Campaign.Frontier(View.ClearedStages);
+
+        /// <summary>還沒選過關卡就選目前該打的那一關（地圖第一次打開時用）。</summary>
+        public static void EnsureSelection()
+        {
+            if (StageChosen) return;
+            var (c, l) = Frontier();
+            Select(c, l);
+        }
 
         // 列陣區只有 3x2（欄 1–3、列 3 = 前排、列 4 = 後排）。
         private static readonly (int Lane, int Row)[] FrontCells = { (2, 3), (1, 3), (3, 3) };
@@ -164,10 +191,8 @@ namespace SanGuo.Client
                 var r = await Backend.StartStage(stageId, formation);
                 if (!r.Ok) return UiText.ExplainBackend(r.Code);
                 var dungeon = DemoMeta.FindDungeon(stageId);
-                int level = SelectedLevel;
-                if (dungeon == null && int.TryParse(stageId.Substring(stageId.IndexOf('-') + 1), out int parsed)) level = parsed;
-                SelectedLevel = level;
-                Ticket = new BattleTicket { StageId = stageId, Seed = r.Seed, Level = level, Dungeon = dungeon, Formation = formation };
+                if (dungeon == null && Campaign.TryParse(stageId, out int chapter, out int level)) Select(chapter, level);
+                Ticket = new BattleTicket { StageId = stageId, Seed = r.Seed, Chapter = SelectedChapter, Level = SelectedLevel, Dungeon = dungeon, Formation = formation };
                 return null;
             }
             catch (Exception e)

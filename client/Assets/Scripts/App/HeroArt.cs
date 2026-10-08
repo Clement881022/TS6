@@ -29,6 +29,10 @@ namespace SanGuo.Client
             return Resources.Load<GameObject>("ChibiModels/" + fallback);
         }
 
+        /// <summary>有專屬模型（不是依職業借用的）。</summary>
+        public static bool HasOwnModel(string defId) =>
+            Resources.Load<GameObject>("ProductionCharacters/" + defId) != null || Resources.Load<GameObject>("ChibiModels/" + defId) != null;
+
         private static string FallbackModel(SanGuo.Core.Role role)
         {
             switch (role)

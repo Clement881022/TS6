@@ -11,7 +11,7 @@ namespace SanGuo.Core.Data
         private static StoryLine SunJian(string text) => S("孫堅", "", text);
         private static StoryLine YuanShao(string text) => S("袁紹", "", text);
         private static StoryLine YuanShu(string text) => S("袁術", "", text);
-        private static StoryLine HuaXiong(string text) => S("華雄", "bandit_king", text);
+        private static StoryLine HuaXiong(string text) => S("華雄", "huaxiong", text);
 
         public static List<StoryLine> Before(int level)
         {

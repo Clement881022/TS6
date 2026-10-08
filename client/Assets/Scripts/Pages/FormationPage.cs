@@ -18,7 +18,7 @@ namespace SanGuo.Client
 
         protected override Page Id => Page.Formation;
         private static string StageId =>
-            GameSession.FormationStageId != "" ? GameSession.FormationStageId : GameSession.StageIdOf(GameSession.SelectedLevel);
+            GameSession.FormationStageId != "" ? GameSession.FormationStageId : GameSession.StageIdOf(GameSession.SelectedChapter, GameSession.SelectedLevel);
 
         protected override string Title
         {
@@ -26,8 +26,8 @@ namespace SanGuo.Client
             {
                 var dungeon = DemoMeta.FindDungeon(StageId);
                 if (dungeon != null) return $"排兵布陣　{dungeon.Name}";
-                int level = Campaign.TryParse(StageId, out _, out int parsedLevel) ? parsedLevel : 0;
-                return level == 0 ? "排兵布陣" : $"排兵布陣　第 {level} 關　{DemoContent.LevelNames[level - 1]}";
+                return Campaign.TryParse(StageId, out int chapter, out int level)
+                    ? $"排兵布陣　{chapter}-{level}　{Campaign.LevelName(chapter, level)}" : "排兵布陣";
             }
         }
         protected override Page BackPage => DemoMeta.FindDungeon(StageId) != null ? Page.Dungeons : Page.Map;

@@ -104,14 +104,14 @@ namespace SanGuo.Client
         }
 
         /// <summary>進入主線關卡：可編隊的關卡先到編隊頁（開戰才扣體力）；鎖定編隊的直接開戰。</summary>
-        protected void EnterLevel(int level)
+        protected void EnterLevel(int chapter, int level)
         {
-            if (_busy || level < 1 || level > SanGuo.Core.DemoContent.ChapterLevelCount) return;
-            GameSession.SelectedLevel = level;
-            StoryPlayer.ShowBefore(Host, level, () =>
+            if (_busy || !SanGuo.Core.Campaign.IsValid(chapter, level)) return;
+            GameSession.Select(chapter, level);
+            StoryPlayer.ShowBefore(Host, chapter, level, () =>
             {
-                if (GameSession.FormationLocked(level)) _ = StartBattle(GameSession.StageIdOf(level));
-                else { GameSession.FormationStageId = GameSession.StageIdOf(level); Nav.Go(Page.Formation); }
+                if (GameSession.FormationLocked(chapter, level)) _ = StartBattle(GameSession.StageIdOf(chapter, level));
+                else { GameSession.FormationStageId = GameSession.StageIdOf(chapter, level); Nav.Go(Page.Formation); }
             });
         }
 

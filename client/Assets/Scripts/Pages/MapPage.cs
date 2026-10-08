@@ -8,24 +8,28 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>征戰：整張章節地圖，關卡是圓形節點（星數、鎖頭、名牌），點下去開關卡面板（獎勵、敵人、挑戰 / 掃蕩）。</summary>
+    /// <summary>征戰：一章一張地圖（底部可切換章節），關卡是圓形節點（星數、鎖頭、名牌），點下去開關卡面板（獎勵、敵人、挑戰 / 掃蕩）。</summary>
     public sealed class MapPage : PageBase
     {
         protected override Page Id => Page.Map;
-        protected override string Title => "第零章　涿縣盜匪";
+        protected override string Title => Campaign.Title(Chapter);
+
+        private static int Chapter => GameSession.SelectedChapter;
 
         protected override void OnReady()
         {
+            // 第一次進地圖：跳到目前該打的那一章。
+            if (!GameSession.StageChosen) { GameSession.EnsureSelection(); Rebuild(); }
             if (!GameSession.OpenSelectedStageOnMap) return;
             GameSession.OpenSelectedStageOnMap = false;
-            int level = Mathf.Clamp(GameSession.SelectedLevel, 1, DemoContent.ChapterLevelCount);
-            if (GameSession.IsUnlocked(level)) OpenStageDetail(level);
+            if (GameSession.IsUnlocked(Chapter, GameSession.SelectedLevel)) OpenStageDetail(GameSession.SelectedLevel);
         }
 
         protected override void BuildBody(VisualElement body)
         {
             var v = GameSession.View;
-            int total = DemoContent.LevelNames.Length;
+            var levelNames = Campaign.LevelNames(Chapter);
+            int total = levelNames.Length;
             body.style.flexDirection = FlexDirection.Column;
 
             var area = new VisualElement();
@@ -53,12 +57,11 @@ namespace SanGuo.Client
             for (int i = 0; i < total; i++)
             {
                 int level = i + 1;
-                bool implemented = level <= DemoContent.ChapterLevelCount;
-                string sid = GameSession.StageIdOf(level);
+                string sid = GameSession.StageIdOf(Chapter, level);
                 int stars = v.StarsOf(sid);
                 bool isCleared = v.ClearedStages.Contains(sid);
                 if (isCleared) cleared++;
-                bool open = implemented && GameSession.IsUnlocked(level);
+                bool open = GameSession.IsUnlocked(Chapter, level);
                 bool boss = level == total;
 
                 var holder = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -77,19 +80,41 @@ namespace SanGuo.Client
                 holder.Add(node);
 
                 if (isCleared) holder.Add(UiKit.StarsRow(stars, 3, "mnode-stars"));
-                var plate = new Label(DemoContent.LevelNames[i]) { pickingMode = PickingMode.Ignore };
+                var plate = new Label(levelNames[i]) { pickingMode = PickingMode.Ignore };
                 plate.AddToClassList("mnode-plate");
                 if (!open) plate.AddToClassList("mnode-plate-dim");
                 holder.Add(plate);
                 area.Add(holder);
             }
 
-            // 底部：章節進度條
-            var info = new VisualElement { pickingMode = PickingMode.Ignore };
+            // 底部：章節切換與進度條（下一章要等該章第一關開放）
+            var info = new VisualElement();
             info.AddToClassList("map-info");
-            info.Add(UiKit.Text($"章節進度  {cleared}/{DemoContent.ChapterLevelCount}", "txt-gold"));
-            info.Add(UiKit.Bar(100f * cleared / DemoContent.ChapterLevelCount, "bar-gold bar-slim"));
+            info.style.flexDirection = FlexDirection.Row;
+            info.style.alignItems = Align.Center;
+            int prev = Chapter - 1, next = Chapter + 1;
+            var prevBtn = UiKit.Btn("◀ 上一章", () => SwitchChapter(prev)).WithClass("btn-sm");
+            prevBtn.SetEnabled(prev >= Campaign.FirstChapter);
+            info.Add(prevBtn);
+            var progress = new VisualElement { pickingMode = PickingMode.Ignore };
+            progress.style.flexGrow = 1;
+            progress.style.marginLeft = progress.style.marginRight = 12;
+            progress.Add(UiKit.Text($"章節進度  {cleared}/{total}", "txt-gold"));
+            progress.Add(UiKit.Bar(100f * cleared / total, "bar-gold bar-slim"));
+            info.Add(progress);
+            var nextBtn = UiKit.Btn("下一章 ▶", () => SwitchChapter(next)).WithClass("btn-sm");
+            nextBtn.SetEnabled(next <= Campaign.LastChapter && GameSession.IsUnlocked(next, 1));
+            info.Add(nextBtn);
             body.Add(info);
+        }
+
+        private void SwitchChapter(int chapter)
+        {
+            if (chapter < Campaign.FirstChapter || chapter > Campaign.LastChapter || !GameSession.IsUnlocked(chapter, 1)) return;
+            // 切到目前該打的那一章時停在該關，其餘停在第 1 關。
+            var (fc, fl) = GameSession.Frontier();
+            GameSession.Select(chapter, chapter == fc ? fl : 1);
+            Rebuild();
         }
 
         /// <summary>截圖 / 除錯用：直接開啟關卡面板。</summary>
@@ -100,10 +125,11 @@ namespace SanGuo.Client
         private void OpenStageDetail(int level)
         {
             var v = GameSession.View;
-            var stage = DemoMeta.Stage(0, level);
+            int chapter = Chapter;
+            var stage = DemoMeta.Stage(chapter, level);
             int stars = v.StarsOf(stage.StageId);
             bool first = !v.ClearedStages.Contains(stage.StageId);
-            var setup = DemoContent.Level(level, 1);
+            var setup = Campaign.Setup(chapter, level, 1);
 
             var overlay = new VisualElement();
             overlay.AddToClassList("overlay");
@@ -116,7 +142,7 @@ namespace SanGuo.Client
 
             var head = new VisualElement();
             head.AddToClassList("stage-head");
-            head.Add(UiKit.Text($"{level}　{DemoContent.LevelNames[level - 1]}", "stage-title"));
+            head.Add(UiKit.Text($"{chapter}-{level}　{Campaign.LevelName(chapter, level)}", "stage-title"));
             head.Add(UiKit.StarsRow(stars, 3, "stars-lg"));
             panel.Add(head);
 
@@ -140,6 +166,8 @@ namespace SanGuo.Client
             var foes = new VisualElement();
             foes.AddToClassList("stage-col");
             foes.Add(UiKit.Section("敵方"));
+            var objective = ObjectiveText(setup);
+            if (objective != null) foes.Add(UiKit.Text(objective, "txt-gold"));
             var names = setup.Enemies.GroupBy(e => e.Def.Name).Select(g => g.Count() > 1 ? $"{g.Key} ×{g.Count()}" : g.Key);
             foreach (var n in names) foes.Add(UiKit.Text("● " + n, "line-title"));
             cols.Add(foes);
@@ -156,16 +184,32 @@ namespace SanGuo.Client
             sweeps.AddToClassList("stage-sweeps");
             if (stars >= 3)
             {
-                sweeps.Add(UiKit.Btn("掃蕩 ×1", () => _ = Sweep(level, 1)).WithClass("btn-sm"));
-                sweeps.Add(UiKit.Btn($"掃蕩 ×{PlayerProfile.MaxSweepCount}", () => _ = Sweep(level, PlayerProfile.MaxSweepCount)).WithClass("btn-sm"));
+                sweeps.Add(UiKit.Btn("掃蕩 ×1", () => _ = Sweep(chapter, level, 1)).WithClass("btn-sm"));
+                sweeps.Add(UiKit.Btn($"掃蕩 ×{PlayerProfile.MaxSweepCount}", () => _ = Sweep(chapter, level, PlayerProfile.MaxSweepCount)).WithClass("btn-sm"));
             }
             row.Add(sweeps);
-            row.Add(UiKit.Btn("戰鬥", () => EnterLevel(level), primary: true).WithClass("btn-lg"));
+            row.Add(UiKit.Btn("戰鬥", () => EnterLevel(chapter, level), primary: true).WithClass("btn-lg"));
             panel.Add(row);
 
             overlay.Add(panel);
             Host.Add(overlay);
         }
+
+        /// <summary>關卡目標（全滅以外才顯示）：護送 / 守城 / 擊殺指定 / 限時。</summary>
+        private static string? ObjectiveText(BattleSetup setup)
+        {
+            string? text = setup.Objective switch
+            {
+                Objective.Escort => $"目標：護送{ProtectedName(setup)}撐過 {setup.SurviveTurns} 回合",
+                Objective.Defend => $"目標：守住{ProtectedName(setup)} {setup.SurviveTurns} 回合",
+                Objective.KillTarget => "目標：擊殺 " + string.Join("、", setup.Enemies.Where(e => e.IsObjective).Select(e => e.Def.Name).Distinct()),
+                _ => null,
+            };
+            if (setup.TurnLimit > 0) text = (text ?? "目標：全滅敵人") + $"（限 {setup.TurnLimit} 回合）";
+            return text;
+        }
+
+        private static string ProtectedName(BattleSetup setup) => setup.Heroes.FirstOrDefault(h => h.IsProtected)?.Def.Name ?? "目標";
 
         /// <summary>星級條件一行：已達成的打勾變綠。</summary>
         private static VisualElement StarCondition(int need, string text, int stars)
@@ -178,8 +222,8 @@ namespace SanGuo.Client
             return row;
         }
 
-        private Task Sweep(int level, int count) => Act(
-            async () => await GameSession.Backend.Sweep(GameSession.StageIdOf(level), count),
+        private Task Sweep(int chapter, int level, int count) => Act(
+            async () => await GameSession.Backend.Sweep(GameSession.StageIdOf(chapter, level), count),
             describe: r =>
             {
                 var s = (SweepOutcome)r;

@@ -22,7 +22,9 @@ namespace SanGuo.Client
             Instance = go.AddComponent<ShotRunner>();
             var args = System.Environment.GetCommandLineArgs();
             int review = System.Array.IndexOf(args, "-sanguoModelReview");
-            Instance.StartCoroutine(review >= 0 ? Instance.ReviewModels(dir, review+1 < args.Length ? args[review+1] : "guanyu") : Instance.Run(dir));
+            bool campaign = System.Array.IndexOf(args, "-sanguoCampaignShot") >= 0;
+            Instance.StartCoroutine(review >= 0 ? Instance.ReviewModels(dir, review+1 < args.Length ? args[review+1] : "guanyu")
+                : campaign ? Instance.RunCampaign(dir) : Instance.Run(dir));
         }
 
         private int _n = 1;
@@ -59,6 +61,48 @@ namespace SanGuo.Client
             Debug.Log("[model-review] "+path);
         }
 
+        /// <summary>
+        /// 主線章節驗證（-sanguoCampaignShot，搭配 -sanguoClearTo 與 -sanguoLevel 指定章-關）：
+        /// 首頁 → 地圖（該章）→ 關卡面板 → 戰前劇情 → 開戰 → 出牌 → 自動打完 → 首通劇情。
+        /// </summary>
+        private IEnumerator RunCampaign(string dir)
+        {
+            Directory.CreateDirectory(dir);
+            int chapter = GameSession.SelectedChapter, level = GameSession.SelectedLevel;
+            yield return Wait(2f);
+            Shot(dir, "home");
+            yield return Wait(0.4f);
+            GameSession.Select(chapter, level);
+            GameSession.OpenSelectedStageOnMap = true;
+            yield return Go(Page.Map);
+            yield return Wait(0.6f);
+            Shot(dir, "map-stage");
+            yield return Wait(0.4f);
+            var root = PageHost.Current!.GetComponent<UIDocument>().rootVisualElement;
+            StoryPlayer.Show(root, StoryPlayer.StageTitle(chapter, level), SanGuo.Core.Data.CampaignStory.Before(chapter, level));
+            yield return Wait(2.5f);
+            Shot(dir, "story-before");
+            yield return Wait(0.4f);
+            var task = GameSession.BeginStage(GameSession.StageIdOf(chapter, level));
+            while (!task.IsCompleted) yield return null;
+            if (task.Result != null) { Debug.LogError("[shot] BeginStage failed: " + task.Result); Application.Quit(); yield break; }
+            yield return Go(Page.Battle);
+            var battle = (PageHost.Current?.ActivePage as BattlePage)?.Screen;
+            if (battle == null) { Application.Quit(); yield break; }
+            yield return Wait(1.2f);
+            Shot(dir, "battle-start");
+            yield return Wait(0.4f);
+            battle.DebugPlayFirstPlayable();
+            yield return Wait(1.0f);
+            Shot(dir, "battle-played");
+            yield return Wait(0.4f);
+            battle.DebugAutoFinish();
+            yield return Wait(4f);
+            Shot(dir, "battle-result");
+            yield return Wait(0.6f);
+            Application.Quit();
+        }
+
         private IEnumerator Run(string dir)
         {
             Directory.CreateDirectory(dir);
@@ -74,7 +118,7 @@ namespace SanGuo.Client
             var homeRoot = PageHost.Current!.GetComponent<UIDocument>().rootVisualElement;
             Submit(homeRoot.Q<Button>(className: "home-primary"));
             yield return Wait(1.0f);
-            if (!(PageHost.Current.ActivePage is MapPage) || GameSession.SelectedLevel != 1
+            if (!(PageHost.Current.ActivePage is MapPage) || GameSession.SelectedChapter != 0 || GameSession.SelectedLevel != 1
                 || homeRoot.Q(className: "stage-panel") == null)
                 throw new System.InvalidOperationException("Home expedition did not open the next stage detail.");
             yield return Go(Page.Home);
@@ -118,14 +162,14 @@ namespace SanGuo.Client
                 yield return Wait(0.2f);
             }
 
-            GameSession.SelectedLevel = Mathf.Max(2, GameSession.SelectedLevel);
-            GameSession.FormationStageId = GameSession.StageIdOf(DemoMeta.FirstOpenFormationLevel); // 編隊頁只用於教學關之後的關卡
+            GameSession.Select(0, Mathf.Max(2, GameSession.SelectedLevel));
+            GameSession.FormationStageId = GameSession.StageIdOf(0, DemoMeta.FirstOpenFormationLevel); // 編隊頁只用於教學關之後的關卡
             yield return Go(Page.Formation);
             Shot(dir, "formation");
             yield return Wait(0.4f);
 
             // 實際開一場戰鬥：經過後端開始關卡 → 戰鬥場景 → 預覽 / 出牌 / 打完結算。
-            var task = GameSession.BeginStage(GameSession.StageIdOf(GameSession.SelectedLevel));
+            var task = GameSession.BeginStage(GameSession.StageIdOf(GameSession.SelectedChapter, GameSession.SelectedLevel));
             while (!task.IsCompleted) yield return null;
             yield return Go(Page.Battle);
             var battle = (PageHost.Current?.ActivePage as BattlePage)?.Screen;
@@ -158,7 +202,7 @@ namespace SanGuo.Client
             yield return Go(Page.Home);
             Shot(dir, "home-progress");
             yield return Wait(0.5f);
-            GameSession.SelectedLevel = 3;
+            GameSession.Select(0, 3);
             yield return Go(Page.Battle);
             battle = (PageHost.Current?.ActivePage as BattlePage)?.Screen;
             battle!.DebugReviewScenario(3);
