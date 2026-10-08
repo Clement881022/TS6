@@ -15,11 +15,12 @@ namespace SanGuo.Client
         /// <summary>移動卡示意圖畫的格數（實際格數看被移動武將的移動力）。</summary>
         private const int SampleMoveRange = 2;
 
-        public static VisualElement Build(CardDef def)
+        /// <param name="attackRange">施放者的攻擊範圍。</param>
+        public static VisualElement Build(CardDef def, int attackRange)
         {
-            bool ally = def.Target == TargetRule.Self || def.Target == TargetRule.AllyLowestHp || def.Target == TargetRule.AllAllies;
+            bool ally = def.Target == TargetRule.Self || def.Target == TargetRule.Ally || def.Target == TargetRule.AllAllies;
             bool move = def.Target == TargetRule.MoveDest;
-            int range = move ? SampleMoveRange : def.Range;
+            int range = move ? SampleMoveRange : attackRange;
             bool all = def.Target == TargetRule.AllAllies || def.Target == TargetRule.AllEnemies;
 
             var root = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -50,8 +51,6 @@ namespace SanGuo.Client
             var label = new Label(Caption(def, range)) { pickingMode = PickingMode.Ignore };
             label.AddToClassList("range-text");
             root.Add(label);
-            if (def.Target == TargetRule.EnemyLowestHp || def.Target == TargetRule.AllyLowestHp)
-                root.Add(UiIcons.Icon("hp", "range-hp"));
             return root;
         }
 
@@ -67,8 +66,8 @@ namespace SanGuo.Client
             string shape;
             switch (def.Shape)
             {
-                case Shape.Row: shape = "·整排"; break;
-                case Shape.Column: shape = "·整欄"; break;
+                case Shape.Row3: shape = "·橫3格"; break;
+                case Shape.Column3: shape = "·縱3格"; break;
                 case Shape.Cross: shape = "·十字"; break;
                 default: shape = ""; break;
             }

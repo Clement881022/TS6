@@ -30,7 +30,7 @@ namespace SanGuo.Client
         /// <param name="bust">true = 半身像：鏡頭只框住上半身（劇情對白用）。</param>
         public static ModelStage? Create(string characterName, int width = 512, int height = 640, bool bust = false)
         {
-            var prefab = Resources.Load<GameObject>("Characters/" + characterName);
+            var prefab = characterName == "badou" ? Resources.Load<GameObject>("Characters/badou") : HeroArt.Model(characterName);
             if (prefab == null) return null;
 
             var go = new GameObject("ModelStage_" + characterName);

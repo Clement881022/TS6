@@ -21,7 +21,16 @@ namespace SanGuo.Client
             return tex;
         }
 
-        public static string Status(StatusType type) => "status_" + type.ToString().ToLowerInvariant();
+        public static string Status(StatusType type)
+        {
+            // 謀略 / 閃避增益暫用攻擊 / 防禦增益的圖示。
+            switch (type)
+            {
+                case StatusType.IntUp: return "status_atkup";
+                case StatusType.DodgeUp: return "status_defup";
+                default: return "status_" + type.ToString().ToLowerInvariant();
+            }
+        }
 
         public static string RoleIcon(Role role)
         {
@@ -29,7 +38,7 @@ namespace SanGuo.Client
             {
                 case Role.Tank: return "role_tank";
                 case Role.Warrior: return "role_warrior";
-                case Role.Archer: return "role_archer";
+                case Role.Ranger: return "role_archer";
                 case Role.Healer: return "role_healer";
                 case Role.Strategist: return "role_strategist";
                 default: return "role_mage";

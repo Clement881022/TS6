@@ -326,14 +326,53 @@ namespace SanGuo.Client
             BuildTags();
             PumpEvents();
             Refresh();
-            if (_level == 1 && _dungeon == null)
-                Tutorial.Show(_root, "battle1", "戰鬥教學", new[]
-                {
-                    "戰鬥是回合制出牌。點下方的手牌打出，每張牌要消耗費用，剩餘費用顯示在左下角。",
-                    "費用用完（或不想出牌）就按「結束回合」，敵人才會行動；敵人頭上的圖示是牠下一步的行動預告。",
-                    "戰場是敵我共用的 5x5 棋盤，每張牌都有攻擊範圍（格數）：近戰只打得到相鄰的敵人，弓手與法師射程較遠。",
-                    "牌堆裡有幾張 0 費的通用「移動」牌（隊伍每有一人就有一張）：點牌後先選要移動的武將，再點綠色的格子走位。攻擊牌要自己點選射程內的格子施放，空格也可以點（會打空）。牌抽完就沒有了，不會重洗。打倒全部敵人就獲勝！",
-                }, speaker: "巴豆妖", model: "badou");
+            if (_dungeon == null) ShowLevelTutorial();
+        }
+
+        /// <summary>第零章各關的戰鬥教學（巴豆妖旁白，每關只講該關要教的機制）。</summary>
+        private void ShowLevelTutorial()
+        {
+            string[]? pages;
+            string key = _level == 1 ? "battle1" : "battle" + _level;
+            switch (_level)
+            {
+                case 1:
+                    pages = new[]
+                    {
+                        "戰鬥是回合制出牌。點下方的手牌打出，每張牌要消耗費用，剩餘費用顯示在左下角；沒用完的費用與手牌都會留到下回合（費用、手牌上限各 10）。",
+                        "費用用完（或不想出牌）就按「結束回合」，換敵人行動；敵人頭上的圖示是牠下一步的行動預告。",
+                        "戰場是敵我共用的 5x5 棋盤。每名武將有攻擊範圍（格數）：坦克與戰士只打得到相鄰的敵人，遊俠、術士、軍師與醫者射程較遠。",
+                        "牌庫裡有幾張 0 費的通用「移動」牌（隊伍每有一人就有一張）：點牌後先選要移動的武將，再點綠色的格子走位。攻擊牌要自己點選射程內的格子施放，空格也可以點（會打空）。牌庫抽完會把棄牌洗回去。打倒全部敵人就獲勝！",
+                    };
+                    break;
+                case 2:
+                    pages = new[] { "遠程敵人專打最後排。坦克的「嘲諷」會讓全場敵人這回合都以他為目標，把火力從後排拉走。" };
+                    break;
+                case 3:
+                    pages = new[] { "重甲敵人的防禦很高，物理攻擊幾乎打不動。遊俠的「破甲箭」會降低目標防禦，破甲後全隊的物理傷害都會變高。" };
+                    break;
+                case 4:
+                    pages = new[] { "法術傷害不受防禦影響，後排的術士雖然脆弱，卻能一擊重創我方。優先擊殺牠，或用嘲諷把牠的攻擊拉到坦克身上。" };
+                    break;
+                case 5:
+                    pages = new[] { "頭上顯示「蓄力中」的敵人下一次行動會放出全體大招。用坦克的「嘲諷」可以打斷蓄力，打斷後牠得重新蓄力；擊倒牠也能終止蓄力。" };
+                    break;
+                case 6:
+                    pages = new[] { "護送關卡：保護目標撐過指定回合就勝利，陣亡則失敗。醫者的「屏障」會給目標一層護盾，護盾先於生命值吸收傷害，沒有時間限制。" };
+                    break;
+                case 7:
+                    pages = new[] { "術士的「火攻」會疊燃燒層數：每個回合結束受到等同層數的固定傷害，然後層數減半。法術與燃燒都無視防禦，專門對付重甲。" };
+                    break;
+                case 8:
+                    pages = new[] { "戰士的「橫斬」可以同時打到橫向相連的三格。點選敵人排中間那一格，左右兩側也會一起中招。" };
+                    break;
+                case 10:
+                    pages = new[] { "Boss 會蓄力兩回合後放出全體大招，並帶著護衛。大招前用「嘲諷」打斷牠，其餘時間集中火力輸出。" };
+                    break;
+                default:
+                    return;
+            }
+            Tutorial.Show(_root, key, "戰鬥教學", pages, speaker: "巴豆妖", model: "badou");
         }
 
         private bool _finishing;
@@ -444,9 +483,10 @@ namespace SanGuo.Client
                 PlayCardAt(card, pos, _pendingMover);
                 return;
             }
-            if (card.Def.Target != TargetRule.Enemy) return;   // 其餘牌用右側詳情的「使用」按鈕
+            if (card.Def.Target != TargetRule.Enemy && card.Def.Target != TargetRule.Ally) return;   // 其餘牌用右側詳情的「使用」按鈕
             var owner = card.Owner!;
-            if (!_battle.InBounds(pos) || pos == owner.Pos || Position.Distance(owner.Pos, pos) > card.Def.Range)
+            bool selfOk = card.Def.Target == TargetRule.Ally;
+            if (!_battle.InBounds(pos) || (pos == owner.Pos && !selfOk) || Position.Distance(owner.Pos, pos) > owner.AttackRange)
             {
                 Toast("請點選射程內的格子");
                 return;
@@ -568,23 +608,20 @@ namespace SanGuo.Client
             title.Add(new Label(roleName) { pickingMode = PickingMode.Ignore }.WithClass("ui-role"));
             _unitInfo.Add(title);
 
-            string hp = $"生命 {unit.Hp}/{unit.MaxHp}" + (unit.Armor > 0 ? $"　護甲 {unit.Armor}" : "");
+            string hp = $"生命 {unit.Hp}/{unit.MaxHp}" + (unit.Shield > 0 ? $"　護盾 {unit.Shield}" : "");
             _unitInfo.Add(new Label(hp) { pickingMode = PickingMode.Ignore }.WithClass("ui-hp"));
 
             var grid = new VisualElement { pickingMode = PickingMode.Ignore };
             grid.AddToClassList("ui-grid");
             var st = unit.Stats;
-            // 法系（法師 / 醫療 / 軍師）的治療、法傷與增減益強度吃謀略，其餘吃攻擊：把主屬性排在前面。
-            var atk = (CardText.AtkName, st.Atk, unit.EffectiveAtk);
-            var intl = (CardText.IntName, st.Int, unit.EffectiveInt);
-            var first = unit.IsCaster ? intl : atk;
-            var second = unit.IsCaster ? atk : intl;
-            AddStat(grid, "stat_" + (unit.IsCaster ? "int" : "atk"), first.Item2, first.Item3);
-            AddStat(grid, "stat_" + (unit.IsCaster ? "atk" : "int"), second.Item2, second.Item3);
+            // 主屬性排在前面：吃謀略的單位（術士 / 軍師 / 醫者）先顯示謀略。
+            bool caster = IsCaster(unit);
+            AddStat(grid, "stat_" + (caster ? "int" : "atk"), caster ? st.Int : st.Atk, caster ? unit.EffectiveInt : unit.EffectiveAtk);
+            AddStat(grid, "stat_" + (caster ? "atk" : "int"), caster ? st.Atk : st.Int, caster ? unit.EffectiveAtk : unit.EffectiveInt);
             AddStat(grid, "stat_def", st.Def, (int)Math.Round(unit.EffectiveDef));
             AddStat(grid, "stat_move", st.Move, st.Move);
             AddStat(grid, "射程", unit.AttackRange, unit.AttackRange);
-            AddStat(grid, "閃避", st.Dodge, st.Dodge, "%");
+            AddStat(grid, "閃避", st.Dodge, unit.EffectiveDodge, "%");
             AddStat(grid, "暴擊", st.Crit, unit.EffectiveCrit, "%");
             AddStat(grid, "暴傷", st.CritDmg, st.CritDmg, "%");
             _unitInfo.Add(grid);
@@ -592,12 +629,9 @@ namespace SanGuo.Client
             _unitInfo.Add(new Label("增減益") { pickingMode = PickingMode.Ignore }.WithClass("ui-sec"));
             int before = _unitInfo.childCount;
             foreach (var kv in unit.Statuses) AddStatusRow(UiIcons.Status(kv.Key), StatusLine(kv.Key, kv.Value));
+            foreach (var b in unit.Buffs) AddStatusRow(UiIcons.Status(b.Type), BuffLine(b));
             foreach (var br in unit.DefBreaks) AddStatusRow("status_armorbreak", $"破甲　防禦 -{br.Percent * 100:0}%・剩 {br.Turns} 回合");
-            if (unit.Side == Side.Enemy && unit.Ability.HasFlag(EnemyAbility.Charger))
-            {
-                AddStatusRow("status_stun", $"昏亂條 {unit.StunGauge}/{unit.StunGaugeMax}");
-                if (unit.Charging) AddStatusRow("charge", "蓄力中：下回合放大招");
-            }
+            if (unit.Side == Side.Enemy && unit.Charging) AddStatusRow("charge", "蓄力中");
             if (_unitInfo.childCount == before)
                 _unitInfo.Add(new Label("目前沒有增減益") { pickingMode = PickingMode.Ignore }.WithClass("ui-none"));
         }
@@ -631,15 +665,24 @@ namespace SanGuo.Client
             string name = CardText.StatusName(type);
             switch (type)
             {
-                case StatusType.Burn:
-                case StatusType.Poison: return $"{name}　每回合 {state.Power} 傷害・剩 {state.Turns} 回合";
-                case StatusType.AtkUp: return $"{name}　攻擊 / 謀略 +{state.Power}%・剩 {state.Turns} 回合";
-                case StatusType.DefUp: return $"{name}　防禦 +{state.Power}%・剩 {state.Turns} 回合";
-                case StatusType.CritUp: return $"{name}　暴擊 +{state.Power}%・剩 {state.Turns} 回合";
-                case StatusType.Taunt: return $"{name}　吸引敵人攻擊、受傷 -{DamageCalc.TauntDamageReduction * 100:0}%・剩 {state.Turns} 回合";
+                case StatusType.Burn: return $"{name}　{state.Power} 層，回合結束受 {state.Power} 點傷害後層數減半";
+                case StatusType.Taunt: return $"{name}　被迫以嘲諷者為目標・剩 {state.Turns} 回合";
                 default: return $"{name}・剩 {state.Turns} 回合";
             }
         }
+
+        private static string BuffLine(Buff b)
+        {
+            string name = CardText.StatusName(b.Type);
+            string value = b.Type == StatusType.AtkUp || b.Type == StatusType.IntUp ? $"+{b.Power}%" : $"+{b.Power}";
+            return $"{name}　{value}・剩 {b.Turns} 回合";
+        }
+
+        /// <summary>主屬性是謀略的單位（術士 / 軍師 / 醫者，或法術攻擊的敵人）。</summary>
+        private static bool IsCaster(Unit unit) =>
+            unit.Hero != null ? unit.Hero.Role == Role.Mage || unit.Hero.Role == Role.Strategist || unit.Hero.Role == Role.Healer : unit.Magical;
+
+        private static string ChipText(StatusType type, StatusState state) => type == StatusType.Burn ? state.Power.ToString() : state.Turns.ToString();
 
         private static string Explain(PlayResult result)
         {
@@ -650,7 +693,6 @@ namespace SanGuo.Client
                 case PlayResult.OutOfRange: return "超出射程或無法到達那裡";
                 case PlayResult.InvalidMover: return "這名武將現在不能移動";
                 case PlayResult.OwnerDead: return "該武將已陣亡";
-                case PlayResult.Stunned: return "該武將昏亂，無法行動";
                 case PlayResult.BattleOver: return "戰鬥已結束";
                 default: return result.ToString();
             }
@@ -693,17 +735,17 @@ namespace SanGuo.Client
             else if (card.Owner != null)
             {
                 var owner = card.Owner;
-                if (def.Target == TargetRule.Enemy || def.Target == TargetRule.EnemyLowestHp || def.Target == TargetRule.AllyLowestHp)
+                if (def.Target == TargetRule.Enemy || def.Target == TargetRule.Ally)
                 {
                     for (int lane = 0; lane < _battle.Setup.Lanes; lane++)
                         for (int row = 0; row < _battle.Setup.Rows; row++)
                         {
                             var p = new Position(lane, row);
-                            if (p != owner.Pos && Position.Distance(owner.Pos, p) <= def.Range) _previewRange.Add(p);
+                            if (p != owner.Pos && Position.Distance(owner.Pos, p) <= owner.AttackRange) _previewRange.Add(p);
                         }
                 }
                 // 自動選目標的牌（最低血量、全體）直接標出會中招的單位；單體敵人牌由玩家點格，只標射程。
-                if (def.Target != TargetRule.Enemy)
+                if (def.Target != TargetRule.Enemy && def.Target != TargetRule.Ally)
                 {
                     var targets = _battle.ResolveTargets(owner, def);
                     if (targets != null)
@@ -712,7 +754,7 @@ namespace SanGuo.Client
                 else
                 {
                     foreach (var u in _battle.AliveUnits(Side.Enemy))
-                        if (Position.Distance(owner.Pos, u.Pos) <= def.Range) _previewTargets.Add(u.Pos);
+                        if (Position.Distance(owner.Pos, u.Pos) <= owner.AttackRange) _previewTargets.Add(u.Pos);
                 }
             }
             RefreshTiles();
@@ -777,11 +819,10 @@ namespace SanGuo.Client
                 tag.HpText.text = $"{unit.Hp}/{unit.MaxHp}";
 
                 tag.Extra.Clear();
-                if (unit.Armor > 0) tag.Extra.Add(UiIcons.Chip("armor", unit.Armor.ToString()));
-                foreach (var st in unit.Statuses) tag.Extra.Add(UiIcons.Chip(UiIcons.Status(st.Key), st.Value.Turns.ToString()));
+                if (unit.Shield > 0) tag.Extra.Add(UiIcons.Chip("armor", unit.Shield.ToString()));
+                foreach (var st in unit.Statuses) tag.Extra.Add(UiIcons.Chip(UiIcons.Status(st.Key), ChipText(st.Key, st.Value)));
+                foreach (var b in unit.Buffs) tag.Extra.Add(UiIcons.Chip(UiIcons.Status(b.Type), $"{b.Power}·{b.Turns}"));
                 foreach (var br in unit.DefBreaks) tag.Extra.Add(UiIcons.Chip("status_armorbreak", $"{br.Percent * 100:0}%·{br.Turns}"));
-                if (unit.Side == Side.Enemy && unit.Ability.HasFlag(EnemyAbility.Charger))
-                    tag.Extra.Add(UiIcons.Chip("status_stun", $"{unit.StunGauge}/{unit.StunGaugeMax}"));
                 tag.Extra.style.display = tag.Extra.childCount > 0 ? DisplayStyle.Flex : DisplayStyle.None;
 
                 tag.Intent.Clear();
@@ -819,12 +860,12 @@ namespace SanGuo.Client
             {
                 case Intent.Kind.Attack:
                     if (intent.MoveTo != null) host.Add(UiIcons.Chip("draw", "→"));
-                    host.Add(UiIcons.Chip(intent.Big ? "charge" : "damage", intent.Target!.Name));
+                    host.Add(UiIcons.Chip("damage", intent.Target!.Name));
                     break;
-                case Intent.Kind.Charge: host.Add(UiIcons.Chip("charge")); break;
-                case Intent.Kind.Heal: host.Add(UiIcons.Chip("heal", intent.Target!.Name)); break;
+                // 蓄力中（含即將開始蓄力）只顯示「蓄力中」，不顯示傷害與範圍。
+                case Intent.Kind.Charge:
+                case Intent.Kind.Charging: host.Add(UiIcons.Chip("charge", "蓄力中")); break;
                 case Intent.Kind.Move: host.Add(UiIcons.Chip("draw", "逼近")); break;
-                case Intent.Kind.Stunned: host.Add(UiIcons.Chip("status_stun")); break;
             }
         }
 
@@ -837,9 +878,14 @@ namespace SanGuo.Client
                 {
                     case EffectType.Damage: host.Add(UiIcons.Chip("damage", pct)); break;
                     case EffectType.Heal: host.Add(UiIcons.Chip("heal", pct)); break;
-                    case EffectType.Armor: host.Add(UiIcons.Chip("armor", pct)); break;
+                    case EffectType.Shield: host.Add(UiIcons.Chip("armor", pct)); break;
                     case EffectType.ApplyStatus:
-                        host.Add(UiIcons.Chip(UiIcons.Status(e.Status), e.Multiplier > 0 ? $"{pct}·{e.Amount}" : e.Amount.ToString()));
+                    {
+                        bool flat = e.Status == StatusType.DefUp || e.Status == StatusType.DodgeUp;
+                        string value = flat ? e.Multiplier.ToString("0") : pct;
+                        host.Add(UiIcons.Chip(UiIcons.Status(e.Status), e.Status == StatusType.Burn ? pct
+                            : e.Multiplier > 0 ? $"{value}·{e.Amount}" : e.Amount.ToString()));
+                    }
                         break;
                     case EffectType.Draw: host.Add(UiIcons.Chip("draw", e.Amount.ToString())); break;
                     case EffectType.GainCost: host.Add(UiIcons.Chip("cost", "+" + e.Amount)); break;
@@ -929,12 +975,11 @@ namespace SanGuo.Client
             head.Add(cost);
             _detail.Add(head);
 
-            _detail.Add(RangeIcon.Build(def));
-            _detail.Add(new Label(CardText.Target(def)) { pickingMode = PickingMode.Ignore }.WithClass("bl-d-target"));
+            int attackRange = card.Owner != null ? card.Owner.AttackRange : 1;
+            _detail.Add(RangeIcon.Build(def, attackRange));
+            _detail.Add(new Label(CardText.Target(def, attackRange)) { pickingMode = PickingMode.Ignore }.WithClass("bl-d-target"));
             var desc = CardText.Description(def);
             if (desc.Length > 0) _detail.Add(new Label(desc) { pickingMode = PickingMode.Ignore }.WithClass("bl-d-desc"));
-            string kw = CardText.Keywords(def.Keywords);
-            if (kw.Length > 0) _detail.Add(new Label("關鍵字：" + kw) { pickingMode = PickingMode.Ignore }.WithClass("bl-d-kw"));
 
             var check = _battle.CanPlay(card);
             string hint;
@@ -942,6 +987,7 @@ namespace SanGuo.Client
             else if (def.Target == TargetRule.MoveDest)
                 hint = _pendingMover == null ? "先點選要移動的武將（棋盤或底部武將列），再點綠色格子" : $"移動 {_pendingMover.Name}：點選綠色格子";
             else if (def.Target == TargetRule.Enemy) hint = "點選棋盤上射程內的格子施放，空格也可以（會打空）";
+            else if (def.Target == TargetRule.Ally) hint = "點選射程內的隊友，或直接按「使用」（自動選血量比例最低者）";
             else hint = "";
             if (hint.Length > 0) _detail.Add(new Label(hint) { pickingMode = PickingMode.Ignore }.WithClass(check == PlayResult.Ok ? "bl-d-hint" : "bl-d-warn"));
 
@@ -1013,12 +1059,7 @@ namespace SanGuo.Client
 
             var cards = kind == PileKind.Draw ? _battle.DrawPile : _battle.DiscardPile;
             AddPileGroup(scroll, cards, "");
-            if (kind == PileKind.Discard && _battle.ExhaustPile.Count > 0)
-            {
-                scroll.Add(new Label($"已消耗（{_battle.ExhaustPile.Count}）").WithClass("pv-section"));
-                AddPileGroup(scroll, _battle.ExhaustPile, "消耗");
-            }
-            if (kind == PileKind.Draw ? cards.Count == 0 : cards.Count == 0 && _battle.ExhaustPile.Count == 0)
+            if (cards.Count == 0)
                 scroll.Add(new Label(kind == PileKind.Draw ? "抽牌堆已空" : "還沒有用過的牌").WithClass("pv-empty"));
             panel.Add(scroll);
             overlay.Add(panel);
@@ -1062,7 +1103,7 @@ namespace SanGuo.Client
                 tile.Add(head);
 
                 string desc = CardText.Description(card.Def);
-                tile.Add(new Label(CardText.Target(card.Def)).WithClass("pv-card-target"));
+                tile.Add(new Label(CardText.Target(card.Def, card.Owner != null ? card.Owner.AttackRange : 1)).WithClass("pv-card-target"));
                 if (desc.Length > 0) tile.Add(new Label(desc).WithClass("pv-card-desc"));
                 if (g.Count() > 1) tile.Add(new Label("×" + g.Count()).WithClass("pv-count"));
                 if (tag.Length > 0) tile.Add(new Label(tag).WithClass("pv-tag"));
@@ -1101,22 +1142,23 @@ namespace SanGuo.Client
                 fill.AddToClassList("bl-hp-fill");
                 fill.style.width = Length.Percent(unit.MaxHp <= 0 ? 0f : Mathf.Clamp01(unit.Hp / (float)unit.MaxHp) * 100f);
                 hpBg.Add(fill);
-                hpBg.Add(new Label($"{unit.Hp}/{unit.MaxHp}" + (unit.Armor > 0 ? $"  盾 {unit.Armor}" : "")) { pickingMode = PickingMode.Ignore }.WithClass("bl-hp-text"));
+                hpBg.Add(new Label($"{unit.Hp}/{unit.MaxHp}" + (unit.Shield > 0 ? $"  盾 {unit.Shield}" : "")) { pickingMode = PickingMode.Ignore }.WithClass("bl-hp-text"));
                 col.Add(hpBg);
 
                 // 法系把「謀略」放在最前面，其餘把「攻擊」放最前面（與傷害 / 治療實際吃的屬性一致）。
                 var stats = new VisualElement { pickingMode = PickingMode.Ignore };
                 stats.AddToClassList("bl-stats");
                 // 順序固定（攻擊、謀略、防禦、移動力），大小一致；該職業實際吃的屬性（法系 = 謀略）用金色標出。
-                stats.Add(StatChip("stat_atk", unit.EffectiveAtk, unit.Stats.Atk, main: !unit.IsCaster));
-                stats.Add(StatChip("stat_int", unit.EffectiveInt, unit.Stats.Int, main: unit.IsCaster));
+                stats.Add(StatChip("stat_atk", unit.EffectiveAtk, unit.Stats.Atk, main: !IsCaster(unit)));
+                stats.Add(StatChip("stat_int", unit.EffectiveInt, unit.Stats.Int, main: IsCaster(unit)));
                 stats.Add(StatChip("stat_def", (int)Math.Round(unit.EffectiveDef), unit.Stats.Def));
                 stats.Add(StatChip("stat_move", unit.Stats.Move, unit.Stats.Move));
                 col.Add(stats);
 
                 var chips = new VisualElement { pickingMode = PickingMode.Ignore };
                 chips.AddToClassList("bl-chips");
-                foreach (var st in unit.Statuses) chips.Add(UiIcons.Chip(UiIcons.Status(st.Key), st.Value.Turns.ToString()));
+                foreach (var st in unit.Statuses) chips.Add(UiIcons.Chip(UiIcons.Status(st.Key), ChipText(st.Key, st.Value)));
+                foreach (var b in unit.Buffs) chips.Add(UiIcons.Chip(UiIcons.Status(b.Type), $"{b.Power}·{b.Turns}"));
                 foreach (var br in unit.DefBreaks) chips.Add(UiIcons.Chip("status_armorbreak", $"{br.Percent * 100:0}%·{br.Turns}"));
                 col.Add(chips);
 
@@ -1144,7 +1186,7 @@ namespace SanGuo.Client
             _cost.Add(new Label($"{_battle.Cost}") { pickingMode = PickingMode.Ignore }.WithClass("bl-cost-num"));
             _cost.Add(new Label($"/ {_battle.Setup.CostCap}") { pickingMode = PickingMode.Ignore }.WithClass("bl-cost-cap"));
             _drawCount.text = _battle.DrawPile.Count.ToString();
-            _discardCount.text = (_battle.DiscardPile.Count + _battle.ExhaustPile.Count).ToString();
+            _discardCount.text = _battle.DiscardPile.Count.ToString();
             _logLabel.text = string.Join("\n", _log.Skip(Math.Max(0, _log.Count - 4)));
             _logBox.style.display = _log.Count == 0 ? DisplayStyle.None : DisplayStyle.Flex;
         }
@@ -1292,16 +1334,14 @@ namespace SanGuo.Client
                     return $"{NameOf(e.Source)} → {NameOf(e.Target)}　傷害 {e.Value}{(e.Text == "crit" ? "（爆擊）" : "")}";
                 case EventType.Dodge: return $"{NameOf(e.Target)} 閃避了攻擊";
                 case EventType.Heal: return e.Value > 0 ? $"{NameOf(e.Target)} 回復 {e.Value}" : $"{NameOf(e.Target)} 血量已滿";
-                case EventType.Armor: return $"{NameOf(e.Target)} 獲得護甲 {e.Value}";
+                case EventType.Shield: return $"{NameOf(e.Target)} 獲得護盾 {e.Value}";
                 case EventType.StatusApplied: return $"{NameOf(e.Target)} 受到 {StatusFromText(e.Text)}";
                 case EventType.Draw: return $"抽了 {e.Value} 張牌";
                 case EventType.GainCost: return $"獲得 {e.Value} 費";
                 case EventType.Move: return $"{NameOf(e.Source)} 移動 {e.Text}";
                 case EventType.EnemyMove: return $"{NameOf(e.Source)} 移動 {e.Text}";
-                case EventType.EnemySummon: return $"{NameOf(e.Source)} 召喚了 {NameOf(e.Target)}";
                 case EventType.EnemyCharge: return $"{NameOf(e.Source)} 開始蓄力！";
-                case EventType.StunGauge: return $"{NameOf(e.Target)} 昏亂條 {e.Value}/{e.Text}";
-                case EventType.EnemySkip: return $"{NameOf(e.Source)} 昏亂，無法行動";
+                case EventType.EnemyChargeBreak: return $"{NameOf(e.Target)} 的蓄力被打斷了";
                 case EventType.Death: return $"{NameOf(e.Target)} 倒下了";
                 case EventType.BattleEnd: return $"戰鬥結束：{e.Text}";
                 default: return null;

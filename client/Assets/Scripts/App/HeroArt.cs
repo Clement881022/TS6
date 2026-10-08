@@ -13,6 +13,32 @@ namespace SanGuo.Client
 
         public static Texture2D? Full(string heroId) => Load("HeroArt/full_" + heroId);
 
+        /// <summary>
+        /// 角色模型：先找 Resources/Characters/&lt;id&gt;；沒有專屬模型的武將依職業借用通用模型（正式美術到位前的過渡），
+        /// 敵人則借用山賊嘍囉。
+        /// </summary>
+        public static GameObject? Model(string defId)
+        {
+            var prefab = Resources.Load<GameObject>("Characters/" + defId);
+            if (prefab != null) return prefab;
+            var hero = SanGuo.Core.HeroRoster.Find(defId);
+            string fallback = hero == null ? "bandit_grunt" : FallbackModel(hero.Role);
+            return Resources.Load<GameObject>("Characters/" + fallback);
+        }
+
+        private static string FallbackModel(SanGuo.Core.Role role)
+        {
+            switch (role)
+            {
+                case SanGuo.Core.Role.Tank: return "r_shield";
+                case SanGuo.Core.Role.Warrior: return "r_militia";
+                case SanGuo.Core.Role.Ranger: return "r_archer";
+                case SanGuo.Core.Role.Mage: return "pangtong";
+                case SanGuo.Core.Role.Strategist: return "zhugeliang";
+                default: return "r_healer";
+            }
+        }
+
         private static Texture2D? Load(string path)
         {
             if (!Cache.TryGetValue(path, out var tex))

@@ -290,7 +290,7 @@ namespace SanGuo.Client
             if (_views.TryGetValue(unit.Id, out var existing)) return existing;
             if (!_prefabs.TryGetValue(unit.DefId, out var prefab))
             {
-                prefab = Resources.Load<GameObject>("Characters/" + unit.DefId);
+                prefab = HeroArt.Model(unit.DefId);
                 _prefabs[unit.DefId] = prefab;
                 if (prefab == null) Debug.LogWarning("找不到角色模型：Characters/" + unit.DefId);
             }

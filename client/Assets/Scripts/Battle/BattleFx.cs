@@ -58,8 +58,8 @@ namespace SanGuo.Client
                     if (e.Value > 0)
                         Enqueue(() => { AudioManager.PlaySfx(Sfx.Heal); Float(e.TargetSide, e.TargetPos, $"+{e.Value}", new Color(0.45f, 0.95f, 0.55f), 40); }, 0f, advance: true);
                     break;
-                case EventType.Armor:
-                    Enqueue(() => { AudioManager.PlaySfx(Sfx.Armor); Float(e.TargetSide, e.TargetPos, $"護甲 +{e.Value}", new Color(0.55f, 0.8f, 1f), 34); }, 0f, advance: true);
+                case EventType.Shield:
+                    Enqueue(() => { AudioManager.PlaySfx(Sfx.Armor); Float(e.TargetSide, e.TargetPos, $"護盾 +{e.Value}", new Color(0.55f, 0.8f, 1f), 34); }, 0f, advance: true);
                     break;
                 case EventType.StatusApplied:
                     Enqueue(() => Float(e.TargetSide, e.TargetPos, StatusLabel(e.Text), new Color(1f, 0.78f, 0.4f), 34), 0f, advance: true);

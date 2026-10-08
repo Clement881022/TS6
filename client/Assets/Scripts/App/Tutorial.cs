@@ -34,7 +34,7 @@ namespace SanGuo.Client
         /// <summary>清掉所有引導紀錄（重看一次新手流程用）。</summary>
         public static void ResetAll()
         {
-            foreach (var key in new[] { "home", "battle1", "story_intro", "story_before_1", "story_before_2", "story_before_3", "story_before_4", "story_before_5", "story_before_6", "story_before_7", "story_before_8", "story_before_9", "story_before_10" })
+            foreach (var key in new[] { "home", "battle1", "battle2", "battle3", "battle4", "battle5", "battle6", "battle7", "battle8", "battle10", "story_intro", "story_before_1", "story_before_2", "story_before_3", "story_before_4", "story_before_5", "story_before_6", "story_before_7", "story_before_8", "story_before_9", "story_before_10" })
                 PlayerPrefs.DeleteKey(Prefix + key);
             PlayerPrefs.Save();
         }

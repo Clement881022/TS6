@@ -114,18 +114,28 @@ namespace SanGuo.Client
             _scene.style.top = (h - sh) * 0.5f;
         }
 
-        /// <summary>建築上的名牌：藍底菱形框，點下去前往對應頁面。x / y 是場景圖上的百分比。</summary>
+        /// <summary>建築上的名牌：以功能圖示辨識入口，x / y 是場景圖上的百分比。</summary>
         private void AddSpot(string label, Page target, float x, float y)
         {
             var spot = new Button(() => Nav.Go(target));
             spot.AddToClassList("home-spot");
             spot.style.left = Length.Percent(x);
             spot.style.top = Length.Percent(y);
-            spot.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-diamond"));
+            spot.Add(new VisualElement { pickingMode = PickingMode.Ignore }
+                .WithClass("home-spot-icon").WithClass("tile-ico-" + HomeIcon(target)));
             spot.Add(new Label(label) { pickingMode = PickingMode.Ignore }.WithClass("home-spot-text"));
-            spot.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-diamond"));
             _scene!.Add(spot);
         }
+
+        private static string HomeIcon(Page target) => target switch
+        {
+            Page.Gacha => "gacha",
+            Page.Heroes => "heroes",
+            Page.Dungeons => "dungeons",
+            Page.Quests => "quests",
+            Page.Shop => "shop",
+            _ => "map",
+        };
 
         private VisualElement BuildPlayerCard(ProfileView v)
         {
@@ -159,6 +169,10 @@ namespace SanGuo.Client
             text.AddToClassList("home-chapter-text");
             text.Add(new Label("第零章　涿縣盜匪") { pickingMode = PickingMode.Ignore }.WithClass("home-chapter-title"));
             text.Add(new Label($"{next}　（{cleared}/{total}）") { pickingMode = PickingMode.Ignore }.WithClass("home-chapter-sub"));
+            var progress = UiKit.Bar(total <= 0 ? 0 : 100f * cleared / total, "bar-gold bar-slim");
+            progress.AddToClassList("home-chapter-progress");
+            progress.pickingMode = PickingMode.Ignore;
+            text.Add(progress);
             plate.Add(text);
             plate.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-diamond"));
             return plate;
