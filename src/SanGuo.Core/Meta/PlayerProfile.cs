@@ -69,6 +69,9 @@ namespace SanGuo.Core.Meta
         /// <summary>進行中的關卡若開放編隊，這裡記下玩家送來的編隊（結算時用同一份重建戰鬥）。</summary>
         public List<FormationEntry> PendingFormation = new List<FormationEntry>();
 
+        /// <summary>世界 Boss 的賽季成績與每日次數。</summary>
+        public WorldBossState WorldBoss = new WorldBossState();
+
         /// <summary>建立帳號的遊戲日（<see cref="DailyClock.DayIndex"/>），七日目標從這天起算。</summary>
         public long CreatedDay;
         /// <summary>每日資料所屬的遊戲日；換日時由 <see cref="EnsureDaily"/> 清空。</summary>

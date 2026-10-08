@@ -74,6 +74,15 @@ namespace SanGuo.Core.Data
                 ["monthCardClaimedDay"] = LongMap(p.MonthCardClaimedDay),
                 ["soulShopBought"] = IntMap(p.SoulShopBought),
                 ["soulShopMonth"] = p.SoulShopMonth,
+                ["worldBoss"] = new Dictionary<string, object?>
+                {
+                    ["season"] = p.WorldBoss.Season, ["best"] = p.WorldBoss.Best,
+                    ["day"] = p.WorldBoss.Day == long.MinValue ? (object?)null : p.WorldBoss.Day, ["used"] = (long)p.WorldBoss.Used,
+                    ["pendingSeason"] = p.WorldBoss.PendingSeason, ["pendingBest"] = p.WorldBoss.PendingBest,
+                    ["lastSeason"] = p.WorldBoss.LastSeason, ["lastRank"] = (long)p.WorldBoss.LastRank,
+                    ["lastTotal"] = (long)p.WorldBoss.LastTotal, ["lastReward"] = (long)p.WorldBoss.LastReward,
+                    ["title"] = p.WorldBoss.Title,
+                },
                 ["orders"] = StringMap(p.Orders),
                 ["version"] = (long)CurrentVersion,
                 ["level"] = (long)p.Level,
@@ -177,6 +186,19 @@ namespace SanGuo.Core.Data
             ReadLongMap(root, "monthCardClaimedDay", p.MonthCardClaimedDay);
             ReadIntMap(root, "soulShopBought", p.SoulShopBought);
             p.SoulShopMonth = root.TryGetValue("soulShopMonth", out var ssm) && ssm is string ssms ? ssms : "";
+            if (root.TryGetValue("worldBoss", out var wbo) && wbo is Dictionary<string, object?> wb)
+            {
+                string Str(string key) => wb.TryGetValue(key, out var v) && v is string sv ? sv : "";
+                p.WorldBoss = new WorldBossState
+                {
+                    Season = Str("season"), Best = Int(wb, "best", 0),
+                    Day = wb.TryGetValue("day", out var wbd) && wbd != null ? ToLong(wbd) : long.MinValue, Used = (int)Int(wb, "used", 0),
+                    PendingSeason = Str("pendingSeason"), PendingBest = Int(wb, "pendingBest", 0),
+                    LastSeason = Str("lastSeason"), LastRank = (int)Int(wb, "lastRank", 0),
+                    LastTotal = (int)Int(wb, "lastTotal", 0), LastReward = (int)Int(wb, "lastReward", 0),
+                    Title = Str("title"),
+                };
+            }
             if (root.TryGetValue("orders", out var ord) && ord is Dictionary<string, object?> od)
                 foreach (var kv in od)
                     if (kv.Value is string os) p.Orders[kv.Key] = os;

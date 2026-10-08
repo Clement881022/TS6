@@ -10,6 +10,7 @@ builder.Services.AddSingleton(options);
 builder.Services.AddSingleton(TimeProvider.System);
 var dbPath = builder.Configuration["Database:Path"] ?? "sanguo.db";
 builder.Services.AddSingleton<IProfileStore>(_ => new SqliteProfileStore($"Data Source={dbPath}"));
+builder.Services.AddSingleton<IWorldBossBoard>(_ => new SqliteWorldBossBoard($"Data Source={dbPath}"));
 builder.Services.AddSingleton<GameService>();
 
 var app = builder.Build();
@@ -82,6 +83,7 @@ app.MapPost("/shop/dev/pay", (HttpRequest req, GameService g, OrderRequest body)
 app.MapPost("/shop/month-card/claim", (HttpRequest req, GameService g, ProductRequest body) =>
     Handle(req, a => g.ClaimMonthCard(a, body.ProductId)));
 
+app.MapGet("/worldboss", (HttpRequest req, GameService g) => Handle(req, g.GetWorldBoss));
 app.MapPost("/dev/clear", (HttpRequest req, GameService g, DevClearRequest body) =>
     g.DevEndpointsEnabled ? Handle(req, a => g.DevClearStage(a, body.StageId, body.Stars)) : Task.FromResult(Results.NotFound()));
 

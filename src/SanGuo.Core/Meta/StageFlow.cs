@@ -29,6 +29,10 @@ namespace SanGuo.Core.Meta
         public List<string> DuplicatesGained = new List<string>();
         /// <summary>資源副本掉落的素材（主線關卡為空）。</summary>
         public Dictionary<string, int> Materials = new Dictionary<string, int>();
+        /// <summary>世界 Boss：這場對 Boss 的傷害、本季最佳、是否刷新最佳。</summary>
+        public long Damage;
+        public long BestDamage;
+        public bool NewBest;
     }
 
     /// <summary>
@@ -52,7 +56,12 @@ namespace SanGuo.Core.Meta
             seed &= 0x7FFFFFFFFFFFFFFF; // 存成有號數字，不要溢位
             string code;
             var dungeon = DemoMeta.FindDungeon(stageId);
-            if (dungeon != null)
+            if (stageId == WorldBoss.StageId)
+            {
+                var r = WorldBoss.TryEnter(p, now);
+                code = r == WorldBossEntry.Ok ? "ok" : r == WorldBossEntry.Locked ? "locked" : "no_attempts";
+            }
+            else if (dungeon != null)
             {
                 var r = ResourceDungeons.TryEnter(p, dungeon, now);
                 code = r == DungeonEntryResult.Ok ? "ok" : r.ToString();
@@ -83,6 +92,16 @@ namespace SanGuo.Core.Meta
 
             var replay = ReplayVerifier.Verify(setup, actions);
             if (!replay.Valid) return new StageFinishOutcome { Code = "invalid_replay", Persist = true };
+            if (stageId == WorldBoss.StageId)
+            {
+                // 打滿回合或全滅都照樣計分；擊倒 Boss 算勝利。
+                long damage = WorldBoss.Score(replay.Battle!);
+                bool newBest = WorldBoss.Record(p, damage);
+                return new StageFinishOutcome
+                {
+                    Ok = true, Won = replay.Result == BattleResult.Won, Damage = damage, BestDamage = p.WorldBoss.Best, NewBest = newBest,
+                };
+            }
             if (replay.Result != BattleResult.Won) return new StageFinishOutcome { Ok = true, Won = false };
 
             var dungeon = DemoMeta.FindDungeon(stageId);

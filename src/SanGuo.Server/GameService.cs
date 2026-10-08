@@ -36,6 +36,7 @@ public sealed record ApiResult(bool Ok, string Code, object? Data = null)
 public sealed class GameService
 {
     private readonly IProfileStore _store;
+    private readonly IWorldBossBoard _board;
     private readonly TimeProvider _time;
     private readonly ServerOptions _options;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
@@ -44,9 +45,10 @@ public sealed class GameService
     private readonly Dictionary<string, HeroDef> _heroes = DemoContent.Roster().ToDictionary(h => h.Id);
     private readonly Dictionary<string, ResourceDungeonDef> _dungeons = DemoResourceDungeons.Create().ToDictionary(d => d.Id);
 
-    public GameService(IProfileStore store, TimeProvider time, ServerOptions options)
+    public GameService(IProfileStore store, IWorldBossBoard board, TimeProvider time, ServerOptions options)
     {
         _store = store;
+        _board = board;
         _time = time;
         _options = options;
     }
@@ -72,6 +74,8 @@ public sealed class GameService
                 profile.Gold = _options.StartingGold;
                 profile.AddMaterial(HeroGrowth.HeroExp, _options.StartingHeroExp);
             }
+            // 換季後第一次存取：依上一季排名發世界 Boss 獎勵。
+            WorldBoss.SettlePending(profile, _board, now);
             var result = action(profile, now);
             if (result.Ok || result.Persist) await _store.SaveAsync(accountId, profile);
             return result;
@@ -217,11 +221,34 @@ public sealed class GameService
     {
         var r = StageFlow.Finish(p, stageId, actions, now);
         if (!r.Ok) return ApiResult.Fail(r.Code) with { Persist = r.Persist };
+        if (stageId == WorldBoss.StageId)
+        {
+            if (r.NewBest) _board.Submit(p.WorldBoss.Season, accountId, r.BestDamage);
+            var (rank, total) = _board.RankOf(p.WorldBoss.Season, p.WorldBoss.Best);
+            return ApiResult.Success(new { won = r.Won, damage = r.Damage, bestDamage = r.BestDamage, newBest = r.NewBest, rank, total });
+        }
         if (!r.Won) return ApiResult.Success(new { won = false, result = BattleResult.Lost.ToString() });
         return ApiResult.Success(new
         {
             won = true, stars = r.Stars, firstClear = r.FirstClear, exp = r.Exp, gold = r.Gold,
             yuanbao = r.Yuanbao, levelsGained = r.LevelsGained, heroGained = r.HeroGained, duplicatesGained = r.DuplicatesGained, materials = r.Materials,
+        });
+    });
+
+    /// <summary>世界 Boss 面板：本季 Boss、剩餘次數、本季最佳與排名、前 10 名、上一季結算結果。</summary>
+    public Task<ApiResult> GetWorldBoss(string accountId) => Run(accountId, (p, now) =>
+    {
+        var s = p.WorldBoss;
+        int left = WorldBoss.AttemptsLeft(p, now);
+        var (rank, total) = s.Best > 0 ? _board.RankOf(s.Season, s.Best) : (0, 0);
+        var top = _board.Top(s.Season, 10).Select(t => new Dictionary<string, object?>
+        {
+            ["account"] = t.AccountId == accountId ? "我" : t.AccountId, ["best"] = t.Best,
+        }).ToList();
+        return ApiResult.Success(new
+        {
+            season = s.Season, unlocked = WorldBoss.IsUnlocked(p), attemptsLeft = left, best = s.Best, rank, total, top,
+            lastSeason = s.LastSeason, lastRank = s.LastRank, lastTotal = s.LastTotal, lastReward = s.LastReward, title = s.Title,
         });
     });
 

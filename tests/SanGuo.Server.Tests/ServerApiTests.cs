@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using SanGuo.Core.Meta;
 using SanGuo.Server;
 
 namespace SanGuo.Server.Tests;
@@ -29,6 +30,8 @@ public sealed class ServerApiTests : IDisposable
             {
                 s.RemoveAll<IProfileStore>();
                 s.AddSingleton<IProfileStore>(_ => new SqliteProfileStore($"Data Source={_dbPath}"));
+                s.RemoveAll<IWorldBossBoard>();
+                s.AddSingleton<IWorldBossBoard>(_ => new SqliteWorldBossBoard($"Data Source={_dbPath}"));
                 s.RemoveAll<TimeProvider>();
                 s.AddSingleton<TimeProvider>(_time);
                 s.RemoveAll<ServerOptions>();
@@ -380,6 +383,8 @@ public sealed class ServerApiTests : IDisposable
             {
                 s.RemoveAll<IProfileStore>();
                 s.AddSingleton<IProfileStore>(new InMemoryProfileStore());
+                s.RemoveAll<IWorldBossBoard>();
+                s.AddSingleton<IWorldBossBoard>(new InMemoryWorldBossBoard());
             }));
         var c = plain.CreateClient();
         c.DefaultRequestHeaders.Add("X-Account", "x");
@@ -399,5 +404,33 @@ public sealed class ServerApiTests : IDisposable
         Assert.Equal(1, responses.Count(r => r.StatusCode == HttpStatusCode.OK));
         var profile = await Json(await c.GetAsync("/profile"));
         Assert.Equal(0, profile.GetProperty("data").GetProperty("yuanbao").GetInt32());
+    }
+
+    [Fact]
+    public async Task WorldBoss_UnlocksAfterChapter2_AndCountsAttempts()
+    {
+        var c = Client();
+        await c.PostAsync("/login", null);
+        var locked = (await Json(await c.GetAsync("/worldboss"))).GetProperty("data");
+        Assert.False(locked.GetProperty("unlocked").GetBoolean());
+
+        foreach (var id in new[] { "0-1", "0-2", "0-3", "2-10" })
+            await c.PostAsJsonAsync("/dev/clear", new { stageId = id, stars = 3 });
+        var panel = (await Json(await c.GetAsync("/worldboss"))).GetProperty("data");
+        Assert.True(panel.GetProperty("unlocked").GetBoolean());
+        Assert.Equal(3, panel.GetProperty("attemptsLeft").GetInt32());
+        Assert.Equal("2026-10", panel.GetProperty("season").GetString());
+
+        var formation = new[] { new { heroId = "zhangfei", lane = 2, row = 3 }, new { heroId = "liubei", lane = 2, row = 4 } };
+        var start = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId = WorldBoss.StageId, formation }));
+        Assert.True(start.GetProperty("ok").GetBoolean());
+        // 只結束一回合就交卷：紀錄合法，傷害 0、不上榜。
+        var finish = await Json(await c.PostAsJsonAsync("/stage/finish", new { stageId = WorldBoss.StageId, actions = new[] { new { kind = "end" } } }));
+        Assert.True(finish.GetProperty("ok").GetBoolean());
+        Assert.Equal(0, finish.GetProperty("data").GetProperty("damage").GetInt64());
+
+        panel = (await Json(await c.GetAsync("/worldboss"))).GetProperty("data");
+        Assert.Equal(2, panel.GetProperty("attemptsLeft").GetInt32());
+        Assert.Equal(0, panel.GetProperty("top").GetArrayLength());
     }
 }
