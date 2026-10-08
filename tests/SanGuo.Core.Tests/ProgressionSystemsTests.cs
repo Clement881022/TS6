@@ -36,11 +36,11 @@ namespace SanGuo.Core.Tests
         public void StarRating_Rules()
         {
             Assert.Equal(0, StarRating.Rate(false, 0, 1, 0));
-            Assert.Equal(1, StarRating.Rate(true, 1, 3, 5));
-            Assert.Equal(2, StarRating.Rate(true, 0, 9, 5));
+            Assert.Equal(2, StarRating.Rate(true, 1, 3, 5));   // 通關 + 限定回合內（有人陣亡）
+            Assert.Equal(1, StarRating.Rate(true, 1, 9, 5));
+            Assert.Equal(2, StarRating.Rate(true, 0, 9, 5));   // 通關 + 全員存活（超過回合）
             Assert.Equal(3, StarRating.Rate(true, 0, 5, 5));
             Assert.Equal(3, StarRating.Rate(true, 0, 99, 0));
-            Assert.Equal(1, StarRating.Rate(true, 2, 1, 5));
         }
 
         [Fact]
@@ -98,63 +98,145 @@ namespace SanGuo.Core.Tests
 
         // ---- 資源副本 ----
 
-        private static ResourceDungeonDef Gold() => DemoResourceDungeons.Create().First(d => d.Id == "res_gold");
+        private static ResourceDungeonDef Tier(int tier) => DemoResourceDungeons.Create().First(d => d.Tier == tier);
+
+        private static PlayerProfile Unlocked(long now)
+        {
+            var p = PlayerProfile.CreateNew(now);
+            p.Level = 60;
+            p.Stamina.Add(500, now);
+            foreach (var d in DemoResourceDungeons.Create())
+                if (d.UnlockStageId != "") p.ClearedStages.Add(d.UnlockStageId);
+            return p;
+        }
 
         [Fact]
-        public void Dungeon_OnlyOpenOnItsWeekdays()
+        public void Dungeons_FiveTiers_StaminaAndEquipmentTierMatchGdd()
+        {
+            var all = DemoResourceDungeons.Create();
+            Assert.Equal(new[] { 20, 25, 30, 35, 40 }, all.Select(d => d.StaminaCost).ToArray());
+            Assert.Equal(new[] { 1, 2, 3, 4, 5 }, all.Select(d => d.Tier).ToArray());
+        }
+
+        [Fact]
+        public void Dungeon_IsAlwaysOpen_ButLockedUntilItsStageIsCleared()
         {
             var p = PlayerProfile.CreateNew(At(5));
-            p.Level = 10;
-            var gold = Gold();                                  // 週一、三、五、日
-            Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TryEnter(p, gold, At(5)));
-            Assert.Equal(DungeonEntryResult.NotOpenToday, ResourceDungeons.TryEnter(p, gold, At(6)));
+            p.Stamina.Add(500, At(5));
+            Assert.Equal(DungeonEntryResult.Locked, ResourceDungeons.TryEnter(p, Tier(1), At(5)));
+            p.ClearedStages.Add(Tier(1).UnlockStageId);
+            // 沒有星期輪替與每日次數限制：任何一天都能一直打。
+            for (int i = 0; i < 5; i++)
+                Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TryEnter(p, Tier(1), At(5 + i % 3)));
         }
 
         [Fact]
-        public void Dungeon_DailyLimit_ResetsNextDay()
+        public void Dungeon_WinGrantsGoldHeroExpYuanbaoAndOneEquipmentOfItsTier()
         {
-            long mon = At(5);
-            var p = PlayerProfile.CreateNew(mon);
-            p.Level = 10;
-            var gold = Gold();
-            for (int i = 0; i < gold.DailyLimit; i++)
-                Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TryEnter(p, gold, mon));
-            Assert.Equal(DungeonEntryResult.LimitReached, ResourceDungeons.TryEnter(p, gold, mon));
-            Assert.Equal(0, ResourceDungeons.Remaining(p, gold, mon));
-
-            long wed = At(7);                                   // 週三也開放，次數重置
-            Assert.Equal(gold.DailyLimit, ResourceDungeons.Remaining(p, gold, wed));
-            Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TryEnter(p, gold, wed));
+            long now = At(5);
+            var p = Unlocked(now);
+            var d = Tier(3);
+            var reward = ResourceDungeons.ClaimWin(p, d, now, 42);
+            Assert.Equal(6000, reward.Gold);
+            Assert.Equal(6000, p.Gold);
+            Assert.Equal(2400, p.GetMaterial(HeroGrowth.HeroExp));
+            Assert.Equal(15, p.Yuanbao);
+            int items = Equipment.Slots.Sum(s => Equipment.Count(p, s, 3));
+            Assert.Equal(1, items);
+            Assert.Equal(0, Equipment.Slots.Sum(s => Equipment.Count(p, s, 2)));
+            Assert.Contains(d.Id, p.ClearedStages);
         }
 
         [Fact]
-        public void Dungeon_Sweep_NeedsPriorClear_AndUsesDailyCount()
+        public void Dungeon_Sweep_NeedsPriorClear_SpendsSameStamina_AndDropsPerRun()
         {
-            long mon = At(5);
-            var p = PlayerProfile.CreateNew(mon);
-            p.Level = 10;
-            var gold = Gold();
-            Assert.Equal(DungeonEntryResult.NotCleared, ResourceDungeons.TrySweep(p, gold, 1, mon));
-
-            Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TryEnter(p, gold, mon));
-            ResourceDungeons.ClaimWin(p, gold, mon);
-            Assert.Equal(4000, p.Gold);
-
-            Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TrySweep(p, gold, 2, mon));
-            Assert.Equal(12000, p.Gold);
-            Assert.Equal(DungeonEntryResult.LimitReached, ResourceDungeons.TrySweep(p, gold, 1, mon));
+            long now = At(5);
+            var p = Unlocked(now);
+            var d = Tier(2);
+            Assert.Equal(DungeonEntryResult.NotCleared, ResourceDungeons.TrySweep(p, d, 1, now, out _));
+            ResourceDungeons.ClaimWin(p, d, now, 1);
+            int stamina = p.Stamina.Get(now);
+            Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TrySweep(p, d, 4, now, out var reward));
+            Assert.Equal(stamina - 25 * 4, p.Stamina.Get(now));
+            Assert.Equal(4, reward!.Materials.Where(m => m.Key.StartsWith("eq:")).Sum(m => m.Value));
+            Assert.Equal(DungeonEntryResult.InvalidCount, ResourceDungeons.TrySweep(p, d, 0, now, out _));
+            Assert.Equal(DungeonEntryResult.InvalidCount, ResourceDungeons.TrySweep(p, d, ResourceDungeons.MaxSweepCount + 1, now, out _));
         }
 
         [Fact]
-        public void Dungeon_LevelGate_AndStamina()
+        public void Dungeon_NotEnoughStamina_DoesNotConsume()
         {
-            long mon = At(5);
-            var p = PlayerProfile.CreateNew(mon);
-            Assert.Equal(DungeonEntryResult.LevelTooLow, ResourceDungeons.TryEnter(p, Gold(), mon));
-            p.Level = 10;
-            p.Stamina.TrySpend(p.Stamina.Get(mon) - 5, mon);
-            Assert.Equal(DungeonEntryResult.NotEnoughStamina, ResourceDungeons.TryEnter(p, Gold(), mon));
-            Assert.Equal(3, ResourceDungeons.Remaining(p, Gold(), mon));
+            long now = At(5);
+            var p = Unlocked(now);
+            p.Stamina.TrySpend(p.Stamina.Get(now) - 10, now);
+            Assert.Equal(DungeonEntryResult.NotEnoughStamina, ResourceDungeons.TryEnter(p, Tier(1), now));
+            Assert.Equal(10, p.Stamina.Get(now));
+        }
+
+        // ---- 將魂商店 ----
+
+        [Fact]
+        public void SoulShop_BuysWithinMonthlyLimit_AndResetsNextMonth()
+        {
+            long oct = At(5);
+            var p = PlayerProfile.CreateNew(oct);
+            p.AddMaterial(HeroGrowth.Soul, 1000);
+            for (int i = 0; i < 5; i++) Assert.Equal(SoulShopResult.Ok, SoulShop.Buy(p, "gold", oct));
+            Assert.Equal(SoulShopResult.LimitReached, SoulShop.Buy(p, "gold", oct));
+            Assert.Equal(25_000, p.Gold);
+            Assert.Equal(1000 - 150, p.GetMaterial(HeroGrowth.Soul));
+
+            long nov = new DateTimeOffset(2026, 11, 2, 6, 0, 0, TimeSpan.FromHours(8)).ToUnixTimeSeconds();
+            Assert.Equal(SoulShopResult.Ok, SoulShop.Buy(p, "gold", nov));
+        }
+
+        [Fact]
+        public void SoulShop_HeroShards_PriceByRarity_AndRespectCap()
+        {
+            long now = At(5);
+            var p = PlayerProfile.CreateNew(now);
+            p.AddMaterial(HeroGrowth.Soul, 2000);
+            Assert.Equal(SoulShopResult.HeroNotOwned, SoulShop.Buy(p, "shard:zhoucang", now));
+            p.Heroes["zhoucang"] = new HeroState { HeroId = "zhoucang" };
+            p.Heroes["xiahoudun"] = new HeroState { HeroId = "xiahoudun" };
+            Assert.Equal(SoulShopResult.Ok, SoulShop.Buy(p, "shard:zhoucang", now));
+            Assert.Equal(1, HeroGrowth.Shards(p, "zhoucang"));
+            Assert.Equal(SoulShopResult.Ok, SoulShop.Buy(p, "shard:xiahoudun", now));
+            Assert.Equal(2000 - 100 - 300, p.GetMaterial(HeroGrowth.Soul));
+            Assert.Equal(SoulShopResult.LimitReached, SoulShop.Buy(p, "shard:xiahoudun", now));
+
+            p.Heroes["zhoucang"].Stars = 5;                    // 已滿突：不再賣重複份
+            p.Materials.Remove(HeroGrowth.ShardKey("zhoucang"));
+            Assert.Equal(SoulShopResult.HeroMaxed, SoulShop.Buy(p, "shard:zhoucang", now));
+        }
+
+        [Fact]
+        public void SoulShop_RejectsStoryHeroesUnknownItemsAndPoverty()
+        {
+            long now = At(5);
+            var p = PlayerProfile.CreateNew(now);
+            Assert.Equal(SoulShopResult.UnknownItem, SoulShop.Buy(p, "shard:liubei", now));
+            Assert.Equal(SoulShopResult.UnknownItem, SoulShop.Buy(p, "nope", now));
+            Assert.Equal(SoulShopResult.NotEnoughSouls, SoulShop.Buy(p, "gold", now));
+        }
+
+        [Fact]
+        public void SoulShop_EquipmentItem_GoesToInventory()
+        {
+            long now = At(5);
+            var p = PlayerProfile.CreateNew(now);
+            p.AddMaterial(HeroGrowth.Soul, 80);
+            Assert.Equal(SoulShopResult.Ok, SoulShop.Buy(p, "eq:armor:3", now));
+            Assert.Equal(1, Equipment.Count(p, EquipSlot.Armor, 3));
+        }
+
+        [Fact]
+        public void MonthKey_UsesGameDay()
+        {
+            Assert.Equal("2026-10", DailyClock.MonthKey(At(5)));
+            long lateNight = new DateTimeOffset(2026, 11, 1, 3, 0, 0, TimeSpan.FromHours(8)).ToUnixTimeSeconds(); // 5 點前仍算 10 月
+            Assert.Equal("2026-10", DailyClock.MonthKey(lateNight));
+            Assert.Equal("2026-11", DailyClock.MonthKey(lateNight + 3 * 3600));
         }
 
         // ---- 任務 ----
@@ -202,7 +284,7 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void Milestone_NeedsPoints_ThenGrantsHero_AndDuplicateBecomesShards()
+        public void Milestone_NeedsPoints_ThenGrantsHero_AndDuplicateBecomesShard()
         {
             long d1 = At(5);
             var p = PlayerProfile.CreateNew(d1);
@@ -221,8 +303,8 @@ namespace SanGuo.Core.Tests
             Assert.Equal(QuestClaimResult.AlreadyClaimed, Quests.ClaimMilestone(p, 200, d7));
             Assert.Equal(QuestClaimResult.Unknown, Quests.ClaimMilestone(p, 7, d7));
 
-            p.Grant(new Reward().WithHero("zhangfei"), d7);     // 已擁有 → 碎片
-            Assert.Equal(HeroGrowth.CopyShards, p.GetMaterial(HeroGrowth.ShardKey("zhangfei")));
+            p.Grant(new Reward().WithHero("zhangfei"), d7);     // 已擁有 → 1 份重複份
+            Assert.Equal(1, p.GetMaterial(HeroGrowth.ShardKey("zhangfei")));
         }
 
         [Fact]
@@ -232,13 +314,11 @@ namespace SanGuo.Core.Tests
             var p = PlayerProfile.CreateNew(d1);
             p.Level = 10;
             for (int i = 0; i < 3; i++) p.ClaimClear(Stage, d1, 3);
-            ResourceDungeons.TryEnter(p, Gold(), d1);
             Quests.Claim(p, "d_stage", d1);
 
             var loaded = ProfileSerializer.FromJson(ProfileSerializer.ToJson(p));
 
             Assert.Equal(3, loaded.StageStars["1-1"]);
-            Assert.Equal(1, loaded.DailyCounters["res_gold"]);
             Assert.Contains("d_stage", loaded.DailyTaskClaimed);
             Assert.Equal(p.CreatedDay, loaded.CreatedDay);
             Assert.Equal(p.DailyDay, loaded.DailyDay);

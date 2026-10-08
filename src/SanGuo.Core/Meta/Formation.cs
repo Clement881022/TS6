@@ -18,8 +18,6 @@ namespace SanGuo.Core.Meta
     {
         public const int MaxTeamSize = 4;
 
-        private static readonly BreakthroughTable Breakthroughs = DemoBreakthroughs.Create();
-
         /// <summary>我方列陣區：3 欄 × 2 列（見 <see cref="BattleSetup"/>）。</summary>
         public static bool InFormationZone(int lane, int row) =>
             lane >= BattleSetup.FormationMinLane && lane <= BattleSetup.FormationMaxLane
@@ -41,7 +39,7 @@ namespace SanGuo.Core.Meta
         }
 
         /// <summary>
-        /// 把編隊套進戰鬥設定：取代關卡原本的我方，並依玩家的養成（等級、突破、卡牌強化）縮放武將。
+        /// 把編隊套進戰鬥設定：取代關卡原本的我方，並依玩家的養成（等級、突破、裝備）縮放武將。
         /// 順序固定照編隊列表，確保客戶端與伺服器建出一樣的戰鬥（單位 id 一致）。
         /// </summary>
         public static void Apply(BattleSetup setup, PlayerProfile p, IReadOnlyList<FormationEntry> formation)
@@ -51,7 +49,7 @@ namespace SanGuo.Core.Meta
             foreach (var e in formation)
             {
                 var def = roster.Find(h => h.Id == e.HeroId)!;
-                setup.Heroes.Add(HeroGrowth.BuildSlot(def, p.Heroes[e.HeroId], new Position(e.Lane, e.Row), Breakthroughs));
+                setup.Heroes.Add(HeroGrowth.BuildSlot(def, p.Heroes[e.HeroId], new Position(e.Lane, e.Row)));
             }
         }
     }

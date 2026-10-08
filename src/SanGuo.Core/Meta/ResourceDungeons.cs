@@ -5,99 +5,107 @@ namespace SanGuo.Core.Meta
     public enum DungeonEntryResult
     {
         Ok,
-        NotOpenToday,
-        LimitReached,
-        LevelTooLow,
+        /// <summary>尚未通關解鎖該階的主線關卡。</summary>
+        Locked,
         NotEnoughStamina,
         InvalidCount,
         NotCleared,
     }
 
-    /// <summary>資源副本：每日輪替主題、每天固定次數，掉落養成素材（見 docs/progression.md 3）。</summary>
+    /// <summary>
+    /// 素材副本（GDD 05 §7）：分五階，與裝備品階 1–5 對應，體力 20／25／30／35／40；
+    /// 產出金幣、武將經驗、裝備與少量元寶。各階隨章節解鎖。沒有每日次數限制。
+    /// </summary>
     public sealed class ResourceDungeonDef
     {
         public string Id = "";
         public string Name = "";
-        /// <summary>開放的星期（週一 = 0 … 週日 = 6）。</summary>
-        public List<int> Weekdays = new List<int>();
-        public int StaminaCost = 10;
-        public int DailyLimit = 3;
-        public int MinPlayerLevel = 1;
+        /// <summary>副本階數 1–5，同時決定掉落的裝備品階。</summary>
+        public int Tier = 1;
+        public int StaminaCost = 20;
+        /// <summary>通關這個主線關卡後解鎖（空字串 = 一開始就開放）。</summary>
+        public string UnlockStageId = "";
+        /// <summary>每次通關固定獲得的獎勵（裝備掉落另計）。</summary>
         public Reward Reward = new Reward();
-
-        public bool IsOpen(long now) => Weekdays.Contains(DailyClock.Weekday(now));
+        /// <summary>每次掉落的裝備數量。</summary>
+        public int EquipmentDrops = 1;
     }
 
     public static class ResourceDungeons
     {
-        public const int MaxSweepCount = 3;
+        public const int MaxSweepCount = 10;
 
-        /// <summary>今天還剩幾次。</summary>
-        public static int Remaining(PlayerProfile p, ResourceDungeonDef d, long now)
-        {
-            p.EnsureDaily(now);
-            p.DailyCounters.TryGetValue(d.Id, out int used);
-            return d.DailyLimit - used;
-        }
+        public static bool IsUnlocked(PlayerProfile p, ResourceDungeonDef d) =>
+            d.UnlockStageId == "" || p.ClearedStages.Contains(d.UnlockStageId);
 
-        /// <summary>開打前檢查：今日開放、次數、等級、體力；成功才扣體力並計一次。</summary>
+        /// <summary>開打前檢查：已解鎖、體力夠；成功才扣體力。</summary>
         public static DungeonEntryResult TryEnter(PlayerProfile p, ResourceDungeonDef d, long now) =>
             Consume(p, d, 1, now);
 
-        /// <summary>戰鬥勝利：發獎勵，並記為已通關（之後可掃蕩）。</summary>
-        public static void ClaimWin(PlayerProfile p, ResourceDungeonDef d, long now)
+        /// <summary>戰鬥勝利：發固定獎勵與裝備掉落（以種子決定部位），並記為已通關（之後可掃蕩）。回傳實際獲得的獎勵。</summary>
+        public static Reward ClaimWin(PlayerProfile p, ResourceDungeonDef d, long now, ulong seed)
         {
-            p.Grant(d.Reward, now);
+            var reward = WithDrops(d, 1, new Rng(seed));
+            p.Grant(reward, now);
             p.ClearedStages.Add(d.Id);
             Quests.Report(p, Quests.Events.ResourceRun, 1, now);
+            return reward;
         }
 
-        /// <summary>掃蕩：通關過的副本直接領獎勵，一樣吃每日次數與體力。</summary>
-        public static DungeonEntryResult TrySweep(PlayerProfile p, ResourceDungeonDef d, int count, long now)
+        /// <summary>掃蕩：通關過的副本直接領獎勵，消耗與該關相同的體力。回傳實際獲得的獎勵。</summary>
+        public static DungeonEntryResult TrySweep(PlayerProfile p, ResourceDungeonDef d, int count, long now, out Reward? reward)
         {
+            reward = null;
             if (count < 1 || count > MaxSweepCount) return DungeonEntryResult.InvalidCount;
             if (!p.ClearedStages.Contains(d.Id)) return DungeonEntryResult.NotCleared;
             var r = Consume(p, d, count, now);
             if (r != DungeonEntryResult.Ok) return r;
-            p.Grant(d.Reward.Times(count), now);
+            reward = WithDrops(d, count, new Rng((ulong)now * 2654435761UL + (ulong)count));
+            p.Grant(reward, now);
             Quests.Report(p, Quests.Events.ResourceRun, count, now);
             Quests.Report(p, Quests.Events.Sweep, count, now);
             return DungeonEntryResult.Ok;
         }
 
+        private static Reward WithDrops(ResourceDungeonDef d, int count, Rng rng)
+        {
+            var reward = d.Reward.Times(count);
+            foreach (var drop in Equipment.RollDrops(d.Tier, d.EquipmentDrops * count, rng))
+                reward.With(drop.Key, drop.Value);
+            return reward;
+        }
+
         private static DungeonEntryResult Consume(PlayerProfile p, ResourceDungeonDef d, int count, long now)
         {
-            p.EnsureDaily(now);
-            if (!d.IsOpen(now)) return DungeonEntryResult.NotOpenToday;
-            if (p.Level < d.MinPlayerLevel) return DungeonEntryResult.LevelTooLow;
-            p.DailyCounters.TryGetValue(d.Id, out int used);
-            if (used + count > d.DailyLimit) return DungeonEntryResult.LimitReached;
+            if (!IsUnlocked(p, d)) return DungeonEntryResult.Locked;
             if (!p.Stamina.TrySpend(d.StaminaCost * count, now)) return DungeonEntryResult.NotEnoughStamina;
-            p.DailyCounters[d.Id] = used + count;
             return DungeonEntryResult.Ok;
         }
     }
 
-    /// <summary>Demo 資源副本（輪替與數值皆為建議值）。</summary>
+    /// <summary>素材副本表（五階；獎勵數值與解鎖關卡為暫定值，後 4 階的解鎖關卡待章節內容完成）。</summary>
     public static class DemoResourceDungeons
     {
-        public static List<ResourceDungeonDef> Create() => new List<ResourceDungeonDef>
+        private static readonly string[] Names = { "糧倉護衛", "校場操練", "兵器鋪", "軍械庫", "中軍帳" };
+        private static readonly int[] Stamina = { 20, 25, 30, 35, 40 };
+        /// <summary>解鎖各階的主線關卡（第 1 階於教學章中段，其後每階於一章通關後）。</summary>
+        private static readonly string[] Unlock = { "1-4", "2-10", "3-10", "4-10", "5-10" };
+
+        public static string IdOf(int tier) => "res_" + tier;
+
+        public static List<ResourceDungeonDef> Create()
         {
-            new ResourceDungeonDef
+            var list = new List<ResourceDungeonDef>();
+            for (int tier = 1; tier <= 5; tier++)
             {
-                Id = "res_gold", Name = "糧倉護衛（金幣）", Weekdays = new List<int> { 0, 2, 4, 6 },
-                MinPlayerLevel = 3, Reward = new Reward(gold: 4000),
-            },
-            new ResourceDungeonDef
-            {
-                Id = "res_exp", Name = "校場操練（經驗書）", Weekdays = new List<int> { 1, 3, 5, 6 },
-                MinPlayerLevel = 3, Reward = new Reward().With(HeroGrowth.ExpBook, 6),
-            },
-            new ResourceDungeonDef
-            {
-                Id = "res_card", Name = "兵器鋪（卡牌強化素材）", Weekdays = new List<int> { 0, 3, 5, 6 },
-                MinPlayerLevel = 9, Reward = new Reward().With(HeroGrowth.CardMaterial, 4),
-            },
-        };
+                var reward = new Reward(yuanbao: 5 * tier, gold: 2000 * tier).With(HeroGrowth.HeroExp, 800 * tier);
+                list.Add(new ResourceDungeonDef
+                {
+                    Id = IdOf(tier), Name = $"第{"零一二三四五"[tier]}階　{Names[tier - 1]}", Tier = tier,
+                    StaminaCost = Stamina[tier - 1], UnlockStageId = Unlock[tier - 1], Reward = reward,
+                });
+            }
+            return list;
+        }
     }
 }

@@ -77,42 +77,14 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void GrowthFund_RequiresPurchase_LevelAndOnlyOnce()
-        {
-            var p = Player();
-            p.Level = 12;
-            Assert.Equal(ShopResult.NotPaid, Shop.ClaimGrowthFund(p, 5));
-            Buy(p, Shop.GrowthFund, "o1", T0);
-            Assert.Equal(ShopResult.Ok, Shop.ClaimGrowthFund(p, 5));
-            Assert.Equal(ShopResult.AlreadyClaimed, Shop.ClaimGrowthFund(p, 5));
-            Assert.Equal(ShopResult.Ok, Shop.ClaimGrowthFund(p, 10));
-            Assert.Equal(ShopResult.LevelTooLow, Shop.ClaimGrowthFund(p, 15));
-            Assert.Equal(2500, p.Yuanbao);
-        }
-
-        [Fact]
-        public void GrowthFund_CannotBeBoughtTwice_AndTiersSumTo10000()
-        {
-            var p = Player();
-            Buy(p, Shop.GrowthFund, "o1", T0);
-            Assert.Equal(ShopResult.AlreadyOwned, Shop.CreateOrder(p, Shop.GrowthFund, "o2"));
-            Assert.Equal(10000, Shop.GrowthFundTiers().Sum(t => t.Yuanbao));
-        }
-
-        [Fact]
         public void ShopState_SurvivesSaveAndLoad()
         {
             var p = Player();
-            p.Level = 6;
             Buy(p, Shop.MonthSmall, "o1", T0);
-            Buy(p, Shop.GrowthFund, "o2", T0);
             Shop.ClaimMonthCardDaily(p, Shop.MonthSmall, T0);
-            Shop.ClaimGrowthFund(p, 5);
             var back = ProfileSerializer.FromJson(ProfileSerializer.ToJson(p));
             Assert.Equal(p.MonthCardExpiry, back.MonthCardExpiry);
             Assert.Equal(p.MonthCardClaimedDay, back.MonthCardClaimedDay);
-            Assert.True(back.GrowthFundOwned);
-            Assert.Equal(p.GrowthFundClaimed, back.GrowthFundClaimed);
             Assert.Equal(p.Orders, back.Orders);
             Assert.Equal(ShopResult.Ok, Shop.Fulfill(back, "o1", T0)); // 還原後仍冪等
             Assert.Equal(p.Yuanbao, back.Yuanbao);

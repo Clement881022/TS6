@@ -4,48 +4,46 @@ using Xunit;
 
 namespace SanGuo.Core.Tests
 {
+    /// <summary>武將成長：升級、突破（重複份 + 金幣）、將魂溢出、突破模板與裝備（GDD 03 §4、05 §3–4、09）。</summary>
     public class HeroGrowthTests
     {
-        private static readonly string[] Cards = { "atk", "skill" };
-
         private static PlayerProfile Rich(int playerLevel = 60)
         {
             var p = PlayerProfile.CreateNew(0);
             p.Level = playerLevel;
             p.Gold = 10_000_000;
-            p.AddMaterial(HeroGrowth.ExpBook, 100_000);
-            p.AddMaterial(HeroGrowth.CardMaterial, 100_000);
-            p.Heroes["h"] = new HeroState { HeroId = "h" };
+            p.AddMaterial(HeroGrowth.HeroExp, 1_000_000);
+            p.Heroes["zhangfei"] = new HeroState { HeroId = "zhangfei" };
             return p;
         }
 
+        // ---- 升級 ----
+
         [Fact]
-        public void LevelUp_ConsumesGoldAndBooks()
+        public void LevelUp_ConsumesGoldAndHeroExp()
         {
-            var p = PlayerProfile.CreateNew(0);
-            p.Level = 10;
+            var p = Rich(10);
             p.Gold = 1000;
-            p.AddMaterial(HeroGrowth.ExpBook, 5);
-            p.Heroes["h"] = new HeroState { HeroId = "h" };
-            Assert.Equal(GrowthResult.Ok, HeroGrowth.LevelUp(p, "h"));
-            Assert.Equal(2, p.Heroes["h"].Level);
-            Assert.Equal(1000 - HeroGrowth.LevelUpGold(1), p.Gold);
-            Assert.Equal(5 - HeroGrowth.LevelUpBooks(1), p.GetMaterial(HeroGrowth.ExpBook));
+            p.Materials[HeroGrowth.HeroExp] = 500;
+            Assert.Equal(GrowthResult.Ok, HeroGrowth.LevelUp(p, "zhangfei"));
+            Assert.Equal(2, p.Heroes["zhangfei"].Level);
+            Assert.Equal(1000 - 30, p.Gold);                 // 金幣 = 30 × 等級
+            Assert.Equal(500 - 50, p.GetMaterial(HeroGrowth.HeroExp)); // 經驗 = 50 × 等級
         }
 
         [Fact]
         public void LevelUp_Rejections_DoNotConsumeAnything()
         {
             var p = Rich(playerLevel: 1);
-            Assert.Equal(GrowthResult.NeedsPlayerLevel, HeroGrowth.LevelUp(p, "h"));
+            Assert.Equal(GrowthResult.NeedsPlayerLevel, HeroGrowth.LevelUp(p, "zhangfei"));
             Assert.Equal(GrowthResult.UnknownHero, HeroGrowth.LevelUp(p, "nobody"));
             p.Level = 60;
             p.Gold = 0;
-            Assert.Equal(GrowthResult.NotEnoughGold, HeroGrowth.LevelUp(p, "h"));
+            Assert.Equal(GrowthResult.NotEnoughGold, HeroGrowth.LevelUp(p, "zhangfei"));
             p.Gold = 1_000_000;
-            p.Materials[HeroGrowth.ExpBook] = 0;
-            Assert.Equal(GrowthResult.NotEnoughMaterial, HeroGrowth.LevelUp(p, "h"));
-            Assert.Equal(1, p.Heroes["h"].Level);
+            p.Materials[HeroGrowth.HeroExp] = 0;
+            Assert.Equal(GrowthResult.NotEnoughMaterial, HeroGrowth.LevelUp(p, "zhangfei"));
+            Assert.Equal(1, p.Heroes["zhangfei"].Level);
             Assert.Equal(1_000_000, p.Gold);
         }
 
@@ -53,194 +51,278 @@ namespace SanGuo.Core.Tests
         public void LevelUp_CapsAtPlayerLevel()
         {
             var p = Rich(playerLevel: 12);
-            while (HeroGrowth.LevelUp(p, "h") == GrowthResult.Ok) { }
-            Assert.Equal(12, p.Heroes["h"].Level);
+            while (HeroGrowth.LevelUp(p, "zhangfei") == GrowthResult.Ok) { }
+            Assert.Equal(12, p.Heroes["zhangfei"].Level);
         }
 
         [Fact]
-        public void Breakthrough_FiveDuplicatesReachFiveStars_NoGoldNoLevelRequirement()
+        public void LevelCurve_To40_IsAffordableInAMonthOfDungeons()
         {
-            var p = PlayerProfile.CreateNew(0);
-            p.Heroes["h"] = new HeroState { HeroId = "h" };
-            long gold = p.Gold;
-            for (int copy = 1; copy <= HeroGrowth.MaxStars; copy++)
+            int exp = 0, gold = 0;
+            for (int lv = 1; lv < 40; lv++) { exp += HeroGrowth.LevelUpExp(lv); gold += HeroGrowth.LevelUpGold(lv); }
+            Assert.Equal(39_000, exp);
+            Assert.Equal(23_400, gold);
+        }
+
+        // ---- 重複武將、突破、將魂 ----
+
+        [Fact]
+        public void Duplicates_StoreAsShardsUntilFiveThenBecomeSouls()
+        {
+            var p = Rich();
+            for (int i = 1; i <= 5; i++)
             {
-                p.AddMaterial(HeroGrowth.ShardKey("h"), Gacha.DuplicateShards(Rarity.UR));
-                Assert.Equal(GrowthResult.Ok, HeroGrowth.Breakthrough(p, "h"));
-                Assert.Equal(copy, p.Heroes["h"].Stars);
+                var r = HeroGrowth.AddDuplicate(p, "zhangfei");
+                Assert.Equal((1, 0), (r.Shards, r.Souls));
             }
-            p.AddMaterial(HeroGrowth.ShardKey("h"), HeroGrowth.CopyShards);
-            Assert.Equal(GrowthResult.AtCap, HeroGrowth.Breakthrough(p, "h"));
-            Assert.Equal(gold, p.Gold);
-            Assert.Equal(1, p.Heroes["h"].Level);
+            Assert.Equal(5, HeroGrowth.Shards(p, "zhangfei"));
+            var overflow = HeroGrowth.AddDuplicate(p, "zhangfei"); // 張飛是 SR
+            Assert.Equal((0, 20), (overflow.Shards, overflow.Souls));
+            Assert.Equal(20, p.GetMaterial(HeroGrowth.Soul));
+            Assert.Equal(5, HeroGrowth.Shards(p, "zhangfei"));
         }
 
         [Fact]
-        public void Breakthrough_NeedsAFullCopy()
-        {
-            var p = PlayerProfile.CreateNew(0);
-            p.Heroes["h"] = new HeroState { HeroId = "h" };
-            p.AddMaterial(HeroGrowth.ShardKey("h"), HeroGrowth.CopyShards - 1);
-            Assert.Equal(GrowthResult.NotEnoughMaterial, HeroGrowth.Breakthrough(p, "h"));
-            Assert.Equal(0, p.Heroes["h"].Stars);
-        }
-
-        [Fact]
-        public void CardEnhance_UsesDedicatedMaterial_AndCapsAtFive()
+        public void Duplicates_CountBreakthroughsAlreadyDone()
         {
             var p = Rich();
-            for (int i = 0; i < 10; i++) HeroGrowth.EnhanceCard(p, "h", "atk", Cards);
-            Assert.Equal(HeroGrowth.MaxCardLevel, p.Heroes["h"].CardLevels["atk"]);
-            Assert.Equal(GrowthResult.AtCap, HeroGrowth.EnhanceCard(p, "h", "atk", Cards));
-            Assert.Equal(GrowthResult.UnknownCard, HeroGrowth.EnhanceCard(p, "h", "nope", Cards));
+            p.Heroes["zhangfei"].Stars = 3;
+            HeroGrowth.AddDuplicate(p, "zhangfei");
+            HeroGrowth.AddDuplicate(p, "zhangfei");
+            var third = HeroGrowth.AddDuplicate(p, "zhangfei"); // 已突 3 + 持有 2 = 5
+            Assert.True(third.Souls > 0);
+        }
+
+        [Theory]
+        [InlineData("r_shield", 5)]
+        [InlineData("zhangfei", 20)]
+        [InlineData("xiahoudun", 60)]
+        public void SoulConversion_DependsOnRarity(string heroId, int souls)
+        {
+            Assert.Equal(souls, HeroGrowth.SoulsPerDuplicate(HeroGrowth.RarityOf(heroId)));
         }
 
         [Fact]
-        public void CardEnhance_DoesNotUseGoldAsMaterial()
+        public void Breakthrough_ConsumesOneShardAndGold_UpToFiveTimes()
         {
             var p = Rich();
-            p.Materials[HeroGrowth.CardMaterial] = 0;
+            for (int i = 0; i < 5; i++) HeroGrowth.AddDuplicate(p, "zhangfei");
             long gold = p.Gold;
-            Assert.Equal(GrowthResult.NotEnoughMaterial, HeroGrowth.EnhanceCard(p, "h", "atk", Cards));
-            Assert.Equal(gold, p.Gold);
-        }
-
-        [Fact]
-        public void StatScaling_IsIdentityAtLevel1_NoTable()
-        {
-            var b = new Stats { Hp = 1000, Atk = 100, Def = 50, Move = 2, Crit = 5 };
-            Assert.Equal(1000, HeroGrowth.ScaleStats(b, new HeroState()).Hp);
-            var s = HeroGrowth.ScaleStats(b, new HeroState { Level = 11, Stars = 5 }); // 沒給突破表：星級不加數值
-            Assert.Equal(1150, s.Hp);   // 1 + 0.015×10
-            Assert.Equal(2, s.Move);
-            Assert.Equal(1000, b.Hp);
-        }
-
-        [Fact]
-        public void StatScaling_AppliesBreakthroughStatBonuses_Cumulatively()
-        {
-            var table = DemoBreakthroughs.Create();
-            var b = new Stats { Hp = 1000, Atk = 100, Def = 100, Move = 2 };
-            var s1 = HeroGrowth.ScaleStats(b, new HeroState { HeroId = "zhangfei", Stars = 1 }, table);
-            Assert.Equal(1100, s1.Hp);              // 1★ 血量 +10%
-            Assert.Equal(100, s1.Atk);
-            var s3 = HeroGrowth.ScaleStats(b, new HeroState { HeroId = "zhangfei", Stars = 3 }, table);
-            Assert.Equal(1100, s3.Hp);              // 2★ 是特殊效果，不加屬性
-            Assert.Equal(110, s3.Atk);              // 3★ 攻擊 +10%
-            var s4 = HeroGrowth.ScaleStats(b, new HeroState { HeroId = "zhangfei", Stars = 4 }, table);
-            Assert.Equal(1250, s4.Hp);              // 血量加成相加：+10% +15%
-            Assert.Equal(125, s4.Atk);              // +10% +15%
-            Assert.Equal(115, s4.Def);              // 防禦只有 4★ +15%
-            var s5 = HeroGrowth.ScaleStats(b, new HeroState { HeroId = "zhangfei", Stars = 5 }, table);
-            Assert.Equal(s4.Hp, s5.Hp);             // 5★ 是特殊效果，不再加屬性
-            Assert.Equal(2, s5.Move);
-        }
-
-        // ---- 突破：屬性與特殊效果混搭 ----
-
-        private static HeroDef ZhangFeiLike() => new HeroDef
-        {
-            Id = "zhangfei",
-            Deck =
+            for (int star = 1; star <= 5; star++)
             {
-                new CardDef { Id = "zf_attack" }, new CardDef { Id = "zf_taunt" },
-                new CardDef { Id = "zf_attack" }, new CardDef { Id = "zf_taunt2" },
-            },
-        };
-
-        [Fact]
-        public void EveryHeroGetsFiveStars_SpecialsOnlyAtDesignedSlots_StatsElsewhere()
-        {
-            var table = DemoBreakthroughs.Create();
-            var effects = table.Get("zhangfei");
-            Assert.Equal(new[] { 1, 2, 3, 4, 5 }, effects.Select(e => e.Stars));
-            Assert.Equal(
-                new[] { BreakthroughKind.StatBonus, BreakthroughKind.UpgradeCard, BreakthroughKind.StatBonus,
-                        BreakthroughKind.StatBonus, BreakthroughKind.UpgradeCard },
-                effects.Select(e => e.Kind));
-            Assert.All(effects, e => Assert.False(string.IsNullOrEmpty(e.Description)));
+                Assert.Equal(GrowthResult.Ok, HeroGrowth.Breakthrough(p, "zhangfei"));
+                Assert.Equal(star, p.Heroes["zhangfei"].Stars);
+            }
+            // SR：1500 × (1+2+3+4+5)
+            Assert.Equal(gold - 1500 * 15, p.Gold);
+            Assert.Equal(0, HeroGrowth.Shards(p, "zhangfei"));
+            Assert.Equal(GrowthResult.AtCap, HeroGrowth.Breakthrough(p, "zhangfei"));
         }
 
         [Fact]
-        public void Register_WithoutAnySpecial_FallsBackToStatTemplate()
+        public void Breakthrough_Rejections_DoNotConsume()
         {
-            var table = new BreakthroughTable();
-            table.RegisterStatOnly("plain");
-            var effects = table.Get("plain");
-            Assert.Equal(5, effects.Count);
-            Assert.All(effects, e => Assert.Equal(BreakthroughKind.StatBonus, e.Kind));
-            Assert.Empty(table.Get("nobody"));
-            Assert.Equal((0, 0, 0), table.StatBonusPct("nobody", 5));
+            var p = Rich();
+            Assert.Equal(GrowthResult.NotEnoughMaterial, HeroGrowth.Breakthrough(p, "zhangfei"));
+            HeroGrowth.AddDuplicate(p, "zhangfei");
+            p.Gold = 100;
+            Assert.Equal(GrowthResult.NotEnoughGold, HeroGrowth.Breakthrough(p, "zhangfei"));
+            Assert.Equal(1, HeroGrowth.Shards(p, "zhangfei"));
+            Assert.Equal(100, p.Gold);
+            Assert.Equal(GrowthResult.UnknownHero, HeroGrowth.Breakthrough(p, "nobody"));
+        }
+
+        [Theory]
+        [InlineData(Rarity.R, 1, 500)]
+        [InlineData(Rarity.SR, 2, 3000)]
+        [InlineData(Rarity.UR, 5, 20000)]
+        public void BreakthroughGold_ScalesWithRarityAndStep(Rarity rarity, int step, int gold)
+        {
+            Assert.Equal(gold, HeroGrowth.BreakthroughGold(rarity, step));
+        }
+
+        // ---- 突破模板 ----
+
+        [Fact]
+        public void Template_FiveStepsFollowGdd_AndMainStatsSumToPlus20Percent()
+        {
+            var sword = HeroRoster.MilitiaSword(); // 戰士：攻擊 / 生命
+            var fx = Breakthroughs.For(sword);
+            Assert.Equal(5, fx.Count);
+            Assert.Equal(new[] { BreakthroughKind.StatBonus, BreakthroughKind.UpgradeCard, BreakthroughKind.StatBonus, BreakthroughKind.StatBonus, BreakthroughKind.UpgradeCard },
+                fx.Select(e => e.Kind).ToArray());
+            Assert.Equal(StatKind.Atk, fx[0].Stat);
+            Assert.Equal(StatKind.Hp, fx[2].Stat);
+            Assert.Equal(StatKind.Atk, fx[3].Stat);
+
+            var full = Breakthroughs.Mods(sword, 5);
+            Assert.Equal(1.2, full.Atk, 6);
+            Assert.Equal(1.1, full.Hp, 6);
+            Assert.Equal(1.0, full.Int, 6);
+            Assert.Equal(1.1, Breakthroughs.Mods(sword, 3).Hp, 6);
+        }
+
+        [Theory]
+        [InlineData(Role.Tank, StatKind.Hp, StatKind.Def)]
+        [InlineData(Role.Warrior, StatKind.Atk, StatKind.Hp)]
+        [InlineData(Role.Ranger, StatKind.Atk, StatKind.Crit)]
+        [InlineData(Role.Mage, StatKind.Int, StatKind.Hp)]
+        [InlineData(Role.Strategist, StatKind.Int, StatKind.Hp)]
+        [InlineData(Role.Healer, StatKind.Int, StatKind.Hp)]
+        public void PrimaryAndSecondaryStats_FollowRole(Role role, StatKind primary, StatKind secondary)
+        {
+            Assert.Equal(primary, Breakthroughs.PrimaryStat(role));
+            Assert.Equal(secondary, Breakthroughs.SecondaryStat(role));
         }
 
         [Fact]
-        public void Register_PartialSpecials_FillsFallbackAtMissingSpecialSlot()
+        public void RangerCritBonus_IsPercentagePoints()
         {
-            var table = new BreakthroughTable();
-            table.Register("h", new BreakthroughEffect
+            var archer = HeroRoster.MilitiaArcher();
+            var def = HeroGrowth.BuildDef(archer, new HeroState { HeroId = archer.Id, Stars = 3 });
+            Assert.Equal(archer.Base.Crit + 10, def.Base.Crit);
+        }
+
+        [Fact]
+        public void CardUpgrades_ApplyPerCard_AtStarTwoAndFive()
+        {
+            var sword = HeroRoster.MilitiaSword();
+            var d1 = Breakthroughs.ResolveDeck(sword, 1);
+            Assert.Equal(sword.Deck.Select(c => c.Id), d1.Select(c => c.Id));
+
+            var d2 = Breakthroughs.ResolveDeck(sword, 2);
+            Assert.Contains(d2, c => c.Id == "r_swd_sweep_plus");
+            Assert.Contains(d2, c => c.Id == "r_swd_heavy");          // 另一張尚未升級
+            Assert.DoesNotContain(d2, c => c.Id == "r_swd_sweep");
+
+            var d5 = Breakthroughs.ResolveDeck(sword, 5);
+            Assert.Contains(d5, c => c.Id == "r_swd_heavy_plus");
+            Assert.Equal(5, d5.Count);
+            Assert.Equal(5, sword.Deck.Count);                         // 原定義不變
+            Assert.Contains(sword.Deck, c => c.Id == "r_swd_sweep");
+        }
+
+        [Fact]
+        public void PairedCards_UpgradeIndependently_TauntExample()
+        {
+            // GDD 02 §5 範例：二突將 1 張嘲諷升級為「嘲諷＋」，五突再將另 1 張升級。
+            var shield = HeroRoster.MilitiaShield();
+            var d2 = Breakthroughs.ResolveDeck(shield, 2);
+            Assert.Equal(1, d2.Count(c => c.Name == "嘲諷＋"));
+            Assert.Equal(1, d2.Count(c => c.Name == "嘲諷"));
+            var d5 = Breakthroughs.ResolveDeck(shield, 5);
+            Assert.Equal(2, d5.Count(c => c.Name == "嘲諷＋"));
+            Assert.Equal(2, d5.First(c => c.Name == "嘲諷＋").Effects[0].Amount); // 持續回合 +1
+        }
+
+        [Fact]
+        public void Upgrade_AddsAboutHalfCostOfEfficiency()
+        {
+            var sword = HeroRoster.MilitiaSword();
+            var heavy = sword.Deck.First(c => c.Id.EndsWith("_heavy"));
+            var up = CardLibrary.Upgrade(heavy);
+            Assert.Equal(heavy.Effects[0].Multiplier + 0.33, up.Effects[0].Multiplier, 2); // 0.5 ÷ 1.5
+            Assert.Equal(heavy.Cost, up.Cost);
+            var sweep = CardLibrary.Upgrade(sword.Deck.First(c => c.Id.EndsWith("_sweep")));
+            Assert.Equal(1.11 + 0.22, sweep.Effects[0].Multiplier, 2); // 0.5 ÷ 2.25
+        }
+
+        // ---- 數值縮放 ----
+
+        [Fact]
+        public void ScaleStats_MultipliesLevelBreakthroughAndEquipment()
+        {
+            var sword = HeroRoster.MilitiaSword();
+            var hero = new HeroState { HeroId = sword.Id, Level = 41, Stars = 5 };
+            hero.Equipment["Weapon"] = 5;                               // 攻擊 +50%
+            hero.Equipment["Armor"] = 2;                                // 生命 / 防禦 +20%
+            var s = HeroGrowth.ScaleStats(sword, hero);
+            Assert.Equal((int)System.Math.Round(600 * 1.6 * 1.1 * 1.2), s.Hp);
+            Assert.Equal((int)System.Math.Round(120 * 1.6 * 1.2 * 1.5), s.Atk);
+            Assert.Equal((int)System.Math.Round(50 * 1.6 * 1.0 * 1.2), s.Def);
+            Assert.Equal(sword.Base.Move, s.Move);
+            Assert.Equal(sword.Base.Range, s.Range);
+        }
+
+        [Fact]
+        public void FullMonthBuild_MatchesGddContributionTable()
+        {
+            // GDD 03 §4.2：40 級、5 突、裝備平均 3.5 階 → 攻擊約 ×2.6、生命約 ×2.4。
+            var sword = HeroRoster.MilitiaSword();
+            var hero = new HeroState { HeroId = sword.Id, Level = 40, Stars = 5 };
+            hero.Equipment["Weapon"] = 4;
+            hero.Equipment["Armor"] = 3;
+            var s = HeroGrowth.ScaleStats(sword, hero);
+            Assert.InRange(s.Atk / (double)sword.Base.Atk, 2.5, 2.7);
+            Assert.InRange(s.Hp / (double)sword.Base.Hp, 2.1, 2.5);
+        }
+
+        [Fact]
+        public void BuildDef_DoesNotMutateOriginal_AndKeepsFiveCards()
+        {
+            var zf = HeroRoster.ZhangFei();
+            int hp = zf.Base.Hp;
+            var built = HeroGrowth.BuildDef(zf, new HeroState { HeroId = "zhangfei", Level = 20, Stars = 5 });
+            Assert.Equal(hp, zf.Base.Hp);
+            Assert.True(built.Base.Hp > hp);
+            Assert.Equal(5, built.Deck.Count);
+        }
+
+        // ---- 裝備 ----
+
+        [Fact]
+        public void Equipment_EquipSwapsAndReturnsOldToInventory()
+        {
+            var p = Rich();
+            p.AddMaterial(Equipment.ItemKey(EquipSlot.Weapon, 2), 1);
+            p.AddMaterial(Equipment.ItemKey(EquipSlot.Weapon, 4), 1);
+            Assert.Equal(EquipResult.Ok, Equipment.Equip(p, "zhangfei", EquipSlot.Weapon, 2));
+            Assert.Equal(EquipResult.Ok, Equipment.Equip(p, "zhangfei", EquipSlot.Weapon, 4));
+            Assert.Equal(4, p.Heroes["zhangfei"].Equipment["Weapon"]);
+            Assert.Equal(1, Equipment.Count(p, EquipSlot.Weapon, 2));
+            Assert.Equal(0, Equipment.Count(p, EquipSlot.Weapon, 4));
+            Assert.Equal(EquipResult.NotOwned, Equipment.Equip(p, "zhangfei", EquipSlot.Armor, 1));
+            Assert.Equal(EquipResult.UnknownHero, Equipment.Equip(p, "nobody", EquipSlot.Weapon, 2));
+            Assert.Equal(EquipResult.InvalidTier, Equipment.Equip(p, "zhangfei", EquipSlot.Weapon, 6));
+
+            Assert.Equal(EquipResult.Ok, Equipment.Unequip(p, "zhangfei", EquipSlot.Weapon));
+            Assert.Equal(1, Equipment.Count(p, EquipSlot.Weapon, 4));
+            Assert.Equal(EquipResult.NothingEquipped, Equipment.Unequip(p, "zhangfei", EquipSlot.Weapon));
+        }
+
+        [Fact]
+        public void Equipment_DismantleGivesGold()
+        {
+            var p = Rich();
+            p.Gold = 0;
+            p.AddMaterial(Equipment.ItemKey(EquipSlot.Armor, 3), 2);
+            Assert.Equal(EquipResult.Ok, Equipment.Dismantle(p, EquipSlot.Armor, 3, 2));
+            Assert.Equal(Equipment.DismantleGold(3) * 2, p.Gold);
+            Assert.Equal(EquipResult.NotOwned, Equipment.Dismantle(p, EquipSlot.Armor, 3, 1));
+        }
+
+        [Fact]
+        public void Equipment_TierBonusIsLinear10PercentPerTier()
+        {
+            var empty = new System.Collections.Generic.Dictionary<string, int>();
+            Assert.Equal(1.0, Equipment.Mods(Role.Warrior, empty).Atk);
+            for (int tier = 1; tier <= 5; tier++)
             {
-                Stars = 2, Kind = BreakthroughKind.AddCard, NewCard = new CardDef { Id = "x" }, Description = "x",
-            });
-            // 5★ 沒設計特殊效果 → 補全屬性 +10%
-            // 血量 10(1★)+15(4★)+10(5★)、攻擊 10(3★)+15+10、防禦 15(4★)+10(5★)
-            Assert.Equal((35, 35, 25), table.StatBonusPct("h", 5));
+                var eq = new System.Collections.Generic.Dictionary<string, int> { ["Weapon"] = tier, ["Armor"] = tier };
+                Assert.Equal(1 + 0.1 * tier, Equipment.Mods(Role.Warrior, eq).Atk, 6);
+                Assert.Equal(1 + 0.1 * tier, Equipment.Mods(Role.Warrior, eq).Hp, 6);
+                Assert.Equal(1 + 0.1 * tier, Equipment.Mods(Role.Mage, eq).Int, 6); // 法系武器加謀略
+                Assert.Equal(1.0, Equipment.Mods(Role.Mage, eq).Atk);
+            }
         }
 
         [Fact]
-        public void Deck_Unchanged_BeforeSpecialStar_AndOriginalNeverMutated()
+        public void Equipment_KeyParsing()
         {
-            var table = DemoBreakthroughs.Create();
-            var hero = ZhangFeiLike();
-            Assert.Equal(hero.Deck.Select(c => c.Id), table.ResolveDeck(hero, 1).Select(c => c.Id));
-            table.ResolveDeck(hero, 5);
-            Assert.Equal("zf_taunt", hero.Deck[1].Id);
-        }
-
-        [Fact]
-        public void Deck_UpgradeReplacesOnlyTheTargetCard_AtItsStar()
-        {
-            var table = DemoBreakthroughs.Create();
-            var hero = ZhangFeiLike();
-            var s2 = table.ResolveDeck(hero, 2).Select(c => c.Id).ToList();
-            Assert.Equal(new[] { "zf_attack", "zf_taunt_plus", "zf_attack", "zf_taunt2" }, s2); // 二突只升級其中一張嘲諷
-            Assert.Equal(s2, table.ResolveDeck(hero, 4).Select(c => c.Id).ToList());
-            var s5 = table.ResolveDeck(hero, 5).Select(c => c.Id).ToList();
-            Assert.Equal(new[] { "zf_attack", "zf_taunt_plus", "zf_attack", "zf_taunt2_plus" }, s5); // 五突升級另一張
-        }
-
-        [Fact]
-        public void AddCard_AppendsToDeck_AndPassivesAreListed()
-        {
-            var table = new BreakthroughTable();
-            table.Register("h",
-                new BreakthroughEffect
-                {
-                    Stars = 2, Kind = BreakthroughKind.AddCard, Description = "新增牌",
-                    NewCard = new CardDef { Id = "extra" },
-                },
-                new BreakthroughEffect
-                {
-                    Stars = 5, Kind = BreakthroughKind.Passive, PassiveId = "p1", Description = "被動",
-                });
-            var hero = new HeroDef { Id = "h", Deck = { new CardDef { Id = "a" } } };
-            Assert.Equal(new[] { "a" }, table.ResolveDeck(hero, 1).Select(c => c.Id));
-            Assert.Equal(new[] { "a", "extra" }, table.ResolveDeck(hero, 2).Select(c => c.Id));
-            Assert.Empty(table.ActivePassives("h", 4));
-            Assert.Equal(new[] { "p1" }, table.ActivePassives("h", 5));
-        }
-
-        [Fact]
-        public void Gacha_Duplicates_FeedBreakthrough_OneCopyPerStar()
-        {
-            var p = PlayerProfile.CreateNew(0);
-            p.Yuanbao = 100_000;
-            var pool = new GachaPool { Id = "p", UrRateBp = 10000, UrHeroes = { "h" } };
-            for (int i = 0; i < 3; i++) Gacha.Pull(p, pool, 1, new Rng((ulong)i + 1));
-            // 抽 3 次 = 1 隻本體 + 2 隻重複 → 可突破 2 星
-            Assert.Equal(GrowthResult.Ok, HeroGrowth.Breakthrough(p, "h"));
-            Assert.Equal(GrowthResult.Ok, HeroGrowth.Breakthrough(p, "h"));
-            Assert.Equal(GrowthResult.NotEnoughMaterial, HeroGrowth.Breakthrough(p, "h"));
-            Assert.Equal(2, p.Heroes["h"].Stars);
+            Assert.True(Equipment.TryParseKey("eq:armor:3", out var slot, out int tier));
+            Assert.Equal((EquipSlot.Armor, 3), (slot, tier));
+            Assert.False(Equipment.TryParseKey("shard:x", out _, out _));
+            Assert.False(Equipment.TryParseKey("eq:weapon:9", out _, out _));
         }
     }
 }

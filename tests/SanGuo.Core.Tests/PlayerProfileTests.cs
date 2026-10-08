@@ -61,25 +61,35 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void LevelUp_RefillsStamina()
+        public void StaminaCap_Is60Plus2PerPlayerLevel()
         {
-            var p = PlayerProfile.CreateNew(T0);
-            p.Stamina.TrySpend(100, T0);
-            int gained = p.AddExp(PlayerLevelCurve.ExpToNext(1), T0);
-            Assert.Equal(1, gained);
-            Assert.Equal(2, p.Level);
-            Assert.Equal(120, p.Stamina.Get(T0));
+            Assert.Equal(62, PlayerLevelCurve.StaminaCap(1));
+            Assert.Equal(140, PlayerLevelCurve.StaminaCap(40));
+            Assert.Equal(180, PlayerLevelCurve.StaminaCap(60));
+            Assert.Equal(360, PlayerLevelCurve.StaminaRegenSeconds); // 每 6 分鐘 1 點
+            Assert.Equal(62, PlayerProfile.CreateNew(T0).Stamina.Get(T0));
         }
 
         [Fact]
-        public void Stage_BlockedByChapterLevelGate()
+        public void LevelUp_RaisesStaminaCap_ButDoesNotRefill()
         {
             var p = PlayerProfile.CreateNew(T0);
-            var ch2 = new StageReward { StageId = "2-1", Chapter = 2 };
-            Assert.Equal(StageEntryResult.LevelTooLow, p.TryEnterStage(ch2, T0));
-            Assert.Equal(120, p.Stamina.Get(T0)); // 被擋下不扣體力
-            p.AddExp(100_000, T0);
-            Assert.Equal(StageEntryResult.Ok, p.TryEnterStage(ch2, T0));
+            p.Stamina.TrySpend(50, T0);
+            int gained = p.AddExp(PlayerLevelCurve.ExpToNext(1), T0);
+            Assert.Equal(1, gained);
+            Assert.Equal(2, p.Level);
+            Assert.Equal(64, p.Stamina.Cap);
+            Assert.Equal(12, p.Stamina.Get(T0));
+        }
+
+        [Fact]
+        public void Stage_HasNoPlayerLevelGate_AndCostsTenStamina()
+        {
+            var p = PlayerProfile.CreateNew(T0);
+            var late = DemoMeta.Chapter1Stage(5);
+            Assert.Equal(10, late.StaminaCost);
+            Assert.Equal(StageEntryResult.Ok, p.TryEnterStage(new StageReward { StageId = "6-10", Chapter = 6 }, T0));
+            Assert.Equal(52, p.Stamina.Get(T0));
         }
 
         [Fact]
@@ -100,21 +110,9 @@ namespace SanGuo.Core.Tests
         public void Stage_NotEnoughStamina()
         {
             var p = PlayerProfile.CreateNew(T0);
-            p.Stamina.TrySpend(115, T0);
+            p.Stamina.TrySpend(55, T0);
             var st = new StageReward { StageId = "1-1", StaminaCost = 8 };
             Assert.Equal(StageEntryResult.NotEnoughStamina, p.TryEnterStage(st, T0));
-        }
-
-        [Fact]
-        public void ChapterGates_IncreaseMonotonically()
-        {
-            int prev = 0;
-            for (int c = 1; c <= 10; c++)
-            {
-                int req = PlayerLevelCurve.RequiredLevelForChapter(c);
-                Assert.True(req > prev);
-                prev = req;
-            }
         }
     }
 }

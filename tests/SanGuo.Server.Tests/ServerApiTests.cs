@@ -187,20 +187,17 @@ public sealed class ServerApiTests : IDisposable
     {
         var c = Client();
         await c.PostAsync("/login", null);
-        // 資源副本要帳號 Lv.3：重複打第 1 關累積經驗（每次 30 經驗，需 160）。
-        for (int i = 0; i < 6; i++)
-            await c.PostAsJsonAsync("/stage/finish", new { stageId = "1-1", actions = await PlayStageAuto(c, "1-1") });
-        var level = (await Json(await c.GetAsync("/profile"))).GetProperty("data").GetProperty("level").GetInt32();
-        Assert.True(level >= 3);
+        // 素材副本第 1 階要先通關主線第 1-4 關（開發端點直接標記通關）。
+        await c.PostAsJsonAsync("/dev/clear", new { stageId = "1-4", stars = 3 });
 
         var team = await BuildTeam(c);
-        var actions = await PlayStageAuto(c, "res_gold", team); // 週一：糧倉護衛開放
-        var done = await Json(await c.PostAsJsonAsync("/stage/finish", new { stageId = "res_gold", actions }));
+        var actions = await PlayStageAuto(c, "res_1", team);
+        var done = await Json(await c.PostAsJsonAsync("/stage/finish", new { stageId = "res_1", actions }));
         Assert.True(done.GetProperty("ok").GetBoolean());
         Assert.True(done.GetProperty("data").GetProperty("won").GetBoolean());
-        Assert.Equal(4000, done.GetProperty("data").GetProperty("gold").GetInt32());
+        Assert.Equal(2000, done.GetProperty("data").GetProperty("gold").GetInt32());
 
-        var sweep = await Json(await c.PostAsJsonAsync("/dungeon/sweep", new { id = "res_gold", count = 1 }));
+        var sweep = await Json(await c.PostAsJsonAsync("/dungeon/sweep", new { id = "res_1", count = 1 }));
         Assert.True(sweep.GetProperty("ok").GetBoolean());
     }
 
@@ -209,15 +206,14 @@ public sealed class ServerApiTests : IDisposable
     {
         var c = Client();
         await c.PostAsync("/login", null);
-        for (int i = 0; i < 6; i++)
-            await c.PostAsJsonAsync("/stage/finish", new { stageId = "1-1", actions = await PlayStageAuto(c, "1-1") });
+        await c.PostAsJsonAsync("/dev/clear", new { stageId = "1-4", stars = 3 });
 
         // 沒帶編隊、帶了沒擁有的武將：都被拒絕，體力不扣。
         var before = (await Json(await c.GetAsync("/profile"))).GetProperty("data").GetProperty("stamina").GetProperty("current").GetInt32();
-        var none = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId = "res_gold" }));
+        var none = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId = "res_1" }));
         Assert.Equal("invalid_formation", none.GetProperty("code").GetString());
         var stranger = await Json(await c.PostAsJsonAsync("/stage/start",
-            new { stageId = "res_gold", formation = new[] { new { heroId = "zhugeliang", lane = 0, row = 0 } } }));
+            new { stageId = "res_1", formation = new[] { new { heroId = "zhugeliang", lane = 0, row = 0 } } }));
         Assert.Equal("invalid_formation", stranger.GetProperty("code").GetString());
         var after = (await Json(await c.GetAsync("/profile"))).GetProperty("data").GetProperty("stamina").GetProperty("current").GetInt32();
         Assert.Equal(before, after);
@@ -246,12 +242,24 @@ public sealed class ServerApiTests : IDisposable
     }
 
     [Fact]
-    public async Task Shop_GrowthFund_NotPaid_CannotClaim()
+    public async Task SoulShop_RejectsWhenNotEnoughSouls()
     {
         var c = Client();
         await c.PostAsync("/login", null);
-        var r = await Json(await c.PostAsJsonAsync("/shop/growth-fund/claim", new { points = 5 }));
-        Assert.Equal("NotPaid", r.GetProperty("code").GetString());
+        var r = await Json(await c.PostAsJsonAsync("/soulshop/buy", new { itemId = "gold" }));
+        Assert.Equal("NotEnoughSouls", r.GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task Equipment_EquipWithoutOwning_IsRejected()
+    {
+        var c = Client();
+        await c.PostAsync("/login", null);
+        await c.PostAsJsonAsync("/gacha/pull", new { poolId = "newbie", count = 1 });
+        var profile = SanGuo.Core.Data.ProfileSerializer.FromJson((await Json(await c.GetAsync("/profile"))).GetProperty("data").GetRawText());
+        string heroId = profile.Heroes.Keys.First();
+        var r = await Json(await c.PostAsJsonAsync("/hero/equip", new { heroId, slot = "Weapon", tier = 1 }));
+        Assert.Equal("NotOwned", r.GetProperty("code").GetString());
     }
 
     [Fact]
@@ -298,14 +306,14 @@ public sealed class ServerApiTests : IDisposable
     }
 
     [Fact]
-    public async Task Stage_Start_SpendsStamina_AndChecksLevelGate()
+    public async Task Stage_Start_SpendsStamina_AndRejectsUnknownStage()
     {
         var c = Client();
         await c.PostAsync("/login", null);
         var chapter1 = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId = "1-1" }));
         Assert.True(chapter1.GetProperty("ok").GetBoolean());
         var profile = await Json(await c.GetAsync("/profile"));
-        Assert.Equal(118, profile.GetProperty("data").GetProperty("stamina").GetProperty("current").GetInt32());
+        Assert.Equal(52, profile.GetProperty("data").GetProperty("stamina").GetProperty("current").GetInt32());
 
         var unknown = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId = "7-1" }));
         Assert.Equal("unknown_stage", unknown.GetProperty("code").GetString());

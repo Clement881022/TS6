@@ -19,10 +19,12 @@ namespace SanGuo.Core.Tests
             p.ClearedStages.Add("1-2");
             p.ClearedStages.Add("1-1");
             var hero = new HeroState { HeroId = "zhangfei", Level = 5, Stars = 2 };
-            hero.CardLevels["zf_attack"] = 3;
+            hero.Equipment["Weapon"] = 3;
+            p.SoulShopBought["gold"] = 2;
+            p.SoulShopMonth = "2026-10";
             p.Heroes["zhangfei"] = hero;
-            p.AddMaterial(HeroGrowth.ExpBook, 40);
-            p.AddMaterial(HeroGrowth.ShardKey("guanyu"), 20);
+            p.AddMaterial(HeroGrowth.HeroExp, 40);
+            p.AddMaterial(HeroGrowth.ShardKey("guanyu"), 2);
             p.PoolStates["standard"] = new PoolState { PullsSinceUr = 33, UpGuaranteed = true, TotalPulls = 50, TenPulls = 4 };
             return p;
         }
@@ -42,9 +44,11 @@ namespace SanGuo.Core.Tests
             Assert.Equal(original.Stamina.Cap, loaded.Stamina.Cap);
             Assert.Equal(original.ClearedStages, loaded.ClearedStages);
             Assert.Equal(2, loaded.Heroes["zhangfei"].Stars);
-            Assert.Equal(3, loaded.Heroes["zhangfei"].CardLevels["zf_attack"]);
-            Assert.Equal(40, loaded.GetMaterial(HeroGrowth.ExpBook));
-            Assert.Equal(20, loaded.GetMaterial(HeroGrowth.ShardKey("guanyu")));
+            Assert.Equal(3, loaded.Heroes["zhangfei"].Equipment["Weapon"]);
+            Assert.Equal(2, loaded.SoulShopBought["gold"]);
+            Assert.Equal("2026-10", loaded.SoulShopMonth);
+            Assert.Equal(40, loaded.GetMaterial(HeroGrowth.HeroExp));
+            Assert.Equal(2, loaded.GetMaterial(HeroGrowth.ShardKey("guanyu")));
             Assert.True(loaded.PoolStates["standard"].UpGuaranteed);
             Assert.Equal(33, loaded.PoolStates["standard"].PullsSinceUr);
         }

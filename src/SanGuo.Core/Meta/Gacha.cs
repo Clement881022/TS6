@@ -18,8 +18,8 @@ namespace SanGuo.Core.Meta
         public List<string> SrHeroes = new List<string>();
         public List<string> RHeroes = new List<string>();
 
-        /// <summary>UP 的 UR（空 = 常駐池）。出 UR 時有 <see cref="UpRateBp"/> 機率為 UP；未中時依 <see cref="UpGuarantee"/> 決定下一隻 UR 是否必為 UP（大小保底）。</summary>
-        public string UpUr = "";
+        /// <summary>UP 的 UR（空 = 常駐池，可多隻）。出 UR 時有 <see cref="UpRateBp"/> 機率為 UP（UP 武將中隨機一隻）；未中時依 <see cref="UpGuarantee"/> 決定下一隻 UR 是否必為 UP（大小保底）。</summary>
+        public List<string> UpUrs = new List<string>();
         public int UpRateBp = 5000;
 
         /// <summary>大小保底：上一隻 UR 沒中 UP，下一隻 UR 必為 UP（2026-10-07 採用，見 gacha.md 第 7 節）。</summary>
@@ -43,7 +43,7 @@ namespace SanGuo.Core.Meta
             var parts = new List<string>();
             if (TenPullGuaranteesSr) parts.Add("十連至少獲得 1 名 SR 以上武將");
             if (HardPityUr > 0) parts.Add($"連續 {HardPityUr} 次未獲得 UR，第 {HardPityUr} 次必定獲得 UR");
-            if (!string.IsNullOrEmpty(UpUr))
+            if (UpUrs.Count > 0)
             {
                 parts.Add($"獲得 UR 時有 {UpRateBp / 100.0:0.##}% 機率為 UP 武將");
                 if (UpGuarantee) parts.Add("上一名 UR 未獲得 UP 武將時，下一名 UR 必定為 UP 武將");
@@ -83,8 +83,10 @@ namespace SanGuo.Core.Meta
         /// <summary>true = 由保底（十連保底 / 新手保底 / 硬保底）強制提升而來。</summary>
         public bool FromPity;
         public bool IsNew;
-        /// <summary>重複武將轉換出的突破碎片，新武將為 0。</summary>
+        /// <summary>重複武將存成的重複份（未滿突時為 1），新武將為 0。</summary>
         public int Shards;
+        /// <summary>重複武將轉成的將魂（已滿突時），新武將為 0。</summary>
+        public int Souls;
     }
 
     public enum PullStatus
@@ -102,9 +104,6 @@ namespace SanGuo.Core.Meta
 
     public static class Gacha
     {
-        /// <summary>重複武將轉換的碎片：一隻重複 = 一次突破的份量（任何稀有度皆同，見 progression.md）。</summary>
-        public static int DuplicateShards(Rarity rarity) => HeroGrowth.CopyShards;
-
         /// <summary>
         /// 抽卡（純規則，不扣款）：單抽或十連。<paramref name="state"/> 會被更新。
         /// 不論保底如何介入，單抽 / 十連的實際機率都在 <see cref="GachaPool.DisclosedRates"/> 公示的基礎機率上。
@@ -190,9 +189,9 @@ namespace SanGuo.Core.Meta
                 }
                 else
                 {
-                    r.Shards = DuplicateShards(r.Rarity);
-                    player.Materials.TryGetValue("shard:" + r.HeroId, out int have);
-                    player.Materials["shard:" + r.HeroId] = have + r.Shards;
+                    var dup = HeroGrowth.AddDuplicate(player, r.HeroId);
+                    r.Shards = dup.Shards;
+                    r.Souls = dup.Souls;
                 }
             }
             outcome.Status = PullStatus.Ok;
@@ -212,15 +211,15 @@ namespace SanGuo.Core.Meta
             var res = new PullResult { Rarity = rarity };
             if (rarity == Rarity.UR)
             {
-                if (!string.IsNullOrEmpty(pool.UpUr))
+                if (pool.UpUrs.Count > 0)
                 {
-                    var others = pool.UrHeroes.Where(h => h != pool.UpUr).ToList();
+                    var others = pool.UrHeroes.Where(h => !pool.UpUrs.Contains(h)).ToList();
                     bool guaranteed = pool.UpGuarantee && state.UpGuaranteed;
                     bool up = others.Count == 0 || guaranteed || rng.Next(10000) < pool.UpRateBp;
                     res.IsUp = up;
                     if (guaranteed) res.FromPity = true;
                     state.UpGuaranteed = pool.UpGuarantee && !up;
-                    res.HeroId = up ? pool.UpUr : others[rng.Next(others.Count)];
+                    res.HeroId = up ? pool.UpUrs[rng.Next(pool.UpUrs.Count)] : others[rng.Next(others.Count)];
                 }
                 else
                 {

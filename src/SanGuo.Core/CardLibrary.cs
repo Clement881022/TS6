@@ -117,6 +117,39 @@ namespace SanGuo.Core
             }
         }
 
+        /// <summary>
+        /// 突破帶來的卡牌升級（GDD 02 §5）：效價約 +0.5 費（R 卡幅度；SR / UR 的幅度待決，暫用同樣幅度）。
+        /// 傷害 / 治療 / 護盾 / 燃燒提高倍率，嘲諷延長回合，鼓舞提高強度。回傳新卡（id 加 _plus、名稱加「＋」）。
+        /// </summary>
+        public static CardDef Upgrade(CardDef card)
+        {
+            const double gain = 0.5;
+            var up = Clone(card, card.Id + "_plus");
+            up.Name = card.Name + "＋";
+            double areaFactor = card.Shape == Shape.Row3 || card.Shape == Shape.Column3 ? Area3Factor
+                : card.Shape == Shape.Cross ? SingleFactor * 2 : card.Shape == Shape.All ? SingleFactor * 3 : SingleFactor;
+            foreach (var e in up.Effects)
+            {
+                switch (e.Type)
+                {
+                    case EffectType.Damage:
+                    case EffectType.Heal:
+                        e.Multiplier = Math.Round(e.Multiplier + gain / areaFactor, 2);
+                        break;
+                    case EffectType.Shield:
+                        e.Multiplier = Math.Round(e.Multiplier + gain / (areaFactor * 1.5), 2);
+                        break;
+                    case EffectType.ApplyStatus:
+                        if (e.Status == StatusType.Burn) e.Multiplier = Math.Round(e.Multiplier + gain / SingleFactor, 2);
+                        else if (e.Status == StatusType.Taunt) e.Amount += 1;
+                        else if (e.Status == StatusType.AtkUp || e.Status == StatusType.IntUp)
+                            e.Multiplier = Math.Round(e.Multiplier * (1.5 + gain) / 1.5, 2); // 鼓舞基準：+25% 值 1.5 費
+                        break;
+                }
+            }
+            return up;
+        }
+
         private static CardDef Clone(CardDef c, string id) =>
             new CardDef
             {

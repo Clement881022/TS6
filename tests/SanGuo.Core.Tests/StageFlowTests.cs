@@ -19,6 +19,8 @@ namespace SanGuo.Core.Tests
         {
             var p = PlayerProfile.CreateNew(now);
             p.Level = level;
+            p.Stamina.Add(200, now);
+            p.ClearedStages.Add("1-4");   // 解鎖第 1 階素材副本
             return p;
         }
 
@@ -47,35 +49,40 @@ namespace SanGuo.Core.Tests
             long now = Sunday();
             var p = Player(now);
             var team = Team(p);
-            var start = StageFlow.Start(p, "res_gold", now, 7, team);
+            int stamina = p.Stamina.Get(now);
+            var start = StageFlow.Start(p, "res_1", now, 7, team);
             Assert.True(start.Ok);
-            Assert.Equal(110, p.Stamina.Get(now));
-            Assert.Equal("res_gold", p.PendingStageId);
+            Assert.Equal(stamina - 20, p.Stamina.Get(now));
+            Assert.Equal("res_1", p.PendingStageId);
 
-            var rec = Play(DemoMeta.BuildSetup("res_gold", start.Seed, p, team)!);
+            var rec = Play(DemoMeta.BuildSetup("res_1", start.Seed, p, team)!);
             int goldBefore = p.Gold;
-            var done = StageFlow.Finish(p, "res_gold", rec.Actions, now);
+            var done = StageFlow.Finish(p, "res_1", rec.Actions, now);
             Assert.True(done.Ok && done.Won);
-            Assert.Equal(4000, done.Gold);
-            Assert.Equal(goldBefore + 4000, p.Gold);
-            Assert.Contains("res_gold", p.ClearedStages);
+            Assert.Equal(2000, done.Gold);
+            Assert.Equal(goldBefore + 2000, p.Gold);
+            Assert.Contains("res_1", p.ClearedStages);
             Assert.Equal("", p.PendingStageId);
+            Assert.Contains(done.Materials, m => m.Key.StartsWith("eq:"));   // 裝備掉落
 
-            // 通關後可掃蕩，且今日次數已用掉 1 次。
-            Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TrySweep(p, DemoMeta.FindDungeon("res_gold")!, 2, now));
-            Assert.Equal(DungeonEntryResult.LimitReached, ResourceDungeons.TrySweep(p, DemoMeta.FindDungeon("res_gold")!, 1, now));
+            // 通關後可掃蕩（沒有每日次數限制）。
+            var d = DemoMeta.FindDungeon("res_1")!;
+            Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TrySweep(p, d, 3, now, out _));
+            Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TrySweep(p, d, 3, now, out _));
         }
 
         [Fact]
-        public void Dungeon_RespectsLevelRequirement()
+        public void Dungeon_LockedUntilItsStageIsCleared()
         {
             long now = Sunday();
-            var p = Player(now, level: 1);
-            var start = StageFlow.Start(p, "res_gold", now, 7, Team(p));
+            var p = Player(now);
+            p.ClearedStages.Clear();
+            int stamina = p.Stamina.Get(now);
+            var start = StageFlow.Start(p, "res_1", now, 7, Team(p));
             Assert.False(start.Ok);
-            Assert.Equal("LevelTooLow", start.Code);
+            Assert.Equal("Locked", start.Code);
             Assert.Equal("", p.PendingStageId);
-            Assert.Equal(120, p.Stamina.Get(now));
+            Assert.Equal(stamina, p.Stamina.Get(now));
         }
 
         [Fact]
@@ -83,12 +90,12 @@ namespace SanGuo.Core.Tests
         {
             long now = Sunday();
             var p = Player(now);
-            StageFlow.Start(p, "res_gold", now, 7, Team(p));
-            var done = StageFlow.Finish(p, "res_gold", new[] { ReplayAction.Play(99999) }, now);
+            StageFlow.Start(p, "res_1", now, 7, Team(p));
+            var done = StageFlow.Finish(p, "res_1", new[] { ReplayAction.Play(99999) }, now);
             Assert.False(done.Ok);
             Assert.True(done.Persist);
             Assert.Equal("", p.PendingStageId);
-            Assert.DoesNotContain("res_gold", p.ClearedStages);
+            Assert.DoesNotContain("res_1", p.ClearedStages);
         }
 
         [Fact]
@@ -138,14 +145,14 @@ namespace SanGuo.Core.Tests
             };
             foreach (var bad in cases)
             {
-                var r = StageFlow.Start(p, "res_gold", now, 7, bad);
+                var r = StageFlow.Start(p, "res_1", now, 7, bad);
                 Assert.False(r.Ok);
                 Assert.Equal("invalid_formation", r.Code);
             }
             Assert.Equal(stamina, p.Stamina.Get(now));
             Assert.Equal("", p.PendingStageId);
 
-            Assert.True(StageFlow.Start(p, "res_gold", now, 7, team).Ok);
+            Assert.True(StageFlow.Start(p, "res_1", now, 7, team).Ok);
         }
 
         [Fact]
@@ -174,18 +181,18 @@ namespace SanGuo.Core.Tests
             long now = Sunday();
             var p = Player(now);
             var team = Team(p);
-            var baseAtk = DemoMeta.BuildSetup("res_gold", 1, p, team)!.Heroes[0].Def.Base.Atk;
+            var baseAtk = DemoMeta.BuildSetup("res_1", 1, p, team)!.Heroes[0].Def.Base.Atk;
 
             p.Heroes["zhangfei"].Level = 5;
-            var grown = DemoMeta.BuildSetup("res_gold", 1, p, team)!.Heroes[0].Def.Base.Atk;
+            var grown = DemoMeta.BuildSetup("res_1", 1, p, team)!.Heroes[0].Def.Base.Atk;
             Assert.True(grown > baseAtk);
 
             // 進行中的編隊要存得下來（伺服器重啟後仍能結算）。
-            Assert.True(StageFlow.Start(p, "res_gold", now, 7, team).Ok);
+            Assert.True(StageFlow.Start(p, "res_1", now, 7, team).Ok);
             var loaded = ProfileSerializer.FromJson(ProfileSerializer.ToJson(p));
             Assert.Equal(team.Select(e => (e.HeroId, e.Lane, e.Row)), loaded.PendingFormation.Select(e => (e.HeroId, e.Lane, e.Row)));
-            var rec = Play(DemoMeta.BuildSetup("res_gold", 7, p, team)!);
-            Assert.True(StageFlow.Finish(loaded, "res_gold", rec.Actions, now).Won);
+            var rec = Play(DemoMeta.BuildSetup("res_1", 7, p, team)!);
+            Assert.True(StageFlow.Finish(loaded, "res_1", rec.Actions, now).Won);
         }
     }
 }

@@ -6,26 +6,24 @@ using Xunit.Abstractions;
 namespace SanGuo.Core.Tests
 {
     /// <summary>
-    /// 開放編隊的關卡 / 副本（第 9、10 關與資源副本）的難度梯度：
-    /// 剛抽完的新手隊伍打不贏、養成後打得贏，才有「抽卡 → 養成 → 變強」的回饋。
-    /// 用自動戰鬥量測（人類玩家會比自動打得更好），範圍給寬，只鎖大方向。
+    /// 開放編隊的關卡 / 素材副本的難度梯度：養成越深越能過，才有「抽卡 → 養成 → 變強」的回饋。
+    /// 用自動戰鬥量測（人類玩家會比自動打得更好），範圍給寬，只鎖大方向。完整的戰力門檻曲線於章節內容完成後校準。
     /// </summary>
     public class OpenStageBalanceTests
     {
         private readonly ITestOutputHelper _out;
         public OpenStageBalanceTests(ITestOutputHelper output) { _out = output; }
 
-        private static readonly string[] Fresh = { "zhangfei", "r_shield", "r_archer", "r_healer" }; // 10 連抽後的典型隊伍：1 UR + 3 R
-        private static readonly string[] Strong = { "zhangfei", "guanyu", "r_archer", "liubei" };
+        private static readonly string[] Team = { "zhangfei", "guanyu", "r_archer", "liubei" };
 
-        private double WinRate(string stage, string[] heroes, int level, int runs = 100)
+        private double WinRate(string stage, string[] heroes, int level, int stars = 0, int runs = 60)
         {
             var p = PlayerProfile.CreateNew(0);
             var cells = new[] { (1, 3), (2, 3), (3, 3), (2, 4) };
             var team = new List<FormationEntry>();
             for (int i = 0; i < heroes.Length; i++)
             {
-                p.Heroes[heroes[i]] = new HeroState { HeroId = heroes[i], Level = level };
+                p.Heroes[heroes[i]] = new HeroState { HeroId = heroes[i], Level = level, Stars = stars };
                 team.Add(new FormationEntry(heroes[i], cells[i].Item1, cells[i].Item2));
             }
             int wins = 0;
@@ -36,37 +34,30 @@ namespace SanGuo.Core.Tests
                 if (battle.Result == BattleResult.Won) wins++;
             }
             double rate = 100.0 * wins / runs;
-            _out.WriteLine($"{stage} Lv{level} {string.Join("+", heroes)}: {rate:F0}%");
+            _out.WriteLine($"{stage} Lv{level} ★{stars}: {rate:F0}%");
             return rate;
         }
 
         [Fact]
-        public void GoldDungeon_IsEasyForEveryone_SoNewPlayersCanFarmGold()
+        public void Report()
         {
-            Assert.True(WinRate("res_gold", Fresh, 1) >= 95);
-        }
-
-        // 注意：GDD 04 §5 的戰力門檻曲線（敵人等級隨章節提升）於階段 3 才套用到各關；這裡只鎖「養成有用」的大方向。
-        [Fact]
-        public void GrowthHelps_OnTheHardestDungeon()
-        {
-            double lv1 = WinRate("res_card", Strong, 1);
-            double lv20 = WinRate("res_card", Strong, 20);
-            Assert.True(lv20 > lv1, $"Lv20 {lv20}% 應高於 Lv1 {lv1}%");
-            Assert.True(lv20 >= 70);
+            foreach (var stage in new[] { "res_1", "res_2", "res_3", "res_4", "res_5" })
+                foreach (var (lv, st) in new[] { (1, 0), (10, 0), (20, 2), (30, 3), (40, 5) })
+                    WinRate(stage, Team, lv, st, 30);
         }
 
         [Fact]
-        public void StrongTeam_ClearsEveryStage_WhenGrown()
+        public void GrowthHelps_OnTheThirdDungeon()
         {
-            foreach (var stage in new[] { "res_gold", "res_exp", "res_card", "1-9", "1-10" })
-                Assert.True(WinRate(stage, Strong, 20) >= 70, stage);
+            double fresh = WinRate("res_3", Team, 1);
+            double grown = WinRate("res_3", Team, 40, 5);
+            Assert.True(grown > fresh, $"養成後 {grown}% 應高於新手 {fresh}%");
         }
 
         [Fact]
-        public void ExpDungeon_IsReachableForFreshTeam_SoBooksCanBeFarmed()
+        public void FirstDungeon_IsClearableByAMidLevelTeam()
         {
-            Assert.True(WinRate("res_exp", Fresh, 1) >= 10); // 養成素材的來源：新手隊伍偶爾能贏（人類打得比自動好）
+            Assert.True(WinRate("res_1", Team, 20, 2) >= 70);
         }
     }
 }

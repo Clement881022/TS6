@@ -72,6 +72,7 @@ namespace SanGuo.Core.Meta
         public static StageFinishOutcome Finish(PlayerProfile p, string stageId, IReadOnlyList<ReplayAction> actions, long now)
         {
             if (p.PendingStageId == "" || p.PendingStageId != stageId) return new StageFinishOutcome { Code = "no_pending_stage" };
+            long pendingSeed = p.PendingSeed;
             var setup = DemoMeta.BuildSetup(stageId, (ulong)p.PendingSeed, p, p.PendingFormation);
             p.PendingStageId = "";
             p.PendingSeed = 0;
@@ -85,8 +86,7 @@ namespace SanGuo.Core.Meta
             var dungeon = DemoMeta.FindDungeon(stageId);
             if (dungeon != null)
             {
-                ResourceDungeons.ClaimWin(p, dungeon, now);
-                var r = dungeon.Reward;
+                var r = ResourceDungeons.ClaimWin(p, dungeon, now, (ulong)pendingSeed);
                 return new StageFinishOutcome
                 {
                     Ok = true, Won = true, Gold = r.Gold, Yuanbao = r.Yuanbao,

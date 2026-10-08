@@ -8,13 +8,13 @@ namespace SanGuo.Core.Meta
     {
         public string StageId = "";
         public int Chapter = 1;
-        public int StaminaCost = 8;
+        public int StaminaCost = 10;
         public int Exp;
         public int Gold;
         public int FirstClearYuanbao;
-        /// <summary>首通贈送的武將 id（空字串 = 不送）；已擁有就轉成突破碎片。</summary>
+        /// <summary>首通贈送的武將 id（空字串 = 不送）；已擁有就轉成重複份（滿突後轉將魂）。</summary>
         public string FirstClearHero = "";
-        /// <summary>第三星的回合數門檻（0 = 不限，第三星只看是否存活）。</summary>
+        /// <summary>第三星的限定回合數（0 = 不設限）。</summary>
         public int StarTurnPar;
     }
 
@@ -23,14 +23,12 @@ namespace SanGuo.Core.Meta
         Ok,
         InvalidCount,
         NotThreeStars,
-        LevelTooLow,
         NotEnoughStamina,
     }
 
     public enum StageEntryResult
     {
         Ok,
-        LevelTooLow,
         NotEnoughStamina,
     }
 
@@ -71,8 +69,6 @@ namespace SanGuo.Core.Meta
         public long CreatedDay;
         /// <summary>每日資料所屬的遊戲日；換日時由 <see cref="EnsureDaily"/> 清空。</summary>
         public long DailyDay = long.MinValue;
-        /// <summary>今日資源副本挑戰次數（副本 id → 次數）。</summary>
-        public Dictionary<string, int> DailyCounters = new Dictionary<string, int>();
         public Dictionary<string, int> DailyTaskProgress = new Dictionary<string, int>();
         public HashSet<string> DailyTaskClaimed = new HashSet<string>();
         public Dictionary<string, int> SevenDayProgress = new Dictionary<string, int>();
@@ -82,9 +78,9 @@ namespace SanGuo.Core.Meta
         /// <summary>月卡到期的遊戲日（<see cref="DailyClock.DayIndex"/>，不含該日）與最近一次領取每日獎勵的遊戲日。</summary>
         public Dictionary<string, long> MonthCardExpiry = new Dictionary<string, long>();
         public Dictionary<string, long> MonthCardClaimedDay = new Dictionary<string, long>();
-        public bool GrowthFundOwned;
-        /// <summary>已領取的成長基金階段（以帳號等級門檻標示）。</summary>
-        public HashSet<int> GrowthFundClaimed = new HashSet<int>();
+        /// <summary>將魂商店本月的購買紀錄（商品 id → 次數）與所屬月份（yyyy-MM）。</summary>
+        public Dictionary<string, int> SoulShopBought = new Dictionary<string, int>();
+        public string SoulShopMonth = "";
         /// <summary>訂單（訂單 id → "pending:商品" 或 "paid:商品"），用來讓付款回呼冪等。</summary>
         public Dictionary<string, string> Orders = new Dictionary<string, string>();
 
@@ -94,7 +90,7 @@ namespace SanGuo.Core.Meta
 
         public static PlayerProfile CreateNew(long now) => new PlayerProfile
         {
-            Stamina = new StaminaClock(120, 360, now),
+            Stamina = new StaminaClock(PlayerLevelCurve.StaminaCap(1), PlayerLevelCurve.StaminaRegenSeconds, now),
             CreatedDay = DailyClock.DayIndex(now),
         };
 
@@ -104,7 +100,6 @@ namespace SanGuo.Core.Meta
             long day = DailyClock.DayIndex(now);
             if (day == DailyDay) return;
             DailyDay = day;
-            DailyCounters.Clear();
             DailyTaskProgress.Clear();
             DailyTaskClaimed.Clear();
         }
@@ -116,7 +111,7 @@ namespace SanGuo.Core.Meta
             Quests.Report(this, Quests.Events.Login, 1, now);
         }
 
-        /// <summary>發放獎勵。贈送的武將若已擁有，轉成突破碎片。</summary>
+        /// <summary>發放獎勵。贈送的武將若已擁有，當作重複份處理（滿突後轉將魂）。</summary>
         public void Grant(Reward reward, long now)
         {
             Yuanbao += reward.Yuanbao;
@@ -125,16 +120,14 @@ namespace SanGuo.Core.Meta
             foreach (var m in reward.Materials) AddMaterial(m.Key, m.Value);
             foreach (var id in reward.Heroes)
             {
-                if (Heroes.ContainsKey(id)) AddMaterial(HeroGrowth.ShardKey(id), HeroGrowth.CopyShards);
+                if (Heroes.ContainsKey(id)) HeroGrowth.AddDuplicate(this, id);
                 else Heroes[id] = new HeroState { HeroId = id };
             }
         }
 
-        /// <summary>開打前檢查等級門檻與體力；成功才扣體力。</summary>
+        /// <summary>開打前檢查體力（主線不設玩家等級門檻）；成功才扣體力。</summary>
         public StageEntryResult TryEnterStage(StageReward stage, long now)
         {
-            if (Level < PlayerLevelCurve.RequiredLevelForChapter(stage.Chapter))
-                return StageEntryResult.LevelTooLow;
             if (!Stamina.TrySpend(stage.StaminaCost, now))
                 return StageEntryResult.NotEnoughStamina;
             return StageEntryResult.Ok;
@@ -179,7 +172,6 @@ namespace SanGuo.Core.Meta
             result = null;
             if (count < 1 || count > MaxSweepCount) return SweepResult.InvalidCount;
             if (!StageStars.TryGetValue(stage.StageId, out int stars) || stars < 3) return SweepResult.NotThreeStars;
-            if (Level < PlayerLevelCurve.RequiredLevelForChapter(stage.Chapter)) return SweepResult.LevelTooLow;
             if (!Stamina.TrySpend(stage.StaminaCost * count, now)) return SweepResult.NotEnoughStamina;
 
             result = new ClearResult { ExpGained = stage.Exp * count, GoldGained = stage.Gold * count };
@@ -190,7 +182,7 @@ namespace SanGuo.Core.Meta
             return SweepResult.Ok;
         }
 
-        /// <summary>加經驗；每升一級回滿體力。回傳升了幾級。</summary>
+        /// <summary>加經驗；每升一級提高體力上限（不補體力）。回傳升了幾級。</summary>
         public int AddExp(int amount, long now)
         {
             int gained = 0;
@@ -200,8 +192,8 @@ namespace SanGuo.Core.Meta
                 Exp -= PlayerLevelCurve.ExpToNext(Level);
                 Level++;
                 gained++;
-                Stamina.RefillToCap(now);
             }
+            if (gained > 0) Stamina.SetCap(PlayerLevelCurve.StaminaCap(Level), now);
             if (Level >= PlayerLevelCurve.MaxLevel) Exp = 0;
             return gained;
         }

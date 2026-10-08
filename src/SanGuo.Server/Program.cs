@@ -37,8 +37,14 @@ app.MapPost("/gacha/pull", (HttpRequest req, GameService g, PullRequest body) =>
 
 app.MapPost("/hero/levelup", (HttpRequest req, GameService g, HeroRequest body) =>
     Handle(req, a => g.LevelUp(a, body.HeroId)));
-app.MapPost("/hero/enhance", (HttpRequest req, GameService g, EnhanceRequest body) =>
-    Handle(req, a => g.Enhance(a, body.HeroId, body.CardId)));
+app.MapPost("/hero/equip", (HttpRequest req, GameService g, EquipRequest body) =>
+    Handle(req, a => g.Equip(a, body.HeroId, body.Slot, body.Tier)));
+app.MapPost("/hero/unequip", (HttpRequest req, GameService g, UnequipRequest body) =>
+    Handle(req, a => g.Unequip(a, body.HeroId, body.Slot)));
+app.MapPost("/equipment/dismantle", (HttpRequest req, GameService g, DismantleRequest body) =>
+    Handle(req, a => g.Dismantle(a, body.Slot, body.Tier, body.Count)));
+app.MapPost("/soulshop/buy", (HttpRequest req, GameService g, SoulBuyRequest body) =>
+    Handle(req, a => g.BuySoulItem(a, body.ItemId)));
 app.MapPost("/hero/breakthrough", (HttpRequest req, GameService g, HeroRequest body) =>
     Handle(req, a => g.Breakthrough(a, body.HeroId)));
 
@@ -75,8 +81,6 @@ app.MapPost("/shop/dev/pay", (HttpRequest req, GameService g, OrderRequest body)
     g.DevEndpointsEnabled ? Handle(req, a => g.DevPay(a, body.OrderId)) : Task.FromResult(Results.NotFound()));
 app.MapPost("/shop/month-card/claim", (HttpRequest req, GameService g, ProductRequest body) =>
     Handle(req, a => g.ClaimMonthCard(a, body.ProductId)));
-app.MapPost("/shop/growth-fund/claim", (HttpRequest req, GameService g, MilestoneRequest body) =>
-    Handle(req, a => g.ClaimGrowthFund(a, body.Points)));
 
 app.MapPost("/dev/clear", (HttpRequest req, GameService g, DevClearRequest body) =>
     g.DevEndpointsEnabled ? Handle(req, a => g.DevClearStage(a, body.StageId, body.Stars)) : Task.FromResult(Results.NotFound()));
@@ -89,7 +93,10 @@ public sealed record StageRequest(string StageId, List<FormationEntryDto>? Forma
 public sealed record ReplayActionDto(string Kind, int CardId = 0, int UnitId = -1, int Lane = -1, int Row = -1);
 public sealed record FinishRequest(string StageId, List<ReplayActionDto>? Actions);
 public sealed record HeroRequest(string HeroId);
-public sealed record EnhanceRequest(string HeroId, string CardId);
+public sealed record EquipRequest(string HeroId, string Slot, int Tier);
+public sealed record UnequipRequest(string HeroId, string Slot);
+public sealed record DismantleRequest(string Slot, int Tier, int Count);
+public sealed record SoulBuyRequest(string ItemId);
 public sealed record SweepRequest(string Id, int Count);
 public sealed record QuestRequest(string QuestId);
 public sealed record MilestoneRequest(int Points);

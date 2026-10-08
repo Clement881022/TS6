@@ -1,7 +1,7 @@
 namespace SanGuo.Core.Meta
 {
     /// <summary>
-    /// 關卡星級（建議值，待確認）：★ 通關；★★ 無武將陣亡；★★★ 在回合門檻內通關（門檻 0 = 不限，只看是否存活）。
+    /// 關卡星級（GDD 04 §4）：每顆星對應一個條件——通關、我方全員存活、在限定回合內達成通關條件（0 = 不設限）。
     /// 掃蕩要求三星，所以三星 = 「穩穩打過」的證明。
     /// </summary>
     public static class StarRating
@@ -11,7 +11,7 @@ namespace SanGuo.Core.Meta
             if (!won) return 0;
             int stars = 1;
             if (heroDeaths == 0) stars++;
-            if (stars == 2 && (turnPar <= 0 || turns <= turnPar)) stars++;
+            if (turnPar <= 0 || turns <= turnPar) stars++;
             return stars;
         }
 

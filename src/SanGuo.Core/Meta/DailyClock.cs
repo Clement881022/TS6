@@ -19,6 +19,22 @@ namespace SanGuo.Core.Meta
             return (int)(w < 0 ? w + 7 : w);
         }
 
+        /// <summary>遊戲日所屬的月份（yyyy-MM），將魂商店等每月重置用。</summary>
+        public static string MonthKey(long now)
+        {
+            // days since 1970-01-01 → 公曆年月（Howard Hinnant 的 civil_from_days）
+            long z = DayIndex(now) + 719468;
+            long era = FloorDiv(z, 146097);
+            long doe = z - era * 146097;
+            long yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+            long y = yoe + era * 400;
+            long doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+            long mp = (5 * doy + 2) / 153;
+            long m = mp < 10 ? mp + 3 : mp - 9;
+            if (m <= 2) y++;
+            return $"{y:0000}-{m:00}";
+        }
+
         private static long FloorDiv(long a, long b)
         {
             long q = a / b;

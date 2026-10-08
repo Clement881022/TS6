@@ -12,7 +12,7 @@ namespace SanGuo.Core.Tests
             UrHeroes = { "ur1", "ur2", "ur3" },
             SrHeroes = { "sr1", "sr2" },
             RHeroes = { "r1", "r2", "r3" },
-            UpUr = up,
+            UpUrs = up == "" ? new System.Collections.Generic.List<string>() : new System.Collections.Generic.List<string> { up },
             HardPityUr = hardPity,
             FirstTenGuaranteesUr = newbie,
         };
@@ -255,8 +255,8 @@ namespace SanGuo.Core.Tests
             var b = Gacha.Pull(p, pool, 1, new Rng(2));
             Assert.True(a.Results[0].IsNew);
             Assert.False(b.Results[0].IsNew);
-            Assert.Equal(Gacha.DuplicateShards(Rarity.R), b.Results[0].Shards);
-            Assert.Equal(Gacha.DuplicateShards(Rarity.R), p.Materials["shard:r1"]);
+            Assert.Equal(1, b.Results[0].Shards);   // 每份重複武將 = 1 份突破材料
+            Assert.Equal(1, p.Materials["shard:r1"]);
         }
 
         [Fact]
@@ -270,6 +270,57 @@ namespace SanGuo.Core.Tests
             Gacha.Pull(p, b, 1, new Rng(1));
             Assert.Equal(10, p.PoolStates["a"].TotalPulls);
             Assert.Equal(1, p.PoolStates["b"].TotalPulls);
+        }
+
+        [Fact]
+        public void Pull_DuplicatesBeyondFiveBecomeSouls()
+        {
+            var p = PlayerProfile.CreateNew(0);
+            var pool = new GachaPool { Id = "one", UrRateBp = 0, SrRateBp = 0, RHeroes = { "r_shield" }, SrHeroes = { "zhoucang" } };
+            p.Yuanbao = 100_000;
+            for (int i = 0; i < 8; i++) Gacha.Pull(p, pool, 1, new Rng((ulong)i));   // 1 本體 + 5 重複份 + 2 溢出
+            Assert.Equal(5, p.GetMaterial("shard:r_shield"));
+            Assert.Equal(2 * 5, p.GetMaterial(HeroGrowth.Soul));                       // R 溢出每份 5 將魂
+        }
+
+        [Fact]
+        public void UpPool_WithTwoUpHeroes_PicksBothAndHonorsGuarantee()
+        {
+            var pool = DemoMeta.Pools().First(x => x.Id == DemoMeta.UpPoolId);
+            Assert.Equal(2, pool.UpUrs.Count);
+            Assert.Equal(8, pool.UrHeroes.Count);
+            var state = new PoolState();
+            var rng = new Rng(9);
+            var got = new System.Collections.Generic.HashSet<string>();
+            bool previousMissedUp = false;
+            for (int i = 0; i < 20_000; i++)
+            {
+                var r = Gacha.Roll(pool, state, 1, rng)[0];
+                if (r.Rarity != Rarity.UR) continue;
+                if (previousMissedUp) Assert.True(r.IsUp);           // 大小保底：上一隻沒中，下一隻必為 UP
+                previousMissedUp = !r.IsUp;
+                if (r.IsUp) got.Add(r.HeroId);
+            }
+            Assert.Equal(new[] { "ur_guanyu", "ur_zhangfei" }, got.OrderBy(x => x).ToArray());
+        }
+
+        [Fact]
+        public void DemoPools_HaveGddCompositions()
+        {
+            var pools = DemoMeta.Pools();
+            Assert.Equal(3, pools.Count);
+            foreach (var pool in pools)
+            {
+                Assert.Equal(12, pool.SrHeroes.Count);
+                Assert.Equal(6, pool.RHeroes.Count);
+                Assert.Equal(300, pool.UrRateBp);
+                Assert.Equal(1700, pool.SrRateBp);
+                Assert.Equal(200, pool.SingleCost);
+                Assert.Equal(2000, pool.TenCost);
+                Assert.Equal(80, pool.HardPityUr);
+                Assert.DoesNotContain(HeroRoster.StoryHeroIds, id => pool.SrHeroes.Contains(id)); // 劉關張不可抽取
+            }
+            Assert.True(pools.First(x => x.Id == DemoMeta.NewbiePoolId).FirstTenGuaranteesUr);
         }
     }
 }

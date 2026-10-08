@@ -4,74 +4,62 @@ using Xunit;
 
 namespace SanGuo.Core.Tests
 {
+    /// <summary>成長結果帶進實際戰鬥：屬性、套牌升級、裝備都要反映在戰鬥單位上，且不重複套用等級。</summary>
     public class HeroGrowthBattleTests
     {
-        [Fact]
-        public void BuildDef_ScalesStatsByLevelAndStars_WithoutMutatingOriginal()
+        private static Battle Fight(HeroDef def, HeroState state)
         {
-            var zf = HeroRoster.ZhangFei();
-            int baseHp = zf.Base.Hp;
-            var state = new HeroState { HeroId = "zhangfei", Level = 41, Stars = 1 };
-            var table = DemoBreakthroughs.Create();
-
-            var built = HeroGrowth.BuildDef(zf, state, table);
-
-            // 等級 41：每級 +1.5%（×1.6）；1★：血量再 +10%（相乘於等級倍率）
-            Assert.Equal((int)System.Math.Round(baseHp * 1.6 * 1.10), built.Base.Hp);
-            Assert.Equal(baseHp, zf.Base.Hp);
-        }
-
-        [Fact]
-        public void BuildDef_AppliesBreakthroughCardUpgrade_PerCard()
-        {
-            var zf = HeroRoster.ZhangFei();
-            var table = DemoBreakthroughs.Create();
-
-            var one = HeroGrowth.BuildDef(zf, new HeroState { HeroId = "zhangfei", Stars = 1 }, table);
-            Assert.Contains(one.Deck, c => c.Id == "zf_taunt");
-            Assert.Contains(one.Deck, c => c.Id == "zf_taunt2");
-
-            // 二突只升級其中一張嘲諷，另一張不變。
-            var two = HeroGrowth.BuildDef(zf, new HeroState { HeroId = "zhangfei", Stars = 2 }, table);
-            Assert.DoesNotContain(two.Deck, c => c.Id == "zf_taunt");
-            Assert.Contains(two.Deck, c => c.Id == "zf_taunt_plus");
-            Assert.Contains(two.Deck, c => c.Id == "zf_taunt2");
-
-            var five = HeroGrowth.BuildDef(zf, new HeroState { HeroId = "zhangfei", Stars = 5 }, table);
-            Assert.DoesNotContain(five.Deck, c => c.Id == "zf_taunt2");
-            Assert.Contains(five.Deck, c => c.Id == "zf_taunt2_plus");
-        }
-
-        [Fact]
-        public void BuildDef_CardEnhancement_ScalesDamageOnlyForEnhancedCard()
-        {
-            var gy = HeroRoster.GuanYu();
-            var state = new HeroState { HeroId = "guanyu" };
-            state.CardLevels["gy_attack"] = 2;
-
-            var built = HeroGrowth.BuildDef(gy, state);
-
-            var attack = built.Deck.First(c => c.Id == "gy_attack");
-            Assert.Equal(1.0 * HeroGrowth.CardEffectMultiplier(2), attack.Effects[0].Multiplier, 6);
-            var orig = gy.Deck.First(c => c.Id == "gy_attack");
-            Assert.Equal(1.0, orig.Effects[0].Multiplier, 6);
-            var heavy = built.Deck.First(c => c.Id == "gy_heavy");
-            Assert.Equal(gy.Deck.First(c => c.Id == "gy_heavy").Effects[0].Multiplier, heavy.Effects[0].Multiplier, 6);
-        }
-
-        [Fact]
-        public void BuildSlot_InBattle_UnitHasScaledHp_AndNoDoubleLevelScaling()
-        {
-            var zf = HeroRoster.ZhangFei();
-            var state = new HeroState { HeroId = "zhangfei", Level = 10 };
             var setup = new BattleSetup { NoRandomness = true };
-            setup.Heroes.Add(HeroGrowth.BuildSlot(zf, state, new Position(2, 3)));
+            setup.Heroes.Add(HeroGrowth.BuildSlot(def, state, new Position(2, 3)));
             setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), new Position(2, 1)));
+            return new Battle(setup);
+        }
 
-            var battle = new Battle(setup);
+        [Fact]
+        public void BuildSlot_InBattle_UnitHasScaledStats_AndNoDoubleLevelScaling()
+        {
+            var zf = HeroRoster.ZhangFei();
+            var state = new HeroState { HeroId = "zhangfei", Level = 10, Stars = 1 };
+            state.Equipment["Armor"] = 3;
+            var battle = Fight(zf, state);
 
             var unit = battle.Units.First(u => u.Side == Side.Player);
-            Assert.Equal((int)System.Math.Round(zf.Base.Hp * HeroGrowth.StatMultiplier(10)), unit.MaxHp);
+            // 等級 ×1.135、一突（坦克主屬性生命）×1.1、防具三階 ×1.3
+            Assert.Equal((int)System.Math.Round(zf.Base.Hp * 1.135 * 1.1 * 1.3), unit.MaxHp);
+            Assert.Equal((int)System.Math.Round(zf.Base.Def * 1.135 * 1.3), unit.Stats.Def);
+        }
+
+        [Fact]
+        public void UpgradedTaunt_LastsOneTurnLonger_InBattle()
+        {
+            var zf = HeroRoster.ZhangFei();
+            var battle = Fight(zf, new HeroState { HeroId = "zhangfei", Stars = 2 });
+            var plus = battle.Hand.Concat(battle.DrawPile).First(c => c.Def.Id == "zf_taunt_plus");
+            battle.Hand.Add(plus);
+            battle.DrawPile.Remove(plus);
+            Assert.Equal(PlayResult.Ok, battle.PlayCard(plus));
+            var enemy = battle.Units.First(u => u.Side == Side.Enemy);
+            Assert.Equal(3, enemy.Statuses[StatusType.Taunt].Turns); // SR 嘲諷基礎 2 回合，升級後 +1
+        }
+
+        [Fact]
+        public void GrownTeam_BeatsTheSameFightMoreOftenThanAFreshOne()
+        {
+            int Wins(int level, int stars)
+            {
+                int wins = 0;
+                for (ulong seed = 1; seed <= 30; seed++)
+                {
+                    var setup = DemoMeta.DungeonSetup("res_2", seed);
+                    foreach (var (id, pos) in new[] { ("r_shield", new Position(1, 3)), ("r_sword", new Position(2, 3)), ("r_archer", new Position(2, 4)), ("r_healer", new Position(3, 4)) })
+                        setup.Heroes.Add(HeroGrowth.BuildSlot(HeroRoster.Find(id)!, new HeroState { HeroId = id, Level = level, Stars = stars }, pos));
+                    var battle = new Battle(setup);
+                    AutoPlayer.RunToEnd(battle, 60);
+                    if (battle.Result == BattleResult.Won) wins++;
+                }
+                return wins;
+            }
+            Assert.True(Wins(30, 5) > Wins(1, 0));
         }
     }
 }

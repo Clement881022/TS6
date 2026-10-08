@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SanGuo.Core.Meta
 {
@@ -8,121 +9,120 @@ namespace SanGuo.Core.Meta
     {
         public string HeroId = "";
         public int Level = 1;
-        /// <summary>突破星級 0–5（= 額外抽到的重複武將數）。</summary>
+        /// <summary>已突破次數 0–5。</summary>
         public int Stars;
-        /// <summary>各卡牌的強化等級（未強化的卡不在表中）。</summary>
-        public Dictionary<string, int> CardLevels = new Dictionary<string, int>();
+        /// <summary>身上的裝備：部位名稱（Weapon / Armor / Accessory）→ 品階。</summary>
+        public Dictionary<string, int> Equipment = new Dictionary<string, int>();
     }
 
     public enum GrowthResult
     {
         Ok,
         UnknownHero,
-        UnknownCard,
         AtCap,
         NeedsPlayerLevel,
         NotEnoughGold,
         NotEnoughMaterial,
     }
 
+    /// <summary>重複武將的處理結果：存為突破用的重複份，或（已滿突時）轉為將魂。</summary>
+    public struct DuplicateOutcome
+    {
+        public int Shards;
+        public int Souls;
+    }
+
     /// <summary>
-    /// 武將成長規則：等級、突破、卡牌強化（見 docs/progression.md）。數值皆為建議值。
-    /// 突破 = 重複抽到同一名武將（1–5 隻），每一星給屬性加成或特殊效果（見 <see cref="BreakthroughTable"/>，兩者混搭）。
+    /// 武將成長規則（GDD 03 §4、05 §3–4）：等級（武將經驗 + 金幣）、突破（重複武將 + 金幣）、裝備。
+    /// 成長曲線的數值為待決事項的暫定值。
     /// </summary>
     public static class HeroGrowth
     {
-        public const string ExpBook = "exp_book";
-        public const string CardMaterial = "card_mat";
-        public const int MaxStars = 5;
-        public const int MaxCardLevel = 5;
-
-        /// <summary>一隻重複武將折算的碎片（每次突破消耗一隻的份量）。</summary>
-        public const int CopyShards = 20;
+        /// <summary>武將經驗（升級專用）與將魂（滿突後溢出的重複武將轉成）的素材鍵。</summary>
+        public const string HeroExp = "hero_exp";
+        public const string Soul = "soul";
+        public const int MaxStars = Breakthroughs.MaxStars;
 
         public static string ShardKey(string heroId) => "shard:" + heroId;
 
-        public static int LevelUpGold(int level) => 40 * level;
-        public static int LevelUpBooks(int level) => level / 2 + 1;
+        public static Rarity RarityOf(string heroId) => HeroRoster.Find(heroId)?.Rarity ?? Rarity.R;
 
-        public static int CardUpgradeMaterial(int cardLevel) => 3 * (cardLevel + 1);
-        public static int CardUpgradeGold(int cardLevel) => 200 * (cardLevel + 1);
+        // ---- 曲線（暫定值）----
 
-        /// <summary>屬性倍率（生命、攻擊、謀略、防禦）：每級 +1.5%（線性，GDD 03 §4.1）。</summary>
+        /// <summary>升到下一級所需的武將經驗與金幣（level = 目前等級）。</summary>
+        public static int LevelUpExp(int level) => 50 * level;
+        public static int LevelUpGold(int level) => 30 * level;
+
+        /// <summary>第 nextStar 次突破的金幣：稀有度基數 × 突破次數。</summary>
+        public static int BreakthroughGold(Rarity rarity, int nextStar) =>
+            (rarity == Rarity.UR ? 4000 : rarity == Rarity.SR ? 1500 : 500) * nextStar;
+
+        /// <summary>滿突後再取得的重複武將轉成的將魂：R 5、SR 20、UR 60。</summary>
+        public static int SoulsPerDuplicate(Rarity rarity) => rarity == Rarity.UR ? 60 : rarity == Rarity.SR ? 20 : 5;
+
+        /// <summary>屬性倍率（生命、攻擊、謀略、防禦）：每級 +1.5%（線性，以 1 級為基準）。</summary>
         public static double StatMultiplier(int level) => Battle.HeroLevelFactor(level);
 
-        /// <summary>卡牌效果倍率加成：每強化 1 級 +15%。</summary>
-        public static double CardEffectMultiplier(int cardLevel) => 1 + 0.15 * cardLevel;
+        // ---- 重複武將 ----
+
+        public static int Shards(PlayerProfile p, string heroId) => p.GetMaterial(ShardKey(heroId));
 
         /// <summary>
-        /// 依等級與突破的屬性加成縮放基礎屬性（血量 / 攻擊 / 防禦）：等級倍率 × (1 + 突破加成%)。
-        /// 回傳新物件，不改原資料；沒給突破表時只算等級。
+        /// 取得一份重複武將（抽到、劇情贈送）：「已突次數 + 持有重複份」未達 5 時存為重複份，否則轉為將魂。
+        /// 武將本體須已在 <see cref="PlayerProfile.Heroes"/> 中。
         /// </summary>
-        public static Stats ScaleStats(Stats baseStats, HeroState hero, BreakthroughTable? table = null)
+        public static DuplicateOutcome AddDuplicate(PlayerProfile p, string heroId)
         {
-            var s = baseStats.Clone();
-            double m = StatMultiplier(hero.Level);
-            var (hp, atk, def) = table == null ? (0, 0, 0) : table.StatBonusPct(hero.HeroId, hero.Stars);
-            s.Hp = (int)Math.Round(s.Hp * m * (1 + hp / 100.0));
-            s.Atk = (int)Math.Round(s.Atk * m * (1 + atk / 100.0));
-            s.Def = (int)Math.Round(s.Def * m * (1 + def / 100.0));
-            s.Int = (int)Math.Round(s.Int * m * (1 + atk / 100.0));
+            p.Heroes.TryGetValue(heroId, out var hero);
+            int stars = hero?.Stars ?? 0;
+            if (stars + Shards(p, heroId) < MaxStars)
+            {
+                p.AddMaterial(ShardKey(heroId), 1);
+                return new DuplicateOutcome { Shards = 1 };
+            }
+            int souls = SoulsPerDuplicate(RarityOf(heroId));
+            p.AddMaterial(Soul, souls);
+            return new DuplicateOutcome { Souls = souls };
+        }
+
+        // ---- 入戰數值 ----
+
+        /// <summary>
+        /// 依等級、突破與裝備縮放基礎屬性：生命、攻擊、謀略、防禦 = 基礎 × 等級倍率 × 突破倍率 × 裝備倍率；
+        /// 爆擊率與閃避為點數相加。回傳新物件，不改原資料。
+        /// </summary>
+        public static Stats ScaleStats(HeroDef def, HeroState hero)
+        {
+            var s = def.Base.Clone();
+            double level = StatMultiplier(hero.Level);
+            var b = Breakthroughs.Mods(def, hero.Stars);
+            var e = Equipment.Mods(def.Role, hero.Equipment);
+            s.Hp = (int)Math.Round(s.Hp * level * b.Hp * e.Hp);
+            s.Atk = (int)Math.Round(s.Atk * level * b.Atk * e.Atk);
+            s.Int = (int)Math.Round(s.Int * level * b.Int * e.Int);
+            s.Def = (int)Math.Round(s.Def * level * b.Def * e.Def);
+            s.Crit += b.Crit + e.Crit;
+            s.Dodge += b.Dodge + e.Dodge;
             return s;
         }
 
-        /// <summary>
-        /// 把玩家的成長狀態套到武將定義上，回傳可直接入戰的新 <see cref="HeroDef"/>（不改原資料）：
-        /// 屬性依等級與突破縮放、套牌依突破換成強化版或加牌、卡牌依強化等級放大傷害 / 治療 / 護甲倍率。
-        /// 被動尚未接入戰鬥核心，這裡不處理。
-        /// </summary>
-        public static HeroDef BuildDef(HeroDef def, HeroState hero, BreakthroughTable? table = null)
+        /// <summary>把玩家的成長狀態套到武將定義上，回傳可直接入戰的新 <see cref="HeroDef"/>（不改原資料）：屬性縮放完成、套牌依突破換成升級版。</summary>
+        public static HeroDef BuildDef(HeroDef def, HeroState hero) => new HeroDef
         {
-            var deckSource = table == null ? def.Deck : table.ResolveDeck(def, hero.Stars);
-            var deck = new List<CardDef>(deckSource.Count);
-            foreach (var card in deckSource)
-            {
-                hero.CardLevels.TryGetValue(card.Id, out int level);
-                deck.Add(level > 0 ? EnhanceCardDef(card, level) : card);
-            }
-            return new HeroDef
-            {
-                Id = def.Id,
-                Name = def.Name,
-                Role = def.Role,
-                Rarity = def.Rarity,
-                AttackType = def.AttackType,
-                Base = ScaleStats(def.Base, hero, table),
-                Deck = deck,
-            };
-        }
+            Id = def.Id,
+            Name = def.Name,
+            Role = def.Role,
+            Rarity = def.Rarity,
+            AttackType = def.AttackType,
+            Base = ScaleStats(def, hero),
+            Deck = Breakthroughs.ResolveDeck(def, hero.Stars),
+        };
 
-        /// <summary>
-        /// 產生入戰用的武將格。屬性已在 <see cref="BuildDef"/> 縮放完，所以戰鬥內的等級固定為 1，避免重複成長。
-        /// </summary>
-        public static HeroSlot BuildSlot(HeroDef def, HeroState hero, Position pos, BreakthroughTable? table = null) =>
-            new HeroSlot(BuildDef(def, hero, table), pos);
+        /// <summary>產生入戰用的武將格。屬性已在 <see cref="BuildDef"/> 縮放完，所以戰鬥內的等級固定為 1，避免重複成長。</summary>
+        public static HeroSlot BuildSlot(HeroDef def, HeroState hero, Position pos) =>
+            new HeroSlot(BuildDef(def, hero), pos);
 
-        private static CardDef EnhanceCardDef(CardDef card, int cardLevel)
-        {
-            double m = CardEffectMultiplier(cardLevel);
-            var effects = new List<EffectDef>(card.Effects.Count);
-            foreach (var e in card.Effects)
-            {
-                var copy = (EffectDef)e.Clone();
-                if (e.Type == EffectType.Damage || e.Type == EffectType.Heal || e.Type == EffectType.Shield)
-                    copy.Multiplier = e.Multiplier * m;
-                effects.Add(copy);
-            }
-            return new CardDef
-            {
-                Id = card.Id,
-                Name = card.Name,
-                Basic = card.Basic,
-                Cost = card.Cost,
-                Target = card.Target,
-                Shape = card.Shape,
-                Effects = effects,
-            };
-        }
+        // ---- 操作 ----
 
         /// <summary>武將等級不能超過帳號等級（帳號等級上限即為武將等級上限）。</summary>
         public static GrowthResult LevelUp(PlayerProfile p, string heroId)
@@ -131,44 +131,26 @@ namespace SanGuo.Core.Meta
             if (hero.Level >= PlayerLevelCurve.MaxLevel) return GrowthResult.AtCap;
             if (hero.Level >= p.Level) return GrowthResult.NeedsPlayerLevel;
             int gold = LevelUpGold(hero.Level);
-            int books = LevelUpBooks(hero.Level);
+            int exp = LevelUpExp(hero.Level);
             if (p.Gold < gold) return GrowthResult.NotEnoughGold;
-            if (p.GetMaterial(ExpBook) < books) return GrowthResult.NotEnoughMaterial;
+            if (p.GetMaterial(HeroExp) < exp) return GrowthResult.NotEnoughMaterial;
             p.Gold -= gold;
-            p.AddMaterial(ExpBook, -books);
+            p.AddMaterial(HeroExp, -exp);
             hero.Level++;
             return GrowthResult.Ok;
         }
 
-        /// <summary>突破：消耗一隻重複武將的碎片（<see cref="CopyShards"/>），解鎖下一星的效果。</summary>
+        /// <summary>突破：消耗 1 份重複武將與金幣，解鎖下一階的效果。</summary>
         public static GrowthResult Breakthrough(PlayerProfile p, string heroId)
         {
             if (!p.Heroes.TryGetValue(heroId, out var hero)) return GrowthResult.UnknownHero;
             if (hero.Stars >= MaxStars) return GrowthResult.AtCap;
-            if (p.GetMaterial(ShardKey(heroId)) < CopyShards) return GrowthResult.NotEnoughMaterial;
-            p.AddMaterial(ShardKey(heroId), -CopyShards);
-            hero.Stars++;
-            return GrowthResult.Ok;
-        }
-
-        /// <summary>強化卡牌：消耗專用的卡牌強化素材（非金幣）與金幣。</summary>
-        public static GrowthResult EnhanceCard(PlayerProfile p, string heroId, string cardId, IEnumerable<string> heroCardIds)
-        {
-            if (!p.Heroes.TryGetValue(heroId, out var hero)) return GrowthResult.UnknownHero;
-            bool known = false;
-            foreach (var id in heroCardIds)
-                if (id == cardId) { known = true; break; }
-            if (!known) return GrowthResult.UnknownCard;
-
-            hero.CardLevels.TryGetValue(cardId, out int level);
-            if (level >= MaxCardLevel) return GrowthResult.AtCap;
-            int mat = CardUpgradeMaterial(level);
-            int gold = CardUpgradeGold(level);
+            if (Shards(p, heroId) < 1) return GrowthResult.NotEnoughMaterial;
+            int gold = BreakthroughGold(RarityOf(heroId), hero.Stars + 1);
             if (p.Gold < gold) return GrowthResult.NotEnoughGold;
-            if (p.GetMaterial(CardMaterial) < mat) return GrowthResult.NotEnoughMaterial;
             p.Gold -= gold;
-            p.AddMaterial(CardMaterial, -mat);
-            hero.CardLevels[cardId] = level + 1;
+            p.AddMaterial(ShardKey(heroId), -1);
+            hero.Stars++;
             return GrowthResult.Ok;
         }
     }

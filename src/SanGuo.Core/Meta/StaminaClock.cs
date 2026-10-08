@@ -41,6 +41,13 @@ namespace SanGuo.Core.Meta
             return true;
         }
 
+        /// <summary>調整上限（升級時）：先結算已回復的體力，再套用新上限；目前體力不變。</summary>
+        public void SetCap(int cap, long now)
+        {
+            Sync(now);
+            Cap = cap;
+        }
+
         /// <summary>發放體力（任務 / 免費補給 / 購買），可超過上限。</summary>
         public void Add(int amount, long now)
         {

@@ -47,7 +47,7 @@ namespace SanGuo.Core.Meta
     /// <summary>
     /// 任務與七日目標（見 docs/days-1-7.md 4）。
     /// 遊戲內的動作成功後呼叫 <see cref="Report"/>；有帶時間的動作（關卡結算、掃蕩、資源副本）已自動回報，
-    /// 其餘（升級、強化、突破、抽卡）由伺服器的 API 層在成功後回報。
+    /// 其餘（升級、穿戴裝備、突破、抽卡）由伺服器的 API 層在成功後回報。
     /// </summary>
     public static class Quests
     {
@@ -59,7 +59,7 @@ namespace SanGuo.Core.Meta
             public const string Sweep = "sweep";
             public const string ResourceRun = "resource_run";
             public const string HeroLevelUp = "hero_levelup";
-            public const string CardEnhance = "card_enhance";
+            public const string Equip = "equip";
             public const string Breakthrough = "breakthrough";
             public const string GachaPull = "gacha_pull";
             public const string Login = "login";
@@ -163,7 +163,7 @@ namespace SanGuo.Core.Meta
                 Seven("s1_gacha", 1, "抽卡 10 次", Quests.Events.GachaPull, 10, 20),
                 Seven("s2_res", 2, "挑戰資源副本 3 次", Quests.Events.ResourceRun, 3, 20),
                 Seven("s2_stage", 2, "通關關卡 8 次", Quests.Events.StageClear, 8, 20),
-                Seven("s3_card", 3, "強化卡牌 5 次", Quests.Events.CardEnhance, 5, 20),
+                Seven("s3_equip", 3, "穿戴裝備 3 次", Quests.Events.Equip, 3, 20),
                 Seven("s3_stage", 3, "通關關卡 10 次", Quests.Events.StageClear, 10, 20),
                 Seven("s4_sweep", 4, "使用掃蕩 3 次", Quests.Events.Sweep, 3, 20),
                 Seven("s5_stage", 5, "通關關卡 10 次", Quests.Events.StageClear, 10, 20),
@@ -171,7 +171,7 @@ namespace SanGuo.Core.Meta
                 Seven("s7_login", 7, "登入遊戲", Quests.Events.Login, 1, 20),
             });
             book.Milestones.Add(new QuestMilestone { Points = 60, Reward = new Reward(yuanbao: 500) });
-            book.Milestones.Add(new QuestMilestone { Points = 120, Reward = new Reward(yuanbao: 1000).With(HeroGrowth.CardMaterial, 20) });
+            book.Milestones.Add(new QuestMilestone { Points = 120, Reward = new Reward(yuanbao: 1000).With(HeroGrowth.HeroExp, 5000) });
             book.Milestones.Add(new QuestMilestone { Points = 200, Reward = new Reward().WithHero("zhangfei") });
             return book;
         }

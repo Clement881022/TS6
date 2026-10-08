@@ -8,6 +8,7 @@ namespace SanGuo.Core.Meta
     {
         public const string StandardPoolId = "standard";
         public const string NewbiePoolId = "newbie";
+        public const string UpPoolId = "up_first";
 
         /// <summary>常駐池與新手池：UR 6 隻（每職業 1 隻）、可抽取 SR 12 隻、R 6 隻。</summary>
         public static List<GachaPool> Pools()
@@ -24,6 +25,13 @@ namespace SanGuo.Core.Meta
                     Id = NewbiePoolId, Name = "新手招募", FirstTenGuaranteesUr = true,
                     UrHeroes = HeroRoster.StandardUrIds.ToList(), SrHeroes = HeroRoster.DrawableSrIds(), RHeroes = RIds(),
                 },
+                // 首個 UP 池：常駐 UR 6 隻加 UP 的張飛、關羽；出 UR 時 50% 為 UP 武將，未中則下一隻 UR 必為 UP。
+                new GachaPool
+                {
+                    Id = UpPoolId, Name = "燕人武聖", UpUrs = HeroRoster.FirstUpUrIds.ToList(),
+                    UrHeroes = HeroRoster.StandardUrIds.Concat(HeroRoster.FirstUpUrIds).ToList(),
+                    SrHeroes = HeroRoster.DrawableSrIds(), RHeroes = RIds(),
+                },
             };
         }
 
@@ -32,16 +40,19 @@ namespace SanGuo.Core.Meta
 
         public static string StageId(int chapter, int level) => $"{chapter}-{level}";
 
-        /// <summary>第零章關卡獎勵（關卡 id 沿用 "1-N"）：教學關（1–4）2 點體力、其餘 8 點；第 1–3 關首通依序送劉備、張飛、關羽。</summary>
+        /// <summary>第零章各關的星級回合數（第三星的限定回合；暫定值，依自動戰鬥模擬抓寬）。</summary>
+        private static readonly int[] TurnPar = { 8, 10, 8, 12, 11, 8, 10, 12, 14, 20 };
+
+        /// <summary>第零章關卡獎勵（關卡 id 沿用 "1-N"）：每關體力 10；第 1–3 關首通依序送劉備、張飛、關羽。</summary>
         public static StageReward Chapter1Stage(int level) => new StageReward
         {
             StageId = StageId(1, level),
             Chapter = 1,
-            StaminaCost = level <= 4 ? 2 : 8,
+            StaminaCost = 10,
             Exp = 20 + 10 * level,
             Gold = 200 + 100 * level,
             FirstClearYuanbao = level == DemoContent.ChapterLevelCount ? 300 : 60,
-            StarTurnPar = 12,
+            StarTurnPar = TurnPar[level - 1],
             FirstClearHero = level == 1 ? "liubei" : level == 2 ? "zhangfei" : level == 3 ? "guanyu" : "",
         };
 
@@ -81,35 +92,40 @@ namespace SanGuo.Core.Meta
             return setup;
         }
 
-        /// <summary>
-        /// 資源副本的戰鬥設定：每個副本有自己的敵人配置，我方由玩家編隊決定（套用編隊前是空的），開放自動戰鬥。
-        /// </summary>
-        /// <summary>資源副本的敵人等級（暫定，之後依副本階數與戰力門檻調整）。</summary>
-        public const int DungeonEnemyLevel = 10;
+        /// <summary>各階素材副本的敵人等級（暫定，約對應各章末的玩家等級；之後依戰力門檻校準）。</summary>
+        public static readonly int[] DungeonEnemyLevels = { 12, 19, 25, 32, 40 };
 
+        /// <summary>
+        /// 資源副本的戰鬥設定：每階有自己的敵人配置（暫以盜匪單位組成），我方由玩家編隊決定（套用編隊前是空的），開放自動戰鬥。
+        /// </summary>
         public static BattleSetup DungeonSetup(string dungeonId, ulong seed)
         {
+            var d = FindDungeon(dungeonId);
+            int tier = d?.Tier ?? 1;
+            int lv = DungeonEnemyLevels[tier - 1];
             var setup = new BattleSetup { Seed = seed, AutoAllowed = true };
-            switch (dungeonId)
+            void Add(EnemyDef def, int lane, int row) => setup.Enemies.Add(new EnemySlot(def, DemoContent.EnemyPos(lane, row), lv));
+            switch (tier)
             {
-                case "res_exp": // 校場操練：鐵甲悍匪擋路，後排巫師放法術
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditIronBrute(), DemoContent.EnemyPos(2, 0), DungeonEnemyLevel));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(1, 0), DungeonEnemyLevel));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(3, 0), DungeonEnemyLevel));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditShaman(), DemoContent.EnemyPos(2, 1), DungeonEnemyLevel));
+                case 1: // 糧倉護衛：山賊衝陣，兩名弓手在後排放箭
+                    Add(DemoContent.BanditGrunt(), 1, 0); Add(DemoContent.BanditGrunt(), 2, 0); Add(DemoContent.BanditGrunt(), 3, 0);
+                    Add(DemoContent.BanditArcher(), 1, 1); Add(DemoContent.BanditArcher(), 3, 1);
                     break;
-                case "res_card": // 兵器鋪：二當家與副寨主蓄力，要靠嘲諷或集火打斷
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditSecondChief(), DemoContent.EnemyPos(1, 0), DungeonEnemyLevel));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditDeputy(), DemoContent.EnemyPos(3, 0), DungeonEnemyLevel));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(2, 0), DungeonEnemyLevel));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(0, 0), DungeonEnemyLevel));
+                case 2: // 校場操練：披甲悍匪擋路，後排巫師放法術
+                    Add(DemoContent.BanditIronBrute(), 2, 0); Add(DemoContent.BanditGrunt(), 1, 0); Add(DemoContent.BanditGrunt(), 3, 0);
+                    Add(DemoContent.BanditShaman(), 2, 1);
                     break;
-                default: // res_gold 糧倉護衛：山賊衝陣，兩名弓手在後排放箭
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(1, 0), DungeonEnemyLevel));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(2, 0), DungeonEnemyLevel));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(3, 0), DungeonEnemyLevel));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditArcher(), DemoContent.EnemyPos(1, 1), DungeonEnemyLevel));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditArcher(), DemoContent.EnemyPos(3, 1), DungeonEnemyLevel));
+                case 3: // 兵器鋪：二當家與副寨主蓄力，要靠嘲諷或集火打斷
+                    Add(DemoContent.BanditSecondChief(), 1, 0); Add(DemoContent.BanditDeputy(), 3, 0);
+                    Add(DemoContent.BanditGrunt(), 2, 0); Add(DemoContent.BanditGrunt(), 0, 0);
+                    break;
+                case 4: // 軍械庫：雙悍匪守門，獵戶山賊專打後排
+                    Add(DemoContent.BanditIronBrute(), 1, 0); Add(DemoContent.BanditIronBrute(), 3, 0);
+                    Add(DemoContent.BanditMarksman(), 0, 1); Add(DemoContent.BanditMarksman(), 4, 1); Add(DemoContent.BanditShaman(), 2, 1);
+                    break;
+                default: // 中軍帳：山大王坐鎮，二當家與巫師護衛
+                    Add(DemoContent.BanditKing(), 2, 0); Add(DemoContent.BanditSecondChief(), 1, 0);
+                    Add(DemoContent.BanditShaman(), 0, 1); Add(DemoContent.BanditShaman(), 4, 1);
                     break;
             }
             return setup;

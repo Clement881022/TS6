@@ -5,150 +5,147 @@ namespace SanGuo.Core.Meta
 {
     public enum BreakthroughKind
     {
-        /// <summary>屬性加成（百分比，加在等級成長之上）。</summary>
+        /// <summary>屬性提升（加在等級成長之上，與等級、裝備相乘）。</summary>
         StatBonus,
-        /// <summary>把套牌中的某張卡替換成強化版（新效果，不是數值加成）。</summary>
+        /// <summary>把套牌中的某張特殊卡升級為強化版（逐張生效，同名其餘複本不變）。</summary>
         UpgradeCard,
-        /// <summary>套牌新增一張專屬牌。</summary>
-        AddCard,
-        /// <summary>解鎖被動（被動由戰鬥核心依 id 實作，尚未接入）。</summary>
-        Passive,
     }
 
-    /// <summary>突破某一星帶來的獨特效果。</summary>
+    public enum StatKind { Hp, Atk, Int, Def, Crit }
+
+    /// <summary>突破某一階段帶來的效果。</summary>
     public sealed class BreakthroughEffect
     {
-        /// <summary>第幾星解鎖（1–5）。</summary>
+        /// <summary>第幾突解鎖（1–5）。</summary>
         public int Stars;
         public BreakthroughKind Kind;
+        public StatKind Stat;
+        /// <summary>StatBonus：生命 / 攻擊 / 謀略 / 防禦為百分比（10 = +10%）；爆擊率為百分點（10 = +10 點）。</summary>
+        public int Value;
         /// <summary>UpgradeCard：被替換的卡牌 id。</summary>
         public string TargetCardId = "";
-        /// <summary>UpgradeCard / AddCard：新卡牌。</summary>
         public CardDef? NewCard;
-        /// <summary>Passive：被動 id。</summary>
-        public string PassiveId = "";
-        /// <summary>StatBonus：血量 / 攻擊 / 防禦加成百分比（10 = +10%）。</summary>
-        public int HpPct;
-        public int AtkPct;
-        public int DefPct;
         /// <summary>顯示給玩家的說明。</summary>
         public string Description = "";
     }
 
-    /// <summary>
-    /// 各武將的突破效果表（資料驅動，之後由 JSON 載入）。
-    /// 業界做法：屬性與特殊效果混搭。每名武將只需要設計少數幾星的特殊效果（預設 2★、5★），
-    /// 其餘星級自動套用屬性模板（<see cref="DefaultStatEffect"/>），省下逐星設計的工。
-    /// </summary>
-    public sealed class BreakthroughTable
+    /// <summary>突破後累計的屬性修正：倍率（1.1 = +10%）與爆擊 / 閃避點數。</summary>
+    public struct StatMods
     {
-        private readonly Dictionary<string, List<BreakthroughEffect>> _byHero =
-            new Dictionary<string, List<BreakthroughEffect>>();
+        public double Hp, Atk, Int, Def;
+        public int Crit, Dodge;
 
-        /// <summary>屬性模板：1★ 血量 +10%、3★ 攻擊 +10%、4★ 全屬性 +15%；2★ / 5★ 預設留給特殊效果。</summary>
-        public static BreakthroughEffect? DefaultStatEffect(int stars) => stars switch
-        {
-            1 => new BreakthroughEffect { Stars = 1, Kind = BreakthroughKind.StatBonus, HpPct = 10, Description = "血量 +10%" },
-            3 => new BreakthroughEffect { Stars = 3, Kind = BreakthroughKind.StatBonus, AtkPct = 10, Description = "攻擊 +10%" },
-            4 => new BreakthroughEffect { Stars = 4, Kind = BreakthroughKind.StatBonus, HpPct = 15, AtkPct = 15, DefPct = 15, Description = "血量 / 攻擊 / 防禦 +15%" },
-            _ => null,
-        };
+        public static StatMods Identity => new StatMods { Hp = 1, Atk = 1, Int = 1, Def = 1 };
+    }
 
-        /// <summary>登錄武將的特殊效果（通常 2★、5★）；沒指定的星級自動補屬性模板，仍空缺的星級（2★ / 5★ 沒有特殊效果）補替代的屬性加成：2★ 血量 / 防禦 +8%、5★ 全屬性 +10%。</summary>
-        public void Register(string heroId, params BreakthroughEffect[] specials)
+    /// <summary>
+    /// 突破模板（GDD 05 §4.2）：一突主屬性提升、二突第 1 張特殊卡升級、三突次屬性提升、四突主屬性提升、五突第 2 張特殊卡升級。
+    /// 滿突合計主屬性 +20%（×1.2）、次屬性 +10%（×1.1）。主 / 次屬性依職業統一（待決事項的暫定值，日後可逐武將覆寫）。
+    /// </summary>
+    public static class Breakthroughs
+    {
+        public const int StatStepPercent = 10;
+        public const int MaxStars = 5;
+
+        public static StatKind PrimaryStat(Role role)
         {
-            var list = specials.ToList();
-            for (int star = 1; star <= HeroGrowth.MaxStars; star++)
+            switch (role)
             {
-                if (list.Any(e => e.Stars == star)) continue;
-                list.Add(DefaultStatEffect(star) ?? FallbackStatEffect(star));
+                case Role.Tank: return StatKind.Hp;
+                case Role.Warrior: return StatKind.Atk;
+                case Role.Ranger: return StatKind.Atk;
+                default: return StatKind.Int;
             }
-            _byHero[heroId] = list.OrderBy(e => e.Stars).ToList();
         }
 
-        /// <summary>尚未設計特殊效果的 2★ / 5★ 所用的替代屬性加成。</summary>
-        private static BreakthroughEffect FallbackStatEffect(int star) => star == 5
-            ? new BreakthroughEffect
+        public static StatKind SecondaryStat(Role role)
+        {
+            switch (role)
             {
-                Stars = 5, Kind = BreakthroughKind.StatBonus, HpPct = 10, AtkPct = 10, DefPct = 10,
-                Description = "血量 / 攻擊 / 防禦 +10%（尚未設計特殊效果）",
+                case Role.Tank: return StatKind.Def;
+                case Role.Ranger: return StatKind.Crit;
+                default: return StatKind.Hp;
             }
-            : new BreakthroughEffect
+        }
+
+        public static string StatName(StatKind stat)
+        {
+            switch (stat)
             {
-                Stars = star, Kind = BreakthroughKind.StatBonus, HpPct = 8, DefPct = 8,
-                Description = "血量 / 防禦 +8%（尚未設計特殊效果）",
+                case StatKind.Hp: return "生命";
+                case StatKind.Atk: return "攻擊";
+                case StatKind.Int: return "謀略";
+                case StatKind.Def: return "防禦";
+                default: return "爆擊率";
+            }
+        }
+
+        /// <summary>武將的 5 階突破效果。</summary>
+        public static List<BreakthroughEffect> For(HeroDef hero)
+        {
+            var specials = hero.Deck.Where(c => !c.Basic).Select(c => c).GroupBy(c => c.Id).Select(g => g.First()).ToList();
+            var primary = PrimaryStat(hero.Role);
+            var secondary = SecondaryStat(hero.Role);
+            var list = new List<BreakthroughEffect>
+            {
+                Stat(1, primary), Upgrade(2, specials, 0, hero.Rarity), Stat(3, secondary), Stat(4, primary), Upgrade(5, specials, 1, hero.Rarity),
             };
+            return list;
+        }
 
-        /// <summary>沒登錄的武將使用純屬性模板。</summary>
-        public void RegisterStatOnly(string heroId) => Register(heroId);
+        private static BreakthroughEffect Stat(int stars, StatKind stat) => new BreakthroughEffect
+        {
+            Stars = stars, Kind = BreakthroughKind.StatBonus, Stat = stat, Value = StatStepPercent,
+            Description = stat == StatKind.Crit ? $"爆擊率 +{StatStepPercent}%" : $"{StatName(stat)} +{StatStepPercent}%",
+        };
 
-        public IReadOnlyList<BreakthroughEffect> Get(string heroId) =>
-            _byHero.TryGetValue(heroId, out var list) ? list : new List<BreakthroughEffect>();
+        private static BreakthroughEffect Upgrade(int stars, List<CardDef> specials, int index, Rarity rarity)
+        {
+            if (index >= specials.Count)
+                return new BreakthroughEffect { Stars = stars, Kind = BreakthroughKind.StatBonus, Stat = StatKind.Hp, Value = StatStepPercent, Description = "生命 +10%" };
+            var target = specials[index];
+            var upgraded = CardLibrary.Upgrade(target);
+            return new BreakthroughEffect
+            {
+                Stars = stars, Kind = BreakthroughKind.UpgradeCard, TargetCardId = target.Id, NewCard = upgraded,
+                Description = $"{target.Name} → {upgraded.Name}",
+            };
+        }
 
         /// <summary>目前星級已解鎖的效果。</summary>
-        public IEnumerable<BreakthroughEffect> Unlocked(string heroId, int stars) =>
-            Get(heroId).Where(e => e.Stars <= stars);
+        public static IEnumerable<BreakthroughEffect> Unlocked(HeroDef hero, int stars) =>
+            For(hero).Where(e => e.Stars <= stars);
 
-        /// <summary>
-        /// 依星級解出實際套牌：強化版取代原卡（同 id 的每一張都換），新增牌附在最後。
-        /// 不修改原 <see cref="HeroDef"/>。
-        /// </summary>
-        public List<CardDef> ResolveDeck(HeroDef hero, int stars)
+        /// <summary>依星級解出實際套牌：升級版取代原卡（只換該 id 的第一張）。不修改原 <see cref="HeroDef"/>。</summary>
+        public static List<CardDef> ResolveDeck(HeroDef hero, int stars)
         {
             var deck = new List<CardDef>(hero.Deck);
-            foreach (var e in Unlocked(hero.Id, stars))
+            foreach (var e in Unlocked(hero, stars))
             {
-                if (e.NewCard == null) continue;
-                if (e.Kind == BreakthroughKind.UpgradeCard)
-                {
-                    for (int i = 0; i < deck.Count; i++)
-                        if (deck[i].Id == e.TargetCardId) deck[i] = e.NewCard;
-                }
-                else if (e.Kind == BreakthroughKind.AddCard)
-                {
-                    deck.Add(e.NewCard);
-                }
+                if (e.Kind != BreakthroughKind.UpgradeCard || e.NewCard == null) continue;
+                int i = deck.FindIndex(c => c.Id == e.TargetCardId);
+                if (i >= 0) deck[i] = e.NewCard;
             }
             return deck;
         }
 
-        /// <summary>目前星級累計的屬性加成百分比（血量 / 攻擊 / 防禦）。</summary>
-        public (int Hp, int Atk, int Def) StatBonusPct(string heroId, int stars)
+        /// <summary>目前星級累計的屬性修正（加成相加後換成倍率）。</summary>
+        public static StatMods Mods(HeroDef hero, int stars)
         {
-            var list = Unlocked(heroId, stars).Where(e => e.Kind == BreakthroughKind.StatBonus).ToList();
-            return (list.Sum(e => e.HpPct), list.Sum(e => e.AtkPct), list.Sum(e => e.DefPct));
-        }
-
-        /// <summary>目前星級已解鎖的被動 id。</summary>
-        public List<string> ActivePassives(string heroId, int stars) =>
-            Unlocked(heroId, stars).Where(e => e.Kind == BreakthroughKind.Passive).Select(e => e.PassiveId).ToList();
-    }
-
-    /// <summary>Demo 武將的突破效果（佔位示範；每名武將只設計 2★、5★ 兩個特殊效果，其餘為屬性）。</summary>
-    public static class DemoBreakthroughs
-    {
-        public static BreakthroughTable Create()
-        {
-            var table = new BreakthroughTable();
-            // 張飛（坦克）：嘲諷 ×2 逐張升級為「嘲諷＋」（持續回合 +1）。
-            table.Register("zhangfei",
-                TauntPlus(2, "zf_taunt"),
-                TauntPlus(5, "zf_taunt2"));
-            return table;
-        }
-
-        private static BreakthroughEffect TauntPlus(int stars, string targetCardId) => new BreakthroughEffect
-        {
-            Stars = stars, Kind = BreakthroughKind.UpgradeCard, TargetCardId = targetCardId,
-            Description = "嘲諷 → 嘲諷＋：持續回合 +1",
-            NewCard = new CardDef
+            double hp = 0, atk = 0, intl = 0, def = 0;
+            int crit = 0;
+            foreach (var e in Unlocked(hero, stars).Where(e => e.Kind == BreakthroughKind.StatBonus))
             {
-                Id = targetCardId + "_plus", Name = "嘲諷＋", Cost = 1, Target = TargetRule.AllEnemies, Shape = Shape.All,
-                Effects =
+                switch (e.Stat)
                 {
-                    new EffectDef { Type = EffectType.ApplyStatus, Status = StatusType.Taunt, Amount = 2 },
-                },
-            },
-        };
+                    case StatKind.Hp: hp += e.Value / 100.0; break;
+                    case StatKind.Atk: atk += e.Value / 100.0; break;
+                    case StatKind.Int: intl += e.Value / 100.0; break;
+                    case StatKind.Def: def += e.Value / 100.0; break;
+                    case StatKind.Crit: crit += e.Value; break;
+                }
+            }
+            return new StatMods { Hp = 1 + hp, Atk = 1 + atk, Int = 1 + intl, Def = 1 + def, Crit = crit };
+        }
     }
 }

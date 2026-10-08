@@ -11,9 +11,8 @@ public sealed class ServerOptions
     /// <summary>新帳號的開局資源（開發用預設值；正式的新手紅利尚待設計，見 days-1-7.md）。</summary>
     public int StartingYuanbao { get; set; } = 2000;
     public int StartingGold { get; set; } = 5000;
-    /// <summary>開發用起始素材（資源副本的客戶端介面完成前，升級與卡牌強化無從測試）。</summary>
-    public int StartingExpBooks { get; set; } = 30;
-    public int StartingCardMaterials { get; set; } = 40;
+    /// <summary>開發用起始武將經驗（方便測試升級）。</summary>
+    public int StartingHeroExp { get; set; } = 3000;
 
     /// <summary>開發用端點（直接標記通關等）。預設關閉；沒有戰鬥重播驗證前，正式環境不可開。</summary>
     public bool EnableDevEndpoints { get; set; }
@@ -71,8 +70,7 @@ public sealed class GameService
                 profile = PlayerProfile.CreateNew(now);
                 profile.Yuanbao = _options.StartingYuanbao;
                 profile.Gold = _options.StartingGold;
-                profile.AddMaterial(HeroGrowth.ExpBook, _options.StartingExpBooks);
-                profile.AddMaterial(HeroGrowth.CardMaterial, _options.StartingCardMaterials);
+                profile.AddMaterial(HeroGrowth.HeroExp, _options.StartingHeroExp);
             }
             var result = action(profile, now);
             if (result.Ok || result.Persist) await _store.SaveAsync(accountId, profile);
@@ -119,7 +117,7 @@ public sealed class GameService
         Quests.Report(p, Quests.Events.GachaPull, count, now);
         var results = outcome.Results.Select(r => new
         {
-            heroId = r.HeroId, rarity = r.Rarity.ToString(), isNew = r.IsNew, shards = r.Shards,
+            heroId = r.HeroId, rarity = r.Rarity.ToString(), isNew = r.IsNew, shards = r.Shards, souls = r.Souls,
             isUp = r.IsUp, fromPity = r.FromPity,
         });
         return ApiResult.Success(new { results, yuanbao = p.Yuanbao });
@@ -133,13 +131,33 @@ public sealed class GameService
         return ApiResult.Success(new { level = p.Heroes[heroId].Level, gold = p.Gold });
     });
 
-    public Task<ApiResult> Enhance(string accountId, string heroId, string cardId) => Run(accountId, (p, now) =>
+    public Task<ApiResult> Equip(string accountId, string heroId, string slot, int tier) => Run(accountId, (p, now) =>
     {
-        if (!_heroes.TryGetValue(heroId, out var def)) return ApiResult.Fail(GrowthResult.UnknownHero.ToString());
-        var r = HeroGrowth.EnhanceCard(p, heroId, cardId, def.Deck.Select(c => c.Id).Distinct());
-        if (r != GrowthResult.Ok) return ApiResult.Fail(r.ToString());
-        Quests.Report(p, Quests.Events.CardEnhance, 1, now);
-        return ApiResult.Success(new { cardLevel = p.Heroes[heroId].CardLevels[cardId] });
+        if (!Enum.TryParse<EquipSlot>(slot, true, out var s)) return ApiResult.Fail("invalid_slot");
+        var r = Equipment.Equip(p, heroId, s, tier);
+        if (r != EquipResult.Ok) return ApiResult.Fail(r.ToString());
+        Quests.Report(p, Quests.Events.Equip, 1, now);
+        return ApiResult.Success();
+    });
+
+    public Task<ApiResult> Unequip(string accountId, string heroId, string slot) => Run(accountId, (p, now) =>
+    {
+        if (!Enum.TryParse<EquipSlot>(slot, true, out var s)) return ApiResult.Fail("invalid_slot");
+        var r = Equipment.Unequip(p, heroId, s);
+        return r == EquipResult.Ok ? ApiResult.Success() : ApiResult.Fail(r.ToString());
+    });
+
+    public Task<ApiResult> Dismantle(string accountId, string slot, int tier, int count) => Run(accountId, (p, now) =>
+    {
+        if (!Enum.TryParse<EquipSlot>(slot, true, out var s)) return ApiResult.Fail("invalid_slot");
+        var r = Equipment.Dismantle(p, s, tier, count);
+        return r == EquipResult.Ok ? ApiResult.Success(new { gold = p.Gold }) : ApiResult.Fail(r.ToString());
+    });
+
+    public Task<ApiResult> BuySoulItem(string accountId, string itemId) => Run(accountId, (p, now) =>
+    {
+        var r = SoulShop.Buy(p, itemId, now);
+        return r == SoulShopResult.Ok ? ApiResult.Success(new { souls = p.GetMaterial(HeroGrowth.Soul) }) : ApiResult.Fail(r.ToString());
     });
 
     public Task<ApiResult> Breakthrough(string accountId, string heroId) => Run(accountId, (p, now) =>
@@ -162,9 +180,9 @@ public sealed class GameService
     public Task<ApiResult> SweepDungeon(string accountId, string dungeonId, int count) => Run(accountId, (p, now) =>
     {
         if (!_dungeons.TryGetValue(dungeonId, out var d)) return ApiResult.Fail("unknown_dungeon");
-        var r = ResourceDungeons.TrySweep(p, d, count, now);
+        var r = ResourceDungeons.TrySweep(p, d, count, now, out var reward);
         return r == DungeonEntryResult.Ok
-            ? ApiResult.Success(new { remaining = ResourceDungeons.Remaining(p, d, now) })
+            ? ApiResult.Success(new { materials = reward!.Materials, gold = reward.Gold, yuanbao = reward.Yuanbao })
             : ApiResult.Fail(r.ToString());
     });
 
@@ -181,7 +199,7 @@ public sealed class GameService
     });
 
     /// <summary>
-    /// 開始關卡：檢查等級門檻、扣體力，伺服器發亂數種子並記為「進行中」。
+    /// 開始關卡：扣體力，伺服器發亂數種子並記為「進行中」。
     /// 開放編隊的關卡 / 副本要帶玩家編隊（只能用已擁有的武將），伺服器記下來結算時重建同一場戰鬥。
     /// 客戶端用這個種子建立戰鬥；再開始別的關卡會取代進行中的關卡（舊的體力不退）。
     /// </summary>
@@ -220,7 +238,7 @@ public sealed class GameService
         return ApiResult.Success(new { stars = p.StageStars[stageId] });
     });
 
-    // ---- 商店（M4）：訂單 → 付款回呼（冪等發貨）→ 月卡 / 成長基金領取 ----
+    // ---- 商店（M4）：訂單 → 付款回呼（冪等發貨）→ 月卡領取 ----
 
     /// <summary>建立訂單（待付款），回傳訂單 id；付款前不發任何東西。</summary>
     public Task<ApiResult> CreateOrder(string accountId, string productId) => Run(accountId, (p, now) =>
@@ -244,12 +262,6 @@ public sealed class GameService
     public Task<ApiResult> ClaimMonthCard(string accountId, string cardId) => Run(accountId, (p, now) =>
     {
         var r = Shop.ClaimMonthCardDaily(p, cardId, now);
-        return r == ShopResult.Ok ? ApiResult.Success(new { yuanbao = p.Yuanbao }) : ApiResult.Fail(r.ToString());
-    });
-
-    public Task<ApiResult> ClaimGrowthFund(string accountId, int level) => Run(accountId, (p, now) =>
-    {
-        var r = Shop.ClaimGrowthFund(p, level);
         return r == ShopResult.Ok ? ApiResult.Success(new { yuanbao = p.Yuanbao }) : ApiResult.Fail(r.ToString());
     });
 

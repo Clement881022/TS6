@@ -10,7 +10,7 @@ namespace SanGuo.Core.Data
     /// </summary>
     public static class ProfileSerializer
     {
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
 
         public static string ToJson(PlayerProfile p, bool indent = false) => MiniJson.Write(ToObject(p), indent);
 
@@ -29,13 +29,13 @@ namespace SanGuo.Core.Data
             var heroes = new Dictionary<string, object?>();
             foreach (var kv in p.Heroes)
             {
-                var cards = new Dictionary<string, object?>();
-                foreach (var c in kv.Value.CardLevels) cards[c.Key] = (long)c.Value;
+                var equipment = new Dictionary<string, object?>();
+                foreach (var e in kv.Value.Equipment) equipment[e.Key] = (long)e.Value;
                 heroes[kv.Key] = new Dictionary<string, object?>
                 {
                     ["level"] = (long)kv.Value.Level,
                     ["stars"] = (long)kv.Value.Stars,
-                    ["cards"] = cards,
+                    ["equipment"] = equipment,
                 };
             }
 
@@ -65,15 +65,14 @@ namespace SanGuo.Core.Data
                 ["stageStars"] = IntMap(p.StageStars),
                 ["createdDay"] = p.CreatedDay,
                 ["dailyDay"] = p.DailyDay == long.MinValue ? (object?)null : p.DailyDay,
-                ["dailyCounters"] = IntMap(p.DailyCounters),
                 ["dailyTaskProgress"] = IntMap(p.DailyTaskProgress),
                 ["dailyTaskClaimed"] = SortedList(p.DailyTaskClaimed),
                 ["sevenDayProgress"] = IntMap(p.SevenDayProgress),
                 ["sevenDayClaimed"] = SortedList(p.SevenDayClaimed),
                 ["monthCardExpiry"] = LongMap(p.MonthCardExpiry),
                 ["monthCardClaimedDay"] = LongMap(p.MonthCardClaimedDay),
-                ["growthFundOwned"] = p.GrowthFundOwned,
-                ["growthFundClaimed"] = SortedInts(p.GrowthFundClaimed),
+                ["soulShopBought"] = IntMap(p.SoulShopBought),
+                ["soulShopMonth"] = p.SoulShopMonth,
                 ["orders"] = StringMap(p.Orders),
                 ["version"] = (long)CurrentVersion,
                 ["level"] = (long)p.Level,
@@ -134,8 +133,8 @@ namespace SanGuo.Core.Data
                         Level = (int)Int(hd, "level", 1),
                         Stars = (int)Int(hd, "stars", 0),
                     };
-                    if (hd.TryGetValue("cards", out var cv) && cv is Dictionary<string, object?> cards)
-                        foreach (var c in cards) hero.CardLevels[c.Key] = (int)ToLong(c.Value);
+                    if (hd.TryGetValue("equipment", out var ev) && ev is Dictionary<string, object?> equipment)
+                        foreach (var e in equipment) hero.Equipment[e.Key] = (int)ToLong(e.Value);
                     p.Heroes[kv.Key] = hero;
                 }
             }
@@ -169,16 +168,14 @@ namespace SanGuo.Core.Data
             ReadIntMap(root, "stageStars", p.StageStars);
             p.CreatedDay = Int(root, "createdDay", 0);
             p.DailyDay = root.TryGetValue("dailyDay", out var dd) && dd != null ? ToLong(dd) : long.MinValue;
-            ReadIntMap(root, "dailyCounters", p.DailyCounters);
             ReadIntMap(root, "dailyTaskProgress", p.DailyTaskProgress);
             ReadStringSet(root, "dailyTaskClaimed", p.DailyTaskClaimed);
             ReadIntMap(root, "sevenDayProgress", p.SevenDayProgress);
             ReadStringSet(root, "sevenDayClaimed", p.SevenDayClaimed);
             ReadLongMap(root, "monthCardExpiry", p.MonthCardExpiry);
             ReadLongMap(root, "monthCardClaimedDay", p.MonthCardClaimedDay);
-            p.GrowthFundOwned = root.TryGetValue("growthFundOwned", out var gfo) && gfo is bool gb && gb;
-            if (root.TryGetValue("growthFundClaimed", out var gfc) && gfc is List<object?> gl)
-                foreach (var x in gl) p.GrowthFundClaimed.Add((int)ToLong(x));
+            ReadIntMap(root, "soulShopBought", p.SoulShopBought);
+            p.SoulShopMonth = root.TryGetValue("soulShopMonth", out var ssm) && ssm is string ssms ? ssms : "";
             if (root.TryGetValue("orders", out var ord) && ord is Dictionary<string, object?> od)
                 foreach (var kv in od)
                     if (kv.Value is string os) p.Orders[kv.Key] = os;
@@ -205,13 +202,6 @@ namespace SanGuo.Core.Data
             var d = new Dictionary<string, object?>();
             foreach (var kv in map) d[kv.Key] = kv.Value;
             return d;
-        }
-
-        private static List<object?> SortedInts(HashSet<int> set)
-        {
-            var l = new List<int>(set);
-            l.Sort();
-            return l.ConvertAll<object?>(i => (long)i);
         }
 
         private static void ReadLongMap(Dictionary<string, object?> root, string key, Dictionary<string, long> target)
