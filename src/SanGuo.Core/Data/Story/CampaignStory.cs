@@ -3,8 +3,8 @@ using System.Collections.Generic;
 namespace SanGuo.Core.Data
 {
     /// <summary>
-    /// 主線劇情的統一入口：第零章見 <see cref="DemoStory"/>，第 1–2 章見 Chapter1Story、Chapter2Story（第 3–6 章尚未撰寫，回傳空清單）。
-    /// 貫穿 1.0 的線索：①命牌每章歸位一枚；②黃布符紋與帶著暗光的「仙物」，從黃巾一路延伸到董卓（為架空章節的魔化埋伏筆）。
+    /// 主線劇情的統一入口：第零章見 <see cref="DemoStory"/>，第 1–6 章見 Chapter1Story…Chapter6Story。
+    /// 貫穿 1.0 的線索：①命牌每章歸位一枚；②黃布符紋與帶著暗光的「仙物」，從黃巾一路延伸到董卓；天書共三卷，張角、董卓各持一卷，第三卷下落不明（為架空章節的魔化埋伏筆）。
     /// </summary>
     public static class CampaignStory
     {
@@ -16,6 +16,10 @@ namespace SanGuo.Core.Data
                 case 0: return DemoStory.Before(level);
                 case 1: return Chapter1Story.Before(level);
                 case 2: return Chapter2Story.Before(level);
+                case 3: return Chapter3Story.Before(level);
+                case 4: return Chapter4Story.Before(level);
+                case 5: return Chapter5Story.Before(level);
+                case 6: return Chapter6Story.Before(level);
                 default: return new List<StoryLine>();
             }
         }
@@ -28,6 +32,10 @@ namespace SanGuo.Core.Data
                 case 0: return DemoStory.After(level);
                 case 1: return Chapter1Story.After(level);
                 case 2: return Chapter2Story.After(level);
+                case 3: return Chapter3Story.After(level);
+                case 4: return Chapter4Story.After(level);
+                case 5: return Chapter5Story.After(level);
+                case 6: return Chapter6Story.After(level);
                 default: return new List<StoryLine>();
             }
         }

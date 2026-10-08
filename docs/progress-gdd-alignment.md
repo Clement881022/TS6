@@ -32,7 +32,11 @@
 - Boss 單格；生命跌破 50% 進入第二階段（只換蓄力參數），發出 `EnemyPhase` 事件。
 - 敵人借用既有模型（`EnemyDef.Art`，黃巾直接用 `yt_*`）；護送／守城目標為 `HeroRoster.Npc`，套用編隊時保留。
 - 素材副本第 2–5 階改為第 1–4 章通關後解鎖，敵人等級 6／19／25／29／32。
-- 劇情：`Data/Story/` 已寫第 1、2 章逐關戰前與首通後；第 3–6 章尚未寫（`CampaignStory` 回傳空清單）。
+- 劇情：`Data/Story/Chapter1–6Story.cs` 已寫完 60 關逐關戰前與首通後，`CampaignStory` 統一分派。
+  - 主線線索：命牌每章末歸位一枚（第零章第一枚 → 第 6 章第七枚）；天書三卷，張角一卷、董卓一卷（張讓獻上、李儒經手），第三卷下落不明。
+  - 第 5 章呂布沒有暗光，命牌因三兄弟並肩而歸位（命牌不只回應暗光，也回應羈絆）。
+  - 第 6 章末命牌異象：群雄眼中的暗光，為架空章節的魔化伏筆；董卓戰敗逃回長安，旁白交代初平三年死於呂布之手，維持演義主線。
+  - 幕後主使仍未定（GDD 06 §4 待決），劇情只留「第三卷」懸念，沒有指名。
 
 ### Client（`client/Assets/Scripts`）
 - 戰鬥畫面、卡牌文字、範圍圖示、特效對齊新核心；第零章逐關教學。
@@ -40,7 +44,7 @@
 - 新武將尚無專屬模型，依職業借用現有模型（`HeroArt.Model`）。
 
 ## 驗證狀態
-- `dotnet test SanGuo.sln`：Core 229、Server 23，全數通過。
+- `dotnet test SanGuo.sln`：Core 233、Server 23，全數通過。
 - 章末戰力門檻（`CampaignBalanceTests`，自動戰鬥 40 場）：照預期養成勝率 62–88%，停在上一章養成 5–25%；60 關照章末養成皆 ≥ 30%。
 - **client 尚未改**：Plugins 裡的 `SanGuo.Core.dll` 仍是舊版（未執行 sync-core），client 程式碼仍用舊 API（`Chapter1Stage`、`LevelOf`、`FormationLocked(int)`、`OpenLevel(int, ulong)`），同步 DLL 前要先改 client。
 - Unity client 以 Unity 6000.3.25f1 的參考 DLL 另行編譯檢查為 0 錯誤，**尚未在 Unity 編輯器內實際開啟與遊玩驗證**。
@@ -59,7 +63,7 @@
 - GDD 03 §4.1 寫 60 級為 ×2.325，與線性規則（×1.885）不符；已確認以線性為準，GDD 文字尚待修正。
 
 ## 下一步（階段 3）
-1. 劇情第 3–6 章逐關（大綱：③督郵→何進之死→段珪→張讓→董卓入京→李儒；④陳留起兵→公孫瓚→酸棗會盟→孫堅→汜水關→溫酒斬華雄；⑤虎牢關→高順→救公孫瓚→三英戰呂布；⑥火燒洛陽→滎陽救曹→李傕郭汜→董卓，命牌異象）。寫完把 `CampaignStory` 的分派與 `WrittenChapters_HaveStoryForEveryStage` 補上第 3–6 章。命牌每章末歸位一枚（目前到第三枚）。
+1. ~~劇情第 3–6 章~~（已完成）。
 2. Client 改為（章, 關）：`GameSession.SelectedChapter`、`MapPage` 章節切換、`HomePage` 跨章下一關、`BattleScreen`／`StoryPlayer` 改用 `Campaign`／`CampaignStory`、`EnemyPhase` 飄字、`BattleStage` 改用 `unit.ArtId` 載模型（玩家方 NPC 缺模型時借 `r_villager`）；之後跑 `tools/sync-core.ps1`。
 3. 另寫 `docs/story-chapters.md`（60 關關名、目標、劇情摘要）供審稿。
 4. 素材副本平衡重跑（`OpenStageBalanceTests`），第 4、5 階敵人等級已調降，需確認。

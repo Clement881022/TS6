@@ -39,11 +39,15 @@ namespace SanGuo.Core.Tests
             Assert.Equal(70, ids.Count);
         }
 
-        /// <summary>已撰寫劇情的章節（第 0–2 章；第 3–6 章待寫）：每關都有戰前與首通後對白，且每句都有內容。</summary>
+        /// <summary>每一章：每關都有戰前與首通後對白，且每句都有內容。</summary>
         [Theory]
         [InlineData(0)]
         [InlineData(1)]
         [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        [InlineData(6)]
         public void WrittenChapters_HaveStoryForEveryStage(int chapter)
         {
             for (int lv = 1; lv <= Campaign.LevelsPerChapter; lv++)
