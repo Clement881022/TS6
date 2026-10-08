@@ -71,6 +71,8 @@ namespace SanGuo.Client
         public int LevelsGained;
         /// <summary>首通獲得的武將 id（沒有則空字串）。</summary>
         public string HeroGained = "";
+        /// <summary>首通獲得的重複份（武將 id）。</summary>
+        public List<string> DuplicatesGained = new List<string>();
         /// <summary>資源副本掉落的素材。</summary>
         public Dictionary<string, int> Materials = new Dictionary<string, int>();
     }

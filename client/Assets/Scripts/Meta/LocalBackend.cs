@@ -45,6 +45,7 @@ namespace SanGuo.Client
                     _profile.StageStars[Campaign.StageId(c, l)] = 3;
                     string hero = DemoMeta.Stage(c, l).FirstClearHero;
                     if (hero != "" && !_profile.Heroes.ContainsKey(hero)) _profile.Grant(new Reward().WithHero(hero), Now);
+                    foreach (var dup in DemoMeta.Stage(c, l).FirstClearDuplicates) _profile.Grant(new Reward().WithHero(dup), Now);
                 }
             int heroLevel = Campaign.ChapterEndLevel[Math.Max(0, chapter - 1)];
             foreach (var hero in _profile.Heroes.Values) hero.Level = Math.Max(hero.Level, heroLevel);
@@ -107,7 +108,7 @@ namespace SanGuo.Client
             return Task.FromResult(new FinishStageResult
             {
                 Ok = r.Ok, Code = r.Code, Won = r.Won, Stars = r.Stars, FirstClear = r.FirstClear,
-                Exp = r.Exp, Gold = r.Gold, Yuanbao = r.Yuanbao, LevelsGained = r.LevelsGained, HeroGained = r.HeroGained, Materials = r.Materials,
+                Exp = r.Exp, Gold = r.Gold, Yuanbao = r.Yuanbao, LevelsGained = r.LevelsGained, HeroGained = r.HeroGained, DuplicatesGained = r.DuplicatesGained, Materials = r.Materials,
             });
         }
 
@@ -137,7 +138,7 @@ namespace SanGuo.Client
                 result = new FinishStageResult
                 {
                     Ok = true, Won = true, Stars = 3, FirstClear = clear.FirstClear, Exp = clear.ExpGained, Gold = clear.GoldGained,
-                    Yuanbao = clear.YuanbaoGained, LevelsGained = clear.LevelsGained, HeroGained = clear.HeroGained,
+                    Yuanbao = clear.YuanbaoGained, LevelsGained = clear.LevelsGained, HeroGained = clear.HeroGained, DuplicatesGained = clear.DuplicatesGained,
                 };
             }
             Save();

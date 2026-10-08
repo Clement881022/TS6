@@ -140,6 +140,8 @@ namespace SanGuo.Client
                 Exp = Int(d, "exp"), Gold = Int(d, "gold"), Yuanbao = Int(d, "yuanbao"),
                 LevelsGained = Int(d, "levelsGained"),
                 HeroGained = d.TryGetValue("heroGained", out var hg) && hg is string hgs ? hgs : "",
+                DuplicatesGained = d.TryGetValue("duplicatesGained", out var dg) && dg is List<object?> dgl
+                    ? dgl.OfType<string>().ToList() : new List<string>(),
                 Materials = d.TryGetValue("materials", out var m) && m is Dictionary<string, object?> md
                     ? md.ToDictionary(kv => kv.Key, kv => Int(md, kv.Key)) : new Dictionary<string, int>(),
             };

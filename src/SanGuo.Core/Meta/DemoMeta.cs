@@ -40,9 +40,13 @@ namespace SanGuo.Core.Meta
 
         public static string StageId(int chapter, int level) => Campaign.StageId(chapter, level);
 
+        /// <summary>劇情固定武將（不在卡池，重複份由主線贈送）。</summary>
+        public static readonly string[] StoryHeroes = { "liubei", "zhangfei", "guanyu" };
+
         /// <summary>
         /// 主線關卡獎勵（暫定）：每關體力 10；經驗與金幣依全主線的關卡序號（第零章 1–10、第一章 11–20…）線性遞增；
-        /// 首通元寶每關 60、章末 300；第零章第 1–3 關首通依序送劉備、張飛、關羽。
+        /// 首通元寶每關 60、章末 300；第零章第 1–3 關首通依序送劉備、張飛、關羽；
+        /// 第 2–6 章章末首通各送劉關張重複份 1 份（打完 1.0 剛好滿突，對應主線平衡的章末突破假設）。
         /// </summary>
         public static StageReward Stage(int chapter, int level)
         {
@@ -57,6 +61,7 @@ namespace SanGuo.Core.Meta
                 FirstClearYuanbao = level == Campaign.LevelsPerChapter ? 300 : 60,
                 StarTurnPar = Campaign.TurnPar(chapter, level),
                 FirstClearHero = chapter != 0 ? "" : level == 1 ? "liubei" : level == 2 ? "zhangfei" : level == 3 ? "guanyu" : "",
+                FirstClearDuplicates = chapter >= 2 && level == Campaign.LevelsPerChapter ? StoryHeroes : System.Array.Empty<string>(),
             };
         }
 

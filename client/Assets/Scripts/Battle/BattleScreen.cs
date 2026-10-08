@@ -1342,6 +1342,8 @@ namespace SanGuo.Client
                 card.Add(stars);
                 if (result.FirstClear) AddInfo(card, "首次通關");
                 if (result.HeroGained != "") AddInfo(card, "獲得武將：" + (DemoContent.Roster().Find(h => h.Id == result.HeroGained)?.Name ?? result.HeroGained));
+                if (result.DuplicatesGained.Count > 0)
+                    AddInfo(card, "突破材料：" + string.Join("、", result.DuplicatesGained.Select(id => GameSession.DefOf(id)?.Name ?? id)) + " 各 +1");
                 AddInfo(card, $"經驗 +{result.Exp}　金幣 +{result.Gold}" + (result.Yuanbao > 0 ? $"　元寶 +{result.Yuanbao}" : ""));
                 if (result.LevelsGained > 0) AddInfo(card, $"帳號升級！Lv.{GameSession.View.Level}（體力已回滿）");
             }

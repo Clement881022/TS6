@@ -60,6 +60,23 @@ namespace SanGuo.Core.Tests
             }
         }
 
+        /// <summary>劇情武將（劉關張）不在卡池：第 2–6 章章末首通各送 1 份重複份，打完 1.0 剛好可以滿突。</summary>
+        [Fact]
+        public void StoryHeroes_GetOneDuplicatePerChapterEnd_FromChapter2()
+        {
+            var p = Meta.PlayerProfile.CreateNew(0);
+            for (int c = Campaign.FirstChapter; c <= Campaign.LastChapter; c++)
+                for (int l = 1; l <= Campaign.LevelsPerChapter; l++)
+                {
+                    var clear = p.ClaimClear(Meta.DemoMeta.Stage(c, l), 0, 3);
+                    bool expected = c >= 2 && l == Campaign.LevelsPerChapter;
+                    Assert.Equal(expected ? Meta.DemoMeta.StoryHeroes.Length : 0, clear.DuplicatesGained.Count);
+                }
+            foreach (var id in Meta.DemoMeta.StoryHeroes) Assert.Equal(Meta.HeroGrowth.MaxStars, Meta.HeroGrowth.Shards(p, id));
+            // 再打一次不重複送。
+            Assert.Empty(p.ClaimClear(Meta.DemoMeta.Stage(2, 10), 0, 3).DuplicatesGained);
+        }
+
         [Theory]
         [InlineData("1-0")]
         [InlineData("7-1")]
