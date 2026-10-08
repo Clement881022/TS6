@@ -169,6 +169,7 @@ namespace SanGuo.Client
             bar.Add(FunctionButton("招募", "招募新將", "gacha", Page.Gacha));
             bar.Add(UiKit.Text("日常", "home-nav-heading home-nav-divider"));
             bar.Add(FunctionButton("副本", "取得養成素材", "dungeons", Page.Dungeons));
+            bar.Add(FunctionButton("世界 Boss", "群雄榜排名", "map", Page.WorldBoss));
             bar.Add(FunctionButton("任務", "領取目標獎勵", "quests", Page.Quests));
             bar.Add(FunctionButton("商店", "補給與將魂", "shop", Page.Shop));
             return bar;

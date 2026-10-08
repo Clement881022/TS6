@@ -26,11 +26,13 @@ namespace SanGuo.Client
             {
                 var dungeon = DemoMeta.FindDungeon(StageId);
                 if (dungeon != null) return $"排兵布陣　{dungeon.Name}";
+                if (StageId == WorldBoss.StageId) return "排兵布陣　世界 Boss";
                 return Campaign.TryParse(StageId, out int chapter, out int level)
                     ? $"排兵布陣　{chapter}-{level}　{Campaign.LevelName(chapter, level)}" : "排兵布陣";
             }
         }
-        protected override Page BackPage => DemoMeta.FindDungeon(StageId) != null ? Page.Dungeons : Page.Map;
+        protected override Page BackPage =>
+            StageId == WorldBoss.StageId ? Page.WorldBoss : DemoMeta.FindDungeon(StageId) != null ? Page.Dungeons : Page.Map;
 
         /// <summary>武將卡下方的小字：等級與職業。</summary>
         private static string HeroSub(HeroDef h) =>

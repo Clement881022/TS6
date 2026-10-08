@@ -171,6 +171,7 @@ namespace SanGuo.Client
         {
             var dungeon = DemoMeta.FindDungeon(stageId);
             if (dungeon != null) return DemoMeta.DungeonSetup(dungeon.Id, 1);
+            if (stageId == WorldBoss.StageId) return WorldBoss.Setup(WorldBoss.SeasonOf(View.Now), 1);
             return Campaign.TryParse(stageId, out int chapter, out int level)
                 ? DemoMeta.OpenLevel(chapter, level, 1) : null;
         }

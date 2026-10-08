@@ -70,6 +70,8 @@ namespace SanGuo.Client
                 case "UnknownOrder": return "找不到訂單";
                 case "disabled": return "測試付款未開啟";
                 case "unknown_stage": return "沒有這個關卡";
+                case "locked": return "通關第二章後開放世界 Boss";
+                case "no_attempts": return "今天的挑戰次數已用完，明天 5 點重置";
                 case "invalid_formation": return "編隊不合法：請至少派 1 名已擁有的武將上場（最多 4 人）";
                 case "no_pending_stage": return "沒有進行中的關卡";
                 case "invalid_replay": return "操作紀錄驗證失敗，本局無效";

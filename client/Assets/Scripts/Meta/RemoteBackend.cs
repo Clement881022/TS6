@@ -79,6 +79,29 @@ namespace SanGuo.Client
         private static int Int(Dictionary<string, object?> d, string key) =>
             d.TryGetValue(key, out var v) && v is long l ? (int)l : v is double db ? (int)db : 0;
 
+        public async Task<WorldBossView?> GetWorldBoss()
+        {
+            var r = await Send("GET", "/worldboss");
+            if (!r.Ok) return null;
+            var d = r.Data;
+            string Str(string key) => d.TryGetValue(key, out var v) && v is string s ? s : "";
+            var view = new WorldBossView
+            {
+                Season = Str("season"), Unlocked = d.TryGetValue("unlocked", out var u) && u is true,
+                AttemptsLeft = Int(d, "attemptsLeft"), Best = Long(d, "best"), Rank = Int(d, "rank"), Total = Int(d, "total"),
+                LastSeason = Str("lastSeason"), LastRank = Int(d, "lastRank"), LastTotal = Int(d, "lastTotal"),
+                LastReward = Int(d, "lastReward"), Title = Str("title"),
+            };
+            if (d.TryGetValue("top", out var t) && t is List<object?> tl)
+                foreach (var x in tl)
+                    if (x is Dictionary<string, object?> e)
+                        view.Top.Add((e.TryGetValue("account", out var a) && a is string an ? an : "?", Long(e, "best")));
+            return view;
+        }
+
+        private static long Long(Dictionary<string, object?> d, string key) =>
+            d.TryGetValue(key, out var v) && v != null ? Convert.ToInt64(v) : 0;
+
         public async Task<ProfileView?> GetProfile()
         {
             // 第一次先登入（建立帳號 / 換日），之後只讀。
@@ -139,6 +162,8 @@ namespace SanGuo.Client
                 FirstClear = d.TryGetValue("firstClear", out var f) && f is true,
                 Exp = Int(d, "exp"), Gold = Int(d, "gold"), Yuanbao = Int(d, "yuanbao"),
                 LevelsGained = Int(d, "levelsGained"),
+                Damage = Long(d, "damage"), BestDamage = Long(d, "bestDamage"), NewBest = d.TryGetValue("newBest", out var nb) && nb is true,
+                Rank = Int(d, "rank"), Total = Int(d, "total"),
                 HeroGained = d.TryGetValue("heroGained", out var hg) && hg is string hgs ? hgs : "",
                 DuplicatesGained = d.TryGetValue("duplicatesGained", out var dg) && dg is List<object?> dgl
                     ? dgl.OfType<string>().ToList() : new List<string>(),

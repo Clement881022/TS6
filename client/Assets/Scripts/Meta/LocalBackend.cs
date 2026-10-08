@@ -53,6 +53,16 @@ namespace SanGuo.Client
 
         private static long Now => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
+        /// <summary>單機沒有其他玩家：排行榜只有自己（名次一律 1 / 1）。</summary>
+        private sealed class SoloBoard : IWorldBossBoard
+        {
+            public void Submit(string season, string accountId, long best) { }
+            public (int Rank, int Total) RankOf(string season, long score) => (1, 1);
+            public List<(string AccountId, long Best)> Top(string season, int count) => new List<(string, long)>();
+        }
+
+        private readonly SoloBoard _board = new SoloBoard();
+
         private static PlayerProfile NewProfile()
         {
             var p = PlayerProfile.CreateNew(Now);
@@ -88,8 +98,25 @@ namespace SanGuo.Client
         {
             long now = Now;
             _profile.OnLogin(now);
+            WorldBoss.SettlePending(_profile, _board, now);
             Save();
             return Task.FromResult<ProfileView?>(ProfileView.From(_profile, now));
+        }
+
+        public Task<WorldBossView?> GetWorldBoss()
+        {
+            long now = Now;
+            WorldBoss.SettlePending(_profile, _board, now);
+            var s = _profile.WorldBoss;
+            var view = new WorldBossView
+            {
+                Season = s.Season, Unlocked = WorldBoss.IsUnlocked(_profile), AttemptsLeft = WorldBoss.AttemptsLeft(_profile, now),
+                Best = s.Best, Rank = s.Best > 0 ? 1 : 0, Total = s.Best > 0 ? 1 : 0,
+                LastSeason = s.LastSeason, LastRank = s.LastRank, LastTotal = s.LastTotal, LastReward = s.LastReward, Title = s.Title,
+            };
+            if (s.Best > 0) view.Top.Add(("我", s.Best));
+            Save();
+            return Task.FromResult<WorldBossView?>(view);
         }
 
         public Task<StartStageResult> StartStage(string stageId, IReadOnlyList<FormationEntry>? formation = null)
@@ -109,6 +136,7 @@ namespace SanGuo.Client
             {
                 Ok = r.Ok, Code = r.Code, Won = r.Won, Stars = r.Stars, FirstClear = r.FirstClear,
                 Exp = r.Exp, Gold = r.Gold, Yuanbao = r.Yuanbao, LevelsGained = r.LevelsGained, HeroGained = r.HeroGained, DuplicatesGained = r.DuplicatesGained, Materials = r.Materials,
+                Damage = r.Damage, BestDamage = r.BestDamage, NewBest = r.NewBest, Rank = r.BestDamage > 0 ? 1 : 0, Total = r.BestDamage > 0 ? 1 : 0,
             });
         }
 

@@ -100,6 +100,29 @@ namespace SanGuo.Client
             yield return Wait(4f);
             Shot(dir, "battle-result");
             yield return Wait(0.6f);
+
+            // 世界 Boss：面板 → 開戰 → 自動打完 → 結算（-sanguoClearTo 需在第 2 章之後才會開放）。
+            yield return Go(Page.WorldBoss);
+            yield return Wait(1.5f);
+            Shot(dir, "worldboss");
+            yield return Wait(0.4f);
+            var wb = GameSession.BeginStage(SanGuo.Core.Meta.WorldBoss.StageId);
+            while (!wb.IsCompleted) yield return null;
+            if (wb.Result != null) { Debug.LogError("[shot] WorldBoss BeginStage failed: " + wb.Result); Application.Quit(); yield break; }
+            yield return Go(Page.Battle);
+            battle = (PageHost.Current?.ActivePage as BattlePage)?.Screen;
+            if (battle == null) { Application.Quit(); yield break; }
+            yield return Wait(1.2f);
+            Shot(dir, "worldboss-battle");
+            yield return Wait(0.4f);
+            battle.DebugAutoFinish();
+            yield return Wait(4f);
+            Shot(dir, "worldboss-result");
+            yield return Wait(0.4f);
+            yield return Go(Page.WorldBoss);
+            yield return Wait(1.5f);
+            Shot(dir, "worldboss-after");
+            yield return Wait(0.4f);
             Application.Quit();
         }
 

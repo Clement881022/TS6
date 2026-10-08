@@ -75,6 +75,29 @@ namespace SanGuo.Client
         public List<string> DuplicatesGained = new List<string>();
         /// <summary>資源副本掉落的素材。</summary>
         public Dictionary<string, int> Materials = new Dictionary<string, int>();
+        /// <summary>世界 Boss：這場傷害、本季最佳、是否刷新、目前名次 / 人數。</summary>
+        public long Damage;
+        public long BestDamage;
+        public bool NewBest;
+        public int Rank;
+        public int Total;
+    }
+
+    /// <summary>世界 Boss 面板（本季 Boss、次數、成績、排行榜、上一季結算）。</summary>
+    public sealed class WorldBossView
+    {
+        public string Season = "";
+        public bool Unlocked;
+        public int AttemptsLeft;
+        public long Best;
+        public int Rank;
+        public int Total;
+        public List<(string Name, long Best)> Top = new List<(string, long)>();
+        public string LastSeason = "";
+        public int LastRank;
+        public int LastTotal;
+        public int LastReward;
+        public string Title = "";
     }
 
     public sealed class SweepOutcome : BackendResult
@@ -97,6 +120,7 @@ namespace SanGuo.Client
     {
         string Name { get; }
         Task<ProfileView?> GetProfile();
+        Task<WorldBossView?> GetWorldBoss();
         /// <param name="formation">開放編隊的關卡 / 副本要帶（教學關為 null）。</param>
         Task<StartStageResult> StartStage(string stageId, IReadOnlyList<FormationEntry>? formation = null);
         Task<FinishStageResult> FinishStage(string stageId, IReadOnlyList<ReplayAction> actions);

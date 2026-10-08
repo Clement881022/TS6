@@ -279,7 +279,9 @@ namespace SanGuo.Client
         }
 
         /// <summary>離開戰鬥：回到進來的頁面（資源副本回副本頁，主線回地圖）。</summary>
-        private void Leave() => Nav.Go(_dungeon != null ? Page.Dungeons : Page.Map);
+        private void Leave() => Nav.Go(IsWorldBoss ? Page.WorldBoss : _dungeon != null ? Page.Dungeons : Page.Map);
+
+        private bool IsWorldBoss => _stageId == WorldBoss.StageId;
 
         /// <summary>進入主線關卡：可編隊的關卡先到編隊頁（開戰才扣體力）；鎖定編隊的直接開戰。</summary>
         private void EnterLevel(int chapter, int level)
@@ -334,7 +336,7 @@ namespace SanGuo.Client
             BuildTags();
             PumpEvents();
             Refresh();
-            if (_dungeon == null && _chapter == 0) ShowLevelTutorial();
+            if (_dungeon == null && !IsWorldBoss && _chapter == 0) ShowLevelTutorial();
         }
 
         /// <summary>第零章各關的戰鬥教學（巴豆妖旁白，每關只講該關要教的機制）。</summary>
@@ -1228,7 +1230,9 @@ namespace SanGuo.Client
 
         private void RefreshHud()
         {
-            string where = _dungeon != null && _recorder != null ? _dungeon.Name : $"{_chapter}-{_level}　{Campaign.LevelName(_chapter, _level)}";
+            string where = _dungeon != null && _recorder != null ? _dungeon.Name
+                : IsWorldBoss && _recorder != null ? $"世界 Boss　{WorldBoss.BossOf(WorldBoss.SeasonOf(GameSession.View.Now)).Name}"
+                : $"{_chapter}-{_level}　{Campaign.LevelName(_chapter, _level)}";
             _title.text = _battle.Setup.TurnLimit > 0
                 ? $"{where}　第 {_battle.Turn} / {_battle.Setup.TurnLimit} 回合"
                 : $"{where}　第 {_battle.Turn} 回合";
@@ -1307,13 +1311,24 @@ namespace SanGuo.Client
                 var err = new Label(UiText.ExplainBackend(result.Code));
                 err.AddToClassList("overlay-text");
                 overlay.Add(err);
-                overlay.Add(MakeButton("回地圖", () => Nav.Go(Page.Map), primary: true));
+                overlay.Add(MakeButton(IsWorldBoss ? "返回" : "回地圖", Leave, primary: true));
                 return;
             }
 
             var card = new VisualElement();
             card.AddToClassList("result-card");
             overlay.Add(card);
+            if (stageId == WorldBoss.StageId)
+            {
+                card.Add(new Label(result.Won ? "擊倒 Boss！" : "挑戰結束").WithClass("overlay-text"));
+                AddInfo(card, $"造成傷害 {result.Damage:N0}" + (result.NewBest ? "　刷新本季最佳！" : ""));
+                AddInfo(card, $"本季最佳 {result.BestDamage:N0}" + (result.Rank > 0 ? $"　目前第 {result.Rank} 名 / {result.Total} 人" : ""));
+                var wbRow = new VisualElement();
+                wbRow.AddToClassList("result-buttons");
+                wbRow.Add(MakeButton("回世界 Boss", () => Nav.Go(Page.WorldBoss), primary: true));
+                card.Add(wbRow);
+                return;
+            }
             var text = new Label(result.Won ? "勝利" : "敗北");
             text.AddToClassList("overlay-text");
             card.Add(text);

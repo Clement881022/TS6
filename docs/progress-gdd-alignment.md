@@ -39,6 +39,13 @@
   - 第 6 章末命牌異象：群雄眼中的暗光，為架空章節的魔化伏筆；董卓戰敗逃回長安，旁白交代初平三年死於呂布之手，維持演義主線。
   - 幕後主使仍未定（GDD 06 §4 待決），劇情只留「第三卷」懸念，沒有指名。
 
+### 世界 Boss（GDD 05 §8）
+- 使用者 2026-10-09 確認：每天 3 次、不扣體力；排名看本季單場最高傷害；一季（一個月）一隻 Boss，用章末 Boss 強化版。
+- 核心 `Meta/WorldBoss.cs`：賽季 = `DailyClock.MonthKey`；輪替董卓→呂布→華雄→張角→李儒→波才；10 回合、Boss 40 級生命 ×6，擊倒算勝利，否則打滿回合依傷害計分；開打與結算沿用 `StageFlow`（伺服器重播、分數由伺服器算）。
+- 伺服器：`SqliteWorldBossBoard`（每季每帳號一列、只留最高分），換季後第一次存取時依上一季名次發獎（`WorldBoss.SettlePending`）；`GET /worldboss`。
+- 客戶端：首頁「日常」新增世界 Boss 入口；`WorldBossPage`（Boss 模型、本季戰績、群雄榜前 10、上一季結算、挑戰）；戰鬥結算顯示傷害、是否刷新最佳與名次。單機版排行榜只有自己。
+- 我先行假設（需要再確認）：第 2 章通關後開放；10 回合；Boss 生命倍率 ×6（1.0 畢業隊伍自動戰鬥約打掉 11–36%）；賽季獎勵 前 1% 3000／前 10% 2000／前 30% 1500／前 60% 1000／其餘出戰者 600 元寶，前 10 名稱號「yyyy 年 M 月　群雄榜第 N 名」；排行榜顯示帳號 id（尚無玩家暱稱）。
+
 ### Client（`client/Assets/Scripts`）
 - 戰鬥畫面、卡牌文字、範圍圖示、特效對齊新核心；第零章逐關教學。
 - 武將頁（升級／突破／裝備）、素材副本頁（五階）、商店頁（儲值／將魂商店）。
@@ -70,7 +77,7 @@
 2. ~~Client 改為（章, 關）~~（已完成）：`GameSession.SelectedChapter`、`MapPage` 章節切換、`HomePage` 跨章下一關、`BattleScreen`／`StoryPlayer` 改用 `Campaign`／`CampaignStory`、`EnemyPhase` 飄字、`BattleStage` 改用 `unit.ArtId` 載模型（玩家方 NPC 缺模型時借 `r_villager`）；之後跑 `tools/sync-core.ps1`。
 3. ~~`docs/story-chapters.md` 60 關審稿總表~~（已完成）。
 4. ~~素材副本平衡重跑~~（已完成，見上）。
-4. 世界 Boss（待決事項多）。
+4. ~~世界 Boss~~（已完成，見上）。
 5. 用 Unity 編輯器實際開啟 client，檢查新畫面並用 `ShotRunner` 截圖。
 
 ## GDD 仍待使用者決定
