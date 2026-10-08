@@ -92,8 +92,8 @@ namespace SanGuo.Core.Meta
             return setup;
         }
 
-        /// <summary>各階素材副本的敵人等級（暫定，約對應各章末的玩家等級；之後依戰力門檻校準）。</summary>
-        public static readonly int[] DungeonEnemyLevels = { 12, 19, 25, 32, 40 };
+        /// <summary>各階素材副本的敵人等級（暫定：第 1 階於教學章中段解鎖故較低，其後約對應各章末的玩家等級；之後依戰力門檻校準）。</summary>
+        public static readonly int[] DungeonEnemyLevels = { 6, 19, 25, 32, 40 };
 
         /// <summary>
         /// 資源副本的戰鬥設定：每階有自己的敵人配置（暫以盜匪單位組成），我方由玩家編隊決定（套用編隊前是空的），開放自動戰鬥。
