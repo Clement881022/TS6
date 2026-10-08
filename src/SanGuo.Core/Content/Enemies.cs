@@ -103,6 +103,19 @@ namespace SanGuo.Core.Content
         public static EnemyDef XlAdvisor() => Make("xl_advisor", "董卓幕僚", Role.Strategist,
             new Stats { Hp = 380, Atk = 40, Int = 150, Def = 15, Move = 1, Range = 2 }, EnemyTier.Elite, magical: true, art: "bandit_shaman").Charge(1, 2, 1.3);
 
+        // 第 5 章呂布麾下的并州軍：數值與西涼軍相同，只換名稱。
+        private static EnemyDef Renamed(this EnemyDef def, string id, string name)
+        {
+            def.Id = id;
+            def.Name = name;
+            return def;
+        }
+
+        public static EnemyDef BzCavalry() => Cavalry().Renamed("bz_cavalry", "并州狼騎");
+        public static EnemyDef BzHorseArcher() => HorseArcher().Renamed("bz_horsearcher", "并州弓騎");
+        public static EnemyDef BzCaptain() => XlCaptain().Renamed("bz_captain", "并州校尉");
+        public static EnemyDef XianzhenGuard() => Guard().Renamed("xianzhen_guard", "陷陣營甲士");
+
         /// <summary>第 3 章第 5 關：十常侍之一。</summary>
         public static EnemyDef DuanGui() => Make("duan_gui", "段珪", Role.Strategist,
             new Stats { Hp = 380, Atk = 40, Int = 120, Def = 15, Move = 1, Range = 2 }, EnemyTier.Elite, magical: true, art: "bandit_shaman").Charge(1, 2, 1.4);
