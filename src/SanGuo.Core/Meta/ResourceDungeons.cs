@@ -83,7 +83,7 @@ namespace SanGuo.Core.Meta
         }
     }
 
-    /// <summary>素材副本表（五階；獎勵數值與解鎖關卡為暫定值，後 4 階的解鎖關卡待章節內容完成）。</summary>
+    /// <summary>素材副本表（五階；獎勵數值與解鎖關卡為暫定值）。</summary>
     public static class DemoResourceDungeons
     {
         private static readonly string[] Names = { "糧倉護衛", "校場操練", "兵器鋪", "軍械庫", "中軍帳" };

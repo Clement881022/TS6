@@ -89,11 +89,14 @@ namespace SanGuo.Core.Meta
             return setup;
         }
 
-        /// <summary>各階素材副本的敵人等級（暫定：第 1 階於第零章中段解鎖故較低，其後等於解鎖時那一章的章末敵人等級）。</summary>
-        public static readonly int[] DungeonEnemyLevels = { 6, 19, 25, 29, 32 };
+        /// <summary>
+        /// 各階素材副本的敵人等級（暫定）：第 1 階於第零章中段解鎖故較低；其後以自動戰鬥校準，
+        /// 讓上一章章末養成剛解鎖時勝率約六成以上、再晚一章約九成以上（見 OpenStageBalanceTests）。
+        /// </summary>
+        public static readonly int[] DungeonEnemyLevels = { 6, 19, 25, 31, 33 };
 
         /// <summary>
-        /// 資源副本的戰鬥設定：每階有自己的敵人配置（暫以盜匪單位組成），我方由玩家編隊決定（套用編隊前是空的），開放自動戰鬥。
+        /// 資源副本的戰鬥設定：每階有自己的敵人配置（第 1–2 階為第零章盜匪，第 3–5 階沿用解鎖時那一章的主線敵人），我方由玩家編隊決定（套用編隊前是空的），開放自動戰鬥。
         /// </summary>
         public static BattleSetup DungeonSetup(string dungeonId, ulong seed)
         {
@@ -112,17 +115,17 @@ namespace SanGuo.Core.Meta
                     Add(DemoContent.BanditIronBrute(), 2, 0); Add(DemoContent.BanditGrunt(), 1, 0); Add(DemoContent.BanditGrunt(), 3, 0);
                     Add(DemoContent.BanditShaman(), 2, 1);
                     break;
-                case 3: // 兵器鋪：二當家與副寨主蓄力，要靠嘲諷或集火打斷
-                    Add(DemoContent.BanditSecondChief(), 1, 0); Add(DemoContent.BanditDeputy(), 3, 0);
-                    Add(DemoContent.BanditGrunt(), 2, 0); Add(DemoContent.BanditGrunt(), 0, 0);
+                case 3: // 兵器鋪：黃巾渠帥蓄力，要靠嘲諷或集火打斷；方士在後排放法術
+                    Add(Content.Enemies.YtCaptain(), 1, 0); Add(Content.Enemies.YtBrute(), 2, 0); Add(Content.Enemies.YtSoldier(), 3, 0);
+                    Add(Content.Enemies.YtSorcerer(), 2, 1); Add(Content.Enemies.YtArcher(), 0, 1);
                     break;
-                case 4: // 軍械庫：雙悍匪守門，獵戶山賊專打後排
-                    Add(DemoContent.BanditIronBrute(), 1, 0); Add(DemoContent.BanditIronBrute(), 3, 0);
-                    Add(DemoContent.BanditMarksman(), 0, 1); Add(DemoContent.BanditMarksman(), 4, 1); Add(DemoContent.BanditShaman(), 2, 1);
+                case 4: // 軍械庫：禁軍甲士守門，宦官黨羽與弓手在後排
+                    Add(Content.Enemies.Guard(), 1, 0); Add(Content.Enemies.Guard(), 3, 0); Add(Content.Enemies.HanSoldier(), 2, 0);
+                    Add(Content.Enemies.HanArcher(), 0, 1); Add(Content.Enemies.Eunuch(), 4, 1);
                     break;
-                default: // 中軍帳：山大王坐鎮，二當家與巫師護衛
-                    Add(DemoContent.BanditKing(), 2, 0); Add(DemoContent.BanditSecondChief(), 1, 0);
-                    Add(DemoContent.BanditShaman(), 0, 1); Add(DemoContent.BanditShaman(), 4, 1);
+                default: // 中軍帳：西涼校尉坐鎮蓄力，鐵騎衝陣、弓騎在後
+                    Add(Content.Enemies.XlCaptain(), 2, 0); Add(Content.Enemies.Cavalry(), 1, 0); Add(Content.Enemies.Cavalry(), 3, 0);
+                    Add(Content.Enemies.HorseArcher(), 0, 1); Add(Content.Enemies.HorseArcher(), 4, 1);
                     break;
             }
             return setup;

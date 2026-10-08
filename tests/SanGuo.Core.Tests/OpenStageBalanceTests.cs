@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using SanGuo.Core.Meta;
 using Xunit;
 using Xunit.Abstractions;
@@ -6,58 +5,55 @@ using Xunit.Abstractions;
 namespace SanGuo.Core.Tests
 {
     /// <summary>
-    /// 開放編隊的關卡 / 素材副本的難度梯度：養成越深越能過，才有「抽卡 → 養成 → 變強」的回饋。
-    /// 用自動戰鬥量測（人類玩家會比自動打得更好），範圍給寬，只鎖大方向。完整的戰力門檻曲線於章節內容完成後校準。
+    /// 素材副本的難度梯度：第 N 階於第 N−1 章通關後解鎖，以 <see cref="CampaignBalanceTests.Growth"/> 的章末養成量測。
+    /// 剛解鎖時要打得過、晚一章再來應該穩過（才能放心掃蕩），而停在更早的養成則多半過不了。
+    /// 用自動戰鬥量測（人類玩家會比自動打得更好），範圍給寬，只鎖大方向。
     /// </summary>
     public class OpenStageBalanceTests
     {
         private readonly ITestOutputHelper _out;
         public OpenStageBalanceTests(ITestOutputHelper output) { _out = output; }
 
-        private static readonly string[] Team = { "zhangfei", "guanyu", "r_archer", "liubei" };
+        /// <summary>第 N 階解鎖時的養成序號（第 1 階在第零章中段解鎖，以第零章末計）。</summary>
+        private static int UnlockGrowth(int tier) => tier == 1 ? 0 : tier - 1;
 
-        private double WinRate(string stage, string[] heroes, int level, int stars = 0, int runs = 60)
-        {
-            var p = PlayerProfile.CreateNew(0);
-            var cells = new[] { (1, 3), (2, 3), (3, 3), (2, 4) };
-            var team = new List<FormationEntry>();
-            for (int i = 0; i < heroes.Length; i++)
-            {
-                p.Heroes[heroes[i]] = new HeroState { HeroId = heroes[i], Level = level, Stars = stars };
-                team.Add(new FormationEntry(heroes[i], cells[i].Item1, cells[i].Item2));
-            }
-            int wins = 0;
-            for (ulong seed = 1; seed <= (ulong)runs; seed++)
-            {
-                var battle = new Battle(DemoMeta.BuildSetup(stage, seed, p, team)!);
-                for (int i = 0; i < 60 && battle.Result == BattleResult.Ongoing; i++) AutoPlayer.PlayTurn(battle);
-                if (battle.Result == BattleResult.Won) wins++;
-            }
-            double rate = 100.0 * wins / runs;
-            _out.WriteLine($"{stage} Lv{level} ★{stars}: {rate:F0}%");
-            return rate;
-        }
+        private double WinRate(int tier, int growth, int runs = 30) =>
+            CampaignBalanceTests.WinRate(DemoResourceDungeons.IdOf(tier), CampaignBalanceTests.Growth[growth], runs);
 
         [Fact]
         public void Report()
         {
-            foreach (var stage in new[] { "res_1", "res_2", "res_3", "res_4", "res_5" })
-                foreach (var (lv, st) in new[] { (1, 0), (10, 0), (20, 2), (30, 3), (40, 5) })
-                    WinRate(stage, Team, lv, st, 30);
+            for (int tier = 1; tier <= 5; tier++)
+            {
+                string line = $"{DemoResourceDungeons.IdOf(tier)} Lv{DemoMeta.DungeonEnemyLevels[tier - 1]}（第 {UnlockGrowth(tier)} 章末解鎖）:";
+                for (int g = 0; g < CampaignBalanceTests.Growth.Length; g++) line += $" 第{g}章末 {WinRate(tier, g, 20):F0}%";
+                _out.WriteLine(line);
+            }
         }
 
-        [Fact]
-        public void GrowthHelps_OnTheThirdDungeon()
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        public void Dungeon_IsClearableOnUnlock_AndSafeOneChapterLater(int tier)
         {
-            double fresh = WinRate("res_3", Team, 1);
-            double grown = WinRate("res_3", Team, 40, 5);
-            Assert.True(grown > fresh, $"養成後 {grown}% 應高於新手 {fresh}%");
+            int g = UnlockGrowth(tier);
+            double onUnlock = WinRate(tier, g), later = WinRate(tier, g + 1);
+            _out.WriteLine($"res_{tier}: 解鎖時 {onUnlock:F0}%、晚一章 {later:F0}%");
+            Assert.True(onUnlock >= 45, $"第 {tier} 階剛解鎖時勝率 {onUnlock:F0}% 太低");
+            Assert.True(later >= 85, $"第 {tier} 階晚一章勝率 {later:F0}% 太低，不適合掃蕩");
         }
 
-        [Fact]
-        public void FirstDungeon_IsClearableByAMidLevelTeam()
+        [Theory]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        public void Dungeon_NeedsGrowth(int tier)
         {
-            Assert.True(WinRate("res_1", Team, 20, 2) >= 70);
+            double behind = WinRate(tier, UnlockGrowth(tier) - 1), onUnlock = WinRate(tier, UnlockGrowth(tier));
+            Assert.True(behind < onUnlock, $"第 {tier} 階：停在上一章養成 {behind:F0}% 應低於解鎖時 {onUnlock:F0}%");
         }
     }
 }
