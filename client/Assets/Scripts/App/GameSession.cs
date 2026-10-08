@@ -44,6 +44,7 @@ namespace SanGuo.Client
         /// <summary>編隊頁要為哪個關卡 / 副本排兵（主線 "1-9" 或副本 id）。</summary>
         public static string FormationStageId = "";
         public static int SelectedLevel = 1;
+        public static bool OpenSelectedStageOnMap;
         public static BattleTicket? Ticket;
         public static string? ShotDir { get; private set; }
 
@@ -55,6 +56,7 @@ namespace SanGuo.Client
             Formation.Clear();
             FormationStageId = "";
             SelectedLevel = 1;
+            OpenSelectedStageOnMap = false;
             Ticket = null;
             ShotDir = null;
         }
@@ -99,12 +101,12 @@ namespace SanGuo.Client
 
         public static HeroDef? DefOf(string id) => Roster.Find(h => h.Id == id);
 
-        public static string StageIdOf(int level) => DemoMeta.StageId(1, level);
+        public static string StageIdOf(int level) => DemoMeta.StageId(0, level);
 
         public static bool IsUnlocked(int level) => level == 1 || View.ClearedStages.Contains(StageIdOf(level - 1));
 
         /// <summary>教學關：隊伍固定，不經過編隊畫面。</summary>
-        public static bool FormationLocked(int level) => DemoMeta.FormationLocked(level);
+        public static bool FormationLocked(int level) => DemoMeta.FormationLocked(0, level);
 
         // 列陣區只有 3x2（欄 1–3、列 3 = 前排、列 4 = 後排）。
         private static readonly (int Lane, int Row)[] FrontCells = { (2, 3), (1, 3), (3, 3) };
@@ -142,8 +144,8 @@ namespace SanGuo.Client
         {
             var dungeon = DemoMeta.FindDungeon(stageId);
             if (dungeon != null) return DemoMeta.DungeonSetup(dungeon.Id, 1);
-            int level = DemoMeta.LevelOf(stageId);
-            return level == 0 ? null : DemoMeta.OpenLevel(level, 1);
+            return Campaign.TryParse(stageId, out int chapter, out int level)
+                ? DemoMeta.OpenLevel(chapter, level, 1) : null;
         }
 
         /// <summary>

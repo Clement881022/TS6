@@ -14,6 +14,14 @@ namespace SanGuo.Client
         protected override Page Id => Page.Map;
         protected override string Title => "第零章　涿縣盜匪";
 
+        protected override void OnReady()
+        {
+            if (!GameSession.OpenSelectedStageOnMap) return;
+            GameSession.OpenSelectedStageOnMap = false;
+            int level = Mathf.Clamp(GameSession.SelectedLevel, 1, DemoContent.ChapterLevelCount);
+            if (GameSession.IsUnlocked(level)) OpenStageDetail(level);
+        }
+
         protected override void BuildBody(VisualElement body)
         {
             var v = GameSession.View;
@@ -92,7 +100,7 @@ namespace SanGuo.Client
         private void OpenStageDetail(int level)
         {
             var v = GameSession.View;
-            var stage = DemoMeta.Chapter1Stage(level);
+            var stage = DemoMeta.Stage(0, level);
             int stars = v.StarsOf(stage.StageId);
             bool first = !v.ClearedStages.Contains(stage.StageId);
             var setup = DemoContent.Level(level, 1);
@@ -104,7 +112,7 @@ namespace SanGuo.Client
             var panel = new VisualElement();
             panel.AddToClassList("bpanel");
             panel.AddToClassList("stage-panel");
-            panel.Add(new Button(() => overlay.RemoveFromHierarchy()).WithClass("popup-close"));
+            panel.Add(new Button(() => overlay.RemoveFromHierarchy()) { text = "×", tooltip = "關閉關卡詳情" }.WithClass("popup-close"));
 
             var head = new VisualElement();
             head.AddToClassList("stage-head");

@@ -19,6 +19,7 @@ namespace SanGuo.Client
         private Tab _tab = Tab.Level;
         private ModelStage? _stage;
         private string? _stageHero;
+        private bool _showModel;
 
         protected override Page Id => Page.Heroes;
         protected override string Title => "武將";
@@ -36,6 +37,24 @@ namespace SanGuo.Client
             Rebuild();
         }
 
+        public void DebugScrollRosterEnd()
+        {
+            var scroll = Host.Q<ScrollView>();
+            if (scroll != null) scroll.verticalScroller.value = scroll.verticalScroller.highValue;
+        }
+
+        public void DebugSelectLastOwned()
+        {
+            _heroId = GameSession.OwnedHeroes().OrderByDescending(d => d.Name.Length).First().Id;
+            _tab = Tab.Level;
+            Rebuild();
+        }
+
+        public void DebugToggleModel()
+        {
+            _showModel = !_showModel; Rebuild();
+        }
+
         protected override void BuildBody(VisualElement body)
         {
             var v = GameSession.View;
@@ -51,21 +70,25 @@ namespace SanGuo.Client
                 body.Add(empty);
                 return;
             }
-            if (_heroId == null || !v.Heroes.ContainsKey(_heroId)) _heroId = owned[0].Id;
+            if (_heroId == null || !v.Heroes.ContainsKey(_heroId))
+                _heroId = owned.OrderByDescending(d => HeroArt.Full(d.Id) != null).ThenByDescending(d => d.Rarity).First().Id;
             var def = GameSession.DefOf(_heroId)!;
             var hero = v.Heroes[_heroId];
 
             // ---- 左：武將卡格 ----
             var left = new VisualElement();
             left.AddToClassList("hero-left");
+            left.Add(UiKit.Text("麾下武將", "strategy-roster-title"));
+            left.Add(UiKit.Text($"已擁有 {owned.Count} 位", "strategy-roster-count"));
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("grow");
+            scroll.verticalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
             scroll.contentContainer.AddToClassList("hero-grid");
             foreach (var d in owned)
             {
                 string id = d.Id;
                 var st = v.Heroes[id];
-                scroll.Add(UiKit.HeroTile(d, st.Level, st.Stars, () => { _heroId = id; Rebuild(); }, selected: id == _heroId));
+                scroll.Add(RosterEntry(d, st, () => { _heroId = id; Rebuild(); }, id == _heroId));
             }
             left.Add(scroll);
             body.Add(left);
@@ -81,15 +104,25 @@ namespace SanGuo.Client
         {
             var center = new VisualElement();
             center.AddToClassList("hero-center");
-            center.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("hero-emblem"));
-
-            if (_stageHero != def.Id)
+            var full = HeroArt.Bust(def.Id) ?? HeroArt.Full(def.Id) ?? HeroArt.Face(def.Id);
+            if (full != null && !_showModel)
             {
                 _stage?.Dispose();
-                _stage = ModelStage.Create(def.Id, 520, 600);
+                _stage = null;
+                _stageHero = null;
+                var art = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("strategy-hero-art");
+                if (HeroArt.Full(def.Id) == null) art.AddToClassList("strategy-hero-portrait");
+                art.style.backgroundImage = new StyleBackground(full);
+                center.Add(art);
+            }
+
+            if ((full == null || _showModel) && _stageHero != def.Id)
+            {
+                _stage?.Dispose();
+                _stage = ModelStage.Create(def.Id, 768, 900);
                 _stageHero = def.Id;
             }
-            if (_stage != null)
+            if ((full == null || _showModel) && _stage != null)
             {
                 var model = new Button(() => _stage?.Cheer());
                 model.AddToClassList("hero-model");
@@ -106,6 +139,41 @@ namespace SanGuo.Client
             bar.Add(UiKit.Badge(CardText.RoleName(def.Role), "badge-role"));
             bar.Add(new Label($"Lv.{hero.Level}") { pickingMode = PickingMode.Ignore }.WithClass("hero-namebar-level"));
             center.Add(bar);
+
+            if (full != null)
+            {
+                center.Add(UiKit.Btn(_showModel ? "切換立繪" : "切換模型", () => { _showModel = !_showModel; Rebuild(); }).WithClass("strategy-hero-view"));
+            }
+            center.Add(UiKit.Text("運籌帷幄 · 將星入陣", "strategy-hero-caption"));
+            return center;
+        }
+
+        private static Button RosterEntry(HeroDef def, HeroState hero, System.Action choose, bool selected)
+        {
+            var row = new Button(choose).WithClass("strategy-roster-entry");
+            if (selected) row.AddToClassList("strategy-roster-selected");
+            var face = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("strategy-roster-face");
+            var image = HeroArt.Face(def.Id);
+            if (image != null) face.style.backgroundImage = new StyleBackground(image);
+            else face.Add(UiKit.Text(def.Name.Substring(0, 1), "strategy-roster-name"));
+            row.Add(face);
+            var text = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("strategy-roster-text");
+            text.Add(UiKit.Text(def.Name, "strategy-roster-name"));
+            text.Add(UiKit.Text($"{def.Rarity}  ·  Lv.{hero.Level}", "strategy-roster-level"));
+            text.Add(UiKit.StarsRow(hero.Stars, HeroGrowth.MaxStars, "strategy-roster-stars"));
+            row.Add(text);
+            return row;
+        }
+
+        private static VisualElement BuildStats(HeroDef def, HeroState hero, ProfileView v)
+        {
+            var summary = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("strategy-hero-summary");
+            var heading = new VisualElement().WithClass("strategy-summary-heading");
+            heading.Add(UiKit.RarityBadge(def.Rarity));
+            heading.Add(UiKit.Text(def.Name, "strategy-summary-name"));
+            heading.Add(UiKit.Text($"Lv.{hero.Level}", "hero-namebar-level"));
+            heading.Add(UiKit.Badge(CardText.RoleName(def.Role), "badge-role"));
+            summary.Add(heading);
 
             // 屬性：目前 → 升級後（只有隨等級成長的四項會顯示預覽）
             var now = HeroGrowth.ScaleStats(def, hero);
@@ -128,15 +196,15 @@ namespace SanGuo.Client
             colB.Add(StatLine("攻擊範圍", now.Range.ToString(), null));
             stats.Add(colA);
             stats.Add(colB);
-            center.Add(stats);
+            summary.Add(stats);
 
             // 品階（突破星級）：星星下方標示數字，沒突破時暗星也看得到。
             var grade = new VisualElement { pickingMode = PickingMode.Ignore };
             grade.AddToClassList("hero-grade");
             grade.Add(UiKit.StarsRow(hero.Stars, HeroGrowth.MaxStars, "stars-lg"));
             grade.Add(new Label($"突破 {hero.Stars}/{HeroGrowth.MaxStars}") { pickingMode = PickingMode.Ignore }.WithClass("hero-grade-text"));
-            center.Add(grade);
-            return center;
+            summary.Add(grade);
+            return summary;
         }
 
         private static VisualElement StatLine(string name, string now, string? next)
@@ -151,11 +219,11 @@ namespace SanGuo.Client
             {
                 var arrow = new Label("  ▶  ") { pickingMode = PickingMode.Ignore };
                 arrow.AddToClassList("stat-line-name");
-                arrow.style.color = new Color(0.4f, 0.95f, 0.6f);
+                arrow.style.color = new Color(0.16f, 0.47f, 0.31f);
                 right.Add(arrow);
                 var n = new Label(next) { pickingMode = PickingMode.Ignore };
                 n.AddToClassList("stat-line-val");
-                n.style.color = new Color(0.4f, 0.95f, 0.6f);
+                n.style.color = new Color(0.16f, 0.47f, 0.31f);
                 right.Add(n);
             }
             line.Add(right);
@@ -166,6 +234,7 @@ namespace SanGuo.Client
         {
             var right = new VisualElement();
             right.AddToClassList("hero-right");
+            right.Add(BuildStats(def, hero, v));
 
             var seg = new VisualElement();
             seg.AddToClassList("seg");
@@ -178,7 +247,7 @@ namespace SanGuo.Client
             var panel = new VisualElement();
             panel.AddToClassList("bpanel");
             panel.AddToClassList("side-panel");
-            if (_tab != Tab.Level) panel.AddToClassList("side-panel-fill"); // 突破與裝備清單較長，撐滿；升級依內容高度
+            panel.AddToClassList("side-panel-fill");
             var content = new VisualElement();
             content.AddToClassList("side-body");
             var footer = new VisualElement();

@@ -31,11 +31,11 @@ namespace SanGuo.Client
         private const float TilePitch = 1.85f;      // 欄與欄之間（螢幕上下方向；參考 TS6Client 角色間距 1.5）
         private const float TilePitchX = 1.55f;     // 列與列之間（螢幕左右方向）
         private const float TileTop = 0.03f;
-        private const float ModelScale = 1.15f;
+        private const float ModelScale = 0.90f;
         private const float UnitHeadHeight = 2.4f;     // 模型縮小後的頭頂高度（ModelScale 1.5 時為 3.1）
-        private const float TagRoomAbove = 1.3f;       // 頭頂血量標籤的預留高度（世界單位），避免被切到畫面外
-        private const float TagRoomBelow = 0.9f;       // 我方標籤在腳下
-        private const float ViewYawDegrees = 18f;      // 面向對手的同時微微轉向鏡頭
+        private const float TagRoomAbove = 0.5f;       // 頭頂血量標籤的預留高度（世界單位），避免被切到畫面外
+        private const float TagRoomBelow = 0.35f;       // 我方標籤在腳下
+        private const float ViewYawDegrees = 65f;      // 面向對手的同時微微轉向鏡頭
 
         private sealed class UnitView
         {
@@ -70,6 +70,14 @@ namespace SanGuo.Client
         private readonly Dictionary<string, GameObject> _prefabs = new Dictionary<string, GameObject>();
         private readonly Dictionary<(int, int), TileTag> _tiles = new Dictionary<(int, int), TileTag>();
         private GameObject? _tileRoot;
+        private readonly List<UnityEngine.Object> _boardResources = new List<UnityEngine.Object>();
+        private void ReleaseBoardResources()
+        {
+            foreach (var resource in _boardResources) if (resource != null) Destroy(resource);
+            _boardResources.Clear();
+            foreach (var tile in _tiles.Values) if (tile.Renderer != null) Destroy(tile.Renderer.sharedMaterial);
+        }
+        private void OnDestroy() => ReleaseBoardResources();
 
         private void Awake()
         {
@@ -90,12 +98,14 @@ namespace SanGuo.Client
                 var light = lightGo.AddComponent<Light>();
                 light.type = LightType.Directional;
                 light.intensity = 1.1f;
+                light.shadows = LightShadows.Soft;
+                light.shadowStrength = .28f;
                 light.color = new Color(1f, 0.97f, 0.92f);
                 lightGo.transform.rotation = Quaternion.Euler(52f, -25f, 0f);
             }
             CreateBackdrop();
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.56f, 0.56f, 0.62f);
+            RenderSettings.ambientLight = new Color(0.64f, 0.62f, 0.56f);
         }
 
         // ------------------------------------------------------------ 綁定戰鬥
@@ -106,7 +116,7 @@ namespace SanGuo.Client
         /// <summary>戰場背景：貼圖貼在攝影機正後方的一張 Quad，跟著鏡頭縮放、永遠填滿畫面（Resources/UiBg/battle）。</summary>
         private void CreateBackdrop()
         {
-            var tex = Resources.Load<Texture2D>("UiBg/battle");
+            var tex = Resources.Load<Texture2D>("ChibiSkin/battle");
             var shader = Resources.Load<Shader>("Shaders/Backdrop");
             if (tex == null || shader == null) return;
             var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -115,7 +125,7 @@ namespace SanGuo.Client
             quad.transform.SetParent(_camera.transform, false);
             quad.transform.localPosition = new Vector3(0f, 0f, BackdropDistance);
             quad.transform.localRotation = Quaternion.identity;
-            var mat = new Material(shader) { mainTexture = tex, color = new Color(0.86f, 0.88f, 0.95f) };
+            var mat = new Material(shader) { mainTexture = tex, color = Color.white };
             quad.GetComponent<Renderer>().sharedMaterial = mat;
             _backdrop = quad.transform;
         }
@@ -136,6 +146,7 @@ namespace SanGuo.Client
             foreach (var kv in _views) Destroy(kv.Value.Anchor);
             _views.Clear();
             if (_tileRoot != null) Destroy(_tileRoot);
+            ReleaseBoardResources();
             _tiles.Clear();
 
             ResetView();
@@ -170,7 +181,8 @@ namespace SanGuo.Client
                     tag.Renderer = tile.GetComponent<Renderer>();
                     if (TileShader != null) tag.Renderer.sharedMaterial = new Material(TileShader);
                     // 共用棋盤沒有敵我領土：所有格子都是中立色（只有技能預覽才會上色）。
-                    tag.BaseColor = new Color(1f, 1f, 1f, 0.12f);
+                    tag.BaseColor = new Color(0.82f, 0.78f, 0.60f, 0.06f);
+                    tag.Renderer.material.SetFloat("_Border", 0.024f);
                     tag.Renderer.material.color = tag.BaseColor;
                     _tiles[(lane, row)] = tag;
                 }
@@ -181,34 +193,69 @@ namespace SanGuo.Client
 
         private void BuildFloor(Transform parent)
         {
-            var shader = FloorShader;
-            if (shader == null) return;
             int lanes = _battle!.Setup.Lanes, rows = _battle.Setup.Rows;
-            float w = rows * TilePitchX, d = lanes * TilePitch;   // x 軸 = 列方向、z 軸 = 欄方向
+            float w = rows * TilePitchX, d = lanes * TilePitch;
+            var jade = new Color(.17f, .28f, .27f);
+            var bronze = new Color(.72f, .51f, .23f);
+            Solid(parent, "Jade foundation", Vector3.down * .24f, new Vector3(w + .64f, .30f, d + .64f), jade, .08f);
+            Solid(parent, "Bronze reveal", Vector3.down * .09f, new Vector3(w + .42f, .06f, d + .42f), bronze, .025f);
+            Solid(parent, "Recessed grout", Vector3.down * .045f, new Vector3(w + .28f, .04f, d + .28f), jade, .025f);
+            for (int lane = 0; lane < lanes; lane++)
+            for (int row = 0; row < rows; row++)
+            {
+                var stone = (lane + row) % 2 == 0 ? new Color(.89f, .86f, .75f) : new Color(.78f, .83f, .77f);
+                Solid(parent, $"Carved stone {lane}-{row}", TileWorld(new Position(lane, row)) + Vector3.down * .045f,
+                    new Vector3(TilePitchX * .97f, .10f, TilePitch * .97f), stone, .035f);
+            }
+            foreach (int sign in new[] { -1, 1 })
+            {
+                Solid(parent, "Bronze edge", new Vector3(sign * (w / 2f + .20f), -.015f, 0), new Vector3(.08f, .08f, d + .46f), bronze, .018f);
+                Solid(parent, "Bronze edge", new Vector3(0, -.015f, sign * (d / 2f + .20f)), new Vector3(w + .46f, .08f, .08f), bronze, .018f);
+                foreach (int other in new[] { -1, 1 })
+                {
+                    var corner = new Vector3(sign * (w / 2f + .17f), .005f, other * (d / 2f + .17f));
+                    Solid(parent, "Corner seal", corner, new Vector3(.34f, .10f, .34f), bronze, .045f);
+                    Solid(parent, "Jade seal", corner + Vector3.up * .055f, new Vector3(.17f, .025f, .17f), jade, .025f);
+                }
+            }
+        }
 
-            // 木框底座：比石板大一圈、略低，形成立體邊緣。
-            var frame = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            frame.name = "FloorFrame";
-            Destroy(frame.GetComponent<Collider>());
-            frame.transform.SetParent(parent, false);
-            frame.transform.localScale = new Vector3(w + 0.9f, 0.4f, d + 0.9f);
-            frame.transform.position = new Vector3(0f, -0.2f - 0.02f, 0f);
-            var frameMat = new Material(shader);
-            frameMat.SetColor("_ColorA", new Color(0.30f, 0.22f, 0.16f));
-            frameMat.SetColor("_ColorB", new Color(0.30f, 0.22f, 0.16f));
-            frameMat.SetFloat("_Vignette", 0.35f);
-            frame.GetComponent<Renderer>().sharedMaterial = frameMat;
-
-            // 石板地面（兩色棋盤紋）。
-            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            floor.name = "FloorSlab";
-            Destroy(floor.GetComponent<Collider>());
-            floor.transform.SetParent(parent, false);
-            floor.transform.localScale = new Vector3(w + 0.1f, 0.12f, d + 0.1f);
-            floor.transform.position = new Vector3(0f, -0.06f - 0.012f, 0f);
-            var floorMat = new Material(shader);
-            floorMat.SetVector("_Tiles", new Vector4(rows, lanes, 0, 0));
-            floor.GetComponent<Renderer>().sharedMaterial = floorMat;
+        // Real bevel geometry gives the board a thin crafted edge and individual stone relief.
+        private void Solid(Transform parent, string name, Vector3 center, Vector3 size, Color color, float bevel)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = center;
+            var mesh = new Mesh { name = name };
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            float x = size.x * .5f, y = size.y * .5f, z = size.z * .5f;
+            float by = Mathf.Min(bevel, y * .65f);
+            var rings = new Vector3[4][];
+            for (int r = 0; r < 4; r++)
+            {
+                float inset = r == 0 || r == 3 ? bevel : 0;
+                float xx = x - inset, zz = z - inset;
+                float yy = r == 0 ? -y : r == 1 ? -y + by : r == 2 ? y - by : y;
+                rings[r] = new[] { new Vector3(-xx, yy, -zz), new Vector3(-xx, yy, zz), new Vector3(xx, yy, zz), new Vector3(xx, yy, -zz) };
+            }
+            void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+            {
+                int n = vertices.Count;
+                vertices.AddRange(new[] { a, b, c, d });
+                triangles.AddRange(new[] { n, n + 1, n + 2, n, n + 2, n + 3 });
+            }
+            for (int r = 0; r < 3; r++)
+            for (int j = 0; j < 4; j++) Quad(rings[r][j], rings[r][(j + 1) % 4], rings[r + 1][(j + 1) % 4], rings[r + 1][j]);
+            Quad(rings[3][0], rings[3][1], rings[3][2], rings[3][3]);
+            Quad(rings[0][3], rings[0][2], rings[0][1], rings[0][0]);
+            mesh.SetVertices(vertices); mesh.SetTriangles(triangles, 0); mesh.RecalculateNormals();
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var shader = Resources.Load<Shader>("Shaders/ToonLit")!;
+            var mat = new Material(shader) { color = color };
+            _boardResources.Add(mesh); _boardResources.Add(mat);
+            mat.SetFloat("_OutlineWidth", 0f); mat.SetFloat("_RimStrength", .04f);
+            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
         }
 
         /// <summary>棋盤格的世界座標（地磚頂面中心）。第 0 列（敵方底線）在右、第 4 列（我方底線）在左；第 0 欄在遠端。</summary>
@@ -303,13 +350,11 @@ namespace SanGuo.Client
             var view = model.AddComponent<CharacterView>();
             view.Init(model.transform);
 
-            float dir = unit.Side == Side.Player ? 1f : -1f;
-            float yaw = Mathf.Deg2Rad * ViewYawDegrees;
             var uv = new UnitView
             {
                 Anchor = anchor,
                 View = view,
-                Facing = new Vector3(Mathf.Cos(yaw) * dir, 0f, -Mathf.Sin(yaw)).normalized,
+                Facing = unit.Side == Side.Player ? new Vector3(-.65f, 0f, -.76f).normalized : new Vector3(-.90f, 0f, -.44f).normalized,
             };
             _views[unit.Id] = uv;
             return uv;
@@ -380,7 +425,10 @@ namespace SanGuo.Client
             }
             float needW = (maxX - minX) / BoardZoom + 0.4f;
             float needH = (maxY - minY) / BoardZoom + 0.3f;
-            float worldPerPx = Mathf.Max(needH / fieldH, needW / fieldW) / _zoom;
+            // Tall displays have more vertical room but less room beside the board.
+            // Reduce the initial framing magnification while preserving user zoom.
+            float framingZoom = _zoom * Mathf.Min(1f, _camera.aspect / (16f / 9f));
+            float worldPerPx = Mathf.Max(needH / fieldH, needW / fieldW) / framingZoom;
             _camera.orthographicSize = worldPerPx * Screen.height * 0.5f;
 
             // 包圍盒中心要落在 field 中心：在攝影機空間反向平移。

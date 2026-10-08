@@ -23,9 +23,11 @@ namespace SanGuo.Client
         {
             body.style.flexDirection = FlexDirection.Column;
             body.AddToClassList("page-centered");
+            body.AddToClassList("shop-page");
 
             var seg = new VisualElement();
             seg.AddToClassList("seg");
+            seg.AddToClassList("shop-tabs");
             seg.Add(UiKit.Tab("儲值", () => { _tab = Tab.Pay; Rebuild(); }, _tab == Tab.Pay).WithClass("seg-tab"));
             seg.Add(UiKit.Tab("將魂商店", () => { _tab = Tab.Soul; Rebuild(); }, _tab == Tab.Soul).WithClass("seg-tab"));
             body.Add(seg);
@@ -33,6 +35,8 @@ namespace SanGuo.Client
             if (_tab == Tab.Pay) BuildPay(body);
             else BuildSoulShop(body);
         }
+
+        public void DebugSetTab(int tab) { _tab = (Tab)tab; Rebuild(); }
 
         private void BuildPay(VisualElement body)
         {
@@ -88,10 +92,11 @@ namespace SanGuo.Client
             var v = GameSession.View;
             long now = v.Now;
             int souls = v.Material(HeroGrowth.Soul);
-            body.Add(UiKit.Text($"將魂 {souls}　（已滿突武將的重複份會轉成將魂；每月 1 日重置限購）", "line-title"));
+            body.Add(UiKit.Text($"將魂 {souls}　｜　滿突武將的重複份轉為將魂，每月 1 日重置限購", "line-title shop-soul-note"));
 
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("grow");
+            scroll.AddToClassList("shop-soul-scroll");
             foreach (var item in SoulShop.Items())
             {
                 var it = item;
@@ -109,9 +114,12 @@ namespace SanGuo.Client
                 var head = new VisualElement();
                 head.AddToClassList("card-row-head");
                 head.Add(UiKit.Text(it.Name, "card-row-name"));
-                head.Add(soldOut
+                var purchase = soldOut
                     ? UiKit.DoneBtn("本月已兌完").WithClass("btn-sm")
-                    : UiKit.Btn($"{it.Cost} 將魂", () => _ = Act(() => GameSession.Backend.BuySoulItem(it.Id), "兌換成功"), primary: souls >= it.Cost).WithClass("btn-sm"));
+                    : UiKit.Btn($"{it.Cost} 將魂", () => _ = Act(() => GameSession.Backend.BuySoulItem(it.Id), "兌換成功"), primary: souls >= it.Cost).WithClass("btn-sm");
+                purchase.SetEnabled(!soldOut && souls >= it.Cost);
+                purchase.tooltip = souls >= it.Cost ? "兌換此項目" : $"將魂不足，需要 {it.Cost} 將魂";
+                head.Add(purchase);
                 row.Add(head);
                 row.Add(UiKit.Text($"本月 {bought}/{it.MonthlyLimit}", "card-row-desc"));
                 scroll.Add(row);

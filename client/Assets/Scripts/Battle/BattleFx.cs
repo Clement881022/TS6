@@ -41,7 +41,7 @@ namespace SanGuo.Client
                     Enqueue(() => { _viewOf(e.Source)?.Cast(); AudioManager.PlaySfx(Sfx.Cast); }, 0f);
                     break;
                 case EventType.Damage:
-                    if (e.Source >= 0) Enqueue(() => _viewOf(e.Source)?.Attack(), 0f);
+                    if (e.Source >= 0) Enqueue(() => _viewOf(e.Source)?.Attack(_viewOf(e.Target)), 0f);
                     bool crit = e.Text == "crit";
                     Enqueue(() =>
                     {

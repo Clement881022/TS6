@@ -9,6 +9,8 @@ namespace SanGuo.Client
     /// </summary>
     public sealed class CharacterClipSet : MonoBehaviour
     {
+        public string MotionProfile = "sword";
+        public float HeadScale = 1f;
         public AnimationClip? Idle;
         public AnimationClip? Attack;
         public AnimationClip? Cast;

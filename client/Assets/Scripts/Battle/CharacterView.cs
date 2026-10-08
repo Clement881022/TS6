@@ -22,10 +22,14 @@ namespace SanGuo.Client
         private Vector3 _baseScale = Vector3.one;
         private Transform? _torso, _head, _armR, _armL;
         private Quaternion _torsoBase, _headBase, _armRBase, _armLBase;
+        private Vector3 _headScale = Vector3.one;
         private Renderer[] _renderers = System.Array.Empty<Renderer>();
         private Color[] _baseColors = System.Array.Empty<Color>();
         private MaterialPropertyBlock _block = null!;
         private float _phase;
+        private string _motion = "sword";
+        private Vector3? _attackFacing;
+        public string MotionProfile => _motion;
 
         private float _attackT = -1f, _castT = -1f, _hitT = -1f, _dieT = -1f;
         private float _hitSign = 1f;
@@ -52,8 +56,16 @@ namespace SanGuo.Client
             _baseRot = model.localRotation;
             _baseScale = model.localScale;
             _phase = Random.value * 6.28f;
+            foreach (var role in new[] { "archer", "caster", "guard", "polearm", "sword" })
+                if (Find("pose_" + role) != null) _motion = role;
             _clips = model.GetComponent<CharacterClipSet>();
-            if (_clips != null) { InitClips(); return; }
+            if (_clips != null)
+            {
+                _motion = _clips.MotionProfile;
+                _head = Find("Bip001 Head");
+                if (_head != null) _headScale = _head.localScale;
+                InitClips(); return;
+            }
             _torso = Find("pivot_torso");
             _head = Find("pivot_head");
             _armR = Find("pivot_arm_R");
@@ -104,7 +116,17 @@ namespace SanGuo.Client
 
         // ------------------------------------------------------------ 觸發
 
-        public void Attack() { if (!IsDead) { _attackT = 0f; _castT = -1f; PlayOneShot(Clip.Attack); } }
+        public void Attack(CharacterView? target = null)
+        {
+            if (IsDead) return;
+            _attackFacing = null;
+            if (target != null)
+            {
+                var delta = target._model.position - _model.position; delta.y = 0;
+                if (delta.sqrMagnitude > .01f) _attackFacing = delta.normalized;
+            }
+            _attackT = 0f; _castT = -1f; PlayOneShot(Clip.Attack);
+        }
         public void Cast() { if (!IsDead && _attackT < 0f) { _castT = 0f; PlayOneShot(Clip.Cast); } }
 
         public void Hit()
@@ -195,6 +217,7 @@ namespace SanGuo.Client
                 _mixer.SetInputWeight(i, _oneShotT >= 0f && i == (int)_oneShot ? oneShotWeight : 0f);
             _mixer.SetInputWeight((int)Clip.Idle, 1f - oneShotWeight);
             _graph.Evaluate(0f);
+            if (_head != null) _head.localScale = _headScale * _clips!.HeadScale;
         }
 
         // ------------------------------------------------------------ 每幀
@@ -205,6 +228,12 @@ namespace SanGuo.Client
         public void Tick(float dt, Vector3 facing, float scale, Vector3 basePos)
         {
             if (_clips != null) { TickClips(dt, facing, basePos); return; }
+            if (_attackT >= 0 && _attackFacing.HasValue)
+            {
+                float k = _attackT / AttackDuration;
+                float turn = Mathf.Min(Mathf.Clamp01(k / .15f), 1f - Mathf.Clamp01((k - .7f) / .3f));
+                facing = Vector3.Slerp(facing, _attackFacing.Value, Mathf.SmoothStep(0, 1, turn)).normalized;
+            }
             float t = Time.time + _phase;
             // 擺動軸：讓正角度 = 手臂向前揮。
             Vector3 axis = Vector3.Cross(facing, Vector3.up).normalized;
@@ -215,8 +244,10 @@ namespace SanGuo.Client
             // 待機：呼吸起伏、輕微擺手與點頭。
             jump += 0.012f * Mathf.Sin(t * 2.4f);
             squash += 0.012f * Mathf.Sin(t * 2.4f + 1.2f);
-            armRAngle += 4f * Mathf.Sin(t * 1.9f);
-            armLAngle += 4f * Mathf.Sin(t * 1.9f + 1.7f);
+            float idleSpeed = _motion == "caster" ? 1.1f : _motion == "guard" ? 1.5f : 1.9f;
+            float idleSwing = _motion == "archer" ? 1.5f : _motion == "guard" ? 2f : 4f;
+            armRAngle += idleSwing * Mathf.Sin(t * idleSpeed);
+            armLAngle += idleSwing * Mathf.Sin(t * idleSpeed + 1.7f);
             headAngle += 2.5f * Mathf.Sin(t * 1.3f);
 
             if (_attackT >= 0f)
@@ -226,7 +257,31 @@ namespace SanGuo.Client
                 if (k >= 1f) _attackT = -1f;
                 else
                 {
-                    if (k < 0.3f)          // 蓄力：後仰、舉手
+                    if (_motion == "archer")
+                    {
+                        armRAngle += -22f * Mathf.Sin(Mathf.Min(k / .45f, 1f) * Mathf.PI / 2f) * (1f - Mathf.Clamp01((k - .5f) / .5f));
+                        armLAngle += 3f * Mathf.Sin(k * Mathf.PI);
+                        headAngle += -4f * Mathf.Sin(k * Mathf.PI);
+                    }
+                    else if (_motion == "caster")
+                    {
+                        armRAngle += -38f * Mathf.Sin(k * Mathf.PI);
+                        armLAngle += -18f * Mathf.Sin(k * Mathf.PI);
+                        jump += .06f * Mathf.Sin(k * Mathf.PI);
+                    }
+                    else if (_motion == "guard")
+                    {
+                        armLAngle += -20f * Mathf.Sin(k * Mathf.PI);
+                        armRAngle += 42f * Mathf.Sin(k * Mathf.PI);
+                        lunge = .28f * Mathf.Sin(k * Mathf.PI);
+                    }
+                    else if (_motion == "polearm")
+                    {
+                        armRAngle += -32f * Mathf.Sin(k * Mathf.PI * 2f);
+                        armLAngle += 16f * Mathf.Sin(k * Mathf.PI);
+                        lunge = .38f * Mathf.Sin(k * Mathf.PI);
+                    }
+                    else if (k < 0.3f)          // 蓄力：後仰、舉手
                     {
                         float e = Mathf.SmoothStep(0, 1, k / 0.3f);
                         armRAngle += Mathf.Lerp(0f, -55f, e);
@@ -256,8 +311,8 @@ namespace SanGuo.Client
                 {
                     float arc = Mathf.Sin(k * Mathf.PI);
                     jump += 0.22f * arc;
-                    armRAngle += 150f * arc;
-                    armLAngle += 150f * arc;
+                    armRAngle += (_motion == "caster" ? -42f : -24f) * arc;
+                    armLAngle += (_motion == "caster" ? -30f : -16f) * arc;
                     squash -= 0.06f * Mathf.Sin(k * Mathf.PI * 2f);
                 }
             }

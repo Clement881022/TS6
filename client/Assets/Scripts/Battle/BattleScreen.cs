@@ -71,7 +71,9 @@ namespace SanGuo.Client
         private VisualElement _field = null!;
         private VisualElement _tagLayer = null!;
         private BattleFx _fx = null!;
-        private VisualElement _hand = null!;      // 左側手牌清單（每張牌一列）
+        private VisualElement _hand = null!;
+        private readonly List<VisualElement> _handCards = new List<VisualElement>();
+        private VisualElement? _hoverCard;
         private VisualElement _detail = null!;    // 選定技能後在右側跳出的卡片詳情
         private VisualElement _heroBar = null!;   // 畫面底部的武將資訊列
         private Button _endButton = null!;
@@ -124,6 +126,7 @@ namespace SanGuo.Client
             header.AddToClassList("header");
             _title = new Label("三國將星傳");
             _title.AddToClassList("header-title");
+            UiKit.ApplyDisplayFont(_title);
             header.Add(_title);
             var buttons = new VisualElement { style = { flexDirection = FlexDirection.Row } };
             _autoButton = MakeButton("自動", ToggleAuto);
@@ -139,8 +142,9 @@ namespace SanGuo.Client
             _field = new VisualElement();
             _field.AddToClassList("field");
             // 左側是手牌清單、底部是武將資訊列：戰場（鏡頭取景範圍）讓出這兩塊。
-            _field.style.marginLeft = 370f;
-            _field.style.marginBottom = 200f;
+            _field.style.marginLeft = 264f;
+            _field.style.marginRight = 18f;
+            _field.style.marginBottom = 310f;
             _field.RegisterCallback<ClickEvent>(OnFieldClicked);
             _field.RegisterCallback<PointerDownEvent>(OnFieldDown);
             _field.RegisterCallback<PointerMoveEvent>(OnFieldMove);
@@ -169,8 +173,8 @@ namespace SanGuo.Client
             _piles.Add(_discardButton);
             left.Add(_piles);
             _hand = new VisualElement();
-            _hand.AddToClassList("bl-list");
-            left.Add(_hand);
+            _hand.AddToClassList("sts-hand");
+            _hand.RegisterCallback<GeometryChangedEvent>(_ => LayoutHand());
             _content.Add(left);
 
             // 右側：選定技能後才出現的卡片詳情。
@@ -183,6 +187,7 @@ namespace SanGuo.Client
             _heroBar = new VisualElement();
             _heroBar.AddToClassList("bl-bar");
             _content.Add(_heroBar);
+            _content.Add(_hand);
 
             var log = new VisualElement { pickingMode = PickingMode.Ignore };
             log.AddToClassList("bl-log");
@@ -195,13 +200,13 @@ namespace SanGuo.Client
             // 角色頭上的資訊層：蓋在最上面但不擋點擊。
             _tagLayer = new VisualElement { pickingMode = PickingMode.Ignore };
             _tagLayer.AddToClassList("tag-layer");
-            _content.Add(_tagLayer);
+            _field.Add(_tagLayer);
 
             // 單位懸停面板：跟著游標、不擋點擊。
             _unitInfo = new VisualElement { pickingMode = PickingMode.Ignore };
             _unitInfo.AddToClassList("unit-info");
             _unitInfo.style.display = DisplayStyle.None;
-            _content.Add(_unitInfo);
+            _field.Add(_unitInfo);
         }
 
         private static Button MakeButton(string text, Action onClick, bool primary = false)
@@ -557,13 +562,13 @@ namespace SanGuo.Client
                 RenderUnitInfo(unit);
             }
             // 面板跟著游標，靠近右 / 下緣時翻到另一側，避免被切掉。
-            var local = _content.WorldToLocal(evt.position);
-            float w = _content.layout.width, h = _content.layout.height;
+            var local = _field.WorldToLocal(evt.position);
+            float w = _field.layout.width, h = _field.layout.height;
             const float panelW = 330f, panelH = 400f;
             float left = local.x + 28f;
             if (left + panelW > w - 8f) left = local.x - 28f - panelW;
             float top = Mathf.Clamp(local.y - 40f, 8f, Mathf.Max(8f, h - panelH - 8f));
-            _unitInfo.style.left = Mathf.Max(8f, left);
+            _unitInfo.style.left = Mathf.Clamp(left, 8f, Mathf.Max(8f, w - panelW - 8f));
             _unitInfo.style.top = top;
             _unitInfo.style.display = DisplayStyle.Flex;
         }
@@ -834,25 +839,45 @@ namespace SanGuo.Client
         /// <summary>每幀把資訊貼到角色頭上（3D 位置 → 面板座標）。</summary>
         private void UpdateTagPositions()
         {
-            foreach (var unit in _battle.Units)
+            if (_tagLayer == null || _field.resolvedStyle.width < 1) return;
+            float width = _tagLayer.resolvedStyle.width, height = _tagLayer.resolvedStyle.height;
+            if (width < 1 || height < 1) return;
+            var occupied = new List<Rect>();
+            foreach (var unit in _battle.Units.OrderBy(u => u.Side == Side.Enemy ? 0 : 1))
             {
                 if (!_tags.TryGetValue(unit.Id, out var tag)) continue;
-                // 敵方標籤在頭頂；我方在近端，頭頂方向是敵方棋盤，所以標籤放腳下。
                 bool below = unit.Side == Side.Player;
-                var p = unit.Alive ? (below ? _stage.UnitFootPanel(unit) : _stage.UnitHeadPanel(unit)) : null;
-                if (p == null) { tag.Root.style.visibility = Visibility.Hidden; continue; }
-                var local = _tagLayer.WorldToLocal(p.Value);
-                float left = local.x - (below ? HeroTagWidth : TagWidth) * 0.5f;
-                float top = below ? local.y + 2f : local.y - TagHeight;
-                tag.Root.style.visibility = Visibility.Visible;
-                // 位置沒變就不要重設 style（每次設定都會觸發版面重算，是戰鬥畫面卡頓的來源之一）。
-                if (Mathf.Abs(tag.LastLeft - left) < 0.5f && Mathf.Abs(tag.LastTop - top) < 0.5f) continue;
-                tag.LastLeft = left; tag.LastTop = top;
-                tag.Root.style.left = left;
-                tag.Root.style.top = top;
+                var point = unit.Alive ? (below ? _stage.UnitFootPanel(unit) : _stage.UnitHeadPanel(unit)) : null;
+                if (point == null) { tag.Root.style.visibility = Visibility.Hidden; continue; }
+                var anchor = _tagLayer.WorldToLocal(point.Value);
+                if (anchor.x < 0 || anchor.x > width || anchor.y < 0 || anchor.y > height)
+                { tag.Root.style.visibility = Visibility.Hidden; continue; }
+                float tagWidth = below ? HeroTagWidth : TagWidth;
+                float measuredHeight = tag.Root.resolvedStyle.height;
+                float tagHeight = float.IsNaN(measuredHeight) || measuredHeight < 1 ? (below ? 40f : 82f) : measuredHeight;
+                var desired = new Vector2(anchor.x - tagWidth * 0.5f, below ? anchor.y + 2f : anchor.y - tagHeight - 4f);
+                Rect placement = default;
+                bool found = false;
+                // Keep the complete HUD inside the field, including after zoom/pan.
+                // Search nearby free positions before allowing labels to overlap each other.
+                for (int ring = 0; ring < 5 && !found; ring++)
+                    for (int direction = 0; direction < (ring == 0 ? 1 : 4) && !found; direction++)
+                    {
+                        float dx = direction == 2 ? -ring * (tagWidth + 6) : direction == 3 ? ring * (tagWidth + 6) : 0;
+                        float dy = direction == 0 ? -ring * (tagHeight + 6) : direction == 1 ? ring * (tagHeight + 6) : 0;
+                        placement = new Rect(Mathf.Clamp(desired.x + dx, 4, Mathf.Max(4, width - tagWidth - 4)),
+                            Mathf.Clamp(desired.y + dy, 4, Mathf.Max(4, height - tagHeight - 4)), tagWidth, tagHeight);
+                        found = !occupied.Any(r => r.Overlaps(placement));
+                    }
+                tag.Root.style.visibility = found ? Visibility.Visible : Visibility.Hidden;
+                if (!found) continue;
+                occupied.Add(placement);
+                if (Mathf.Abs(tag.LastLeft - placement.x) < 0.5f && Mathf.Abs(tag.LastTop - placement.y) < 0.5f) continue;
+                tag.LastLeft = placement.x; tag.LastTop = placement.y;
+                tag.Root.style.left = placement.x;
+                tag.Root.style.top = placement.y;
             }
         }
-
         private void FillIntent(VisualElement host, Unit enemy)
         {
             var intent = _battle.GetIntent(enemy);
@@ -919,36 +944,62 @@ namespace SanGuo.Client
         private void RefreshCards()
         {
             _hand.Clear();
-            int index = 1;
+            _handCards.Clear();
+            _hoverCard = null;
             foreach (var card in _battle.Hand)
             {
                 var captured = card;
                 var ok = _battle.CanPlay(card);
                 var row = new VisualElement();
-                row.AddToClassList("bl-row");
-                if (card.Def.Target == TargetRule.MoveDest) row.AddToClassList("bl-row-move");
-                else if (!card.Def.Basic) row.AddToClassList("bl-row-skill");
-                if (ok != PlayResult.Ok) row.AddToClassList("bl-row-disabled");
-                if (card == _pendingCard) row.AddToClassList("bl-row-selected");
-
-                row.Add(new Label(index.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("bl-row-index"));
-                row.Add(Face(card.Owner, "bl-row-face"));
+                row.AddToClassList("sts-card");
+                if (card.Def.Target == TargetRule.MoveDest) row.AddToClassList("sts-card-move");
+                else if (!card.Def.Basic) row.AddToClassList("sts-card-skill");
+                if (ok != PlayResult.Ok) row.AddToClassList("sts-card-disabled");
+                if (card == _pendingCard) row.AddToClassList("sts-card-selected");
+                row.Add(new Label(card.Def.Cost.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("sts-card-cost"));
                 var name = new Label(card.Def.Name) { pickingMode = PickingMode.Ignore };
-                name.AddToClassList("bl-row-name");
+                name.WithClass("sts-card-name");
                 row.Add(name);
-                row.Add(UiIcons.Icon(KindIcon(card.Def), "bl-row-kind"));
-                var cost = new Label(card.Def.Cost.ToString()) { pickingMode = PickingMode.Ignore };
-                cost.AddToClassList("bl-row-cost");
-                var costIcon = UiIcons.Get("cost");
-                if (costIcon != null) cost.style.backgroundImage = new StyleBackground(costIcon);
-                row.Add(cost);
+                var art = Face(card.Owner, "sts-card-art");
+                art.Add(UiIcons.Icon(KindIcon(card.Def), "sts-card-kind"));
+                row.Add(art);
+                row.Add(new Label(card.Owner?.Name ?? "全隊通用") { pickingMode = PickingMode.Ignore }.WithClass("sts-card-owner"));
+                var description = CardText.Description(card.Def);
+                var summary = CardText.Summary(card.Def);
+                row.Add(new Label(summary.Length > 0 ? summary : CardText.Target(card.Def, card.Owner?.AttackRange ?? 1)) { pickingMode = PickingMode.Ignore }.WithClass("sts-card-description"));
+                row.Add(new Label(card.Def.Target == TargetRule.MoveDest ? "移動" : card.Def.Basic ? "基本戰技" : "武將戰技") { pickingMode = PickingMode.Ignore }.WithClass("sts-card-type"));
+                row.tooltip = card.Def.Name + "\n" + CardText.Target(card.Def, card.Owner?.AttackRange ?? 1) + "\n" + description + (ok != PlayResult.Ok ? "\n" + Explain(ok) : "");
 
                 row.RegisterCallback<ClickEvent>(_ => OnCardClicked(captured));
-                row.RegisterCallback<PointerEnterEvent>(_ => Preview(captured));
-                row.RegisterCallback<PointerLeaveEvent>(_ => Preview(null));
+                row.RegisterCallback<PointerEnterEvent>(_ => { _hoverCard = row; row.AddToClassList("sts-card-hover"); row.BringToFront(); LayoutHand(); Preview(captured); });
+                row.RegisterCallback<PointerLeaveEvent>(_ => { if (_hoverCard == row) _hoverCard = null; row.RemoveFromClassList("sts-card-hover"); foreach (var sibling in _handCards) sibling.BringToFront(); LayoutHand(); Preview(null); });
                 _hand.Add(row);
-                index++;
+                _handCards.Add(row);
             }
+            LayoutHand();
+        }
+
+        private void LayoutHand()
+        {
+            int count = _handCards.Count;
+            if (count == 0) return;
+            float width = _hand.resolvedStyle.width;
+            if (float.IsNaN(width) || width <= 0) return;
+            const float cardWidth = 204f;
+            float step = count > 1 ? Mathf.Min(190f, (width - cardWidth - 40f) / (count - 1)) : 0f;
+            float start = (width - (cardWidth + step * (count - 1))) * 0.5f;
+            for (int i = 0; i < count; i++)
+            {
+                var tile = _handCards[i];
+                float offset = i - (count - 1) * 0.5f;
+                bool raised = tile == _hoverCard || tile.ClassListContains("sts-card-selected");
+                tile.style.left = start + step * i;
+                tile.style.top = raised ? 0f : 24f + Mathf.Abs(offset) * 3f;
+                tile.style.rotate = new Rotate(new Angle(raised ? 0f : offset * 1.8f, AngleUnit.Degree));
+            }
+            foreach (var tile in _handCards)
+                if (tile.ClassListContains("sts-card-selected")) tile.BringToFront();
+            _hoverCard?.BringToFront();
         }
 
         /// <summary>右側卡片詳情：選定技能後才出現，顯示射程圖、效果、關鍵字與操作提示。</summary>
@@ -956,8 +1007,9 @@ namespace SanGuo.Client
         {
             var card = _pendingCard;
             _detail.Clear();
-            if (card == null || !_battle.Hand.Contains(card)) { _detail.style.display = DisplayStyle.None; return; }
+            if (card == null || !_battle.Hand.Contains(card)) { _detail.style.display = DisplayStyle.None; _field.style.marginRight = 18f; return; }
             _detail.style.display = DisplayStyle.Flex;
+            _field.style.marginRight = 354f;
             var def = card.Def;
 
             var head = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -1355,10 +1407,23 @@ namespace SanGuo.Client
 
         // ------------------------------------------------------------ 截圖 / 除錯用
 
-                public void DebugPlayFirstPlayable()
+        public void DebugSelectFirstPlayable()
         {
             var card = _battle.Hand.FirstOrDefault(c => _battle.CanPlay(c) == PlayResult.Ok);
             if (card != null) OnCardClicked(card);
+        }
+
+        public void DebugPlayFirstPlayable()
+        {
+            if (_recorder == null) return;
+            var (card, target, mover) = AutoPlayer.Pick(_battle);
+            if (card == null) return;
+            _recorder.Play(card, target, mover);
+            _pendingCard = null;
+            _pendingMover = null;
+            ClearPreview();
+            PumpEvents();
+            Refresh();
         }
 
         /// <summary>截圖用：自動打完這一局（會錄下操作並交給後端結算）。</summary>
@@ -1372,7 +1437,87 @@ namespace SanGuo.Client
         public void DebugPreviewFirstCard()
         {
             var card = _battle.Hand.FirstOrDefault();
-            if (card != null) Preview(card);
+            if (card != null)
+            {
+                Preview(card);
+                if (_handCards.Count > 0)
+                {
+                    _hoverCard = _handCards[0];
+                    _hoverCard.AddToClassList("sts-card-hover");
+                    _hoverCard.BringToFront();
+                    LayoutHand();
+                }
+            }
+        }
+
+        public void DebugReviewZoom(bool enlarged)
+        {
+            _pendingCard = null; ClearPreview(); RefreshDetail();
+            _stage.ResetView();
+            if (enlarged) _stage.ZoomBy(10f);
+        }
+
+        public void DebugReviewScenario(int level)
+        {
+            _level = level; _seed = 12345; StartBattle(false);
+        }
+
+        public void DebugReviewActions()
+        {
+            var motions = new HashSet<string>();
+            foreach (var unit in _battle.Units.Where(u => u.Side == Side.Player))
+            {
+                var view = _stage.ViewOf(unit.Id);
+                if (view == null) throw new InvalidOperationException("Q-style model missing: " + unit.DefId);
+                motions.Add(view.MotionProfile);
+                if (view.MotionProfile == "caster") view.Cast(); else view.Attack();
+            }
+            if (motions.Count < 3) throw new InvalidOperationException("Combat motion profiles are not distinct.");
+            Debug.Log("[shot] Distinct combat motion profiles verified: " + string.Join(", ", motions));
+        }
+
+        // Screenshot-only hand stress: never recorded or submitted to the backend.
+        public void DebugReviewLongHand()
+        {
+            _recorder = null;
+            var pool = _battle.Hand.Concat(_battle.DrawPile).Concat(_battle.DiscardPile).Distinct().ToList();
+            _battle.Hand.Clear();
+            _battle.Hand.AddRange(pool.OrderByDescending(c => c.Def.Effects.Count).Take(10));
+            _pendingCard = null; ClearPreview(); Refresh();
+        }
+
+        public void DebugCheckLayout()
+        {
+            var visible = new List<Rect>();
+            foreach (var tag in _tags.Values)
+            {
+                if (tag.Root.resolvedStyle.visibility != Visibility.Visible) continue;
+                var bounds = tag.Root.worldBound;
+                var field = _field.worldBound;
+                if (bounds.xMin < field.xMin - 1 || bounds.xMax > field.xMax + 1 || bounds.yMin < field.yMin - 1 || bounds.yMax > field.yMax + 1)
+                    throw new InvalidOperationException("Battle HUD escaped the field.");
+                if (visible.Any(r => r.Overlaps(bounds))) throw new InvalidOperationException("Battle HUD labels overlap.");
+                visible.Add(bounds);
+            }
+            foreach (var tile in _handCards)
+            {
+                var label = tile.Q<Label>(className: "sts-card-description");
+                var textSize = label.MeasureTextSize(label.text, label.contentRect.width, VisualElement.MeasureMode.Exactly, 0, VisualElement.MeasureMode.Undefined);
+                if (textSize.y > label.contentRect.height + 2)
+                    throw new InvalidOperationException("Card description does not fit: " + label.text);
+            }
+            if (_handCards.Count > 0)
+            {
+                var label = _handCards[0].Q<Label>(className: "sts-card-description");
+                foreach (var def in GameSession.Roster.SelectMany(h => h.Deck))
+                {
+                    string text = CardText.Summary(def);
+                    var size = label.MeasureTextSize(text, label.contentRect.width, VisualElement.MeasureMode.Exactly, 0, VisualElement.MeasureMode.Undefined);
+                    if (size.y > label.contentRect.height + 2)
+                        throw new InvalidOperationException("Roster card summary does not fit: " + def.Id + " " + text);
+                }
+            }
+            Debug.Log("[shot] Battle HUD containment, separation and card text fit verified.");
         }
     }
 }

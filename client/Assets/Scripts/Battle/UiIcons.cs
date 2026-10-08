@@ -15,7 +15,7 @@ namespace SanGuo.Client
         {
             if (!Cache.TryGetValue(name, out var tex))
             {
-                tex = Resources.Load<Texture2D>("Icons/" + name);
+                tex = Resources.Load<Texture2D>("ChibiSkin/" + name) ?? Resources.Load<Texture2D>("Icons/" + name);
                 Cache[name] = tex;
             }
             return tex;

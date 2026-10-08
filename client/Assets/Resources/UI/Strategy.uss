@@ -1,0 +1,477 @@
+/* 沉穩策略國風。最後載入；所有資料與操作仍為真正的 UI Toolkit 元件。
+   1920×1080 設計基準：玄青漆面 / 暖銅金 / 象牙白文字 / 朱砂提示。 */
+.meta-page {
+    background-color: rgb(15, 24, 26);
+    background-image: url("../StrategySkin/hall.png");
+    -unity-background-scale-mode: scale-and-crop;
+    -unity-background-image-tint-color: rgb(172, 180, 180);
+    color: rgb(238, 229, 206);
+}
+.meta-page.bg-home { background-image: none; -unity-background-image-tint-color: white; }
+.meta-page.bg-map { background-image: url("../StrategySkin/map.png"); -unity-background-image-tint-color: rgb(205, 210, 198); }
+.meta-page .hdr {
+    height: 98px; padding: 0 32px;
+    background-color: rgba(12, 22, 25, 0.97);
+    border-bottom-width: 1px; border-bottom-color: rgb(155, 124, 70);
+}
+.meta-page .hdr-title { font-size: 44px; color: rgb(237, 211, 154); -unity-text-outline-width: 0; }
+.meta-page .hdr-back, .meta-page .hdr-close {
+    width: 62px; height: 62px; border-radius: 4px; border-width: 1px;
+    border-color: rgb(118, 97, 63); background-color: rgb(22, 34, 36); background-image: none;
+}
+.meta-page .hdr-back:hover, .meta-page .hdr-close:hover { background-color: rgb(49, 57, 49); scale: 1 1; }
+.meta-page .hdr-back-icon { background-image: url("../StrategySkin/back.png"); margin: 10px; }
+.meta-page .hdr-close { background-image: url("../StrategySkin/btn_close.png"); -unity-background-scale-mode: scale-to-fit; }
+.meta-page .res-pill { border-radius: 4px; border-width: 1px; border-color: rgb(82, 79, 56); background-color: rgba(12, 22, 24, 0.96); padding: 8px 16px 8px 8px; margin-left: 14px; }
+.meta-page .res-pill-text { color: rgb(242, 234, 210); font-size: 28px; }
+.meta-page .res-pill-icon { width: 40px; height: 40px; }
+.meta-page .page-content { padding: 20px 20px 18px 20px; }
+
+/* Text and status remain semantic, with legible neutral secondary text. */
+.meta-page .txt, .meta-page .line-title, .meta-page .card-row-name { color: rgb(240, 232, 212); }
+.meta-page .txt-sub, .meta-page .txt-gold, .meta-page .section-text,
+.meta-page .bpanel-title, .meta-page .popup-title, .meta-page .tier-title { color: rgb(222, 193, 135); }
+.meta-page .txt-dim, .meta-page .line-sub, .meta-page .card-row-desc,
+.meta-page .side-caption, .meta-page .cost-chip-have, .meta-page .foot-note,
+.meta-page .tile-desc, .meta-page .break-row-text { color: rgb(182, 189, 177); }
+.meta-page .txt-good, .meta-page .break-row-on .break-row-text { color: rgb(129, 201, 166); }
+.meta-page .section-line { background-color: rgb(103, 92, 63); }
+.meta-page .reddot { width: 20px; height: 20px; border-width: 2px; border-color: rgb(231, 195, 125); background-color: rgb(176, 57, 40); border-radius: 10px; }
+
+/* Fresh lacquer panel / gold button art. Border texels use 9-slice, never stretched corners. */
+.meta-page .bpanel, .meta-page .panel, .meta-page .popup,
+.meta-page .gacha-info, .meta-page .quest-ms, .meta-page .tier {
+    border-radius: 3px; border-width: 0;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("../StrategySkin/panel.png");
+    -unity-background-image-tint-color: white;
+    -unity-slice-left: 180; -unity-slice-right: 180; -unity-slice-top: 180; -unity-slice-bottom: 180;
+    -unity-slice-scale: 0.18px;
+    padding: 28px;
+}
+.meta-page .btn, .meta-page .btn:hover, .meta-page .btn-done, .meta-page .btn-done:hover,
+.meta-page .tab, .meta-page .tab:hover {
+    border-radius: 3px; border-width: 1px; border-color: rgb(134, 111, 70);
+    background-image: none; background-color: rgb(27, 42, 43);
+    color: rgb(234, 223, 194); -unity-text-outline-width: 0;
+    -unity-background-image-tint-color: white;
+    transition: background-color 100ms ease-out, border-color 100ms ease-out;
+}
+.meta-page .btn:hover, .meta-page .tab:hover { background-color: rgb(47, 58, 51); border-color: rgb(215, 182, 112); }
+.meta-page .btn-primary, .meta-page .btn-primary:hover, .meta-page .btn-on, .meta-page .btn-on:hover {
+    background-image: url("../StrategySkin/gold.png"); background-color: rgba(0, 0, 0, 0);
+    -unity-slice-left: 220; -unity-slice-right: 220; -unity-slice-top: 200; -unity-slice-bottom: 200;
+    -unity-slice-scale: 0.15px;
+    border-width: 0; color: rgb(42, 30, 17); -unity-background-image-tint-color: white;
+}
+.meta-page .btn-primary:hover, .meta-page .btn-on:hover { -unity-background-image-tint-color: rgb(255, 242, 210); }
+.meta-page .btn:active { scale: 0.99 0.99; }
+.meta-page .btn-done, .meta-page .btn-done:hover, .meta-page .btn:disabled {
+    background-image: none; background-color: rgb(27, 34, 33); border-width: 1px;
+    border-color: rgb(78, 79, 64); color: rgb(147, 150, 133);
+}
+.meta-page .tab-on, .meta-page .tab-on:hover {
+    background-image: none; background-color: rgb(73, 67, 42); color: rgb(251, 225, 158);
+    border-width: 1px; border-color: rgb(206, 169, 90); border-bottom-width: 3px;
+}
+.meta-page .item-tile { background-color: rgb(22, 34, 36); border-color: rgb(125, 105, 66); border-width: 1px; border-radius: 3px; }
+.meta-page .item-count { background-color: rgba(12, 20, 22, 0.95); color: rgb(247, 235, 200); border-radius: 2px; }
+.meta-page .cost-chip .item-tile { background-color: rgba(0, 0, 0, 0); }
+.meta-page .cost-chip-text { color: rgb(240, 226, 186); }
+.meta-page .cost-chip-bad .cost-chip-text, .meta-page .cost-chip-bad .cost-chip-have { color: rgb(243, 147, 122); }
+.meta-page .bar-bg { background-color: rgb(11, 20, 21); border-width: 0; border-radius: 2px; }
+.meta-page .bar-fill.bar-gold { background-color: rgb(197, 157, 80); border-radius: 2px; }
+.meta-page .badge-role { background-color: rgb(41, 54, 48); color: rgb(212, 211, 185); border-radius: 3px; }
+
+/* Main town: no scattered building labels or giant mascot blocking scenery. */
+.strategy-home-shade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(3, 13, 17, 0.10); }
+.strategy-home-top { position: absolute; left: 0; right: 0; top: 0; height: 124px; background-color: rgba(10, 20, 23, 0.96); border-bottom-width: 1px; border-bottom-color: rgb(141, 114, 64); }
+.meta-page .home-player { left: 30px; top: 18px; height: 90px; padding: 4px 16px; width: 354px; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); }
+.meta-page .home-player .avatar { width: 76px; height: 76px; border-radius: 4px; border-width: 1px; border-color: rgb(173, 139, 76); margin-right: 18px; }
+.meta-page .home-player-info { width: 215px; }
+.meta-page .home-player-name { font-size: 28px; color: rgb(238, 223, 189); }
+.meta-page .home-player-level { font-size: 26px; color: rgb(222, 194, 137); }
+.meta-page .home-player-exp { font-size: 20px; color: rgb(169, 182, 168); }
+.strategy-brand { position: absolute; top: 26px; left: 444px; }
+.strategy-brand-title { font-size: 40px; -unity-font-style: bold; color: rgb(230, 200, 140); }
+.strategy-brand-sub { font-size: 20px; color: rgb(172, 182, 165); margin-top: 2px; }
+.meta-page .home-res { right: 30px; top: 34px; }
+.meta-page .home-fn-bar { left: 28px; right: auto; top: 152px; bottom: auto; width: 274px; flex-direction: column; padding: 18px 10px; background-color: rgba(10, 21, 23, 0.94); border-width: 1px; border-color: rgb(109, 91, 57); }
+.meta-page .home-fn { height: 104px; flex-direction: row; align-items: center; margin: 0 0 16px 0; padding: 0 12px; border-width: 1px; border-radius: 2px; border-color: rgb(123, 104, 68); background-color: rgb(24, 39, 42); }
+.meta-page .home-fn:hover { translate: 0 0; background-color: rgb(49, 57, 46); border-color: rgb(218, 181, 107); }
+.meta-page .home-fn-circle { width: 76px; height: 76px; background-image: none; }
+.meta-page .home-fn-icon { width: 64px; height: 64px; }
+.meta-page .home-fn-label { margin: 0 0 0 18px; padding: 0; background-color: rgba(0, 0, 0, 0); font-size: 34px; color: rgb(239, 215, 165); }
+.meta-page .home-chapter { right: 32px; left: auto; top: 160px; width: 518px; min-height: 190px; padding: 28px 32px; flex-direction: column; align-items: stretch; border-width: 0; border-radius: 0; background-image: url("../StrategySkin/panel.png"); -unity-slice-left: 180; -unity-slice-right: 180; -unity-slice-top: 180; -unity-slice-bottom: 180; background-color: rgba(0, 0, 0, 0); }
+.meta-page .home-chapter:hover { scale: 1 1; background-color: rgba(0, 0, 0, 0); -unity-background-image-tint-color: rgb(255, 245, 215); }
+.meta-page .home-chapter-text { margin: 0; min-width: 0; align-items: stretch; }
+.meta-page .home-chapter-title { font-size: 32px; color: rgb(230, 202, 145); }
+.meta-page .home-chapter-sub { font-size: 25px; color: rgb(220, 223, 201); margin-top: 10px; }
+.strategy-chapter-count { font-size: 22px; color: rgb(178, 185, 165); margin-top: 16px; }
+.meta-page .home-chapter-progress { height: 8px; margin-top: 10px; }
+.meta-page .home-orb { width: 492px; height: 246px; right: 26px; bottom: 120px; background-image: url("../StrategySkin/expedition.png"); background-color: rgba(0, 0, 0, 0); align-items: flex-end; justify-content: flex-end; padding: 0 65px 54px 0; }
+.meta-page .home-orb:hover { scale: 1.03 1.03; }
+.strategy-expedition-title { font-size: 66px; -unity-font-style: bold; color: rgb(248, 224, 166); -unity-text-outline-width: 1px; -unity-text-outline-color: rgb(44, 26, 10); }
+.strategy-expedition-sub { font-size: 22px; color: rgb(203, 190, 153); margin-top: 0; }
+.strategy-home-footer { position: absolute; left: 0; right: 0; bottom: 0; height: 92px; background-color: rgba(10, 20, 23, 0.96); border-top-width: 1px; border-top-color: rgb(101, 90, 63); flex-direction: row; align-items: center; justify-content: space-between; padding: 0 32px; }
+.strategy-home-hint { font-size: 25px; color: rgb(204, 208, 188); }
+.meta-page .strategy-formation-link, .meta-page .strategy-formation-link:hover { min-height: 60px; min-width: 200px; font-size: 26px; }
+
+/* Icon URLs are the newly painted atlas cells, also used by resource helpers. */
+.tile-ico-heroes, .nav-icon-heroes { background-image: url("../StrategySkin/nav_heroes.png"); }
+.tile-ico-gacha, .nav-icon-gacha { background-image: url("../StrategySkin/nav_gacha.png"); }
+.tile-ico-dungeons, .nav-icon-dungeons { background-image: url("../StrategySkin/nav_dungeons.png"); }
+.tile-ico-quests, .nav-icon-quests { background-image: url("../StrategySkin/nav_quests.png"); }
+.tile-ico-shop, .nav-icon-shop { background-image: url("../StrategySkin/nav_shop.png"); }
+.tile-ico-map, .nav-icon-map { background-image: url("../StrategySkin/nav_map.png"); }
+.nav-icon-home { background-image: url("../StrategySkin/nav_home.png"); }
+
+/* Hero roster, illustration stage, and separate growth console. */
+.meta-page.bg-heroes .page-content { padding: 22px; }
+.meta-page .hero-left { width: 312px; padding: 20px 12px; margin-right: 18px; background-color: rgba(12, 23, 26, 0.97); border-width: 1px; border-color: rgb(106, 92, 64); }
+.strategy-roster-title { font-size: 30px; color: rgb(224, 196, 139); padding: 0 8px; }
+.strategy-roster-count { font-size: 21px; color: rgb(166, 180, 164); margin: 4px 8px 18px 8px; }
+.meta-page .hero-grid { flex-direction: column; flex-wrap: nowrap; padding: 0 5px 12px 0; }
+.meta-page .hero-left > .unity-scroll-view { flex-grow: 1; flex-shrink: 1; min-height: 0; }
+.strategy-roster-entry { height: 140px; flex-shrink: 0; margin: 0 0 12px 0; padding: 8px; flex-direction: row; align-items: center; border-radius: 2px; border-width: 1px; border-color: rgb(81, 89, 72); background-color: rgb(26, 39, 42); }
+.strategy-roster-entry:hover { border-color: rgb(183, 151, 88); background-color: rgb(43, 52, 45); }
+.strategy-roster-selected, .strategy-roster-selected:hover { border-color: rgb(230, 191, 112); background-color: rgb(67, 61, 38); border-left-width: 4px; }
+.strategy-roster-face { width: 98px; height: 118px; flex-shrink: 0; -unity-background-scale-mode: scale-and-crop; border-width: 1px; border-color: rgb(159, 128, 70); }
+.strategy-roster-text { flex-grow: 1; flex-shrink: 1; margin-left: 14px; }
+.strategy-roster-name { font-size: 26px; -unity-font-style: bold; color: rgb(239, 222, 177); white-space: normal; }
+.strategy-roster-level { font-size: 20px; color: rgb(187, 193, 166); margin-top: 6px; }
+.strategy-roster-stars { margin-top: 10px; }
+.strategy-roster-stars .star { width: 20px; height: 20px; }
+.meta-page .hero-center { flex-grow: 1; flex-shrink: 1; flex-basis: 0; margin-right: 20px; overflow: hidden; border-width: 1px; border-color: rgb(121, 105, 66); background-color: rgba(12, 24, 26, 0.45); }
+.strategy-hero-art { position: absolute; left: 0; right: 0; top: 36px; bottom: 0; -unity-background-scale-mode: scale-to-fit; }
+.meta-page .hero-model { width: 700px; height: 800px; top: 70px; }
+.meta-page .hero-namebar { left: 24px; right: auto; top: 28px; margin: 0; padding: 14px 16px; flex-direction: column; align-items: flex-start; background-color: rgba(11, 23, 26, 0.92); border-radius: 2px; border-left-width: 2px; border-left-color: rgb(208, 171, 97); }
+.meta-page .hero-namebar-name { font-size: 48px; color: rgb(247, 223, 169); margin: 10px 0; }
+.meta-page .hero-namebar-level { color: rgb(214, 187, 125); font-size: 26px; margin-left: 12px; }
+.meta-page .hero-namebar .hero-namebar-level { margin: 12px 0 0 0; }
+.meta-page .strategy-hero-view, .meta-page .strategy-hero-view:hover { position: absolute; right: 22px; bottom: 24px; min-width: 170px; min-height: 62px; font-size: 25px; }
+.strategy-hero-caption { position: absolute; bottom: 30px; left: 24px; font-size: 23px; color: rgb(239, 221, 181); background-color: rgba(11, 23, 26, 0.92); padding: 10px 14px; }
+.meta-page .hero-right { width: 710px; padding: 0; flex-shrink: 0; }
+.strategy-hero-summary { background-color: rgba(14, 27, 30, 0.98); border-width: 1px; border-color: rgb(130, 111, 72); padding: 22px 22px 10px 22px; margin-bottom: 18px; }
+.strategy-summary-heading { flex-direction: row; align-items: center; margin-bottom: 12px; }
+.strategy-summary-name { font-size: 36px; color: rgb(238, 216, 164); margin: 0 12px; -unity-font-style: bold; }
+.meta-page .hero-stats { width: auto; margin: 0; padding: 12px 0; border-width: 0; border-top-width: 1px; border-top-color: rgb(71, 83, 69); border-radius: 0; background-color: rgba(0, 0, 0, 0); flex-direction: row; }
+.meta-page .hero-stats-col { margin: 0 10px; }
+.meta-page .stat-line { margin: 5px 0; min-height: 34px; }
+.meta-page .stat-line-name { color: rgb(180, 191, 170); font-size: 23px; }
+.meta-page .stat-line-val { color: rgb(237, 230, 205); font-size: 25px; }
+.meta-page .hero-grade { flex-direction: row; justify-content: space-between; margin: 0 10px 0 10px; padding-top: 8px; border-top-width: 1px; border-top-color: rgb(71, 83, 69); }
+.meta-page .hero-grade .star { width: 28px; height: 28px; }
+.meta-page .hero-grade-text { color: rgb(182, 190, 169); font-size: 21px; }
+.meta-page .seg { margin: 0 0 16px 0; }
+.meta-page .tab.seg-tab, .meta-page .tab.seg-tab:hover { min-height: 76px; font-size: 29px; }
+.meta-page .side-panel { flex-grow: 1; padding: 30px; }
+.meta-page .side-body { flex-grow: 1; min-height: 0; }
+.meta-page .side-footer { margin-top: 14px; padding-top: 12px; }
+.meta-page .cost-line { margin-top: 14px; }
+.meta-page .card-row { background-color: rgba(18, 32, 35, 0.90); border-left-color: rgb(141, 117, 71); border-radius: 2px; }
+.meta-page .break-row-mark { color: rgb(126, 126, 99); }
+
+/* Map, recruitment, dungeons, shop, quests and formation share new assets. */
+.meta-page .mnode { border-width: 2px; border-color: rgb(174, 145, 87); background-color: rgb(26, 41, 41); }
+.meta-page .mnode-open, .meta-page .mnode-open:hover { background-color: rgb(125, 71, 40); border-color: rgb(241, 211, 141); }
+.meta-page .mnode-clear { background-color: rgb(42, 79, 64); border-color: rgb(164, 204, 157); }
+.meta-page .mnode-lock { background-color: rgb(37, 48, 45); border-color: rgb(97, 105, 87); }
+.meta-page .mnode-current { border-width: 4px; border-color: rgb(255, 232, 177); }
+.meta-page .mnode-lockicon { background-image: url("../StrategySkin/lock.png"); }
+.meta-page .mnode-plate, .meta-page .map-info { background-color: rgba(12, 26, 27, 0.94); color: rgb(235, 220, 180); border-radius: 3px; }
+.meta-page .mnode-plate-dim { color: rgb(156, 171, 147); }
+.meta-page .mnode-dot { background-color: rgb(219, 194, 133); border-width: 0; width: 8px; height: 8px; }
+.meta-page .gacha-card, .meta-page .gacha-card-main { border-width: 2px; border-radius: 3px; border-color: rgb(192, 155, 81); background-color: rgb(19, 32, 35); }
+.meta-page .gacha-card-name { background-color: rgba(11, 22, 25, 0.94); color: rgb(242, 214, 153); }
+.meta-page .pull-overlay { background-image: url("../StrategySkin/hall.png"); -unity-background-scale-mode: scale-and-crop; background-color: rgb(13, 24, 26); }
+.meta-page .pull-ring { border-width: 1px; border-color: rgba(172, 135, 63, 0.4); background-color: rgba(111, 94, 47, 0.12); }
+.meta-page .htile { border-width: 2px; border-radius: 3px; background-color: rgb(24, 37, 39); border-color: rgb(127, 135, 109); }
+.meta-page .htile:hover { background-color: rgb(42, 50, 42); }
+.meta-page .htile-sr { border-color: rgb(156, 127, 174); }
+.meta-page .htile-ur, .meta-page .htile-on { border-color: rgb(222, 180, 99); }
+.meta-page .htile-on { border-width: 4px; }
+.meta-page .htile-name, .meta-page .htile-level { background-color: rgba(11, 25, 27, 0.96); color: rgb(240, 224, 190); border-radius: 2px; }
+.meta-page .htile-stars { background-color: rgba(11, 25, 27, 0.82); border-radius: 0; }
+.meta-page .htile-rarity { background-color: rgb(83, 115, 105); border-radius: 2px; }
+.meta-page .htile-rarity-sr { background-color: rgb(115, 84, 132); }
+.meta-page .htile-rarity-ur { background-color: rgb(194, 150, 66); }
+.meta-page .htile-role { background-color: rgba(13, 26, 27, 0.96); border-radius: 2px; }
+.meta-page .dun-card, .meta-page .shop-card { border-width: 1px; border-radius: 3px; border-color: rgb(135, 111, 64); background-color: rgb(15, 30, 32); }
+.meta-page .dun-head, .meta-page .shop-head { background-color: rgb(31, 48, 47); border-bottom-width: 1px; border-bottom-color: rgb(115, 102, 66); }
+.meta-page .dun-name, .meta-page .shop-name { color: rgb(235, 209, 157); }
+.meta-page .dun-art, .meta-page .shop-art { background-color: rgba(168, 135, 61, 0.09); }
+.meta-page .shop-card-gold .shop-head { background-color: rgb(91, 76, 40); }
+.meta-page .shop-card-purple .shop-head { background-color: rgb(58, 48, 68); }
+.meta-page .dun-reward .item-tile { border-width: 1px; }
+.meta-page .quest-done2 { background-color: rgb(50, 56, 35); }
+.meta-page .slot-empty, .meta-page .formation-cell, .meta-page .formation-chip { background-image: none; background-color: rgba(14, 31, 33, 0.95); border-color: rgb(109, 117, 84); border-width: 1px; border-radius: 3px; }
+.meta-page .slot-empty:hover { background-color: rgb(43, 55, 43); border-color: rgb(198, 166, 98); }
+.meta-page .slot-plus { color: rgb(149, 151, 112); }
+.meta-page .form-strip, .meta-page .form-toolbar { background-color: rgba(11, 25, 27, 0.96); border-color: rgb(131, 109, 64); border-radius: 2px; }
+.meta-page .formation-label, .meta-page .form-strip-label { color: rgb(207, 187, 143); }
+.meta-page .form-toolbar .btn { background-image: none; }
+
+/* Battle HUD: same new material language, meaningful buff/HP colors retained. */
+.root .header { height: 68px; background-color: rgba(10, 21, 24, 0.97); border-bottom-width: 1px; border-bottom-color: rgb(169, 136, 74); }
+.root .header-title { color: rgb(234, 209, 150); font-size: 34px; }
+.root .btn, .root .btn:hover { background-image: none; background-color: rgb(28, 43, 44); border-width: 1px; border-color: rgb(119, 103, 64); border-radius: 3px; color: rgb(234, 221, 186); }
+.root .btn-on { background-color: rgb(86, 76, 43); border-color: rgb(206, 168, 91); }
+.root .bl-left { left: 18px; top: 86px; width: 348px; padding: 14px; background-color: rgba(11, 24, 27, 0.95); border-width: 1px; border-color: rgb(119, 102, 64); }
+.root .bl-end, .root .bl-end:hover { background-image: url("../StrategySkin/gold.png"); -unity-slice-left: 220; -unity-slice-right: 220; -unity-slice-top: 200; -unity-slice-bottom: 200; background-color: rgba(0, 0, 0, 0); color: rgb(36, 29, 16); border-width: 0; border-radius: 0; font-size: 28px; }
+.root .bl-cost-cap, .root .bl-pile-text { color: rgb(176, 187, 164); }
+.root .bl-row, .root .bl-row:hover { background-color: rgb(24, 40, 43); border-width: 1px; border-radius: 2px; border-color: rgb(99, 107, 78); height: 72px; margin-bottom: 7px; }
+.root .bl-row:hover { background-color: rgb(44, 54, 44); border-color: rgb(193, 158, 87); }
+.root .bl-row-selected { background-color: rgb(77, 67, 33); border-color: rgb(225, 187, 105); }
+.root .bl-row-index { color: rgb(169, 178, 147); }
+.root .bl-row-name { font-size: 28px; color: rgb(239, 226, 193); }
+.root .bl-row-face { border-radius: 2px; }
+.root .bl-pile-btn { background-color: rgb(17, 31, 33); border-width: 1px; border-color: rgb(109, 100, 68); border-radius: 2px; }
+.root .bl-pile-count { color: rgb(234, 204, 133); }
+.root .bl-detail, .root .pv-panel, .root .unit-info { border-width: 1px; border-radius: 2px; border-color: rgb(184, 149, 80); background-color: rgb(14, 29, 32); }
+.root .bl-d-owner, .root .bl-d-target, .root .pv-note, .root .pv-card-owner, .root .pv-card-target { color: rgb(176, 189, 170); }
+.root .bl-d-use { background-color: rgb(58, 115, 82); border-radius: 2px; }
+.root .bl-d-cancel { background-color: rgb(53, 67, 62); border-radius: 2px; }
+.root .bl-bar { height: 180px; background-color: rgba(10, 22, 25, 0.98); border-top-width: 1px; border-top-color: rgb(162, 129, 70); }
+.root .bl-hero { height: 152px; background-color: rgb(23, 39, 41); border-width: 1px; border-radius: 2px; border-color: rgb(95, 107, 78); }
+.root .bl-hero-active { background-color: rgb(62, 60, 35); border-color: rgb(230, 190, 104); }
+.root .bl-hero-face { height: 134px; border-radius: 2px; }
+.root .bl-hero-name { color: rgb(231, 212, 165); }
+.root .bl-hero-role, .root .bl-stat { color: rgb(187, 198, 175); }
+.root .bl-hp-bg, .root .bl-hp-fill { border-radius: 2px; }
+.root .bl-log { background-color: rgba(11, 24, 27, 0.92); border-radius: 2px; }
+.root .bl-log-line { color: rgb(185, 197, 174); }
+.root .tag { background-color: rgba(12, 26, 28, 0.94); border-width: 1px; border-radius: 3px; border-color: rgb(142, 121, 73); }
+.root .tag-name { color: rgb(241, 226, 188); }
+.root .pv-card { background-color: rgb(24, 41, 43); border-width: 1px; border-color: rgb(113, 110, 74); border-radius: 2px; }
+.root .pv-close { background-color: rgb(136, 66, 43); border-radius: 2px; }
+.root .overlay .result, .root .result-panel, .root .result-card { background-color: rgb(14, 29, 32); border-color: rgb(180, 145, 77); border-radius: 4px; }
+.root .result-star { background-image: url("../StrategySkin/star_off.png"); }
+.root .result-star-on { background-image: url("../StrategySkin/star_on.png"); }
+.root .bl-d-use, .root .bl-d-cancel { -unity-text-align: middle-center; }
+
+/* Dialogue overlays are part of the same redesign. */
+.tut-band, .story-band { background-color: rgb(14, 27, 30); border-top-color: rgb(165, 128, 67); border-top-width: 1px; }
+.tut-name, .story-name { color: rgb(238, 210, 149); background-color: rgb(29, 44, 43); -unity-text-outline-width: 0; }
+.tut-text, .story-text, .tut-body { color: rgb(236, 230, 210); }
+.tut-title { color: rgb(226, 193, 130); }
+.tut-step { color: rgb(166, 180, 164); }
+.tut-diamond { background-image: url("../StrategySkin/nav_formation.png"); }
+.meta-page .home-chapter { -unity-slice-scale: 0.18px; }
+.root .bl-end { -unity-slice-scale: 0.15px; }
+
+/* Bottom hand: readable portrait cards, shallow fan, hover and selected lift. */
+.root .sts-hand { position: absolute; left: 230px; right: 230px; bottom: 8px; height: 366px; overflow: visible; }
+.root .sts-card { position: absolute; width: 204px; height: 286px; padding: 10px; border-width: 2px; border-radius: 12px; border-color: rgb(153, 129, 77); background-color: rgb(19, 35, 38); transition-property: top, rotate, scale, border-color; transition-duration: 120ms; }
+.root .sts-card-move { border-color: rgb(100, 150, 121); }
+.root .sts-card-skill { border-color: rgb(214, 176, 91); }
+.root .sts-card-disabled { background-color: rgb(29, 33, 34); }
+.root .sts-card-disabled .sts-card-art { opacity: 0.5; }
+.root .sts-card-disabled .sts-card-name { color: rgb(155, 163, 156); }
+.root .sts-card-hover, .root .sts-card-selected { border-width: 3px; border-color: rgb(252, 213, 126); background-color: rgb(35, 48, 43); scale: 1.12 1.12; }
+.root .sts-card-cost { position: absolute; left: -13px; top: -12px; width: 43px; height: 43px; border-radius: 24px; border-width: 2px; border-color: rgb(229, 192, 109); background-color: rgb(24, 73, 76); color: rgb(255, 239, 191); font-size: 29px; -unity-font-style: bold; -unity-text-align: middle-center; }
+.root .sts-card-name { margin-left: 18px; height: 32px; flex-shrink: 0; font-size: 24px; -unity-font-style: bold; color: rgb(246, 223, 170); -unity-text-align: middle-center; }
+.root .sts-card-art { height: 112px; flex-shrink: 0; margin-top: 3px; border-radius: 5px; background-color: rgb(11, 24, 26); -unity-background-scale-mode: scale-and-crop; }
+.root .sts-card-kind { position: absolute; right: 5px; bottom: 4px; width: 35px; height: 35px; }
+.root .sts-card-owner { font-size: 17px; height: 24px; flex-shrink: 0; color: rgb(182, 192, 164); -unity-text-align: middle-center; overflow: hidden; }
+.root .sts-card-description { font-size: 20px; white-space: normal; flex-grow: 1; color: rgb(237, 232, 210); -unity-text-align: upper-center; margin-top: 4px; }
+.root .sts-card-type { font-size: 16px; height: 20px; flex-shrink: 0; color: rgb(171, 154, 112); -unity-text-align: middle-center; }
+.root .bl-left { left: auto; right: 18px; top: auto; bottom: 22px; width: 202px; padding: 8px; border-width: 0; background-color: rgba(10, 24, 27, 0.94); }
+.root .bl-top { flex-direction: column-reverse; margin-bottom: 6px; }
+.root .bl-cost { align-self: center; margin-bottom: 14px; }
+.root .bl-end, .root .bl-end:hover { width: 186px; height: 78px; margin: 0; font-size: 26px; background-image: none; background-color: rgb(113, 84, 34); border-width: 1px; border-color: rgb(235, 191, 99); border-radius: 5px; color: rgb(255, 235, 188); }
+.root .bl-piles { flex-direction: column; margin: 0; }
+.root .bl-pile-btn { min-height: 45px; margin: 3px 0; }
+.root .bl-bar { left: 14px; right: auto; top: 86px; bottom: auto; width: 272px; height: auto; padding: 4px; flex-direction: column; border-width: 0; background-color: rgba(10, 24, 27, 0.85); }
+.root .bl-hero { width: 258px; height: 94px; margin: 3px 0; padding: 6px; }
+.root .bl-hero-face { width: 62px; height: 78px; }
+.root .bl-hero-title { flex-wrap: wrap; }
+.root .bl-hero-name { font-size: 21px; white-space: normal; }
+.root .bl-hero-title > .ui-icon, .root .bl-hero-role, .root .bl-stats, .root .bl-chips { display: none; }
+.root .bl-hp-bg, .root .bl-hp-fill { height: 22px; }
+.root .bl-hp-text { font-size: 17px; }
+.root .bl-detail { top: 142px; width: 370px; padding: 12px; }
+.root .bl-d-name { font-size: 30px; }
+.root .bl-d-desc, .root .bl-d-target, .root .bl-d-hint, .root .bl-d-warn { font-size: 22px; }
+.tut-next { border-top-color: rgb(212, 173, 95); }
+.tut-hero { border-width: 0; border-radius: 0; -unity-background-scale-mode: scale-to-fit; }
+.story-bust { -unity-background-scale-mode: scale-to-fit; }
+.meta-page .home-fn { background-image: url("../StrategySkin/panel.png"); -unity-slice-left: 180; -unity-slice-right: 180; -unity-slice-top: 180; -unity-slice-bottom: 180; -unity-slice-scale: 0.12px; border-width: 0; background-color: rgba(0, 0, 0, 0); }
+.meta-page .home-fn:hover { background-color: rgba(0, 0, 0, 0); -unity-background-image-tint-color: rgb(255, 232, 176); }
+
+/* Acceptance fixes: layout bounds, readable actions, long names and stable font. */
+.meta-page .hdr { flex-shrink: 0; }
+.meta-page .hdr-back, .meta-page .hdr-close { font-size: 46px; color: rgb(238, 216, 166); -unity-text-align: middle-center; background-image: none; }
+.meta-page .hdr-title { flex-shrink: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta-page .btn-primary, .meta-page .btn-primary:hover, .meta-page .btn-on, .meta-page .btn-on:hover {
+    background-image: none; background-color: rgb(155, 119, 53); border-width: 1px; border-color: rgb(233, 193, 113); color: rgb(255, 245, 220);
+}
+.meta-page .btn-primary:hover, .meta-page .btn-on:hover { background-color: rgb(179, 141, 64); }
+.meta-page .btn-primary .cost-chip-text, .meta-page .btn-on .cost-chip-text { color: rgb(255, 245, 220); }
+.meta-page .btn:disabled, .meta-page .btn-primary:disabled { background-image: none; background-color: rgb(32, 43, 43); border-color: rgb(87, 98, 87); color: rgb(166, 173, 157); }
+.meta-page .bar-fill.bar-gold { background-color: rgb(197, 157, 80); }
+.meta-page .bar-bg.bar-slim, .meta-page .bar-fill.bar-slim { height: 8px; min-height: 8px; border-radius: 1px; }
+.meta-page .home-player .bar-bg { margin: 8px 0 5px; }
+.meta-page .home-fn, .meta-page .home-fn:hover { background-image: none; border-width: 1px; border-color: rgb(123, 104, 68); background-color: rgb(22, 37, 39); height: 92px; margin-bottom: 12px; }
+.meta-page .home-fn:hover { background-color: rgb(49, 57, 46); border-color: rgb(218, 181, 107); }
+.meta-page .home-fn-bar { width: 250px; padding: 14px 10px 2px; background-color: rgba(10, 21, 23, 0.88); }
+.meta-page .home-fn-label { font-size: 30px; margin-left: 10px; }
+.meta-page .home-fn-circle { width: 64px; height: 64px; }
+.meta-page .home-fn-icon { width: 58px; height: 58px; }
+.meta-page .home-chapter { width: 462px; padding: 24px; }
+.meta-page .home-orb, .meta-page .home-orb:hover { width: 360px; height: 132px; right: 38px; bottom: 128px; padding: 12px 28px 18px 0; background-image: none; background-color: rgb(74, 59, 32); border-width: 1px; border-color: rgb(224, 183, 98); border-radius: 4px; scale: 1 1; }
+.meta-page .home-orb:hover { background-color: rgb(96, 75, 36); }
+.strategy-expedition-emblem { position: absolute; left: 24px; top: 27px; width: 78px; height: 78px; background-image: url("../StrategySkin/nav_map.png"); -unity-background-scale-mode: scale-to-fit; }
+.strategy-expedition-title { font-size: 44px; -unity-text-outline-width: 0; }
+.strategy-expedition-sub { font-size: 22px; color: rgb(230, 212, 168); }
+.strategy-home-hint { font-size: 24px; }
+.meta-page .hero-left { overflow: hidden; }
+.meta-page .hero-left > .unity-scroll-view { flex-basis: 0; min-height: 0; }
+.meta-page .hero-left .unity-scroll-view__content-viewport { overflow: hidden; min-height: 0; flex-shrink: 1; }
+.meta-page .strategy-hero-portrait { top: 30%; bottom: 18%; left: 12%; right: 12%; background-color: rgba(13, 27, 29, 0.85); border-width: 1px; border-color: rgb(136, 117, 77); }
+.meta-page .htile-name { white-space: normal; height: 62px; padding: 3px 5px; font-size: 22px; -unity-text-align: middle-center; }
+.meta-page .htile-lg .htile-name, .meta-page .htile-md .htile-name, .meta-page .htile-sm .htile-name { font-size: 22px; }
+.meta-page .htile-rarity, .meta-page .htile-level { bottom: 66px; font-size: 22px; -unity-text-outline-width: 0; }
+.meta-page .htile-art { bottom: 62px; }
+.meta-page .form-bench .hero-grid { flex-direction: row; flex-wrap: wrap; align-content: flex-start; }
+.meta-page .shop-tabs { width: 680px; align-self: center; flex-shrink: 0; height: 76px; }
+.meta-page .dungeon-scroll { width: 100%; align-self: stretch; flex-grow: 1; flex-basis: 0; min-height: 0; }
+.meta-page .dungeon-scroll .dun-row { justify-content: flex-start; margin: 18px 10px; flex-shrink: 0; }
+.meta-page .dungeon-scroll .dun-card { width: 380px; flex-shrink: 0; margin: 0 12px; }
+.meta-page .dun-name { font-size: 30px; }
+.meta-page .dun-art { height: 168px; }
+.meta-page .dun-reward .item-tile { width: 92px; height: 92px; }
+.meta-page .pull-overlay { background-image: none; background-color: rgba(8, 19, 22, 0.98); }
+.meta-page .pull-ring { display: none; }
+.meta-page .pull-title { -unity-text-outline-width: 0; }
+.meta-page .stage-close { background-image: none; border-radius: 3px; background-color: rgb(24, 40, 42); border-color: rgb(161, 136, 82); color: rgb(235, 221, 188); }
+.root .sts-card-description { font-size: 22px; }
+.root .bl-log-line, .root .bl-d-owner, .root .bl-d-target { color: rgb(206, 213, 194); }
+
+/* Runtime uses an empty Unity theme: explicitly lay out ScrollView internals. */
+.meta-page .unity-scroll-view { flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+.meta-page .unity-scroll-view__content-and-vertical-scroll-container { flex-direction: row; flex-grow: 1; flex-shrink: 1; min-height: 0; overflow: hidden; }
+.meta-page .unity-scroll-view__content-viewport { flex-grow: 1; flex-shrink: 1; min-width: 0; min-height: 0; overflow: hidden; }
+.meta-page .unity-scroll-view__content-container { flex-shrink: 0; }
+.meta-page .unity-scroller--vertical { width: 18px; min-width: 18px; flex-shrink: 0; flex-direction: column; background-color: rgb(15, 27, 29); }
+.meta-page .unity-scroller--horizontal { height: 18px; min-height: 18px; flex-shrink: 0; flex-direction: row; background-color: rgb(15, 27, 29); }
+.meta-page .unity-scroller .unity-slider { flex-grow: 1; }
+.meta-page .unity-scroller .unity-base-slider__drag-container { flex-grow: 1; background-color: rgb(24, 40, 41); }
+.meta-page .unity-scroller .unity-base-slider__dragger { min-width: 12px; min-height: 28px; background-color: rgb(155, 128, 76); border-radius: 3px; }
+.meta-page .unity-scroller .unity-button { width: 18px; height: 18px; margin: 0; padding: 0; background-color: rgb(67, 69, 49); }
+.meta-page .dungeon-scroll .dun-row { flex-wrap: wrap; width: 100%; justify-content: center; margin: 18px 0; }
+.meta-page .dungeon-scroll .dun-card { width: 340px; margin: 0 10px 16px; }
+.meta-page .dun-name { font-size: 27px; }
+.meta-page .dun-lock { font-size: 22px; }
+.meta-page .hero-namebar { right: 24px; }
+.meta-page .hero-namebar-name { white-space: normal; font-size: 38px; }
+.meta-page .strategy-hero-summary-head { flex-wrap: wrap; }
+
+/* Brighter strategy palette: natural scene light, ivory information surfaces, jade chrome. */
+.meta-page { -unity-background-image-tint-color: white; background-color: rgb(222, 225, 211); color: rgb(45, 60, 58); }
+.meta-page .hdr, .strategy-home-top { background-color: rgba(43, 65, 65, 0.96); }
+.strategy-home-shade { background-color: rgba(0, 0, 0, 0); }
+.meta-page .res-pill { background-color: rgb(235, 230, 210); border-color: rgb(166, 147, 99); }
+.meta-page .res-pill-text { color: rgb(48, 60, 55); }
+.meta-page .home-player-exp, .strategy-brand-sub { color: rgb(221, 230, 211); }
+.meta-page .home-fn-bar { background-color: rgba(228, 223, 204, 0.94); border-color: rgb(166, 147, 99); }
+.meta-page .home-fn, .meta-page .home-fn:hover { background-color: rgb(243, 238, 220); border-color: rgb(176, 157, 111); }
+.meta-page .home-fn:hover { background-color: rgb(224, 222, 194); }
+.meta-page .home-fn-label { color: rgb(44, 67, 62); }
+.meta-page .home-chapter { background-image: none; background-color: rgba(241, 236, 217, 0.96); border-width: 1px; border-color: rgb(172, 146, 86); }
+.meta-page .home-chapter:hover { background-color: rgb(250, 244, 224); }
+.meta-page .home-chapter-title { color: rgb(93, 76, 40); }
+.meta-page .home-chapter-sub, .strategy-chapter-count { color: rgb(70, 87, 78); }
+.strategy-home-footer { background-color: rgba(230, 225, 207, 0.95); }
+.strategy-home-hint { color: rgb(51, 71, 63); }
+.meta-page .home-orb, .meta-page .home-orb:hover { background-color: rgb(218, 184, 108); border-color: rgb(248, 223, 160); }
+.meta-page .home-orb:hover { background-color: rgb(236, 205, 131); }
+.strategy-expedition-title, .strategy-expedition-sub { color: rgb(57, 64, 46); }
+.meta-page .bar-bg { background-color: rgb(181, 193, 174); }
+.meta-page .home-player .bar-bg { background-color: rgb(91, 112, 103); }
+.meta-page .bpanel, .meta-page .panel, .meta-page .popup, .meta-page .gacha-info,
+.meta-page .quest-ms, .meta-page .tier, .meta-page .hero-left, .meta-page .strategy-hero-summary,
+.meta-page .dun-card, .meta-page .shop-card {
+    background-image: none; background-color: rgba(239, 235, 220, 0.97); border-width: 1px; border-color: rgb(176, 159, 117); border-radius: 4px;
+}
+.meta-page .txt, .meta-page .line-title, .meta-page .card-row-name, .meta-page .stat-line-val,
+.meta-page .stage-title, .meta-page .bpanel-title, .meta-page .popup-title, .meta-page .tier-title,
+.meta-page .side-level, .meta-page .side-title, .meta-page .strategy-summary-name { color: rgb(44, 61, 58); }
+.meta-page .txt-sub, .meta-page .txt-gold, .meta-page .section-text, .meta-page .strategy-roster-title { color: rgb(110, 85, 41); }
+.meta-page .txt-dim, .meta-page .line-sub, .meta-page .card-row-desc, .meta-page .stat-line-name,
+.meta-page .side-caption, .meta-page .cost-chip-have, .meta-page .foot-note, .meta-page .break-row-text,
+.meta-page .strategy-roster-count, .meta-page .strategy-roster-level { color: rgb(79, 96, 86); }
+.meta-page .cost-chip-text { color: rgb(54, 68, 58); }
+.meta-page .strategy-roster-entry { background-color: rgb(229, 230, 211); border-color: rgb(177, 177, 143); }
+.meta-page .strategy-roster-entry:hover { background-color: rgb(215, 224, 203); }
+.meta-page .strategy-roster-selected, .meta-page .strategy-roster-selected:hover { background-color: rgb(223, 210, 161); border-color: rgb(156, 124, 64); }
+.meta-page .strategy-roster-name { color: rgb(44, 65, 59); }
+.meta-page .hero-center { background-color: rgba(240, 234, 210, 0.15); }
+.meta-page .hero-namebar { background-color: rgba(238, 233, 213, 0.93); padding: 12px 18px; }
+.meta-page .hero-namebar-name { color: rgb(48, 66, 59); }
+.meta-page .hero-namebar-level { color: rgb(112, 91, 50); }
+.meta-page .strategy-hero-portrait { background-color: rgba(236, 231, 210, 0.45); }
+.meta-page .side-panel .card-row, .meta-page .card-row { background-color: rgb(219, 227, 210); border-color: rgb(158, 145, 99); }
+.meta-page .dun-head, .meta-page .shop-head { background-color: rgb(197, 215, 197); }
+.meta-page .dun-name, .meta-page .shop-name { color: rgb(50, 73, 62); }
+.meta-page .dun-sub { color: rgb(75, 94, 82); }
+.meta-page .dun-closed { opacity: 1; }
+.meta-page .dun-lock { color: rgb(134, 86, 43); }
+.meta-page .dun-art, .meta-page .shop-art { background-color: rgb(229, 224, 198); }
+.meta-page .shop-card-gold .shop-head { background-color: rgb(220, 201, 150); }
+.meta-page .btn, .meta-page .btn:hover, .meta-page .tab, .meta-page .tab:hover { background-color: rgb(64, 92, 80); color: rgb(249, 242, 217); }
+.meta-page .btn:hover, .meta-page .tab:hover { background-color: rgb(81, 111, 92); }
+.meta-page .btn-primary, .meta-page .btn-primary:hover, .meta-page .btn-on, .meta-page .btn-on:hover { background-color: rgb(206, 175, 103); color: rgb(48, 58, 45); }
+.meta-page .btn-primary:hover, .meta-page .btn-on:hover { background-color: rgb(226, 195, 120); }
+.meta-page .btn-primary .cost-chip-text { color: rgb(48, 58, 45); }
+.meta-page .tab-on, .meta-page .tab-on:hover { background-color: rgb(213, 192, 137); color: rgb(47, 68, 55); }
+.meta-page .btn:disabled, .meta-page .btn-done, .meta-page .btn-done:hover { background-color: rgb(205, 211, 196); color: rgb(99, 111, 95); border-color: rgb(164, 175, 151); }
+.meta-page .stage-close { color: rgb(239, 228, 191); }
+.meta-page .pull-overlay { background-color: rgb(224, 228, 211); }
+.meta-page .pull-title { color: rgb(54, 74, 63); }
+.meta-page .slot-empty { background-color: rgb(222, 226, 204); }
+.meta-page .slot-plus { color: rgb(133, 143, 104); }
+.meta-page .formation-label { color: rgb(95, 86, 53); }
+.meta-page .unity-scroller--vertical, .meta-page .unity-scroller--horizontal { background-color: rgb(219, 224, 204); }
+.meta-page .unity-scroller .unity-base-slider__drag-container { background-color: rgb(207, 213, 192); }
+.root .header, .root .bl-bar, .root .bl-left, .root .bl-log { background-color: rgba(44, 66, 64, 0.93); }
+.root .sts-card { background-color: rgb(237, 230, 204); }
+.root .sts-card-name { color: rgb(65, 75, 52); }
+.root .sts-card-owner { color: rgb(71, 90, 71); }
+.root .sts-card-description { color: rgb(48, 62, 53); }
+.root .sts-card-type { color: rgb(115, 94, 53); }
+.root .sts-card-disabled { background-color: rgb(209, 217, 199); }
+.root .sts-card-disabled .sts-card-name { color: rgb(94, 111, 96); }
+.root .sts-card-hover, .root .sts-card-selected { background-color: rgb(252, 242, 211); border-color: rgb(190, 142, 56); }
+.root .bl-detail, .root .pv-panel, .root .unit-info, .root .result-card { background-color: rgb(232, 230, 210); }
+.root .bl-d-name, .root .bl-d-desc, .root .bl-d-owner, .root .bl-d-target, .root .pv-title, .root .pv-note,
+.root .unit-info Label, .root .result-card Label { color: rgb(45, 67, 56); }
+.root .bl-d-hint { color: rgb(36, 111, 71); }
+.root .bl-d-warn { color: rgb(161, 70, 42); }
+.root .bl-end, .root .bl-end:hover { background-color: rgb(208, 179, 102); color: rgb(50, 65, 43); }
+.meta-page .bpanel Label, .meta-page .panel Label, .meta-page .popup Label { color: rgb(48, 66, 58); }
+.meta-page .bpanel .item-count, .meta-page .panel .item-count, .meta-page .popup .item-count { color: rgb(248, 237, 195); }
+.meta-page .bpanel .htile-name, .meta-page .bpanel .htile-level, .meta-page .bpanel .htile-rarity { color: rgb(248, 237, 195); }
+.meta-page .bpanel .htile-rarity-ur, .meta-page .bpanel .badge-ur { color: rgb(43, 49, 32); }
+.meta-page .bpanel .badge-role, .meta-page .bpanel .badge-r, .meta-page .bpanel .badge-sr { color: rgb(244, 238, 215); }
+.meta-page .quest-title, .meta-page .quest-count, .meta-page .hero-grade-text { color: rgb(67, 87, 74); }
+.meta-page .strategy-summary-heading { flex-wrap: wrap; }
+.meta-page .strategy-summary-name { color: rgb(44, 62, 55); white-space: normal; flex-shrink: 1; }
+.meta-page .form-strip-label { color: rgb(236, 218, 169); }
+.root .tag-hero { padding: 3px; }
+.root .tag-hero .tag-face { width: 30px; height: 30px; margin-right: 4px; border-width: 1px; }
+.root .tag-hp-text, .root .tag-hero .tag-hp-text { white-space: nowrap; font-size: 15px; -unity-font-style: normal; -unity-text-align: middle-center; top: 0; bottom: 0; }
+.root .tag-hp-bg, .root .tag-hp-fill { height: 22px; border-radius: 3px; }
+.root .tag-enemy .tag-face { width: 30px; height: 30px; margin-right: 4px; border-width: 1px; }
+.root .tag-enemy .tag-role { display: none; }
+.root .tag-name { font-size: 18px; white-space: nowrap; }
+.root .tag-intent .ui-chip-text { font-size: 16px; white-space: nowrap; }
+.root .bl-detail .range-text { color: rgb(48, 65, 57); }
+.meta-page .gacha-actions .btn .cost-chip-text { color: rgb(248, 241, 215); }
+.meta-page .gacha-actions .btn-primary .cost-chip-text { color: rgb(46, 65, 48); }
+.meta-page .gacha-actions .btn:disabled .cost-chip-text { color: rgb(99, 111, 95); }
+.meta-page .shop-soul-note { width: 1120px; max-width: 100%; background-color: rgb(235, 231, 210); padding: 14px 20px; margin-bottom: 12px; border-width: 1px; border-color: rgb(176, 159, 117); white-space: normal; }
+.meta-page .shop-soul-scroll { width: 1120px; max-width: 100%; flex-basis: 0; min-height: 0; }
+.meta-page .shop-soul-scroll .card-row { margin: 0 0 12px; padding: 18px 24px; }
+.meta-page .popup-close { background-image: none; background-color: rgb(64, 92, 80); color: rgb(249, 242, 217); border-width: 1px; border-color: rgb(176, 159, 117); border-radius: 4px; font-size: 32px; -unity-text-align: middle-center; }
+.meta-page .popup-close:hover { background-color: rgb(81, 111, 92); }

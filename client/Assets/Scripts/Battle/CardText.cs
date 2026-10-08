@@ -102,5 +102,29 @@ namespace SanGuo.Client
         }
 
         private static string Pct(double multiplier) => $"{multiplier * 100:0}%";
+
+        /// <summary>卡面用短句；完整規則保留於詳情和 tooltip，不讓長描述擠出牌框。</summary>
+        public static string Summary(CardDef def)
+        {
+            var parts = new List<string>();
+            foreach (var e in def.Effects)
+            {
+                string who = e.OnSelf && def.Target != TargetRule.Self ? "自身" : "";
+                switch (e.Type)
+                {
+                    case EffectType.Damage: parts.Add($"{who}{(e.Kind == DamageKind.Magical ? "法傷" : "物傷")} {Pct(e.Multiplier)}"); break;
+                    case EffectType.Heal: parts.Add($"{who}治療 {Pct(e.Multiplier)}"); break;
+                    case EffectType.Shield: parts.Add($"{who}護盾 {Pct(e.Multiplier)}"); break;
+                    case EffectType.ApplyStatus:
+                        if (e.Status == StatusType.Burn) { parts.Add($"{who}燃燒：謀略 {Pct(e.Multiplier)}"); break; }
+                        string value = e.Status == StatusType.DefUp || e.Status == StatusType.DodgeUp ? $"+{e.Multiplier:0}" : e.Status == StatusType.Taunt ? "" : e.Status == StatusType.ArmorBreak ? "-" + Pct(e.Multiplier) : e.Multiplier > 0 ? Pct(e.Multiplier) : "";
+                        parts.Add($"{who}{StatusName(e.Status).Replace("提升", "")} {value} · {e.Amount}回合"); break;
+                    case EffectType.Draw: parts.Add($"抽 {e.Amount} 張"); break;
+                    case EffectType.GainCost: parts.Add($"獲得 {e.Amount} 費"); break;
+                    case EffectType.Move: parts.Add("依移動力移動"); break;
+                }
+            }
+            return string.Join("\n", parts);
+        }
     }
 }

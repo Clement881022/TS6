@@ -26,6 +26,94 @@
       "created": "2026-10-07",
       "replace_by": "視上線授權決定",
       "notes": "取代 Blender 程式化占位模型；骨架動畫，外觀以 Body/Hair/Face 組合區分武將。"
+    },
+    {
+      "id": "ui.strategy.backgrounds",
+      "file": "client/Assets/Resources/StrategySkin/{home,hall,map,battle}.png",
+      "kind": "background2d",
+      "status": "placeholder",
+      "shippable": false,
+      "source": "generated-original",
+      "tool": "built-in imagegen",
+      "created": "2026-10-08",
+      "notes": "已撤回：畫風不符使用者核准的 Q 版原稿，已由 ChibiSkin 取代，保留作歷史記錄。"
+    },
+    {
+      "id": "ui.strategy.skin",
+      "file": "client/Assets/Resources/StrategySkin/{panel,gold,expedition,atlas-navigation,atlas-items,atlas-combat}.png",
+      "kind": "ui2d",
+      "status": "placeholder",
+      "shippable": false,
+      "source": "generated-original",
+      "tool": "built-in imagegen + tools/import-strategy-art.ps1",
+      "created": "2026-10-08",
+      "notes": "已撤回：畫風不符使用者核准的 Q 版原稿，已由 ChibiSkin 取代，保留作歷史記錄。"
+    },
+    {
+      "id": "ui.strategy.heroes",
+      "file": "client/Assets/Resources/StrategySkin/{full_*,face_*,atlas-portraits,atlas-roster}.png",
+      "kind": "character2d",
+      "status": "placeholder",
+      "shippable": false,
+      "source": "generated-original",
+      "tool": "built-in imagegen + tools/import-strategy-art.ps1",
+      "created": "2026-10-08",
+      "notes": "已撤回：畫風不符使用者核准的 Q 版原稿，已由 ChibiSkin 取代，保留作歷史記錄。"
+    },
+    {
+      "status": "placeholder",
+      "kind": "background2d",
+      "source": "generated-original",
+      "notes": "依使用者原稿重新生成明亮 Q 版主城、亭台、地圖與戰鬥背景；已接入真實遊戲。 原稿及提示詞見 docs/art-chibi/，上線核准沿用專案既有流程。 2026-10-09 主城調色修正版保留明亮 Q 版構圖，降低黃葉、粉花、紅柱飽和度；前稿與提示詞保存於 docs/art-chibi/home-before-refinement.png 及 home-refinement.json。",
+      "id": "ui.chibi.backgrounds",
+      "file": "client/Assets/Resources/ChibiSkin/{home,hall,map,battle}.png",
+      "shippable": false,
+      "created": "2026-10-08",
+      "tool": "built-in imagegen + tools/import-chibi-art.ps1"
+    },
+    {
+      "status": "placeholder",
+      "kind": "ui2d",
+      "source": "generated-original",
+      "notes": "黑金漆面九宮格面板、暖金按鈕、旗幟出征牌與透明圖示；文字及數值由程式即時顯示。 原稿及提示詞見 docs/art-chibi/，上線核准沿用專案既有流程。",
+      "id": "ui.chibi.skin",
+      "file": "client/Assets/Resources/ChibiSkin/{panel,gold,expedition,atlas-navigation,atlas-items,atlas-combat}.png",
+      "shippable": false,
+      "created": "2026-10-08",
+      "tool": "built-in imagegen + tools/import-chibi-art.ps1"
+    },
+    {
+      "status": "placeholder",
+      "kind": "character2d",
+      "source": "generated-original",
+      "notes": "33 張 Q 版完整立繪，涵蓋全部 29 名實際名冊武將；頭像與立繪一致，禁止回退寫實人物。UR 關羽／張飛沿用同人物畫稿。本項不含 3D 模型重製。 原稿及提示詞見 docs/art-chibi/，上線核准沿用專案既有流程。",
+      "id": "ui.chibi.heroes",
+      "file": "client/Assets/Resources/ChibiSkin/{full_*,face_*,atlas-roster,atlas-portraits,atlas-full-sr,atlas-full-militia}.png",
+      "shippable": false,
+      "created": "2026-10-08",
+      "tool": "built-in imagegen + tools/import-chibi-art.ps1"
+    },
+    {
+      "id": "model3d.chibi.v2",
+      "file": "client/Assets/Resources/ChibiModels/*.fbx",
+      "kind": "model3d",
+      "status": "placeholder",
+      "shippable": false,
+      "source": "original-procedural",
+      "tool": "Blender 5.2.1 + tools/blender/chibi_v2.py",
+      "created": "2026-10-09",
+      "notes": "56 個含角色及別名的 Q 版模型資源，分離頭、軀幹、手臂樞紐，依弓兵、盾兵、長兵、劍兵及施法者演出；原生來源 art/chibi-combat-v2.blend。不是全名冊逐一手工雕刻或專屬骨架動畫。"
+    },
+    {
+      "id": "ui.chibi.portrait-compositions",
+      "file": "client/Assets/Resources/ChibiSkin/bust_*.png",
+      "kind": "character2d",
+      "status": "placeholder",
+      "shippable": false,
+      "source": "generated-original",
+      "tool": "tools/center-chibi-portraits.ps1",
+      "created": "2026-10-09",
+      "notes": "33 張獨立半身構圖及重新置中的頭像，焦點以 docs/art-chibi/portrait-framing.json 每人臉部位置記錄。武將展示使用 Bust，招募使用完整立繪。"
     }
   ]
 }

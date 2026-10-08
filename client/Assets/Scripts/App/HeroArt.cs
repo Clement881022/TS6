@@ -4,26 +4,29 @@ using UnityEngine;
 
 namespace SanGuo.Client
 {
-    /// <summary>武將美術（取自 TS6Client）：Resources/HeroArt/face_&lt;武將id&gt;（頭像）與 full_&lt;武將id&gt;（全身立繪）。沒有圖的武將回傳 null，畫面改用姓氏圓章。</summary>
+    /// <summary>Q 版武將美術：Resources/ChibiSkin/face_&lt;id&gt; 與 full_&lt;id&gt;。缺圖回傳 null，避免混入舊寫實立繪。</summary>
     public static class HeroArt
     {
         private static readonly Dictionary<string, Texture2D?> Cache = new Dictionary<string, Texture2D?>();
 
-        public static Texture2D? Face(string heroId) => Load("HeroArt/face_" + heroId);
+        public static Texture2D? Face(string heroId) => Load("ChibiSkin/face_" + heroId);
 
-        public static Texture2D? Full(string heroId) => Load("HeroArt/full_" + heroId);
+        public static Texture2D? Full(string heroId) => Load("ChibiSkin/full_" + heroId);
+        public static Texture2D? Bust(string heroId) => Load("ChibiSkin/bust_" + heroId);
 
         /// <summary>
-        /// 角色模型：先找 Resources/Characters/&lt;id&gt;；沒有專屬模型的武將依職業借用通用模型（正式美術到位前的過渡），
-        /// 敵人則借用山賊嘍囉。
+        /// 原創 Q 版模型由 tools/blender/chibi_v2.py 匯出到 ChibiModels；
+        /// 未登錄角色依職業借用同系列模型。
         /// </summary>
         public static GameObject? Model(string defId)
         {
-            var prefab = Resources.Load<GameObject>("Characters/" + defId);
+            var refined = Resources.Load<GameObject>("ProductionCharacters/" + defId);
+            if (refined != null) return refined;
+            var prefab = Resources.Load<GameObject>("ChibiModels/" + defId);
             if (prefab != null) return prefab;
             var hero = SanGuo.Core.HeroRoster.Find(defId);
             string fallback = hero == null ? "bandit_grunt" : FallbackModel(hero.Role);
-            return Resources.Load<GameObject>("Characters/" + fallback);
+            return Resources.Load<GameObject>("ChibiModels/" + fallback);
         }
 
         private static string FallbackModel(SanGuo.Core.Role role)

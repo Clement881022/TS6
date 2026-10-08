@@ -1,0 +1,83 @@
+/* 主城單一版面規則：小型 HUD、成組導覽、主線操作台。僅影響主城。 */
+.meta-page.bg-home .strategy-home-top {
+    height: 84px; background-color: rgba(15, 32, 36, 0.97);
+    border-bottom-width: 1px; border-bottom-color: rgb(139, 114, 68);
+}
+.meta-page.bg-home .home-player { left: 32px; top: 12px; width: 300px; height: 60px; padding: 0; }
+.meta-page.bg-home .home-player .avatar { width: 56px; height: 56px; margin-right: 14px; border-width: 1px; border-radius: 28px; }
+.meta-page.bg-home .home-player-info { width: 190px; }
+.meta-page.bg-home .home-player-name { font-size: 25px; -unity-font-style: normal; }
+.meta-page.bg-home .home-player-level { font-size: 20px; -unity-font-style: normal; color: rgb(225, 199, 148); }
+.meta-page.bg-home .home-player-exp { font-size: 18px; color: rgb(181, 195, 185); }
+.meta-page.bg-home .home-player .bar-bg { height: 4px; min-height: 4px; margin: 4px 0; }
+.meta-page.bg-home .home-player .bar-fill { height: 4px; min-height: 4px; }
+.meta-page.bg-home .strategy-brand { top: 22px; left: 50%; width: 300px; translate: -50% 0; align-items: center; }
+.meta-page.bg-home .strategy-brand-title { font-size: 30px; color: rgb(233, 212, 170); }
+.meta-page.bg-home .home-res { right: 32px; top: 22px; }
+.meta-page.bg-home .res-pill {
+    height: 40px; margin-left: 16px; padding: 2px 0 2px 14px;
+    background-color: rgba(0, 0, 0, 0); border-width: 0; border-radius: 0;
+    border-left-width: 1px; border-left-color: rgb(69, 83, 77);
+}
+.meta-page.bg-home .res-pill-icon { width: 30px; height: 30px; margin-right: 8px; }
+.meta-page.bg-home .res-pill-text { font-size: 23px; -unity-font-style: normal; color: rgb(243, 232, 206); }
+
+.meta-page.bg-home .home-fn-bar {
+    left: 32px; top: 116px; width: 228px; padding: 20px 12px 12px;
+    background-color: rgb(20, 38, 40); border-width: 0;
+    background-image: url("../ChibiSkin/panel.png");
+    -unity-slice-left: 96; -unity-slice-right: 96; -unity-slice-top: 96; -unity-slice-bottom: 96; -unity-slice-scale: 0.12px;
+}
+.meta-page.bg-home .home-nav-heading { font-size: 18px; color: rgb(191, 169, 119); margin: 0 16px 8px; }
+.meta-page.bg-home .home-nav-divider {
+    border-top-width: 1px; border-top-color: rgb(67, 80, 72); padding-top: 16px; margin-top: 8px;
+}
+.meta-page.bg-home .home-fn, .meta-page.bg-home .home-fn:hover {
+    height: 78px; margin: 0; padding: 0 12px; background-image: none;
+    background-color: rgba(0, 0, 0, 0); border-width: 0; border-radius: 3px;
+    flex-direction: row; align-items: center; scale: 1 1; translate: 0 0;
+}
+.meta-page.bg-home .home-fn:hover { background-color: rgb(42, 57, 50); }
+.meta-page.bg-home .home-fn:active { background-color: rgb(61, 66, 47); }
+.meta-page.bg-home .home-fn-circle { width: 42px; height: 48px; flex-shrink: 0; margin-right: 14px; }
+.meta-page.bg-home .home-fn-icon { width: 42px; height: 42px; }
+.meta-page.bg-home .home-nav-text { flex-grow: 1; flex-shrink: 1; min-width: 0; }
+.meta-page.bg-home .home-fn-label { font-size: 26px; margin: 0; color: rgb(241, 226, 192); }
+.meta-page.bg-home .home-nav-description { font-size: 18px; color: rgb(181, 195, 185); margin-top: 3px; white-space: nowrap; }
+
+.meta-page.bg-home .home-campaign {
+    position: absolute; right: 32px; bottom: 32px; width: 440px;
+    padding: 28px 28px 16px; border-width: 0; background-color: rgb(20, 38, 40);
+    background-image: url("../ChibiSkin/panel.png");
+    -unity-slice-left: 96; -unity-slice-right: 96; -unity-slice-top: 96; -unity-slice-bottom: 96; -unity-slice-scale: 0.12px;
+}
+.meta-page.bg-home .home-campaign-heading { flex-direction: row; justify-content: space-between; align-items: center; }
+.meta-page.bg-home .home-campaign-kicker { font-size: 18px; color: rgb(191, 169, 119); }
+.meta-page.bg-home .home-campaign-chapter { font-size: 18px; color: rgb(181, 195, 185); }
+.meta-page.bg-home .home-campaign-title { font-size: 36px; color: rgb(245, 226, 182); margin-top: 10px; }
+.meta-page.bg-home .home-campaign-next { font-size: 22px; color: rgb(233, 231, 213); margin-top: 8px; white-space: normal; }
+.meta-page.bg-home .home-campaign-status { flex-direction: row; justify-content: space-between; margin-top: 24px; }
+.meta-page.bg-home .home-campaign-progress-label { font-size: 18px; color: rgb(181, 195, 185); }
+.meta-page.bg-home .home-campaign-progress-value { font-size: 18px; color: rgb(217, 197, 150); }
+.meta-page.bg-home .home-campaign-progress.bar-bg { margin: 8px 0 0; background-color: rgb(54, 73, 63); height: 4px; min-height: 4px; }
+.meta-page.bg-home .home-campaign-progress .bar-fill { height: 4px; min-height: 4px; background-color: rgb(196, 164, 96); }
+.meta-page.bg-home .home-campaign-hint { font-size: 18px; color: rgb(182, 198, 177); margin-top: 15px; white-space: normal; }
+.meta-page.bg-home .home-primary, .meta-page.bg-home .home-primary:hover {
+    height: 78px; min-height: 78px; width: 100%; min-width: 0;
+    margin: 22px 0 0; padding: 0 24px; flex-direction: row; align-items: center; justify-content: space-between;
+    border-width: 0; border-radius: 0; scale: 1 1;
+    -unity-slice-scale: 0.1px;
+}
+.meta-page.bg-home .home-primary:hover { -unity-background-image-tint-color: rgb(255, 243, 202); }
+.meta-page.bg-home .home-primary:active { -unity-background-image-tint-color: rgb(218, 186, 125); }
+.meta-page.bg-home .home-primary-title { font-size: 34px; color: rgb(52, 34, 15); }
+.meta-page.bg-home .home-primary-arrow { font-size: 38px; color: rgb(91, 65, 23); }
+.meta-page.bg-home .home-preparation { flex-direction: row; justify-content: space-between; align-items: center; margin-top: 10px; }
+.meta-page.bg-home .home-formation, .meta-page.bg-home .home-formation:hover, .meta-page.bg-home .home-formation:disabled {
+    min-width: 0; min-height: 42px; margin: 0; padding: 0 4px; font-size: 20px;
+    background-image: none; background-color: rgba(0, 0, 0, 0); border-width: 0;
+    color: rgb(228, 210, 165); scale: 1 1;
+}
+.meta-page.bg-home .home-formation:hover { color: rgb(255, 232, 178); }
+.meta-page.bg-home .home-formation:disabled { color: rgb(145, 164, 151); }
+.meta-page.bg-home .home-preparation-note { font-size: 18px; color: rgb(166, 185, 172); }

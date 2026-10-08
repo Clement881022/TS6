@@ -9,6 +9,26 @@ namespace SanGuo.Client
     /// <summary>各頁共用的 UI 元件：文字、按鈕、頁面外框（頂欄 + 內容 + 底部導覽）、提示、頭像、進度條等。樣式在 Resources/UI/Pages.uss。</summary>
     public static class UiKit
     {
+        private static UnityEngine.TextCore.Text.FontAsset? DisplayFont;
+        private static readonly string[] DisplayClasses = { "strategy-brand-title", "strategy-expedition-title", "hdr-title", "home-fn-label", "home-chapter-title",
+            "hero-namebar-name", "strategy-summary-name", "bpanel-title", "popup-title", "dun-name", "shop-name", "btn", "tab", "header-title", "bl-end", "bl-d-name", "sts-card-name", "home-campaign-title", "home-primary-title" };
+
+        public static void ApplyDisplayFont(VisualElement element)
+        {
+            if (!(element is TextElement text)) return;
+            bool display = false;
+            foreach (var cls in DisplayClasses) if (text.ClassListContains(cls)) { display = true; break; }
+            if (!display) return;
+            if (DisplayFont == null)
+            {
+                var font = UnityEngine.Resources.Load<UnityEngine.Font>("Fonts/ChibiDisplay");
+                if (font == null) return;
+                DisplayFont = UnityEngine.TextCore.Text.FontAsset.CreateFontAsset(font, 80, 8, UnityEngine.TextCore.LowLevel.GlyphRenderMode.SDFAA, 2048, 2048,
+                    UnityEngine.TextCore.Text.AtlasPopulationMode.Dynamic, true);
+            }
+            text.style.unityFontDefinition = new StyleFontDefinition(FontDefinition.FromSDFFont(DisplayFont));
+        }
+
         private static readonly (Page page, string glyph, string label)[] Tabs =
         {
             (Page.Home, "城", "主城"), (Page.Map, "戰", "征戰"), (Page.Heroes, "將", "武將"), (Page.Gacha, "募", "招募"),
@@ -17,7 +37,8 @@ namespace SanGuo.Client
 
         public static T WithClass<T>(this T el, string cls) where T : VisualElement
         {
-            el.AddToClassList(cls);
+            foreach (var c in cls.Split(' ')) if (c.Length > 0) el.AddToClassList(c);
+            ApplyDisplayFont(el);
             return el;
         }
 
@@ -26,6 +47,7 @@ namespace SanGuo.Client
         {
             var l = new Label(text);
             foreach (var c in cls.Split(' ')) if (c.Length > 0) l.AddToClassList(c);
+            ApplyDisplayFont(l);
             return l;
         }
 
@@ -35,6 +57,7 @@ namespace SanGuo.Client
             b.AddToClassList("btn");
             if (primary) b.AddToClassList("btn-primary");
             if (on) b.AddToClassList("btn-on");
+            ApplyDisplayFont(b);
             return b;
         }
 
@@ -53,6 +76,7 @@ namespace SanGuo.Client
             var b = new Button(() => { AudioManager.PlaySfx(Sfx.Click); onClick(); }) { text = text };
             b.AddToClassList("tab");
             if (on) b.AddToClassList("tab-on");
+            ApplyDisplayFont(b);
             return b;
         }
 
@@ -119,7 +143,7 @@ namespace SanGuo.Client
             bg.AddToClassList("bar-bg");
             var fill = new VisualElement();
             fill.AddToClassList("bar-fill");
-            if (cls.Length > 0) { bg.AddToClassList(cls); fill.AddToClassList(cls); }
+            foreach (var c in cls.Split(' ')) if (c.Length > 0) { bg.AddToClassList(c); fill.AddToClassList(c); }
             fill.style.width = Length.Percent(Math.Max(0f, Math.Min(100f, percent)));
             bg.Add(fill);
             return bg;
@@ -242,7 +266,8 @@ namespace SanGuo.Client
         {
             if (!SkinCache.TryGetValue(name, out var t))
             {
-                t = UnityEngine.Resources.Load<UnityEngine.Texture2D>("UiSkin/" + name);
+                t = UnityEngine.Resources.Load<UnityEngine.Texture2D>("ChibiSkin/" + name)
+                    ?? UnityEngine.Resources.Load<UnityEngine.Texture2D>("UiSkin/" + name);
                 SkinCache[name] = t;
             }
             return t;
@@ -338,8 +363,8 @@ namespace SanGuo.Client
             bar.AddToClassList("hdr");
 
             var backBtn = new Button(() => Nav.Go(back));
+            backBtn.text = "‹";
             backBtn.AddToClassList("hdr-back");
-            backBtn.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("hdr-back-icon"));
             bar.Add(backBtn);
             bar.Add(new Label(title) { pickingMode = PickingMode.Ignore }.WithClass("hdr-title"));
             bar.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("grow"));
@@ -354,6 +379,7 @@ namespace SanGuo.Client
 
             var close = new Button(() => Nav.Go(Page.Home));
             close.AddToClassList("hdr-close");
+            close.text = "×";
             bar.Add(close);
             host.Add(bar);
 

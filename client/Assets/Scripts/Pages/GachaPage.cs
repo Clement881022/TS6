@@ -60,7 +60,9 @@ namespace SanGuo.Client
                 card.AddToClassList("gacha-card");
                 if (i == 0) card.AddToClassList("gacha-card-main");
                 var tex = HeroArt.Full(d.Id) ?? HeroArt.Face(d.Id);
-                if (tex != null) card.style.backgroundImage = new StyleBackground(tex);
+                var art = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("gacha-character-art");
+                if (tex != null) art.style.backgroundImage = new StyleBackground(tex);
+                card.Add(art);
                 card.Add(new Label(d.Name) { pickingMode = PickingMode.Ignore }.WithClass("gacha-card-name"));
                 showcase.Add(card);
             }
@@ -106,6 +108,8 @@ namespace SanGuo.Client
         private Button PullButton(string label, int cost, int count, bool primary, string? tag)
         {
             var b = UiKit.Btn("", () => _ = Pull(count), primary: primary).WithClass("btn-lg");
+            b.SetEnabled(GameSession.View.Yuanbao >= cost);
+            b.tooltip = GameSession.View.Yuanbao >= cost ? $"花費 {cost} 元寶招募 {count} 次" : $"元寶不足，需要 {cost} 元寶";
             var row = new VisualElement { pickingMode = PickingMode.Ignore };
             row.AddToClassList("gacha-cost");
             row.Add(new Label(label) { pickingMode = PickingMode.Ignore }.WithClass("cost-chip-text").WithClass("gacha-cost-label"));
@@ -154,7 +158,12 @@ namespace SanGuo.Client
             var buttons = new VisualElement();
             buttons.AddToClassList("pull-buttons");
             buttons.Add(UiKit.Btn("確定", () => { _last = null; Rebuild(); }));
-            buttons.Add(UiKit.Btn(_lastCount == 1 ? "再抽一次" : "再抽十連", () => _ = Pull(_lastCount), primary: true));
+            var current = _pools.Find(p => p.Id == _poolId) ?? _pools[0];
+            int repeatCost = _lastCount == 1 ? current.SingleCost : current.TenCost;
+            var repeat = UiKit.Btn(_lastCount == 1 ? "再抽一次" : "再抽十連", () => _ = Pull(_lastCount), primary: true);
+            repeat.SetEnabled(GameSession.View.Yuanbao >= repeatCost);
+            repeat.tooltip = GameSession.View.Yuanbao >= repeatCost ? $"花費 {repeatCost} 元寶再次招募" : $"元寶不足，需要 {repeatCost} 元寶";
+            buttons.Add(repeat);
             overlay.Add(buttons);
             return overlay;
         }

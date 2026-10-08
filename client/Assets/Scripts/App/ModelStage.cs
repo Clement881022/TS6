@@ -26,6 +26,11 @@ namespace SanGuo.Client
         private CharacterClipSet? _clips;
         private AnimationClip? _current;
         private bool _once;
+        private CharacterView? _proceduralView;
+        private Transform? _skeletalHead;
+        private Vector3 _skeletalHeadScale;
+        private Quaternion _modelBaseRotation;
+        private float _reviewYaw;
 
         /// <param name="bust">true = 半身像：鏡頭只框住上半身（劇情對白用）。</param>
         public static ModelStage? Create(string characterName, int width = 512, int height = 640, bool bust = false)
@@ -43,9 +48,18 @@ namespace SanGuo.Client
         {
             _origin = new Vector3(4000f + 80f * (_count++ % 20), 0f, 4000f);
             transform.position = _origin;
-            _model = Instantiate(prefab, _origin, Quaternion.identity, transform);
+            _model = Instantiate(prefab, transform);
+            _model.transform.position = _origin;
+            _modelBaseRotation = _model.transform.rotation;
             SetLayer(_model, StageLayer);
             _clips = _model.GetComponent<CharacterClipSet>();
+            foreach (var bone in _model.GetComponentsInChildren<Transform>())
+                if (bone.name == "Bip001 Head") { _skeletalHead = bone; _skeletalHeadScale = bone.localScale; break; }
+            if (_clips == null)
+            {
+                _proceduralView = _model.AddComponent<CharacterView>();
+                _proceduralView.Init(_model.transform);
+            }
 
             // 以模型的外框決定相機距離與高度
             var bounds = new Bounds(_origin, Vector3.zero);
@@ -71,6 +85,7 @@ namespace SanGuo.Client
             float dist = size * 0.5f / Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad) * 1.12f;
 
             Texture = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32) { name = "ModelStageRT" };
+            Texture.antiAliasing = 4;
             Texture.Create();
 
             var camGo = new GameObject("Camera");
@@ -86,7 +101,7 @@ namespace SanGuo.Client
             _camera.nearClipPlane = 0.05f;
             _camera.farClipPlane = dist + size * 4f;
             _camera.allowHDR = false;
-            _camera.allowMSAA = false;
+            _camera.allowMSAA = true;
 
             var lightGo = new GameObject("Light");
             lightGo.transform.SetParent(transform, false);
@@ -134,17 +149,32 @@ namespace SanGuo.Client
         /// <summary>播一次歡呼 / 施法動作，結束後回到待機。</summary>
         public void Cheer()
         {
+            if (_proceduralView != null) _proceduralView.Cast();
             if (_clips != null && _clips.Cast != null) StartClip(_clips.Cast, loop: false);
         }
 
         private void Update()
         {
+            _proceduralView?.Tick(Time.deltaTime, Quaternion.Euler(0,_reviewYaw,0)*Vector3.forward, 1f, _origin);
             if (!_playable.IsValid() || _current == null) return;
             if (_playable.GetTime() >= _current.length - 0.02f)
             {
                 if (_once && _clips != null && _clips.Idle != null) StartClip(_clips.Idle, loop: true);
                 else _playable.SetTime(0);
             }
+        }
+
+        public void ReviewAngle(float yaw)
+        {
+            _reviewYaw = yaw;
+            _model.transform.rotation = Quaternion.Euler(0,yaw,0)*_modelBaseRotation;
+        }
+
+        public void ReviewAttack() { if (_clips?.Attack != null) StartClip(_clips.Attack, loop: false); }
+
+        private void LateUpdate()
+        {
+            if (_skeletalHead != null && _clips != null) _skeletalHead.localScale = _skeletalHeadScale * _clips.HeadScale;
         }
 
         public void Dispose()

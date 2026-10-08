@@ -15,14 +15,21 @@ namespace SanGuo.Client
         protected override Page Id => Page.Dungeons;
         protected override string Title => "素材副本";
 
+        public void DebugScrollEnd()
+        {
+            var scroll = Host.Q<ScrollView>();
+            if (scroll != null) scroll.verticalScroller.value = scroll.verticalScroller.highValue;
+        }
+
         protected override void BuildBody(VisualElement body)
         {
             var v = GameSession.View;
             body.style.flexDirection = FlexDirection.Column;
             body.AddToClassList("page-centered");
 
-            var scroll = new ScrollView(ScrollViewMode.Horizontal);
+            var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("grow");
+            scroll.AddToClassList("dungeon-scroll");
             var row = scroll.contentContainer;
             row.AddToClassList("dun-row");
             body.Add(scroll);
@@ -51,7 +58,8 @@ namespace SanGuo.Client
 
                 var body2 = new VisualElement { pickingMode = PickingMode.Ignore };
                 body2.AddToClassList("card-body");
-                if (!unlocked) body2.Add(UiKit.Text($"通關 {d.UnlockStageId} 關後解鎖", "dun-lock"));
+                if (!unlocked) body2.Add(UiKit.Text(Campaign.TryParse(d.UnlockStageId, out int chapter, out int unlockLevel)
+                    ? $"通關第 {chapter} 章第 {unlockLevel} 關後解鎖" : "推進主線後解鎖", "dun-lock"));
                 else body2.Add(UiKit.Text(cleared ? "已通關，可掃蕩" : "尚未通關", "line-sub").WithClass("dun-center"));
                 var cost = UiKit.Cost("item_stamina", d.StaminaCost, v.Stamina);
                 cost.AddToClassList("dun-cost");

@@ -31,7 +31,9 @@ namespace SanGuo.Client
             var settings = ScriptableObject.CreateInstance<PanelSettings>();
             settings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
             settings.referenceResolution = new Vector2Int(1920, 1080);
-            settings.screenMatchMode = PanelScreenMatchMode.Shrink;
+            // Preserve the reference canvas width on tall displays so the three-column
+            // roster and bottom battle hand retain their intended proportions.
+            settings.screenMatchMode = PanelScreenMatchMode.Expand;
             // UI Toolkit 執行時要求有 Theme；這裡用空的，所有樣式都在 Resources/UI/*.uss。
             settings.themeStyleSheet = ScriptableObject.CreateInstance<ThemeStyleSheet>();
 
@@ -48,6 +50,9 @@ namespace SanGuo.Client
             AddSheet(_root, "UI/Pages2");
             AddSheet(_root, "UI/Tutorial");
             AddSheet(_root, "UI/Polish");
+            AddSheet(_root, "UI/Chibi");
+            AddSheet(_root, "UI/Home");
+            AddSheet(_root, "UI/BattlePolish");
             ApplyCjkFont(_root);
 
             Show(startPage);
@@ -103,7 +108,7 @@ namespace SanGuo.Client
         {
             try
             {
-                var font = Resources.Load<Font>("Fonts/CjkFont");
+                var font = Resources.Load<Font>("Fonts/CjkFontMedium") ?? Resources.Load<Font>("Fonts/CjkFont");
                 if (font == null)
                 {
                     Debug.LogWarning("沒有內嵌中文字型（Resources/Fonts/CjkFont），改用系統字型；手機上會顯示不出中文。");

@@ -101,6 +101,13 @@ namespace SanGuo.Client
                 portrait.style.backgroundImage = StyleKeyword.None;
                 portrait.RemoveFromClassList("story-bust");
                 if (line.Portrait == "") return;
+                var art = HeroArt.Full(line.Portrait) ?? HeroArt.Face(line.Portrait);
+                if (art != null)
+                {
+                    portrait.AddToClassList("story-bust");
+                    portrait.style.backgroundImage = new StyleBackground(art);
+                    return;
+                }
                 // 劇情一律用半身像：把 3D 角色只框住上半身畫到 RenderTexture（背景透明）。
                 if (!stages.TryGetValue(line.Portrait, out var model))
                 {

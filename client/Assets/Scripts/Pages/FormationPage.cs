@@ -26,7 +26,7 @@ namespace SanGuo.Client
             {
                 var dungeon = DemoMeta.FindDungeon(StageId);
                 if (dungeon != null) return $"排兵布陣　{dungeon.Name}";
-                int level = DemoMeta.LevelOf(StageId);
+                int level = Campaign.TryParse(StageId, out _, out int parsedLevel) ? parsedLevel : 0;
                 return level == 0 ? "排兵布陣" : $"排兵布陣　第 {level} 關　{DemoContent.LevelNames[level - 1]}";
             }
         }

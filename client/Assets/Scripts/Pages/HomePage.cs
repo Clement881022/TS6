@@ -8,17 +8,15 @@ using UnityEngine.UIElements;
 namespace SanGuo.Client
 {
     /// <summary>
-    /// 主城：整張主城場景當底，功能入口是建築上的名牌；左上玩家卡與章節進度、右上資源、
-    /// 底部圓形功能鍵、右下「戰鬥」圓章，左下 3D 巴豆妖會依狀況提示下一步。版型參考 TS6Client 的主城介面。
+    /// 策略國風主城：城景、左側功能列、右側章節卡與出征，文字與資源由即時資料呈現。
     /// </summary>
     public sealed class HomePage : PageBase
     {
-        // 場景圖是 16:9（Resources/UiBg/home），以「填滿」方式鋪滿畫面，名牌用圖上的百分比座標定位。
+        // Q 版場景圖以 16:9 填滿畫面；互動 HUD 獨立於城景裁切。
         private const float SceneAspect = 16f / 9f;
 
         private VisualElement? _scene;
         private bool _geometryHooked;
-        private ModelStage? _mascot;
 
         protected override Page Id => Page.Home;
         protected override string Title => "三國將星傳";
@@ -37,16 +35,10 @@ namespace SanGuo.Client
         {
             Tutorial.Show(Host, "home", "主城功能", new[]
             {
-                "嗨嗨，主公！我是巴豆妖，負責教你遊戲怎麼玩。主城裡每棟建築都是一個功能。",
+                "嗨嗨，主公！我是巴豆妖，負責教你遊戲怎麼玩。左側功能列可以管理你的隊伍。",
                 "「征戰」推進主線關卡；「招募」抽取新武將；「武將」升級與強化；「副本」和「任務」能取得養成素材。",
                 "先從第一關開始，戰鬥裡我會再教你出牌。",
             }, "前往征戰", () => Nav.Go(Page.Map), speaker: "巴豆妖", model: "badou");
-        }
-
-        private void OnDestroy()
-        {
-            _mascot?.Dispose();
-            _mascot = null;
         }
 
         protected override void BuildBody(VisualElement root)
@@ -57,10 +49,10 @@ namespace SanGuo.Client
             for (int i = 1; i <= total; i++)
                 if (v.ClearedStages.Contains(GameSession.StageIdOf(i))) cleared++;
 
-            // ---- 場景 + 建築名牌 ----
+            // ---- 新城景與全螢幕 HUD ----
             _scene = new VisualElement();
             _scene.AddToClassList("home-scene");
-            var tex = Resources.Load<Texture2D>("UiBg/home");
+            var tex = Resources.Load<Texture2D>("ChibiSkin/home");
             if (tex != null) _scene.style.backgroundImage = new StyleBackground(tex);
             root.Add(_scene);
             if (!_geometryHooked)
@@ -70,16 +62,14 @@ namespace SanGuo.Client
             }
             root.schedule.Execute(() => FitScene(root)).ExecuteLater(0);
 
-            AddSpot("招募", Page.Gacha, 30.7f, 40f);
-            AddSpot("武將", Page.Heroes, 20.3f, 55f);
-            AddSpot("征戰", Page.Map, 56.5f, 46f);
-            AddSpot("副本", Page.Dungeons, 43.4f, 71f);
-            AddSpot("任務", Page.Quests, 90.4f, 52f);
-            AddSpot("商店", Page.Shop, 71.8f, 76f);
+            root.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("strategy-home-shade"));
+            var topBar = new VisualElement().WithClass("strategy-home-top");
+            var brand = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("strategy-brand");
+            brand.Add(UiKit.Text("三國將星傳", "strategy-brand-title"));
+            topBar.Add(brand);
 
             // ---- 左上：玩家卡 + 章節進度 ----
-            root.Add(BuildPlayerCard(v));
-            root.Add(BuildChapterPlate(cleared, total));
+            topBar.Add(BuildPlayerCard(v));
 
             // ---- 右上：資源 ----
             var res = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -87,16 +77,12 @@ namespace SanGuo.Client
             res.Add(UiKit.ResPill("item_stamina", $"{v.Stamina}/{v.StaminaCap}"));
             res.Add(UiKit.ResPill("item_gold", v.Gold.ToString("N0")));
             res.Add(UiKit.ResPill("item_yuanbao", v.Yuanbao.ToString("N0")));
-            root.Add(res);
+            topBar.Add(res);
+            root.Add(topBar);
 
-            // ---- 底部：圓形功能鍵 + 戰鬥圓章 ----
+            // 主線進度、下一關與主操作放在同一個面板，直接引導當前目標。
             root.Add(BuildFunctionBar());
-            var orb = new Button(() => Nav.Go(Page.Map));
-            orb.AddToClassList("home-orb");
-            root.Add(orb);
-
-            // ---- 左下：3D 巴豆妖 + 提示氣泡 ----
-            root.Add(BuildMascot(v, cleared, total));
+            root.Add(BuildCampaign(v, cleared, total));
         }
 
         // ------------------------------------------------------------ 版面
@@ -113,29 +99,6 @@ namespace SanGuo.Client
             _scene.style.left = (w - sw) * 0.5f;
             _scene.style.top = (h - sh) * 0.5f;
         }
-
-        /// <summary>建築上的名牌：以功能圖示辨識入口，x / y 是場景圖上的百分比。</summary>
-        private void AddSpot(string label, Page target, float x, float y)
-        {
-            var spot = new Button(() => Nav.Go(target));
-            spot.AddToClassList("home-spot");
-            spot.style.left = Length.Percent(x);
-            spot.style.top = Length.Percent(y);
-            spot.Add(new VisualElement { pickingMode = PickingMode.Ignore }
-                .WithClass("home-spot-icon").WithClass("tile-ico-" + HomeIcon(target)));
-            spot.Add(new Label(label) { pickingMode = PickingMode.Ignore }.WithClass("home-spot-text"));
-            _scene!.Add(spot);
-        }
-
-        private static string HomeIcon(Page target) => target switch
-        {
-            Page.Gacha => "gacha",
-            Page.Heroes => "heroes",
-            Page.Dungeons => "dungeons",
-            Page.Quests => "quests",
-            Page.Shop => "shop",
-            _ => "map",
-        };
 
         private VisualElement BuildPlayerCard(ProfileView v)
         {
@@ -158,23 +121,38 @@ namespace SanGuo.Client
             return card;
         }
 
-        /// <summary>章節進度牌：點下去繼續征戰。</summary>
-        private static VisualElement BuildChapterPlate(int cleared, int total)
+        private static VisualElement BuildCampaign(ProfileView v, int cleared, int total)
         {
-            var plate = new Button(() => Nav.Go(Page.Map));
-            plate.AddToClassList("home-chapter");
-            string next = cleared >= total ? "章節已通關" : $"下一關　{DemoContent.LevelNames[Math.Min(cleared, total - 1)]}";
-            plate.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-diamond"));
-            var text = new VisualElement { pickingMode = PickingMode.Ignore };
-            text.AddToClassList("home-chapter-text");
-            text.Add(new Label("第零章　涿縣盜匪") { pickingMode = PickingMode.Ignore }.WithClass("home-chapter-title"));
-            text.Add(new Label($"{next}　（{cleared}/{total}）") { pickingMode = PickingMode.Ignore }.WithClass("home-chapter-sub"));
+            var plate = new VisualElement().WithClass("home-campaign");
+            var heading = new VisualElement().WithClass("home-campaign-heading");
+            heading.Add(UiKit.Text("主線征戰", "home-campaign-kicker"));
+            heading.Add(UiKit.Text("第零章", "home-campaign-chapter"));
+            plate.Add(heading);
+            plate.Add(UiKit.Text("涿縣盜匪", "home-campaign-title"));
+            int nextLevel = 1;
+            while (nextLevel < total && v.ClearedStages.Contains(GameSession.StageIdOf(nextLevel))) nextLevel++;
+            plate.Add(UiKit.Text(cleared >= total ? "章節已通關 · 可重返關卡" : $"第 {nextLevel} 關 · {DemoContent.LevelNames[nextLevel - 1]}", "home-campaign-next"));
+            var status = new VisualElement().WithClass("home-campaign-status");
+            status.Add(UiKit.Text("章節進度", "home-campaign-progress-label"));
+            status.Add(UiKit.Text($"{cleared} / {total}", "home-campaign-progress-value"));
+            plate.Add(status);
             var progress = UiKit.Bar(total <= 0 ? 0 : 100f * cleared / total, "bar-gold bar-slim");
-            progress.AddToClassList("home-chapter-progress");
-            progress.pickingMode = PickingMode.Ignore;
-            text.Add(progress);
-            plate.Add(text);
-            plate.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-diamond"));
+            progress.AddToClassList("home-campaign-progress");
+            plate.Add(progress);
+            plate.Add(UiKit.Text(HintFor(v, cleared, total), "home-campaign-hint"));
+            var expedition = UiKit.Btn("", () => { GameSession.SelectedLevel = nextLevel; GameSession.OpenSelectedStageOnMap = true; Nav.Go(Page.Map); }, primary: true).WithClass("home-primary");
+            expedition.tooltip = $"前往第 {nextLevel} 關，查看敵軍與出戰條件";
+            expedition.Add(UiKit.Text(cleared == 0 ? "開始出征" : cleared >= total ? "重返戰場" : "繼續出征", "home-primary-title"));
+            expedition.Add(UiKit.Text("›", "home-primary-arrow"));
+            plate.Add(expedition);
+            bool formationUnlocked = GameSession.IsUnlocked(DemoMeta.FirstOpenFormationLevel);
+            var formation = UiKit.Btn("排兵布陣", () => { GameSession.FormationStageId = GameSession.StageIdOf(DemoMeta.FirstOpenFormationLevel); Nav.Go(Page.Formation); }).WithClass("home-formation");
+            formation.SetEnabled(formationUnlocked);
+            formation.tooltip = formationUnlocked ? "編輯主線出戰陣容" : $"通關第 {DemoMeta.FirstOpenFormationLevel - 1} 關後開放";
+            var preparation = new VisualElement().WithClass("home-preparation");
+            preparation.Add(formation);
+            preparation.Add(UiKit.Text(formationUnlocked ? "調整出戰隊伍" : $"第 {DemoMeta.FirstOpenFormationLevel} 關開放", "home-preparation-note"));
+            plate.Add(preparation);
             return plate;
         }
 
@@ -182,15 +160,17 @@ namespace SanGuo.Client
         {
             var bar = new VisualElement { pickingMode = PickingMode.Ignore };
             bar.AddToClassList("home-fn-bar");
-            bar.Add(FunctionButton("武將", "heroes", Page.Heroes));
-            bar.Add(FunctionButton("招募", "gacha", Page.Gacha));
-            bar.Add(FunctionButton("副本", "dungeons", Page.Dungeons));
-            bar.Add(FunctionButton("任務", "quests", Page.Quests));
-            bar.Add(FunctionButton("商店", "shop", Page.Shop));
+            bar.Add(UiKit.Text("軍務", "home-nav-heading"));
+            bar.Add(FunctionButton("武將", "培養與裝備", "heroes", Page.Heroes));
+            bar.Add(FunctionButton("招募", "招募新將", "gacha", Page.Gacha));
+            bar.Add(UiKit.Text("日常", "home-nav-heading home-nav-divider"));
+            bar.Add(FunctionButton("副本", "取得養成素材", "dungeons", Page.Dungeons));
+            bar.Add(FunctionButton("任務", "領取目標獎勵", "quests", Page.Quests));
+            bar.Add(FunctionButton("商店", "補給與將魂", "shop", Page.Shop));
             return bar;
         }
 
-        private static VisualElement FunctionButton(string label, string icon, Page target)
+        private static VisualElement FunctionButton(string label, string description, string icon, Page target)
         {
             var b = new Button(() => Nav.Go(target));
             b.AddToClassList("home-fn");
@@ -198,29 +178,12 @@ namespace SanGuo.Client
             circle.AddToClassList("home-fn-circle");
             circle.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-fn-icon").WithClass("tile-ico-" + icon));
             b.Add(circle);
-            b.Add(new Label(label) { pickingMode = PickingMode.Ignore }.WithClass("home-fn-label"));
+            var text = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-nav-text");
+            text.Add(UiKit.Text(label, "home-fn-label"));
+            text.Add(UiKit.Text(description, "home-nav-description"));
+            b.Add(text);
+            b.tooltip = description;
             return b;
-        }
-
-        private VisualElement BuildMascot(ProfileView v, int cleared, int total)
-        {
-            var box = new VisualElement { pickingMode = PickingMode.Ignore };
-            box.AddToClassList("home-mascot-box");
-
-            string hint = HintFor(v, cleared, total);
-            var bubble = new Label(hint) { pickingMode = PickingMode.Ignore };
-            bubble.AddToClassList("home-bubble");
-            box.Add(bubble);
-
-            _mascot ??= ModelStage.Create("badou", 480, 600);
-            if (_mascot != null)
-            {
-                var m = new Button(() => { bubble.text = HintFor(GameSession.View, cleared, total); _mascot?.Cheer(); });
-                m.AddToClassList("home-mascot");
-                m.style.backgroundImage = new StyleBackground(Background.FromRenderTexture(_mascot.Texture));
-                box.Add(m);
-            }
-            return box;
         }
 
         private static string HintFor(ProfileView v, int cleared, int total)

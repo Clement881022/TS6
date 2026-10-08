@@ -1,0 +1,32 @@
+/* 卡牌與 HUD 的尺寸規則，最後載入；浮動單位標籤只存在於 field 內。 */
+.root .header { height: 64px; min-height: 64px; padding: 0 20px; }
+.root .header-title { font-size: 34px; }
+.root .header .btn { font-size: 22px; min-width: 100px; min-height: 48px; margin: 0 4px; padding: 0 16px; }
+.root .field { overflow: hidden; }
+.root .tag-layer { position: absolute; left: 0; right: 0; top: 0; bottom: 0; overflow: hidden; }
+.root .bl-log { top: 70px; right: 18px; width: 300px; height: 34px; }
+.root .bl-log-line { font-size: 18px; }
+.root .sts-hand { left: 264px; right: 220px; height: 320px; bottom: 12px; }
+.root .sts-card { height: 280px; padding: 10px; transform-origin: 50% 100%; overflow: hidden; }
+.root .sts-card-hover, .root .sts-card-selected { scale: 1.05 1.05; }
+.root .sts-card-cost { left: 3px; top: 4px; width: 36px; height: 36px; font-size: 25px; }
+.root .sts-card-name { height: 30px; margin-left: 30px; font-size: 22px; white-space: nowrap; }
+.root .sts-card-art { height: 100px; margin-top: 8px; border-radius: 3px; }
+.root .sts-card-kind { width: 28px; height: 28px; }
+.root .sts-card-owner { height: 24px; font-size: 17px; white-space: nowrap; }
+.root .sts-card-description {
+    font-size: 18px; white-space: normal; min-height: 0; flex-shrink: 1; flex-grow: 1;
+    margin: 6px 0; padding: 0 3px; overflow: hidden; -unity-text-align: upper-center;
+}
+.root .sts-card-type { height: 18px; font-size: 15px; }
+.root .bl-bar { width: 246px; left: 12px; top: 84px; padding: 4px; }
+.root .bl-hero { width: 234px; height: 84px; padding: 5px; }
+.root .bl-hero-face { width: 54px; height: 68px; }
+.root .bl-hero-name { font-size: 20px; white-space: nowrap; }
+.root .bl-detail { width: 320px; top: 112px; right: 18px; padding: 14px; max-height: 550px; overflow: hidden; }
+.root .bl-d-name { font-size: 26px; }
+.root .bl-d-desc, .root .bl-d-target, .root .bl-d-hint, .root .bl-d-warn { font-size: 18px; white-space: normal; }
+.root .bl-detail .range-icon { max-height: 92px; }
+.root .bl-left { width: 192px; right: 16px; bottom: 18px; }
+.root .bl-end, .root .bl-end:hover { width: 176px; height: 68px; font-size: 24px; }
+.root .tag-extra { flex-wrap: wrap; }
