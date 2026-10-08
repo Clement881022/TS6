@@ -17,7 +17,7 @@ namespace SanGuo.Client
         public int Yuanbao;
         public int Gold;
         public int Stamina;
-        public int StaminaCap = 120;
+        public int StaminaCap = 62;
         public HashSet<string> ClearedStages = new HashSet<string>();
         public Dictionary<string, int> StageStars = new Dictionary<string, int>();
         public Dictionary<string, HeroState> Heroes = new Dictionary<string, HeroState>();
@@ -107,10 +107,15 @@ namespace SanGuo.Client
         /// <summary>測試付款購買：建立訂單並模擬付款成功（正式版改走支付渠道，付款完成由伺服器發貨）。</summary>
         Task<BackendResult> BuyWithTestPayment(string productId);
         Task<BackendResult> ClaimMonthCard(string cardId);
-        Task<BackendResult> ClaimGrowthFund(int level);
         Task<PullOutcomeResult> Pull(string poolId, int count);
         Task<BackendResult> LevelUp(string heroId);
-        Task<BackendResult> Enhance(string heroId, string cardId);
         Task<BackendResult> Breakthrough(string heroId);
+        /// <summary>穿上庫存中的裝備（slot 為 Weapon / Armor / Accessory）。</summary>
+        Task<BackendResult> Equip(string heroId, string slot, int tier);
+        Task<BackendResult> Unequip(string heroId, string slot);
+        /// <summary>分解庫存中的裝備換金幣。</summary>
+        Task<BackendResult> Dismantle(string slot, int tier, int count);
+        /// <summary>將魂商店兌換。</summary>
+        Task<BackendResult> BuySoulItem(string itemId);
     }
 }

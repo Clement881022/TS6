@@ -156,9 +156,6 @@ namespace SanGuo.Client
         public Task<BackendResult> ClaimMonthCard(string cardId) =>
             Simple("/shop/month-card/claim", new Dictionary<string, object?> { ["productId"] = cardId });
 
-        public Task<BackendResult> ClaimGrowthFund(int level) =>
-            Simple("/shop/growth-fund/claim", new Dictionary<string, object?> { ["points"] = (long)level });
-
         public Task<BackendResult> SweepDungeon(string dungeonId, int count) =>
             Simple("/dungeon/sweep", new Dictionary<string, object?> { ["id"] = dungeonId, ["count"] = (long)count });
 
@@ -184,6 +181,7 @@ namespace SanGuo.Client
                         Rarity = rarity,
                         IsNew = o.TryGetValue("isNew", out var n) && n is true,
                         Shards = Int(o, "shards"),
+                        Souls = Int(o, "souls"),
                         IsUp = o.TryGetValue("isUp", out var u) && u is true,
                         FromPity = o.TryGetValue("fromPity", out var f) && f is true,
                     });
@@ -201,8 +199,17 @@ namespace SanGuo.Client
         public Task<BackendResult> LevelUp(string heroId) =>
             Simple("/hero/levelup", new Dictionary<string, object?> { ["heroId"] = heroId });
 
-        public Task<BackendResult> Enhance(string heroId, string cardId) =>
-            Simple("/hero/enhance", new Dictionary<string, object?> { ["heroId"] = heroId, ["cardId"] = cardId });
+        public Task<BackendResult> Equip(string heroId, string slot, int tier) =>
+            Simple("/hero/equip", new Dictionary<string, object?> { ["heroId"] = heroId, ["slot"] = slot, ["tier"] = (long)tier });
+
+        public Task<BackendResult> Unequip(string heroId, string slot) =>
+            Simple("/hero/unequip", new Dictionary<string, object?> { ["heroId"] = heroId, ["slot"] = slot });
+
+        public Task<BackendResult> Dismantle(string slot, int tier, int count) =>
+            Simple("/equipment/dismantle", new Dictionary<string, object?> { ["slot"] = slot, ["tier"] = (long)tier, ["count"] = (long)count });
+
+        public Task<BackendResult> BuySoulItem(string itemId) =>
+            Simple("/soulshop/buy", new Dictionary<string, object?> { ["itemId"] = itemId });
 
         public Task<BackendResult> Breakthrough(string heroId) =>
             Simple("/hero/breakthrough", new Dictionary<string, object?> { ["heroId"] = heroId });

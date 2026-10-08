@@ -13,9 +13,8 @@ namespace SanGuo.Client
     /// </summary>
     public sealed class HeroesPage : PageBase
     {
-        private enum Tab { Level, Break, Cards }
+        private enum Tab { Level, Break, Equip }
 
-        private readonly BreakthroughTable _breakthroughs = DemoBreakthroughs.Create();
         private string? _heroId;
         private Tab _tab = Tab.Level;
         private ModelStage? _stage;
@@ -30,7 +29,7 @@ namespace SanGuo.Client
             _stage = null;
         }
 
-        /// <summary>截圖 / 除錯用：切到指定分頁（0 升級、1 突破、2 卡牌強化）。</summary>
+        /// <summary>截圖 / 除錯用：切到指定分頁（0 升級、1 突破、2 裝備）。</summary>
         public void DebugSetTab(int tab)
         {
             _tab = (Tab)tab;
@@ -109,8 +108,8 @@ namespace SanGuo.Client
             center.Add(bar);
 
             // 屬性：目前 → 升級後（只有隨等級成長的四項會顯示預覽）
-            var now = HeroGrowth.ScaleStats(def.Base, hero, _breakthroughs);
-            var next = HeroGrowth.ScaleStats(def.Base, new HeroState { HeroId = hero.HeroId, Level = hero.Level + 1, Stars = hero.Stars, CardLevels = hero.CardLevels }, _breakthroughs);
+            var now = HeroGrowth.ScaleStats(def, hero);
+            var next = HeroGrowth.ScaleStats(def, new HeroState { HeroId = hero.HeroId, Level = hero.Level + 1, Stars = hero.Stars, Equipment = hero.Equipment });
             bool canLevel = hero.Level < v.Level;
             var stats = new VisualElement { pickingMode = PickingMode.Ignore };
             stats.AddToClassList("hero-stats");
@@ -126,6 +125,7 @@ namespace SanGuo.Client
             colB.Add(StatLine("爆擊傷害", now.CritDmg + "%", null));
             colB.Add(StatLine("閃避", now.Dodge + "%", null));
             colB.Add(StatLine("移動力", now.Move.ToString(), null));
+            colB.Add(StatLine("攻擊範圍", now.Range.ToString(), null));
             stats.Add(colA);
             stats.Add(colB);
             center.Add(stats);
@@ -171,14 +171,14 @@ namespace SanGuo.Client
             seg.AddToClassList("seg");
             seg.Add(SegTab("升級", Tab.Level));
             seg.Add(SegTab("突破", Tab.Break));
-            seg.Add(SegTab("卡牌強化", Tab.Cards));
+            seg.Add(SegTab("裝備", Tab.Equip));
             right.Add(seg);
 
             // 面板分上下兩塊：內容（撐滿）與底部主要操作（貼底），三個分頁的按鈕位置一致。
             var panel = new VisualElement();
             panel.AddToClassList("bpanel");
             panel.AddToClassList("side-panel");
-            if (_tab == Tab.Cards) panel.AddToClassList("side-panel-fill"); // 卡牌清單長，撐滿；其餘分頁依內容高度
+            if (_tab != Tab.Level) panel.AddToClassList("side-panel-fill"); // 突破與裝備清單較長，撐滿；升級依內容高度
             var content = new VisualElement();
             content.AddToClassList("side-body");
             var footer = new VisualElement();
@@ -187,7 +187,7 @@ namespace SanGuo.Client
             {
                 case Tab.Level: BuildLevel(content, footer, def, hero, v); break;
                 case Tab.Break: BuildBreak(content, footer, def, hero, v); break;
-                default: BuildCards(content, def, hero, v); break;
+                default: BuildEquip(content, def, hero, v); break;
             }
             panel.Add(content);
             if (footer.childCount > 0) panel.Add(footer);
@@ -200,14 +200,14 @@ namespace SanGuo.Client
 
         private void BuildLevel(VisualElement content, VisualElement footer, HeroDef def, HeroState hero, ProfileView v)
         {
-            int gold = HeroGrowth.LevelUpGold(hero.Level), books = HeroGrowth.LevelUpBooks(hero.Level);
+            int gold = HeroGrowth.LevelUpGold(hero.Level), exp = HeroGrowth.LevelUpExp(hero.Level);
             bool atCap = hero.Level >= v.Level;
             content.Add(UiKit.Text($"Lv.{hero.Level}  /  帳號等級上限 {v.Level}", "side-caption"));
             content.Add(UiKit.Text("升級消耗", "txt-sub"));
             var cost = new VisualElement();
             cost.AddToClassList("cost-line");
             cost.Add(UiKit.Cost("item_gold", gold, v.Gold));
-            cost.Add(UiKit.Cost("item_expbook", books, v.Material(HeroGrowth.ExpBook)));
+            cost.Add(UiKit.Cost("item_expbook", exp, v.Material(HeroGrowth.HeroExp)));
             content.Add(cost);
 
             if (atCap) footer.Add(UiKit.DoneBtn("已達等級上限").WithClass("btn-lg").WithClass("btn-block"));
@@ -217,50 +217,84 @@ namespace SanGuo.Client
         private void BuildBreak(VisualElement content, VisualElement footer, HeroDef def, HeroState hero, ProfileView v)
         {
             int shards = v.Material(HeroGrowth.ShardKey(def.Id));
-            content.Add(UiKit.Text($"{hero.Stars}/{HeroGrowth.MaxStars} 星　碎片 {shards}/{HeroGrowth.CopyShards}", "line-title"));
-            content.Add(UiKit.Bar(100f * shards / HeroGrowth.CopyShards, "bar-gold"));
-            foreach (var e in _breakthroughs.Get(def.Id))
+            content.Add(UiKit.Text($"{hero.Stars}/{HeroGrowth.MaxStars} 突　重複武將 {shards}", "line-title"));
+            if (hero.Stars < HeroGrowth.MaxStars)
+            {
+                int gold = HeroGrowth.BreakthroughGold(def.Rarity, hero.Stars + 1);
+                var cost = new VisualElement();
+                cost.AddToClassList("cost-line");
+                cost.Add(UiKit.Cost("item_shard", 1, shards));
+                cost.Add(UiKit.Cost("item_gold", gold, v.Gold));
+                content.Add(cost);
+            }
+            var scroll = new ScrollView(ScrollViewMode.Vertical);
+            scroll.AddToClassList("grow");
+            foreach (var e in Breakthroughs.For(def))
             {
                 bool got = e.Stars <= hero.Stars;
                 var row = new VisualElement { pickingMode = PickingMode.Ignore };
                 row.AddToClassList("break-row");
                 if (got) row.AddToClassList("break-row-on");
                 row.Add(new Label(got ? "●" : "○") { pickingMode = PickingMode.Ignore }.WithClass("break-row-mark"));
-                row.Add(new Label($"{e.Stars}★　{e.Description}") { pickingMode = PickingMode.Ignore }.WithClass("break-row-text"));
-                content.Add(row);
+                string detail = e.Kind == BreakthroughKind.UpgradeCard && e.NewCard != null
+                    ? $"{e.Description}\n{CardText.Description(e.NewCard)}" : e.Description;
+                row.Add(new Label($"{e.Stars} 突　{detail}") { pickingMode = PickingMode.Ignore }.WithClass("break-row-text"));
+                scroll.Add(row);
             }
+            content.Add(scroll);
             if (hero.Stars < HeroGrowth.MaxStars)
-                footer.Add(UiKit.Btn("突破", () => _ = Act(() => GameSession.Backend.Breakthrough(def.Id)), primary: shards >= HeroGrowth.CopyShards).WithClass("btn-lg").WithClass("btn-block"));
-            else footer.Add(UiKit.DoneBtn("已滿星").WithClass("btn-lg").WithClass("btn-block"));
+            {
+                bool can = shards >= 1 && v.Gold >= HeroGrowth.BreakthroughGold(def.Rarity, hero.Stars + 1);
+                footer.Add(UiKit.Btn("突破", () => _ = Act(() => GameSession.Backend.Breakthrough(def.Id)), primary: can).WithClass("btn-lg").WithClass("btn-block"));
+            }
+            else footer.Add(UiKit.DoneBtn("已滿突").WithClass("btn-lg").WithClass("btn-block"));
         }
 
-        private void BuildCards(VisualElement content, HeroDef def, HeroState hero, ProfileView v)
+        private void BuildEquip(VisualElement content, HeroDef def, HeroState hero, ProfileView v)
         {
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("grow");
-            foreach (var card in def.Deck.GroupBy(c => c.Id).Select(g => g.First()))
+            foreach (var slot in Equipment.Slots)
             {
-                hero.CardLevels.TryGetValue(card.Id, out int cl);
-                int copies = def.Deck.Count(c => c.Id == card.Id);
-                // 上排：名稱 + 強化按鈕；下排：說明與等級點，整列寬度都給說明用。
+                var sl = slot;
+                hero.Equipment.TryGetValue(sl.ToString(), out int worn);
                 var row = new VisualElement();
                 row.AddToClassList("card-row");
                 var head = new VisualElement();
                 head.AddToClassList("card-row-head");
-                head.Add(UiKit.Text($"{card.Name} ×{copies}", "card-row-name"));
-                if (cl < HeroGrowth.MaxCardLevel)
-                {
-                    string cid = card.Id;
-                    int need = HeroGrowth.CardUpgradeGold(cl);
-                    head.Add(UiKit.Btn($"強化 {need:N0}", () => _ = Act(() => GameSession.Backend.Enhance(def.Id, cid)), primary: v.Gold >= need).WithClass("btn-sm"));
-                }
-                else head.Add(UiKit.DoneBtn("滿級").WithClass("btn-sm"));
+                head.Add(UiKit.Text(worn > 0 ? $"{Equipment.SlotName(sl)}：{Equipment.Name(sl, worn)}" : $"{Equipment.SlotName(sl)}：未配戴", "card-row-name"));
+                if (worn > 0) head.Add(UiKit.Btn("卸下", () => _ = Act(() => GameSession.Backend.Unequip(def.Id, sl.ToString()))).WithClass("btn-sm"));
                 row.Add(head);
-                row.Add(UiKit.Text(CardText.Description(card), "card-row-desc"));
-                row.Add(UiKit.Pips(cl, HeroGrowth.MaxCardLevel));
+                row.Add(UiKit.Text(SlotEffect(def, sl), "card-row-desc"));
+                // 庫存：每個品階一顆按鈕，點了穿上（原本的退回庫存）。
+                var stock = new VisualElement();
+                stock.style.flexDirection = FlexDirection.Row;
+                stock.style.flexWrap = Wrap.Wrap;
+                bool any = false;
+                for (int tier = 1; tier <= Equipment.MaxTier; tier++)
+                {
+                    int have = v.Material(Equipment.ItemKey(sl, tier));
+                    if (have <= 0) continue;
+                    any = true;
+                    int t = tier;
+                    stock.Add(UiKit.Btn($"穿 {t} 階 ×{have}", () => _ = Act(() => GameSession.Backend.Equip(def.Id, sl.ToString(), t)), primary: t > worn).WithClass("btn-sm"));
+                    stock.Add(UiKit.Btn($"分解 +{Equipment.DismantleGold(t)}", () => _ = Act(() => GameSession.Backend.Dismantle(sl.ToString(), t, 1))).WithClass("btn-sm"));
+                }
+                if (!any) stock.Add(UiKit.Text("庫存沒有這個部位的裝備（素材副本可取得）", "card-row-desc"));
+                row.Add(stock);
                 scroll.Add(row);
             }
             content.Add(scroll);
+        }
+
+        private static string SlotEffect(HeroDef def, EquipSlot slot)
+        {
+            switch (slot)
+            {
+                case EquipSlot.Weapon: return (Equipment.WeaponBoostsInt(def.Role) ? "謀略" : "攻擊") + " 每階 +10%";
+                case EquipSlot.Armor: return "生命、防禦 每階 +10%";
+                default: return def.Role == Role.Warrior || def.Role == Role.Ranger ? "爆擊率 每階 +3" : "閃避 每階 +2";
+            }
         }
     }
 }

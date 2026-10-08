@@ -14,10 +14,16 @@ namespace SanGuo.Client
         {
             switch (key)
             {
-                case HeroGrowth.ExpBook: return "經驗書";
-                case HeroGrowth.CardMaterial: return "卡牌強化素材";
-                default: return key.StartsWith("shard:") ? "突破碎片" : key;
+                case HeroGrowth.HeroExp: return "武將經驗";
+                case HeroGrowth.Soul: return "將魂";
             }
+            if (Equipment.TryParseKey(key, out var slot, out int tier)) return Equipment.Name(slot, tier);
+            if (key.StartsWith("shard:"))
+            {
+                var hero = HeroRoster.Find(key.Substring(6));
+                return (hero?.Name ?? "武將") + "重複份";
+            }
+            return key;
         }
 
         public static string RewardText(Reward r)
@@ -36,7 +42,6 @@ namespace SanGuo.Client
             switch (code)
             {
                 case "NotEnoughStamina": return "體力不足";
-                case "LevelTooLow": return "帳號等級不足";
                 case "NotThreeStars": return "三星通關才能掃蕩";
                 case "InvalidCount": return "掃蕩次數不合法";
                 case "NotEnoughYuanbao": return "元寶不足";
@@ -44,15 +49,21 @@ namespace SanGuo.Client
                 case "NotEnoughMaterial": return "素材不足";
                 case "NeedsPlayerLevel": return "武將等級不能超過帳號等級";
                 case "AtCap": return "已達上限";
-                case "NotOpenToday": return "今天不開放";
-                case "LimitReached": return "今日次數已用完";
+                case "Locked": return "尚未通關解鎖這個副本的主線關卡";
+                case "NotEnoughSouls": return "將魂不足";
+                case "LimitReached": return "本月限購次數已用完";
+                case "HeroNotOwned": return "尚未擁有這名武將";
+                case "HeroMaxed": return "這名武將的突破已經足夠，不需要更多重複份";
+                case "NotOwned": return "庫存中沒有這件裝備";
+                case "NothingEquipped": return "這個部位沒有裝備";
+                case "InvalidTier": return "裝備品階不合法";
+                case "invalid_slot": return "沒有這個裝備部位";
+                case "UnknownItem": return "沒有這個商品";
                 case "NotCleared": return "尚未通關，無法掃蕩";
                 case "NotComplete": return "尚未達成";
                 case "AlreadyClaimed": return "已經領取過了";
                 case "NotUnlocked": return "尚未開放";
                 case "unknown_dungeon": return "沒有這個副本";
-                case "AlreadyOwned": return "已經購買過了";
-                case "NotPaid": return "尚未購買";
                 case "NotActive": return "月卡尚未生效或已到期";
                 case "AlreadyClaimedToday": return "今天已經領過了";
                 case "UnknownProduct": return "沒有這個商品";

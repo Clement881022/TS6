@@ -115,7 +115,7 @@ namespace SanGuo.Client
             });
         }
 
-        /// <summary>進入資源副本：先到編隊頁排兵（開戰才扣體力與次數）。</summary>
+        /// <summary>進入資源副本：先到編隊頁排兵（開戰才扣體力）。</summary>
         protected void EnterDungeon(string dungeonId)
         {
             if (_busy) return;

@@ -8,7 +8,7 @@ using Position = SanGuo.Core.Position;
 namespace SanGuo.Client
 {
     /// <summary>
-    /// 戰前編隊：3x2 站位（共用 5x5 戰場的我方下兩排中央）與上場武將（最多 4 人，只能帶已擁有的武將，戰鬥會套用他們的等級、突破與卡牌強化）。
+    /// 戰前編隊：3x2 站位（共用 5x5 戰場的我方下兩排中央）與上場武將（最多 4 人，只能帶已擁有的武將，戰鬥會套用他們的等級、突破與裝備）。
     /// 教學關之後的主線關卡與資源副本才會來這裡；按「開戰」才向後端開始並扣體力。
     /// </summary>
     public sealed class FormationPage : PageBase

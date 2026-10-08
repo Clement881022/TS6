@@ -184,7 +184,7 @@ namespace SanGuo.Client
             return g;
         }
 
-        /// <summary>圓點進度（例如卡牌強化 3/5）。</summary>
+        /// <summary>圓點進度（例如 3/5）。</summary>
         public static VisualElement Pips(int on, int total)
         {
             var row = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -270,7 +270,7 @@ namespace SanGuo.Client
             if (r.Stamina > 0) row.Add(ItemTile("item_stamina", r.Stamina.ToString()));
             foreach (var m in r.Materials)
             {
-                string icon = m.Key == HeroGrowth.ExpBook ? "item_expbook" : m.Key == HeroGrowth.CardMaterial ? "item_cardmat" : "item_shard";
+                string icon = m.Key == HeroGrowth.HeroExp ? "item_expbook" : m.Key.StartsWith("eq:") ? "item_chest" : "item_shard";
                 row.Add(ItemTile(icon, m.Value.ToString()));
             }
             foreach (var h in r.Heroes) row.Add(ItemTile("item_chest", "1"));

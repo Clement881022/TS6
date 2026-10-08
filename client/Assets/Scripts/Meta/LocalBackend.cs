@@ -39,9 +39,8 @@ namespace SanGuo.Client
             var p = PlayerProfile.CreateNew(Now);
             p.Yuanbao = StartingYuanbao;
             p.Gold = StartingGold;
-            // 開發用起始素材（資源副本的客戶端介面還沒做，否則升級與強化無從測試）。
-            p.AddMaterial(HeroGrowth.ExpBook, 30);
-            p.AddMaterial(HeroGrowth.CardMaterial, 40);
+            // 開發用起始武將經驗（方便測試升級）。
+            p.AddMaterial(HeroGrowth.HeroExp, 3000);
             return p;
         }
 
@@ -98,6 +97,7 @@ namespace SanGuo.Client
         {
             if (!Debug.isDebugBuild) return Task.FromResult(new FinishStageResult { Code = "debug_only" });
             if (_profile.PendingStageId != stageId) return Task.FromResult(new FinishStageResult { Code = "no_pending_stage" });
+            ulong seed = (ulong)_profile.PendingSeed;
             _profile.PendingStageId = "";
             _profile.PendingSeed = 0;
             _profile.PendingFormation = new List<FormationEntry>();
@@ -105,8 +105,7 @@ namespace SanGuo.Client
             FinishStageResult result;
             if (dungeon != null)
             {
-                ResourceDungeons.ClaimWin(_profile, dungeon, Now);
-                var r = dungeon.Reward;
+                var r = ResourceDungeons.ClaimWin(_profile, dungeon, Now, seed);
                 result = new FinishStageResult
                 {
                     Ok = true, Won = true, Gold = r.Gold, Yuanbao = r.Yuanbao, Materials = new Dictionary<string, int>(r.Materials),
@@ -131,7 +130,7 @@ namespace SanGuo.Client
         {
             var d = DemoMeta.FindDungeon(dungeonId);
             if (d == null) return Task.FromResult(new BackendResult { Code = "unknown_dungeon" });
-            var r = ResourceDungeons.TrySweep(_profile, d, count, Now);
+            var r = ResourceDungeons.TrySweep(_profile, d, count, Now, out _);
             if (r != DungeonEntryResult.Ok) return Task.FromResult(new BackendResult { Code = r.ToString() });
             Save();
             return Task.FromResult(new BackendResult { Ok = true });
@@ -162,8 +161,6 @@ namespace SanGuo.Client
 
         public Task<BackendResult> ClaimMonthCard(string cardId) => Claimed(Shop.ClaimMonthCardDaily(_profile, cardId, Now));
 
-        public Task<BackendResult> ClaimGrowthFund(int level) => Claimed(Shop.ClaimGrowthFund(_profile, level));
-
         public Task<PullOutcomeResult> Pull(string poolId, int count)
         {
             var pool = DemoMeta.Pools().Find(x => x.Id == poolId);
@@ -188,11 +185,34 @@ namespace SanGuo.Client
         public Task<BackendResult> LevelUp(string heroId) =>
             Growth(HeroGrowth.LevelUp(_profile, heroId), Quests.Events.HeroLevelUp);
 
-        public Task<BackendResult> Enhance(string heroId, string cardId)
+        public Task<BackendResult> Equip(string heroId, string slot, int tier)
         {
-            var def = DemoContent.Roster().Find(h => h.Id == heroId);
-            if (def == null) return Task.FromResult(new BackendResult { Code = GrowthResult.UnknownHero.ToString() });
-            return Growth(HeroGrowth.EnhanceCard(_profile, heroId, cardId, def.Deck.ConvertAll(c => c.Id)), Quests.Events.CardEnhance);
+            if (!Enum.TryParse<EquipSlot>(slot, true, out var s)) return Task.FromResult(new BackendResult { Code = "invalid_slot" });
+            var r = Equipment.Equip(_profile, heroId, s, tier);
+            if (r != EquipResult.Ok) return Task.FromResult(new BackendResult { Code = r.ToString() });
+            Quests.Report(_profile, Quests.Events.Equip, 1, Now);
+            Save();
+            return Task.FromResult(new BackendResult { Ok = true });
+        }
+
+        public Task<BackendResult> Unequip(string heroId, string slot)
+        {
+            if (!Enum.TryParse<EquipSlot>(slot, true, out var s)) return Task.FromResult(new BackendResult { Code = "invalid_slot" });
+            var r = Equipment.Unequip(_profile, heroId, s);
+            return Claimed(r == EquipResult.Ok, r.ToString());
+        }
+
+        public Task<BackendResult> Dismantle(string slot, int tier, int count)
+        {
+            if (!Enum.TryParse<EquipSlot>(slot, true, out var s)) return Task.FromResult(new BackendResult { Code = "invalid_slot" });
+            var r = Equipment.Dismantle(_profile, s, tier, count);
+            return Claimed(r == EquipResult.Ok, r.ToString());
+        }
+
+        public Task<BackendResult> BuySoulItem(string itemId)
+        {
+            var r = SoulShop.Buy(_profile, itemId, Now);
+            return Claimed(r == SoulShopResult.Ok, r.ToString());
         }
 
         public Task<BackendResult> Breakthrough(string heroId) =>
