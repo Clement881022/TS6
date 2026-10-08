@@ -47,7 +47,8 @@ namespace SanGuo.Core.Tests
             Assert.Equal(json, ContentSerializer.HeroesToJson(heroes));
             var zf = heroes.First(h => h.Id == "zhangfei");
             var taunt = zf.Deck.First(c => c.Id == "zf_taunt");
-            Assert.True(taunt.Keywords.HasFlag(CardKeywords.Innate));
+            Assert.Equal(TargetRule.AllEnemies, taunt.Target);
+            Assert.Equal(StatusType.Taunt, taunt.Effects[0].Status);
         }
 
         [Fact]

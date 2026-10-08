@@ -13,11 +13,15 @@ namespace SanGuo.Core
                 case Shape.Single:
                     cells.Add(center);
                     break;
-                case Shape.Row:
-                    for (int l = 0; l < lanes; l++) cells.Add(new Position(l, center.Row));
+                case Shape.Row3:
+                    cells.Add(center);
+                    AddIfInBounds(cells, center.Lane - 1, center.Row, lanes, rows);
+                    AddIfInBounds(cells, center.Lane + 1, center.Row, lanes, rows);
                     break;
-                case Shape.Column:
-                    for (int r = 0; r < rows; r++) cells.Add(new Position(center.Lane, r));
+                case Shape.Column3:
+                    cells.Add(center);
+                    AddIfInBounds(cells, center.Lane, center.Row - 1, lanes, rows);
+                    AddIfInBounds(cells, center.Lane, center.Row + 1, lanes, rows);
                     break;
                 case Shape.Cross:
                     cells.Add(center);

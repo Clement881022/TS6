@@ -5,17 +5,25 @@ using System.Linq;
 namespace SanGuo.Core
 {
     /// <summary>
-    /// 戰鬥模擬核心（不依賴 Unity）。規則見 docs/combat.md。
+    /// 戰鬥模擬核心（不依賴 Unity）。規則依據 docs/GDD/01_戰鬥系統.md。
     /// 使用方式：new Battle(setup) 後呼叫 PlayCard / EndTurn，並讀取 Events 做表現。
     /// </summary>
     public sealed class Battle
     {
         public const int MaxHandSize = 10;
-        public const double LevelGrowthPerLevel = 0.1;
+        /// <summary>武將每級成長（生命、攻擊、謀略、防禦；線性，以 1 級為基準）。</summary>
+        public const double HeroGrowthPerLevel = 0.015;
+        /// <summary>敵人 1 級僅為基準的 60%，之後每級 +4%（GDD 04 §5.3）。</summary>
+        public const double EnemyBaseFactor = 0.6, EnemyGrowthPerLevel = 0.04;
+        /// <summary>每回合燃燒結算後層數衰退的比例。</summary>
+        public const double BurnDecay = 0.5;
+
+        public static double HeroLevelFactor(int level) => 1.0 + HeroGrowthPerLevel * Math.Max(0, level - 1);
+        public static double EnemyLevelFactor(int level) => EnemyBaseFactor + EnemyGrowthPerLevel * Math.Max(0, level - 1);
 
         private readonly Unit?[,] _board;
         private int _nextCardId;
-        /// <summary>移動卡結算時的目的地（<see cref="PlayCard"/> 暫存給 ResolveEffect）。</summary>
+        /// <summary>移動牌結算時的目的地（<see cref="PlayCard"/> 暫存給 ResolveEffect）。</summary>
         private Position? _moveDest;
 
         public BattleSetup Setup { get; }
@@ -24,7 +32,6 @@ namespace SanGuo.Core
         public List<CardInstance> DrawPile { get; } = new List<CardInstance>();
         public List<CardInstance> Hand { get; } = new List<CardInstance>();
         public List<CardInstance> DiscardPile { get; } = new List<CardInstance>();
-        public List<CardInstance> ExhaustPile { get; } = new List<CardInstance>();
         public List<BattleEvent> Events { get; } = new List<BattleEvent>();
         public int Cost { get; private set; }
         public int Turn { get; private set; }
@@ -40,48 +47,51 @@ namespace SanGuo.Core
             var cardsByHero = new List<List<CardInstance>>();
             foreach (var slot in setup.Heroes)
             {
-                var unit = CreateUnit(slot.Def.Name, Side.Player, slot.Def.AttackType, ScaleForLevel(slot.Def.Base, slot.Level), slot.Pos);
+                var unit = CreateUnit(slot.Def.Name, Side.Player, slot.Def.AttackType, ScaleHero(slot.Def.Base, slot.Level), slot.Pos);
                 unit.Hero = slot.Def;
                 unit.Protected = slot.IsProtected;
+                unit.Level = slot.Level;
                 if (slot.StartHpPercent < 100) unit.Hp = Math.Max(1, unit.MaxHp * slot.StartHpPercent / 100);
                 unit.DefId = slot.Def.Id;
                 var heroCards = new List<CardInstance>();
                 foreach (var cardDef in slot.Def.Deck)
                     heroCards.Add(new CardInstance(_nextCardId++, cardDef, unit));
-                // 隊伍每有一名帶牌的武將，就在牌堆洗入一張 0 費移動卡。
                 allCards.AddRange(heroCards);
                 cardsByHero.Add(heroCards);
             }
-            foreach (var slot in setup.Enemies)
-            {
-                SpawnEnemy(slot.Def, slot.Pos);
-            }
+            foreach (var slot in setup.Enemies) SpawnEnemy(slot);
 
-            // 通用移動卡：隊伍每有一名帶牌的武將洗入一張（不屬於任何人）。
+            // 通用移動牌：每名帶牌的武將洗入一張（不屬於任何人）。
             int moveCards = cardsByHero.Count(c => c.Count > 0);
             for (int i = 0; i < moveCards; i++) allCards.Add(new CardInstance(_nextCardId++, CardDef.CreateMove(), null));
 
             if (setup.ScriptedDraw.Count > 0)
             {
-                // 寫死牌序時各武將的牌輪流穿插（不洗牌，但也不會整手都是同一個人的牌）；移動卡排在起手牌之後（第 2 回合起抽到）。
+                // 寫死牌序時各武將的牌輪流穿插（不洗牌，但也不會整手都是同一個人的牌）。
                 for (int i = 0; cardsByHero.Any(c => i < c.Count); i++)
                     foreach (var heroCards in cardsByHero)
                         if (i < heroCards.Count) DrawPile.Add(heroCards[i]);
                 OrderByScript(DrawPile);
-                // 移動卡接在腳本牌之後（起手牌的最後幾張）。
-                var moves = allCards.Where(c => c.Owner == null).ToList();
-                DrawPile.InsertRange(Math.Min(setup.ScriptedDraw.Count, DrawPile.Count), moves);
+                // 移動牌固定接在起手的隨機牌之後（第 1 回合一定抽到）。
+                var moves = allCards.Where(c => c.Owner == null).Take(setup.FirstTurnMoves).ToList();
+                DrawPile.InsertRange(Math.Min(setup.FirstTurnRandom, DrawPile.Count), moves);
+                DrawPile.AddRange(allCards.Where(c => c.Owner == null).Skip(setup.FirstTurnMoves));
             }
             else
             {
                 Shuffle(allCards);
-                // 先登：開局必在起手牌，穩定地排到抽牌堆最前面。
-                DrawPile.AddRange(allCards.Where(c => (c.Def.Keywords & CardKeywords.Innate) != 0));
-                DrawPile.AddRange(allCards.Where(c => (c.Def.Keywords & CardKeywords.Innate) == 0));
+                // 第 1 回合固定抽 FirstTurnMoves 張移動牌：先排在牌庫頂，其餘維持洗牌順序。
+                var moves = allCards.Where(c => c.Owner == null).Take(setup.FirstTurnMoves).ToList();
+                DrawPile.AddRange(moves);
+                DrawPile.AddRange(allCards.Where(c => !moves.Contains(c)));
+                // 隨機的 FirstTurnRandom 張從剩餘牌（含其餘移動牌）中抽，因此移動牌固定放在最前面再抽。
             }
+            _firstTurnDraw = setup.FirstTurnRandom + Math.Min(setup.FirstTurnMoves, moveCards);
 
             StartPlayerTurn();
         }
+
+        private readonly int _firstTurnDraw;
 
         // ---------------------------------------------------------------- 查詢
 
@@ -137,13 +147,13 @@ namespace SanGuo.Core
             return dist;
         }
 
-        /// <summary>某武將現在能不能被移動卡移動（我方、活著、沒昏亂、旁邊有空格可走）。</summary>
+        /// <summary>某武將現在能不能被移動牌移動（我方、活著、旁邊有空格可走）。</summary>
         public bool CanMoveUnit(Unit u) =>
-            u.Side == Side.Player && u.Alive && !u.Has(StatusType.Stun) && ReachableTiles(u).Count > 1;
+            u.Side == Side.Player && u.Alive && ReachableTiles(u).Count > 1;
 
         /// <summary>
         /// 檢查卡牌目前能否打出（不產生副作用）。單體敵人牌（<see cref="TargetRule.Enemy"/>）可以空放：
-        /// 只要持有者能行動、費用夠就行，目標格在 <see cref="PlayCard"/> 指定。
+        /// 只要持有者活著、費用夠就行，目標格在 <see cref="PlayCard"/> 指定。
         /// </summary>
         public PlayResult CanPlay(CardInstance card)
         {
@@ -153,21 +163,20 @@ namespace SanGuo.Core
             if (card.Owner == null)
                 return AliveUnits(Side.Player).Any(CanMoveUnit) ? PlayResult.Ok : PlayResult.NoTarget;
             if (!card.Owner.Alive) return PlayResult.OwnerDead;
-            if (card.Owner.Has(StatusType.Stun)) return PlayResult.Stunned;
             if (card.Def.Target != TargetRule.Enemy && ResolveTargets(card.Owner, card.Def) == null)
                 return PlayResult.NoTarget;
             return PlayResult.Ok;
         }
 
         /// <summary>
-        /// 目標判定；回傳 null 表示沒有可選目標（卡牌不可打出）或指定的格子不在射程內。
-        /// <see cref="TargetRule.Enemy"/>：<paramref name="chosen"/> 是玩家指定的中心格（可以是空格，必須在射程內）；
-        /// 沒指定就自動挑射程內最近的敵人。範圍形狀以中心格展開，只影響格上的敵人（可能一個都沒有）。
+        /// 目標判定；回傳 null 表示沒有可選目標（卡牌不可打出）或指定的格子不在攻擊範圍內。
+        /// 單體牌（敵人 / 友軍）的射程為施放者的攻擊範圍；範圍形狀以中心格展開，只影響格上的單位（可能一個都沒有）。
         /// </summary>
         public List<Unit>? ResolveTargets(Unit owner, CardDef def, Position? chosen = null)
         {
             Side own = owner.Side;
             Side foe = own == Side.Player ? Side.Enemy : Side.Player;
+            int range = owner.AttackRange;
             switch (def.Target)
             {
                 case TargetRule.Self:
@@ -176,33 +185,35 @@ namespace SanGuo.Core
                     return NonEmpty(AliveUnits(own));
                 case TargetRule.AllEnemies:
                     return NonEmpty(AliveUnits(foe));
-                case TargetRule.AllyLowestHp:
+                case TargetRule.Ally:
                 {
+                    if (chosen != null)
+                    {
+                        var picked = UnitAt(own, chosen.Value);
+                        if (picked == null || !picked.Alive || Position.Distance(owner.Pos, picked.Pos) > range) return null;
+                        return new List<Unit> { picked };
+                    }
                     Unit? best = null;
                     foreach (var u in AliveUnits(own))
                     {
-                        if (Position.Distance(owner.Pos, u.Pos) > def.Range) continue;
+                        if (Position.Distance(owner.Pos, u.Pos) > range) continue;
                         if (best == null || (long)u.Hp * best.MaxHp < (long)best.Hp * u.MaxHp) best = u;
                     }
                     return best == null ? null : new List<Unit> { best };
                 }
                 case TargetRule.Enemy:
-                case TargetRule.EnemyLowestHp:
                 {
                     Position center;
-                    if (def.Target == TargetRule.Enemy && chosen != null)
+                    if (chosen != null)
                     {
-                        if (!InBounds(chosen.Value) || Position.Distance(owner.Pos, chosen.Value) > def.Range) return null;
+                        if (!InBounds(chosen.Value) || Position.Distance(owner.Pos, chosen.Value) > range) return null;
                         center = chosen.Value;
                     }
                     else
                     {
-                        var inRange = AliveUnits(foe).Where(u => Position.Distance(owner.Pos, u.Pos) <= def.Range).ToList();
+                        var inRange = AliveUnits(foe).Where(u => Position.Distance(owner.Pos, u.Pos) <= range).ToList();
                         if (inRange.Count == 0) return null;
-                        Unit pick = def.Target == TargetRule.EnemyLowestHp
-                            ? inRange.OrderBy(u => u.Hp).ThenByDescending(u => u.Pos.Row).ThenBy(u => u.Pos.Lane).First()
-                            : inRange.OrderBy(u => Position.Distance(owner.Pos, u.Pos)).ThenBy(u => u.Hp).ThenBy(u => u.Pos.Lane).First();
-                        center = pick.Pos;
+                        center = inRange.OrderBy(u => Position.Distance(owner.Pos, u.Pos)).ThenBy(u => u.Hp).ThenBy(u => u.Pos.Lane).First().Pos;
                     }
                     var result = new List<Unit>();
                     foreach (var cell in Targeting.ExpandShape(center, def.Shape, Setup.Lanes, Setup.Rows))
@@ -217,87 +228,44 @@ namespace SanGuo.Core
             }
         }
 
-        /// <summary>預覽敵方本回合會做什麼（意圖顯示用）。</summary>
+        /// <summary>預覽敵方本回合會做什麼（行動預告用）。蓄力中的敵人只回報 <see cref="Intent.Kind.Charging"/>。</summary>
         public Intent GetIntent(Unit enemy)
         {
-            var intent = GetIntentCore(enemy);
-            if (enemy.Ability.HasFlag(EnemyAbility.Charger) && enemy.Charging && intent.Type == Intent.Kind.Attack)
-                intent.Big = true;
-            return intent;
-        }
-
-        private Intent GetIntentCore(Unit enemy)
-        {
             if (!enemy.Alive) return new Intent { Type = Intent.Kind.None };
-            if (enemy.Has(StatusType.Stun)) return new Intent { Type = Intent.Kind.Stunned };
-
-            if (enemy.Ability.HasFlag(EnemyAbility.Summoner) && enemy.SummonDef != null
-                && (enemy.Actions + 1) % Math.Max(1, enemy.SummonEvery) == 0
-                && !enemy.Charging
-                && AliveUnits(Side.Enemy).Count < enemy.SummonCap)
-            {
-                // 召喚：填離召喚者最近的空格（同距離優先靠近我方的那一列）。
-                var spawn = FindSpawnTile(enemy);
-                if (spawn != null) return new Intent { Type = Intent.Kind.Summon, MoveTo = spawn };
-            }
-
-            if (enemy.Ability.HasFlag(EnemyAbility.Charger) && !enemy.Charging)
-                return new Intent { Type = Intent.Kind.Charge };
-
-            if (enemy.Ability.HasFlag(EnemyAbility.Healer))
-            {
-                // 治療者：有受傷的友軍就治療血量比例最低的那位，否則照常攻擊。
-                Unit? hurt = null;
-                foreach (var ally in AliveUnits(Side.Enemy))
-                {
-                    if (ally.Hp >= ally.MaxHp) continue;
-                    if (hurt == null || (long)ally.Hp * hurt.MaxHp < (long)hurt.Hp * ally.MaxHp) hurt = ally;
-                }
-                if (hurt != null) return new Intent { Type = Intent.Kind.Heal, Target = hurt };
-            }
+            if (enemy.Charging) return new Intent { Type = Intent.Kind.Charging, Big = enemy.ChargeLeft <= 1 };
+            if (WillStartCharge(enemy)) return new Intent { Type = Intent.Kind.Charge };
 
             var heroes = AliveUnits(Side.Player);
             if (heroes.Count == 0) return new Intent { Type = Intent.Kind.None };
-            Unit? forced = heroes.FirstOrDefault(u => u.Has(StatusType.Taunt));
-            return PlanAttack(enemy, forced != null ? new List<Unit> { forced } : heroes);
+            return PlanAttack(enemy, TauntCandidates(enemy, heroes));
         }
 
-        private Position? FindSpawnTile(Unit summoner)
+        private static bool WillStartCharge(Unit enemy) =>
+            enemy.ChargeTurns > 0 && !enemy.Charging && enemy.IdleActions >= enemy.ChargeInterval;
+
+        /// <summary>被嘲諷的敵人只能以嘲諷者為目標（遠程與範圍攻擊同樣適用）；嘲諷者陣亡則恢復自由選擇。</summary>
+        private List<Unit> TauntCandidates(Unit enemy, List<Unit> heroes)
         {
-            Position? best = null;
-            for (int l = 0; l < Setup.Lanes; l++)
+            if (enemy.Statuses.TryGetValue(StatusType.Taunt, out var taunt))
             {
-                for (int r = 0; r < Setup.Rows; r++)
-                {
-                    if (_board[l, r] != null) continue;
-                    var p = new Position(l, r);
-                    if (best == null || IsBetterSpawn(summoner, p, best.Value)) best = p;
-                }
+                var source = heroes.FirstOrDefault(h => h.Id == taunt.SourceId);
+                if (source != null) return new List<Unit> { source };
             }
-            return best;
-        }
-
-        private static bool IsBetterSpawn(Unit s, Position a, Position b)
-        {
-            int da = Position.Distance(s.Pos, a), db = Position.Distance(s.Pos, b);
-            if (da != db) return da < db;
-            if (a.Row != b.Row) return a.Row > b.Row;
-            return a.Lane < b.Lane;
+            return heroes;
         }
 
         /// <summary>
-        /// 敵方行動規劃：先看移動後（含原地）打得到的玩家單位——近戰挑最近者、遠程挑最後排者（同條件取血量最低），
+        /// 敵方行動規劃：先看移動後（含原地）打得到的玩家單位（近戰挑最近者、遠程挑最後排者），
         /// 以最少步數走到可攻擊的位置後出手；誰都打不到就朝最近的玩家單位靠近。
         /// </summary>
         private Intent PlanAttack(Unit enemy, List<Unit> candidates)
         {
             int range = enemy.AttackRange;
-            bool ranged = enemy.AttackType == AttackType.Ranged;
             var reach = ReachableTiles(enemy);
 
             Unit? best = null;
             Position bestTile = enemy.Pos;
-            foreach (var h in OrderTargets(enemy, candidates, ranged))
+            foreach (var h in OrderTargets(enemy, candidates))
             {
                 Position? tile = null;
                 int steps = int.MaxValue;
@@ -337,20 +305,19 @@ namespace SanGuo.Core
             return new Intent { Type = Intent.Kind.Move, MoveTo = dest };
         }
 
-        private static IEnumerable<Unit> OrderTargets(Unit enemy, List<Unit> candidates, bool ranged)
-        {
-            if (ranged)
-                return candidates.OrderByDescending(h => h.Pos.Row).ThenBy(h => h.Hp).ThenBy(h => h.Pos.Lane);
-            return candidates.OrderBy(h => Position.Distance(enemy.Pos, h.Pos)).ThenBy(h => h.Hp).ThenBy(h => h.Pos.Lane);
-        }
+        /// <summary>目標偏好：近戰敵人挑最近者；遠程敵人（攻擊範圍 &gt; 1）挑最後排者。同條件取血量最低。</summary>
+        private static IEnumerable<Unit> OrderTargets(Unit enemy, List<Unit> candidates) =>
+            enemy.AttackRange > 1
+                ? candidates.OrderByDescending(h => h.Pos.Row).ThenBy(h => h.Hp).ThenBy(h => h.Pos.Lane)
+                : candidates.OrderBy(h => Position.Distance(enemy.Pos, h.Pos)).ThenBy(h => h.Hp).ThenBy(h => h.Pos.Lane);
 
         /// <summary>同步數時的固定偏好：較靠下（近我方）的列優先，再取較左的欄。</summary>
         private static bool TileBefore(Position a, Position b) => a.Row != b.Row ? a.Row > b.Row : a.Lane < b.Lane;
 
         // ---------------------------------------------------------------- 玩家行動
 
-        /// <param name="target">玩家指定的格子：單體敵人牌的中心格（可空放）；移動卡的目的地。沒給的敵人牌自動挑射程內最近者。</param>
-        /// <param name="mover">移動卡要移動的武將（通用卡必填）。</param>
+        /// <param name="target">玩家指定的格子：單體牌的中心格（敵人牌可空放）；移動牌的目的地。沒給的單體牌自動挑範圍內的目標。</param>
+        /// <param name="mover">移動牌要移動的武將（通用牌必填）。</param>
         public PlayResult PlayCard(CardInstance card, Position? target = null, Unit? mover = null)
         {
             var check = CanPlay(card);
@@ -387,7 +354,7 @@ namespace SanGuo.Core
             }
             _moveDest = null;
 
-            Discard(card);
+            DiscardPile.Add(card);
             CheckEnd();
             return PlayResult.Ok;
         }
@@ -397,10 +364,25 @@ namespace SanGuo.Core
         {
             if (Result != BattleResult.Ongoing) return;
 
+            // 我方回合結束：我方單位的燃燒結算。
+            TickBurn(Side.Player);
+            if (CheckEnd()) return;
+
             RunEnemyPhase();
             if (Result != BattleResult.Ongoing) return;
 
+            // 敵方回合結束：敵方單位的燃燒結算。
+            TickBurn(Side.Enemy);
+            if (CheckEnd()) return;
+
             EndRound();
+            if ((Setup.Objective == Objective.Escort || Setup.Objective == Objective.Defend)
+                && Setup.SurviveTurns > 0 && Turn >= Setup.SurviveTurns)
+            {
+                Result = BattleResult.Won;
+                Emit(EventType.BattleEnd, -1, -1, 0, Result.ToString());
+                return;
+            }
             if (Setup.TurnLimit > 0 && Turn >= Setup.TurnLimit)
             {
                 Result = BattleResult.Lost;
@@ -418,89 +400,86 @@ namespace SanGuo.Core
             Cost = Math.Min(Cost + Setup.CostPerTurn, Setup.CostCap);
             Emit(EventType.TurnStart, -1, -1, Turn, "");
 
-            TickDamageOverTime(Side.Player);
-            if (CheckEnd()) return;
-
-            // 手牌不會在回合結束時棄掉（取後不放回）：首回合抽起手牌，之後每回合抽 DrawPerTurn 張，手牌上限 MaxHandSize。
-            int draw = Turn == 1 ? Setup.HandSize : Setup.DrawPerTurn;
+            // 手牌與費用不會在回合結束時清空；第 1 回合抽 5 張隨機 + 2 張移動牌，之後每回合抽 DrawPerTurn 張。
+            int draw = Turn == 1 ? _firstTurnDraw : Setup.DrawPerTurn;
             for (int i = 0; i < draw && DrawOne(); i++) { }
         }
 
         private void RunEnemyPhase()
         {
-            TickDamageOverTime(Side.Enemy);
-            if (CheckEnd()) return;
-
             foreach (var enemy in AliveUnits(Side.Enemy))
             {
                 if (!enemy.Alive) continue;
-                var intent = GetIntent(enemy);
-                switch (intent.Type)
+
+                if (enemy.Charging)
                 {
-                    case Intent.Kind.Attack:
-                        if (intent.MoveTo != null) RelocateEnemy(enemy, intent.MoveTo.Value);
-                        Emit(EventType.EnemyAttack, enemy.Id, intent.Target!.Id, intent.Big ? 1 : 0, intent.Big ? "big" : "");
-                        DealAttackDamage(enemy, intent.Target!, intent.Big ? enemy.AbilityPower : enemy.AttackMultiplier);
-                        if (intent.Big) enemy.Charging = false;
-                        break;
-                    case Intent.Kind.Summon:
-                    {
-                        var spawned = SpawnEnemy(enemy.SummonDef!, intent.MoveTo!.Value);
-                        Emit(EventType.EnemySummon, enemy.Id, spawned.Id, 0, intent.MoveTo!.Value.ToString());
-                        break;
-                    }
-                    case Intent.Kind.Charge:
-                        enemy.Charging = true;
-                        Emit(EventType.EnemyCharge, enemy.Id, -1, 0, "");
-                        break;
-                    case Intent.Kind.Heal:
-                    {
-                        var ally = intent.Target!;
-                        int amount = DamageCalc.Scale(enemy.EffectivePower, enemy.AbilityPower);
-                        int healed = Math.Min(amount, ally.MaxHp - ally.Hp);
-                        ally.Hp += healed;
-                        Emit(EventType.Heal, enemy.Id, ally.Id, healed, "");
-                        break;
-                    }
-                    case Intent.Kind.Move:
-                        RelocateEnemy(enemy, intent.MoveTo!.Value);
-                        break;
-                    case Intent.Kind.Stunned:
-                        enemy.Charging = false; // 蓄力被昏亂打斷
-                        Emit(EventType.EnemySkip, enemy.Id, -1, 0, "stun");
-                        break;
+                    enemy.ChargeLeft--;
+                    if (enemy.ChargeLeft <= 0) ReleaseCharge(enemy);
                 }
-                if (intent.Type != Intent.Kind.Stunned && intent.Type != Intent.Kind.None) enemy.Actions++;
+                else
+                {
+                    var intent = GetIntent(enemy);
+                    switch (intent.Type)
+                    {
+                        case Intent.Kind.Charge:
+                            enemy.Charging = true;
+                            enemy.ChargeLeft = Math.Max(1, enemy.ChargeTurns);
+                            Emit(EventType.EnemyCharge, enemy.Id, -1, enemy.ChargeLeft, "");
+                            break;
+                        case Intent.Kind.Attack:
+                            if (intent.MoveTo != null) RelocateEnemy(enemy, intent.MoveTo.Value);
+                            Emit(EventType.EnemyAttack, enemy.Id, intent.Target!.Id, 0, "");
+                            DealAttackDamage(enemy, intent.Target!, enemy.Magical ? DamageKind.Magical : DamageKind.Physical, enemy.AttackMultiplier);
+                            enemy.IdleActions++;
+                            break;
+                        case Intent.Kind.Move:
+                            RelocateEnemy(enemy, intent.MoveTo!.Value);
+                            enemy.IdleActions++;
+                            break;
+                    }
+                }
                 if (CheckEnd()) return;
             }
         }
 
-        /// <summary>一整輪結束：所有狀態回合數 -1，到期移除。</summary>
+        /// <summary>釋放蓄力大招：攻擊我方全體存活武將。</summary>
+        private void ReleaseCharge(Unit enemy)
+        {
+            enemy.Charging = false;
+            enemy.IdleActions = 0;
+            var kind = enemy.Magical ? DamageKind.Magical : DamageKind.Physical;
+            foreach (var hero in AliveUnits(Side.Player))
+            {
+                if (!hero.Alive) continue;
+                Emit(EventType.EnemyAttack, enemy.Id, hero.Id, 1, "big");
+                DealAttackDamage(enemy, hero, kind, enemy.ChargePower);
+            }
+        }
+
+        /// <summary>一整輪結束：所有增益 / 減益的回合數 -1，到期移除。護盾與燃燒層數沒有持續時間。</summary>
         private void EndRound()
         {
             foreach (var unit in Units.Where(u => u.Alive))
             {
-                foreach (var type in unit.Statuses.Keys.ToList())
-                {
-                    var state = unit.Statuses[type];
-                    state.Turns--;
-                    if (state.Turns <= 0) unit.Statuses.Remove(type);
-                }
+                foreach (var b in unit.Buffs) b.Turns--;
+                unit.Buffs.RemoveAll(b => b.Turns <= 0);
                 foreach (var b in unit.DefBreaks) b.Turns--;
                 unit.DefBreaks.RemoveAll(b => b.Turns <= 0);
+                if (unit.Statuses.TryGetValue(StatusType.Taunt, out var taunt) && --taunt.Turns <= 0)
+                    unit.Statuses.Remove(StatusType.Taunt);
             }
         }
 
-        private void TickDamageOverTime(Side side)
+        /// <summary>燃燒：陣營回合結束時造成等同層數的固定傷害（可被護盾吸收），結算後層數衰退 50%（向下取整）。</summary>
+        private void TickBurn(Side side)
         {
             foreach (var unit in AliveUnits(side))
             {
-                foreach (var type in new[] { StatusType.Burn, StatusType.Poison })
-                {
-                    if (!unit.Alive) break;
-                    if (unit.Statuses.TryGetValue(type, out var state))
-                        ApplyDamage(null, unit, state.Power, ignoreArmor: true, text: type.ToString());
-                }
+                if (!unit.Alive || !unit.Statuses.TryGetValue(StatusType.Burn, out var burn)) continue;
+                int dmg = burn.Power;
+                burn.Power = (int)Math.Floor(burn.Power * (1.0 - BurnDecay));
+                if (burn.Power <= 0) unit.Statuses.Remove(StatusType.Burn);
+                if (dmg > 0) ApplyDamage(null, unit, dmg, "Burn");
             }
         }
 
@@ -512,100 +491,32 @@ namespace SanGuo.Core
             {
                 case EffectType.Damage:
                     foreach (var t in affected.ToList())
-                        if (t.Alive) DealAttackDamage(owner, t, effect.Multiplier);
+                        if (t.Alive) DealAttackDamage(owner, t, effect.Kind, effect.Multiplier);
                     break;
                 case EffectType.Heal:
                     foreach (var t in affected)
                     {
                         if (!t.Alive) continue;
-                        int amount = DamageCalc.Scale(owner.EffectivePower, effect.Multiplier);
+                        int amount = DamageCalc.Scale(owner.EffectiveInt, effect.Multiplier);
                         int healed = Math.Min(amount, t.MaxHp - t.Hp);
                         t.Hp += healed;
                         Emit(EventType.Heal, owner.Id, t.Id, healed, "");
                     }
                     break;
-                case EffectType.Armor:
+                case EffectType.Shield:
                     foreach (var t in affected)
                     {
                         if (!t.Alive) continue;
-                        int amount = DamageCalc.Scale(owner.EffectivePower, effect.Multiplier);
-                        t.Armor += amount;
-                        Emit(EventType.Armor, owner.Id, t.Id, amount, "");
+                        int amount = DamageCalc.Scale(owner.EffectiveInt, effect.Multiplier);
+                        t.Shield += amount;
+                        Emit(EventType.Shield, owner.Id, t.Id, amount, "");
                     }
                     break;
                 case EffectType.ApplyStatus:
                     foreach (var t in affected)
                     {
                         if (!t.Alive) continue;
-                        if (effect.Status == StatusType.ArmorBreak)
-                        {
-                            // 破甲：Multiplier 為降低防禦的百分比；每次施加都是獨立一筆（不是層數），
-                            // 各筆各自計時、彼此乘算（例：40% 與 15% 並存 → 防禦 ×0.6×0.85）。
-                            t.DefBreaks.Add(new DefBreak
-                            {
-                                Percent = Math.Min(0.95, Math.Max(0.0, effect.Multiplier * owner.StatusPotency)),
-                                Turns = effect.Amount,
-                            });
-                        }
-                        else if (IsBuff(effect.Status))
-                        {
-                            // 增益：Multiplier 是加成比例；已有同種增益時取較大的加成與較長的回合數。
-                            int percent = (int)Math.Round(effect.Multiplier * 100 * owner.StatusPotency, MidpointRounding.AwayFromZero);
-                            if (t.Statuses.TryGetValue(effect.Status, out var cur))
-                            {
-                                cur.Power = Math.Max(cur.Power, percent);
-                                cur.Turns = Math.Max(cur.Turns, effect.Amount);
-                            }
-                            else
-                            {
-                                t.Statuses[effect.Status] = new StatusState { Power = percent, Turns = effect.Amount };
-                            }
-                        }
-                        else
-                        {
-                            t.Statuses[effect.Status] = new StatusState
-                            {
-                                Power = DamageCalc.Scale(owner.EffectivePower, effect.Multiplier),
-                                Turns = effect.Amount,
-                            };
-                        }
-                        Emit(EventType.StatusApplied, owner.Id, t.Id, effect.Amount, effect.Status.ToString());
-                    }
-                    break;
-                case EffectType.Detonate:
-                    // 引爆（火攻 / 瘟毒）：立刻結算剩餘持續傷害並移除狀態，再把同樣的狀態擴散給相鄰、尚未中招的敵人。
-                    // 只處理施放當下就在燃燒的敵人（剛擴散到的不會在同一次引爆裡連鎖）。
-                    foreach (var t in affected.Where(u => u.Alive && u.Has(effect.Status)).ToList())
-                    {
-                        if (!t.Alive || !t.Statuses.TryGetValue(effect.Status, out var dot)) continue;
-                        int total = dot.Power * dot.Turns;
-                        t.Statuses.Remove(effect.Status);
-                        ApplyDamage(owner, t, total, ignoreArmor: true, text: "detonate");
-                        foreach (var n in AliveUnits(t.Side))
-                        {
-                            if (n == t || n.Has(effect.Status)) continue;
-                            bool adjacent = (n.Pos.Row == t.Pos.Row && Math.Abs(n.Pos.Lane - t.Pos.Lane) == 1)
-                                         || (n.Pos.Lane == t.Pos.Lane && Math.Abs(n.Pos.Row - t.Pos.Row) == 1);
-                            if (!adjacent) continue;
-                            n.Statuses[effect.Status] = new StatusState { Power = dot.Power, Turns = Math.Max(1, effect.Amount) };
-                            Emit(EventType.StatusApplied, owner.Id, n.Id, effect.Amount, effect.Status.ToString());
-                        }
-                    }
-                    break;
-                case EffectType.StunGauge:
-                    foreach (var t in affected)
-                    {
-                        if (!t.Alive || t.Side != Side.Enemy) continue;
-                        t.StunGauge += effect.Amount;
-                        if (t.StunGauge >= t.StunGaugeMax)
-                        {
-                            // 昏亂條滿：眩暈 1 回合，條歸零，上限提高（越控越難控）。
-                            t.StunGauge = 0;
-                            t.StunGaugeMax = (int)Math.Round(t.StunGaugeMax * (1.0 + t.StunGrowth), MidpointRounding.AwayFromZero);
-                            t.Statuses[StatusType.Stun] = new StatusState { Turns = 1 };
-                            Emit(EventType.StatusApplied, owner.Id, t.Id, 1, StatusType.Stun.ToString());
-                        }
-                        Emit(EventType.StunGauge, owner.Id, t.Id, t.StunGauge, t.StunGaugeMax.ToString());
+                        ApplyStatus(owner, t, effect);
                     }
                     break;
                 case EffectType.Draw:
@@ -631,32 +542,81 @@ namespace SanGuo.Core
             }
         }
 
-        private static bool IsBuff(StatusType type) =>
-            type == StatusType.DefUp || type == StatusType.AtkUp || type == StatusType.CritUp;
-
-        private void DealAttackDamage(Unit attacker, Unit target, double multiplier)
+        private void ApplyStatus(Unit owner, Unit target, EffectDef effect)
         {
-            if (!Setup.NoRandomness && Rng.Roll(target.Stats.Dodge))
+            int value = 0;
+            switch (effect.Status)
+            {
+                case StatusType.Burn:
+                {
+                    // 燃燒：層數 = 施放者謀略 × 倍率，與既有層數相加，無上限。
+                    value = DamageCalc.Scale(owner.EffectiveInt, effect.Multiplier);
+                    if (value <= 0) return;
+                    if (target.Statuses.TryGetValue(StatusType.Burn, out var burn)) burn.Power += value;
+                    else target.Statuses[StatusType.Burn] = new StatusState { Power = value };
+                    break;
+                }
+                case StatusType.ArmorBreak:
+                    // 每次施加都是獨立一筆（各自計時）；生效的是其中最高的比例。
+                    target.DefBreaks.Add(new DefBreak
+                    {
+                        Percent = Math.Min(0.95, Math.Max(0.0, effect.Multiplier)),
+                        Turns = effect.Amount,
+                    });
+                    value = (int)Math.Round(effect.Multiplier * 100);
+                    break;
+                case StatusType.Taunt:
+                    // 後施加者覆蓋先前者，不疊加；打斷蓄力。
+                    target.Statuses[StatusType.Taunt] = new StatusState { Turns = effect.Amount, SourceId = owner.Id };
+                    if (target.Charging)
+                    {
+                        target.Charging = false;
+                        target.ChargeLeft = 0;
+                        target.IdleActions = target.ChargeInterval; // 被打斷後重新開始蓄力
+                        Emit(EventType.EnemyChargeBreak, owner.Id, target.Id, 0, "");
+                    }
+                    break;
+                case StatusType.AtkUp:
+                case StatusType.IntUp:
+                    value = (int)Math.Round(effect.Multiplier * 100, MidpointRounding.AwayFromZero);
+                    target.Buffs.Add(new Buff { Type = effect.Status, Power = value, Turns = effect.Amount });
+                    break;
+                case StatusType.DefUp:
+                case StatusType.DodgeUp:
+                    value = (int)Math.Round(effect.Multiplier, MidpointRounding.AwayFromZero);
+                    target.Buffs.Add(new Buff { Type = effect.Status, Power = value, Turns = effect.Amount });
+                    break;
+            }
+            Emit(EventType.StatusApplied, owner.Id, target.Id, effect.Status == StatusType.Burn ? value : effect.Amount, effect.Status.ToString());
+        }
+
+        private void DealAttackDamage(Unit attacker, Unit target, DamageKind kind, double multiplier)
+        {
+            // 閃避：物理與法術攻擊皆可閃避。
+            if (!Setup.NoRandomness && Rng.Roll(target.EffectiveDodge))
             {
                 Emit(EventType.Dodge, attacker.Id, target.Id, 0, "");
                 return;
             }
-            bool crit = !Setup.NoRandomness && Rng.Roll(attacker.EffectiveCrit);
-            int dmg = DamageCalc.Compute(attacker.EffectivePower, multiplier, target.EffectiveDef,
-                crit, attacker.Stats.CritDmg);
-            if (target.Has(StatusType.Taunt))
-                dmg = Math.Max(1, (int)Math.Round(dmg * (1.0 - DamageCalc.TauntDamageReduction), MidpointRounding.AwayFromZero));
-            ApplyDamage(attacker, target, dmg, ignoreArmor: false, text: crit ? "crit" : "");
+            int dmg;
+            bool crit = false;
+            if (kind == DamageKind.Magical)
+            {
+                dmg = DamageCalc.Magical(attacker.EffectiveInt, multiplier);
+            }
+            else
+            {
+                crit = !Setup.NoRandomness && Rng.Roll(attacker.EffectiveCrit);
+                dmg = DamageCalc.Physical(attacker.EffectiveAtk, multiplier, target.EffectiveDef, crit, attacker.Stats.CritDmg);
+            }
+            ApplyDamage(attacker, target, dmg, crit ? "crit" : "");
         }
 
-        private void ApplyDamage(Unit? source, Unit target, int dmg, bool ignoreArmor, string text)
+        /// <summary>傷害先由護盾吸收（物理與法術一體適用），其餘扣生命值。</summary>
+        private void ApplyDamage(Unit? source, Unit target, int dmg, string text)
         {
-            int absorbed = 0;
-            if (!ignoreArmor)
-            {
-                absorbed = Math.Min(target.Armor, dmg);
-                target.Armor -= absorbed;
-            }
+            int absorbed = Math.Min(target.Shield, dmg);
+            target.Shield -= absorbed;
             target.Hp -= dmg - absorbed;
             Emit(EventType.Damage, source?.Id ?? -1, target.Id, dmg, text);
             if (target.Hp <= 0) Kill(target);
@@ -666,8 +626,25 @@ namespace SanGuo.Core
         {
             unit.Hp = 0;
             unit.Alive = false;
+            unit.Charging = false;
             _board[unit.Pos.Lane, unit.Pos.Row] = null;
             Emit(EventType.Death, -1, unit.Id, 0, "");
+            if (unit.Side == Side.Player && unit.Hero != null && unit.Hero.Deck.Count > 0) RemoveHeroCards(unit);
+        }
+
+        /// <summary>武將陣亡：其專屬卡與 1 張移動牌自牌庫、手牌與棄牌堆移除（移動牌依棄牌堆 → 牌庫 → 手牌的順序取）。</summary>
+        private void RemoveHeroCards(Unit unit)
+        {
+            DrawPile.RemoveAll(c => c.Owner == unit);
+            Hand.RemoveAll(c => c.Owner == unit);
+            DiscardPile.RemoveAll(c => c.Owner == unit);
+            foreach (var pile in new[] { DiscardPile, DrawPile, Hand })
+            {
+                int i = pile.FindIndex(c => c.Owner == null);
+                if (i < 0) continue;
+                pile.RemoveAt(i);
+                break;
+            }
         }
 
         // ---------------------------------------------------------------- 敵方移動
@@ -683,23 +660,24 @@ namespace SanGuo.Core
 
         // ---------------------------------------------------------------- 牌庫
 
-        /// <summary>抽一張：取後不放回，牌堆抽完就沒有了（不重洗棄牌堆）；手牌上限 <see cref="MaxHandSize"/>。</summary>
+        /// <summary>
+        /// 抽一張：牌庫抽完時把棄牌堆洗回牌庫；手牌已滿（<see cref="MaxHandSize"/>）時，超出上限的抽牌直接棄置。
+        /// 牌庫與棄牌堆都沒有牌時回傳 false。
+        /// </summary>
         private bool DrawOne()
         {
-            if (Hand.Count >= MaxHandSize) return false;
-            if (DrawPile.Count == 0) return false;
+            if (DrawPile.Count == 0)
+            {
+                if (DiscardPile.Count == 0) return false;
+                DrawPile.AddRange(DiscardPile);
+                DiscardPile.Clear();
+                Shuffle(DrawPile);
+            }
             var card = DrawPile[0];
             DrawPile.RemoveAt(0);
-            Hand.Add(card);
+            if (Hand.Count >= MaxHandSize) DiscardPile.Add(card);
+            else Hand.Add(card);
             return true;
-        }
-
-        private void Discard(CardInstance card, bool forceDiscardPile = false)
-        {
-            if (!forceDiscardPile && (card.Def.Keywords & CardKeywords.Exhaust) != 0)
-                ExhaustPile.Add(card);
-            else
-                DiscardPile.Add(card);
         }
 
         /// <summary>依 ScriptedDraw 排序：腳本裡的卡牌 id 依序排最前面，其餘維持原順序。</summary>
@@ -732,17 +710,18 @@ namespace SanGuo.Core
 
         // ---------------------------------------------------------------- 內部工具
 
-        private Unit SpawnEnemy(EnemyDef def, Position pos)
+        private Unit SpawnEnemy(EnemySlot slot)
         {
-            var unit = CreateUnit(def.Name, Side.Enemy, def.AttackType, def.Base.Clone(), pos);
+            var def = slot.Def;
+            var unit = CreateUnit(def.Name, Side.Enemy, def.AttackType, ScaleEnemy(def, slot.Level), slot.Pos);
+            unit.Tier = def.Tier;
+            unit.Level = slot.Level;
+            unit.Magical = def.Magical;
             unit.AttackMultiplier = def.AttackMultiplier;
-            unit.Ability = def.Ability;
-            unit.AbilityPower = def.AbilityPower;
-            unit.SummonDef = def.Summons;
-            unit.SummonCap = def.SummonCap;
-            unit.SummonEvery = def.SummonEvery;
-            unit.StunGaugeMax = def.StunGauge;
-            unit.StunGrowth = def.StunGrowth;
+            unit.ChargeTurns = def.ChargeTurns;
+            unit.ChargeInterval = def.ChargeInterval;
+            unit.ChargePower = def.ChargePower;
+            unit.IsObjective = slot.IsObjective;
             unit.DefId = def.Id;
             return unit;
         }
@@ -766,14 +745,26 @@ namespace SanGuo.Core
             return unit;
         }
 
-        private static Stats ScaleForLevel(Stats baseStats, int level)
+        /// <summary>武將等級成長：生命、攻擊、謀略、防禦每級 +1.5%；其餘屬性不隨等級成長。</summary>
+        public static Stats ScaleHero(Stats baseStats, int level) => ScaleCore(baseStats, HeroLevelFactor(level), 1.0, 1.0);
+
+        /// <summary>
+        /// 敵人強度：等級倍率 × 層級倍率。精英：生命、攻擊、謀略 ×1.4；Boss：生命 ×3、攻擊與謀略 ×1.4；防禦不變。
+        /// </summary>
+        public static Stats ScaleEnemy(EnemyDef def, int level)
+        {
+            double hpTier = def.Tier == EnemyTier.Elite ? 1.4 : def.Tier == EnemyTier.Boss ? 3.0 : 1.0;
+            double powerTier = def.Tier == EnemyTier.Normal ? 1.0 : 1.4;
+            return ScaleCore(def.Base, EnemyLevelFactor(level), hpTier, powerTier);
+        }
+
+        private static Stats ScaleCore(Stats baseStats, double factor, double hpTier, double powerTier)
         {
             var s = baseStats.Clone();
-            double factor = 1.0 + LevelGrowthPerLevel * Math.Max(0, level - 1);
-            s.Hp = (int)Math.Round(s.Hp * factor);
-            s.Atk = (int)Math.Round(s.Atk * factor);
-            s.Def = (int)Math.Round(s.Def * factor);
-            s.Int = (int)Math.Round(s.Int * factor);
+            s.Hp = (int)Math.Round(s.Hp * factor * hpTier, MidpointRounding.AwayFromZero);
+            s.Atk = (int)Math.Round(s.Atk * factor * powerTier, MidpointRounding.AwayFromZero);
+            s.Int = (int)Math.Round(s.Int * factor * powerTier, MidpointRounding.AwayFromZero);
+            s.Def = (int)Math.Round(s.Def * factor, MidpointRounding.AwayFromZero);
             return s;
         }
 
@@ -782,7 +773,10 @@ namespace SanGuo.Core
         private bool CheckEnd()
         {
             if (Result != BattleResult.Ongoing) return true;
-            if (!Units.Any(u => u.Side == Side.Enemy && u.Alive))
+            var enemies = Units.Where(u => u.Side == Side.Enemy).ToList();
+            bool objectiveDone = Setup.Objective == Objective.KillTarget && enemies.Any(u => u.IsObjective)
+                && enemies.Where(u => u.IsObjective).All(u => !u.Alive);
+            if (!enemies.Any(u => u.Alive) || objectiveDone)
                 Result = BattleResult.Won;
             else if (!Units.Any(u => u.Side == Side.Player && u.Alive) || Units.Any(u => u.Protected && !u.Alive))
                 Result = BattleResult.Lost;

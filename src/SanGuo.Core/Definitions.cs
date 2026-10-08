@@ -31,16 +31,18 @@ namespace SanGuo.Core
         public int Hp;
         public int Atk;
         public int Def;
-        /// <summary>閃避，百分比。</summary>
+        /// <summary>閃避，百分比（有效值上限 <see cref="DamageCalc.DodgeCap"/>）。</summary>
         public int Dodge;
-        /// <summary>移動力 = 移動卡可移動的格數（1–3，隨職業固定）。</summary>
+        /// <summary>移動力 = 移動牌可移動的格數。</summary>
         public int Move = 1;
-        /// <summary>謀略：法系（法師 / 醫療 / 軍師）的治療、法術傷害、護甲與增減益強度吃這個，其餘職業吃攻擊力。</summary>
+        /// <summary>謀略：法術傷害、治療、護盾、燃燒層數的計算基礎。</summary>
         public int Int;
-        /// <summary>爆擊率，百分比。</summary>
+        /// <summary>爆擊率，百分比（上限 100）。</summary>
         public int Crit;
-        /// <summary>爆擊傷害，百分比（150 = 1.5 倍）。</summary>
+        /// <summary>爆擊傷害，百分比（150 = 1.5 倍），無上限。</summary>
         public int CritDmg = 150;
+        /// <summary>攻擊範圍：決定技能可選擇的主目標範圍（曼哈頓格距）。</summary>
+        public int Range = 1;
 
         public Stats Clone() => (Stats)MemberwiseClone();
     }
@@ -48,8 +50,14 @@ namespace SanGuo.Core
     public sealed class EffectDef
     {
         public EffectType Type;
-        /// <summary>傷害 / 治療 / 護甲 / 狀態威力的攻擊力倍率。</summary>
+        /// <summary>
+        /// 威力倍率。Damage = 傷害倍率；Heal / Shield = 謀略倍率；
+        /// ApplyStatus：Burn = 燃燒層數的謀略倍率、ArmorBreak = 降低防禦的比例（0.25 = 25%）、
+        /// DefUp / DodgeUp = 固定加成值（50 = 防禦 +50）、AtkUp / IntUp = 加成比例（0.25 = +25%）、Taunt 不使用。
+        /// </summary>
         public double Multiplier;
+        /// <summary>Damage 的傷害類型。</summary>
+        public DamageKind Kind = DamageKind.Physical;
         public StatusType Status;
         /// <summary>狀態持續回合；Draw / GainCost 則為張數 / 點數。</summary>
         public int Amount;
@@ -63,17 +71,14 @@ namespace SanGuo.Core
     {
         public string Id = "";
         public string Name = "";
-        /// <summary>基礎牌（普攻 / 防禦 / 治療）；false 為武將專屬技能牌。僅用於顯示與日後強化分類。</summary>
+        /// <summary>基本攻擊卡（每名武將 3 張）；false 為職業特殊卡。僅用於顯示與分類。</summary>
         public bool Basic;
         public int Cost;
-        public CardKeywords Keywords;
         public TargetRule Target = TargetRule.Enemy;
-        /// <summary>攻擊 / 施放範圍：與施放者的曼哈頓格距上限（Self / 全體目標忽略；移動卡用移動力）。</summary>
-        public int Range = 1;
         public Shape Shape = Shape.Single;
         public List<EffectDef> Effects = new List<EffectDef>();
 
-        /// <summary>通用移動卡（0 費、不屬於任何武將）：隊伍每有一名武將，開局就在牌堆洗入一張；打出時指定一名武將與目的地，格數 = 該武將移動力。</summary>
+        /// <summary>通用移動牌（0 費、不屬於任何武將）：每名武將在開局時洗入一張；打出時指定一名武將與目的地，格數 = 該武將移動力。</summary>
         public static CardDef CreateMove() => new CardDef
         {
             Id = "move", Name = "移動", Basic = true, Cost = 0, Target = TargetRule.MoveDest,
@@ -89,7 +94,7 @@ namespace SanGuo.Core
         public Rarity Rarity = Rarity.R;
         public AttackType AttackType = AttackType.Melee;
         public Stats Base = new Stats();
-        /// <summary>固定套牌（同一張卡可重複出現）。</summary>
+        /// <summary>固定套牌：3 張基本攻擊 + 2 張職業特殊卡（同一張卡可重複出現）。</summary>
         public List<CardDef> Deck = new List<CardDef>();
     }
 
@@ -97,23 +102,22 @@ namespace SanGuo.Core
     {
         public string Id = "";
         public string Name = "";
+        /// <summary>職業體系，讓玩家辨識敵人的定位（GDD 04 §2.1）。</summary>
+        public Role Role = Role.Warrior;
+        public EnemyTier Tier = EnemyTier.Normal;
         public AttackType AttackType = AttackType.Melee;
+        /// <summary>true = 法術攻擊（吃謀略、無視防禦、不爆擊）。</summary>
+        public bool Magical;
+        /// <summary>同職業武將 1 級基準的數值；實際強度由 <see cref="EnemySlot.Level"/> 與層級倍率縮放。</summary>
         public Stats Base = new Stats();
-        /// <summary>普通攻擊的攻擊力倍率。</summary>
+        /// <summary>普通攻擊的倍率。</summary>
         public double AttackMultiplier = 1.0;
-        public EnemyAbility Ability = EnemyAbility.None;
-        /// <summary>召喚者每次召喚的單位。</summary>
-        public EnemyDef? Summons;
-        /// <summary>場上敵人達到這個數量就不再召喚。</summary>
-        public int SummonCap = 6;
-        /// <summary>每 N 次行動召喚一次（1 = 每次行動都召喚）。</summary>
-        public int SummonEvery = 1;
-        /// <summary>昏亂條上限（滿了才會眩暈）。</summary>
-        public int StunGauge = 100;
-        /// <summary>每次被眩暈後昏亂條上限增加的比例（0.5 = +50%），避免連續控制。</summary>
-        public double StunGrowth = 0.5;
-        /// <summary>特殊行動的攻擊力倍率（Healer = 治療量）。</summary>
-        public double AbilityPower;
+        /// <summary>蓄力回合數（0 = 沒有蓄力大招）。開始蓄力後經過這麼多次行動，於下一次輪到行動時釋放。</summary>
+        public int ChargeTurns;
+        /// <summary>兩次蓄力之間的普通行動次數（開場後也先普通行動這麼多次才開始蓄力）。</summary>
+        public int ChargeInterval = 1;
+        /// <summary>蓄力大招的倍率；大招攻擊我方全體存活武將。</summary>
+        public double ChargePower = 2.0;
     }
 
     public sealed class HeroSlot
@@ -121,7 +125,7 @@ namespace SanGuo.Core
         public HeroDef Def;
         public Position Pos;
         public int Level = 1;
-        /// <summary>保護目標：這個單位陣亡就算失敗（護送關卡）。</summary>
+        /// <summary>保護目標：這個單位陣亡就算失敗（護送 / 守城關卡）。</summary>
         public bool IsProtected;
         /// <summary>開局血量百分比（100 = 滿血；護送關卡的傷者用）。</summary>
         public int StartHpPercent = 100;
@@ -138,30 +142,38 @@ namespace SanGuo.Core
     {
         public EnemyDef Def;
         public Position Pos;
+        /// <summary>敵人等級：只縮放屬性（見 <see cref="Battle.EnemyLevelFactor"/>）。</summary>
+        public int Level = 1;
+        /// <summary>擊殺指定目標關卡的目標。</summary>
+        public bool IsObjective;
 
-        public EnemySlot(EnemyDef def, Position pos)
+        public EnemySlot(EnemyDef def, Position pos, int level = 1)
         {
             Def = def;
             Pos = pos;
+            Level = level;
         }
     }
 
     public sealed class BattleSetup
     {
-        /// <summary>棋盤（敵我共用）：5 欄 × 5 列；敵方起始在上兩列、我方在下兩列。</summary>
+        /// <summary>棋盤（敵我共用）：5 欄 × 5 列；敵方起始在上方、我方在下方。</summary>
         public int Lanes = 5;
         public int Rows = 5;
-        /// <summary>我方列陣區：3 欄 × 2 列（欄 1–3、列 3–4）。</summary>
+        /// <summary>我方入場區：橫 3 格 × 直 2 格（欄 1–3、列 3–4），共 6 格。</summary>
         public const int FormationMinLane = 1, FormationMaxLane = 3, FormationMinRow = 3, FormationMaxRow = 4;
         public ulong Seed = 1;
-        /// <summary>首回合抽牌數（之後每回合抽 <see cref="DrawPerTurn"/> 張）。</summary>
-        public int HandSize = 7;
+        /// <summary>第 1 回合隨機抽幾張，另外固定抽 <see cref="FirstTurnMoves"/> 張移動牌；之後每回合抽 <see cref="DrawPerTurn"/> 張。</summary>
+        public int FirstTurnRandom = 5;
+        public int FirstTurnMoves = 2;
         public int CostPerTurn = 3;
         public int CostCap = 10;
-        /// <summary>第 2 回合起每回合抽幾張（首回合抽 <see cref="HandSize"/> 張）。手牌不會在回合結束時棄掉，上限 10；牌堆抽完就不再重洗。</summary>
         public int DrawPerTurn = 3;
-        /// <summary>0 = 無回合限制。</summary>
+        /// <summary>0 = 無回合限制；到達回合數仍未獲勝即失敗（限時）。</summary>
         public int TurnLimit;
+        public Objective Objective = Objective.Annihilate;
+        /// <summary>護送 / 守城：保護目標需存活的回合數。</summary>
+        public int SurviveTurns;
         /// <summary>是否開放自動戰鬥（教學關關閉，讓玩家親手體驗該關要教的機制）。</summary>
         public bool AutoAllowed = true;
         /// <summary>true = 隊伍與站位由關卡決定，玩家不能編隊（教學關）。</summary>

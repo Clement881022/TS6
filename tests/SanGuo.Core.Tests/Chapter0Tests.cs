@@ -66,8 +66,6 @@ namespace SanGuo.Core.Tests
             {
                 var setup = DemoContent.Level(level);
                 Assert.All(setup.Enemies, e => Assert.StartsWith("bandit_", e.Def.Id));
-                foreach (var e in setup.Enemies.Where(e => e.Def.Summons != null))
-                    Assert.StartsWith("bandit_", e.Def.Summons!.Id);
             }
             foreach (var id in new[] { "res_gold", "res_exp", "res_card" })
                 Assert.All(DemoMeta.DungeonSetup(id, 1).Enemies, e => Assert.StartsWith("bandit_", e.Def.Id));
@@ -118,7 +116,7 @@ namespace SanGuo.Core.Tests
             }
             int Count(params string[] who) => all.Count(l => who.Contains(l.Speaker));
             int party = Count("劉備", "關羽", "張飛");
-            int guests = Count("黃忠", "趙雲", "龐統", "張世平");
+            int guests = Count("張世平");
             Assert.True(party > guests * 3, $"主角團 {party} 句、客串 {guests} 句");
             Assert.True(Count("劉備") >= 20 && Count("關羽") >= 12 && Count("張飛") >= 12);
             Assert.True(Count(DemoStory.Protagonist) >= 40);

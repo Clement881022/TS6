@@ -9,26 +9,26 @@ namespace SanGuo.Core.Meta
         public const string StandardPoolId = "standard";
         public const string NewbiePoolId = "newbie";
 
-        /// <summary>Demo 目前只有 UR 與 R（尚無 SR），所以 SR 機率為 0、十連不保底 SR。</summary>
+        /// <summary>常駐池與新手池：UR 6 隻（每職業 1 隻）、可抽取 SR 12 隻、R 6 隻。</summary>
         public static List<GachaPool> Pools()
         {
-            var roster = DemoContent.Roster();
-            var ur = roster.Where(h => h.Rarity == Rarity.UR).Select(h => h.Id).ToList();
-            var r = roster.Where(h => h.Rarity == Rarity.R && h.Id != "r_villager").Select(h => h.Id).ToList();
             return new List<GachaPool>
             {
                 new GachaPool
                 {
-                    Id = StandardPoolId, Name = "常駐招募", UrRateBp = 300, SrRateBp = 0,
-                    UrHeroes = ur, RHeroes = r, TenPullGuaranteesSr = false,
+                    Id = StandardPoolId, Name = "常駐招募",
+                    UrHeroes = HeroRoster.StandardUrIds.ToList(), SrHeroes = HeroRoster.DrawableSrIds(), RHeroes = RIds(),
                 },
                 new GachaPool
                 {
-                    Id = NewbiePoolId, Name = "新手招募", UrRateBp = 300, SrRateBp = 0,
-                    UrHeroes = ur, RHeroes = r, TenPullGuaranteesSr = false, FirstTenGuaranteesUr = true,
+                    Id = NewbiePoolId, Name = "新手招募", FirstTenGuaranteesUr = true,
+                    UrHeroes = HeroRoster.StandardUrIds.ToList(), SrHeroes = HeroRoster.DrawableSrIds(), RHeroes = RIds(),
                 },
             };
         }
+
+        private static List<string> RIds() =>
+            HeroRoster.All().Where(h => h.Rarity == Rarity.R).Select(h => h.Id).ToList();
 
         public static string StageId(int chapter, int level) => $"{chapter}-{level}";
 
@@ -67,42 +67,12 @@ namespace SanGuo.Core.Meta
         public static bool FormationLocked(int level) => level < FirstOpenFormationLevel;
 
         /// <summary>
-        /// 敵人強度（血量 %, 攻擊 %）：教學版的敵人是照固定隊伍與寫死牌序調的，
-        /// 換成玩家隨機抽牌與新手隊伍後要整體放低（建議值，之後依實測調整）。
-        /// </summary>
-        public static (int HpPct, int AtkPct) EnemyScale(string stageId)
-        {
-            switch (stageId)
-            {
-                case "res_gold": return (35, 35);
-                case "res_exp": return (22, 26); // 劉關張改 SR 後我方弱一點，同步放低
-                case "res_card": return (63, 63);
-                case "1-9": return (50, 50);
-                case "1-10": return (45, 45);
-                default: return (100, 100);
-            }
-        }
-
-        private static void ScaleEnemies(BattleSetup setup, string stageId)
-        {
-            var (hp, atk) = EnemyScale(stageId);
-            if (hp == 100 && atk == 100) return;
-            void Scale(EnemyDef def)
-            {
-                def.Base.Hp = def.Base.Hp * hp / 100;
-                def.Base.Atk = def.Base.Atk * atk / 100;
-                if (def.Summons != null) Scale(def.Summons);
-            }
-            foreach (var e in setup.Enemies) Scale(e.Def);
-        }
-
-        /// <summary>
         /// 開放編隊的主線關卡：沿用教學版的敵人配置，但我方改由玩家編隊決定，
         /// 並取消教學專用的限制（寫死牌序、無爆擊閃避、禁用自動戰鬥）。我方在套用編隊前是空的。
         /// </summary>
         public static BattleSetup OpenLevel(int level, ulong seed)
         {
-            var setup = DemoContent.Level(level, seed, tutorialScale: false); // 教學關的敵人縮放不套用，強度由 EnemyScale 決定
+            var setup = DemoContent.Level(level, seed);
             setup.Heroes.Clear();
             setup.FormationLocked = false;
             setup.NoRandomness = false;
@@ -114,29 +84,32 @@ namespace SanGuo.Core.Meta
         /// <summary>
         /// 資源副本的戰鬥設定：每個副本有自己的敵人配置，我方由玩家編隊決定（套用編隊前是空的），開放自動戰鬥。
         /// </summary>
+        /// <summary>資源副本的敵人等級（暫定，之後依副本階數與戰力門檻調整）。</summary>
+        public const int DungeonEnemyLevel = 10;
+
         public static BattleSetup DungeonSetup(string dungeonId, ulong seed)
         {
             var setup = new BattleSetup { Seed = seed, AutoAllowed = true };
             switch (dungeonId)
             {
-                case "res_exp": // 校場操練：鐵甲力士擋路，後排妖道持續治療
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditIronBrute(), DemoContent.EnemyPos(2, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(3, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditShaman(), DemoContent.EnemyPos(2, 1)));
+                case "res_exp": // 校場操練：鐵甲悍匪擋路，後排巫師放法術
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditIronBrute(), DemoContent.EnemyPos(2, 0), DungeonEnemyLevel));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(1, 0), DungeonEnemyLevel));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(3, 0), DungeonEnemyLevel));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditShaman(), DemoContent.EnemyPos(2, 1), DungeonEnemyLevel));
                     break;
-                case "res_card": // 兵器鋪：渠帥與副將蓄力，要靠昏亂或集火打斷
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditSecondChief(), DemoContent.EnemyPos(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditDeputy(), DemoContent.EnemyPos(3, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(2, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(0, 0)));
+                case "res_card": // 兵器鋪：二當家與副寨主蓄力，要靠嘲諷或集火打斷
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditSecondChief(), DemoContent.EnemyPos(1, 0), DungeonEnemyLevel));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditDeputy(), DemoContent.EnemyPos(3, 0), DungeonEnemyLevel));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(2, 0), DungeonEnemyLevel));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(0, 0), DungeonEnemyLevel));
                     break;
-                default: // res_gold 糧倉護衛：黃巾兵衝陣，兩名弓手在後排放箭
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(1, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(2, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(3, 0)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditArcher(), DemoContent.EnemyPos(1, 1)));
-                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditArcher(), DemoContent.EnemyPos(3, 1)));
+                default: // res_gold 糧倉護衛：山賊衝陣，兩名弓手在後排放箭
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(1, 0), DungeonEnemyLevel));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(2, 0), DungeonEnemyLevel));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditGrunt(), DemoContent.EnemyPos(3, 0), DungeonEnemyLevel));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditArcher(), DemoContent.EnemyPos(1, 1), DungeonEnemyLevel));
+                    setup.Enemies.Add(new EnemySlot(DemoContent.BanditArcher(), DemoContent.EnemyPos(3, 1), DungeonEnemyLevel));
                     break;
             }
             return setup;
@@ -158,7 +131,6 @@ namespace SanGuo.Core.Meta
                 if (level == 0) return null;
                 setup = level >= FirstOpenFormationLevel ? OpenLevel(level, seed) : DemoContent.Level(level, seed);
             }
-            ScaleEnemies(setup, stageId);
             if (setup.FormationLocked) return setup;
             if (profile == null || formation == null || FormationRules.Validate(profile, formation) != null)
                 return null;

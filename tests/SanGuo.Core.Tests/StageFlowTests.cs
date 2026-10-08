@@ -25,12 +25,12 @@ namespace SanGuo.Core.Tests
         /// <summary>發四名武將給玩家並回傳站好位的編隊。</summary>
         private static List<FormationEntry> Team(PlayerProfile p)
         {
-            var ids = new[] { "zhangfei", "guanyu", "huangzhong", "liubei" };
+            var ids = new[] { "zhangfei", "guanyu", "r_archer", "liubei" };
             foreach (var id in ids) p.Heroes[id] = new HeroState { HeroId = id };
             return new List<FormationEntry>
             {
                 new FormationEntry("zhangfei", 1, 3), new FormationEntry("guanyu", 2, 3),
-                new FormationEntry("huangzhong", 2, 4), new FormationEntry("liubei", 3, 4),
+                new FormationEntry("r_archer", 2, 4), new FormationEntry("liubei", 3, 4),
             };
         }
 
@@ -164,7 +164,7 @@ namespace SanGuo.Core.Tests
             Assert.False(setup.FormationLocked);
             Assert.True(setup.AutoAllowed);
             Assert.Empty(setup.ScriptedDraw);
-            Assert.Equal(new[] { "zhangfei", "guanyu", "huangzhong", "liubei" }, setup.Heroes.Select(h => h.Def.Id).ToArray());
+            Assert.Equal(new[] { "zhangfei", "guanyu", "r_archer", "liubei" }, setup.Heroes.Select(h => h.Def.Id).ToArray());
             Assert.Equal(3, setup.Enemies.Count); // 敵人沿用第 9 關配置
         }
 

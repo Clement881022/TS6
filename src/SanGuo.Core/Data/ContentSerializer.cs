@@ -25,6 +25,7 @@ namespace SanGuo.Core.Data
         {
             ["hp"] = (long)s.Hp, ["atk"] = (long)s.Atk, ["def"] = (long)s.Def, ["dodge"] = (long)s.Dodge,
             ["move"] = (long)s.Move, ["int"] = (long)s.Int, ["crit"] = (long)s.Crit, ["critDmg"] = (long)s.CritDmg,
+            ["range"] = (long)s.Range,
         };
 
         public static Dictionary<string, object?> CardToObject(CardDef c)
@@ -36,6 +37,7 @@ namespace SanGuo.Core.Data
                 {
                     ["type"] = e.Type.ToString(),
                     ["multiplier"] = e.Multiplier,
+                    ["kind"] = e.Kind.ToString(),
                     ["status"] = e.Status.ToString(),
                     ["amount"] = (long)e.Amount,
                     ["onSelf"] = e.OnSelf,
@@ -44,8 +46,7 @@ namespace SanGuo.Core.Data
             return new Dictionary<string, object?>
             {
                 ["id"] = c.Id, ["name"] = c.Name, ["basic"] = c.Basic, ["cost"] = (long)c.Cost,
-                ["keywords"] = c.Keywords.ToString(),
-                ["target"] = c.Target.ToString(), ["range"] = (long)c.Range, ["shape"] = c.Shape.ToString(),
+                ["target"] = c.Target.ToString(), ["shape"] = c.Shape.ToString(),
                 ["effects"] = effects,
             };
         }
@@ -63,12 +64,10 @@ namespace SanGuo.Core.Data
 
         public static Dictionary<string, object?> EnemyToObject(EnemyDef e) => new Dictionary<string, object?>
         {
-            ["id"] = e.Id, ["name"] = e.Name, ["attackType"] = e.AttackType.ToString(),
+            ["id"] = e.Id, ["name"] = e.Name, ["role"] = e.Role.ToString(), ["tier"] = e.Tier.ToString(),
+            ["attackType"] = e.AttackType.ToString(), ["magical"] = e.Magical,
             ["base"] = StatsToObject(e.Base), ["attackMultiplier"] = e.AttackMultiplier,
-            ["ability"] = e.Ability.ToString(),
-            ["summons"] = e.Summons == null ? null : EnemyToObject(e.Summons),
-            ["summonCap"] = (long)e.SummonCap, ["summonEvery"] = (long)e.SummonEvery,
-            ["stunGauge"] = (long)e.StunGauge, ["stunGrowth"] = e.StunGrowth, ["abilityPower"] = e.AbilityPower,
+            ["chargeTurns"] = (long)e.ChargeTurns, ["chargeInterval"] = (long)e.ChargeInterval, ["chargePower"] = e.ChargePower,
         };
 
         private static Dictionary<string, object?> PosToObject(Position p) =>
@@ -87,15 +86,19 @@ namespace SanGuo.Core.Data
             }
             var enemies = new List<object?>();
             foreach (var e in s.Enemies)
-                enemies.Add(new Dictionary<string, object?> { ["def"] = EnemyToObject(e.Def), ["pos"] = PosToObject(e.Pos) });
+                enemies.Add(new Dictionary<string, object?>
+                {
+                    ["def"] = EnemyToObject(e.Def), ["pos"] = PosToObject(e.Pos), ["level"] = (long)e.Level, ["objective"] = e.IsObjective,
+                });
             var draw = new List<object?>();
             foreach (var id in s.ScriptedDraw) draw.Add(id);
             return new Dictionary<string, object?>
             {
                 ["lanes"] = (long)s.Lanes, ["rows"] = (long)s.Rows, ["seed"] = (long)s.Seed,
-                ["handSize"] = (long)s.HandSize, ["costPerTurn"] = (long)s.CostPerTurn, ["costCap"] = (long)s.CostCap,
-                ["drawPerTurn"] = (long)s.DrawPerTurn,
-                ["turnLimit"] = (long)s.TurnLimit, ["autoAllowed"] = s.AutoAllowed,
+                ["firstTurnRandom"] = (long)s.FirstTurnRandom, ["firstTurnMoves"] = (long)s.FirstTurnMoves,
+                ["costPerTurn"] = (long)s.CostPerTurn, ["costCap"] = (long)s.CostCap, ["drawPerTurn"] = (long)s.DrawPerTurn,
+                ["turnLimit"] = (long)s.TurnLimit, ["objective"] = s.Objective.ToString(), ["surviveTurns"] = (long)s.SurviveTurns,
+                ["autoAllowed"] = s.AutoAllowed,
                 ["formationLocked"] = s.FormationLocked, ["scriptedDraw"] = draw, ["noRandomness"] = s.NoRandomness,
                 ["heroes"] = heroes, ["enemies"] = enemies,
             };
@@ -118,7 +121,7 @@ namespace SanGuo.Core.Data
             var s = new Stats();
             s.Hp = I(d, "hp", s.Hp); s.Atk = I(d, "atk", s.Atk); s.Def = I(d, "def", s.Def);
             s.Dodge = I(d, "dodge", s.Dodge); s.Move = I(d, "move", s.Move); s.Int = I(d, "int", s.Int);
-            s.Crit = I(d, "crit", s.Crit); s.CritDmg = I(d, "critDmg", s.CritDmg);
+            s.Crit = I(d, "crit", s.Crit); s.CritDmg = I(d, "critDmg", s.CritDmg); s.Range = I(d, "range", s.Range);
             return s;
         }
 
@@ -127,7 +130,7 @@ namespace SanGuo.Core.Data
             var c = new CardDef
             {
                 Id = S(d, "id", ""), Name = S(d, "name", ""), Basic = B(d, "basic", false), Cost = I(d, "cost", 0),
-                Keywords = E(d, "keywords", CardKeywords.None), Target = E(d, "target", TargetRule.Enemy), Range = I(d, "range", 1),
+                Target = E(d, "target", TargetRule.Enemy),
                 Shape = E(d, "shape", Shape.Single),
             };
             foreach (var eo in List(d, "effects"))
@@ -135,7 +138,7 @@ namespace SanGuo.Core.Data
                 var ed = Obj(eo, "effects[]");
                 c.Effects.Add(new EffectDef
                 {
-                    Type = E(ed, "type", EffectType.Damage), Multiplier = Dbl(ed, "multiplier", 0),
+                    Type = E(ed, "type", EffectType.Damage), Multiplier = Dbl(ed, "multiplier", 0), Kind = E(ed, "kind", DamageKind.Physical),
                     Status = E(ed, "status", StatusType.Burn), Amount = I(ed, "amount", 0), OnSelf = B(ed, "onSelf", false),
                 });
             }
@@ -158,14 +161,12 @@ namespace SanGuo.Core.Data
         {
             var e = new EnemyDef
             {
-                Id = S(d, "id", ""), Name = S(d, "name", ""), AttackType = E(d, "attackType", AttackType.Melee),
-                AttackMultiplier = Dbl(d, "attackMultiplier", 1.0), Ability = E(d, "ability", EnemyAbility.None),
-                SummonCap = I(d, "summonCap", 6), SummonEvery = I(d, "summonEvery", 1),
-                StunGauge = I(d, "stunGauge", 100), StunGrowth = Dbl(d, "stunGrowth", 0.5),
-                AbilityPower = Dbl(d, "abilityPower", 0),
+                Id = S(d, "id", ""), Name = S(d, "name", ""), Role = E(d, "role", Role.Warrior), Tier = E(d, "tier", EnemyTier.Normal),
+                AttackType = E(d, "attackType", AttackType.Melee), Magical = B(d, "magical", false),
+                AttackMultiplier = Dbl(d, "attackMultiplier", 1.0),
+                ChargeTurns = I(d, "chargeTurns", 0), ChargeInterval = I(d, "chargeInterval", 1), ChargePower = Dbl(d, "chargePower", 2.0),
             };
             if (d.TryGetValue("base", out var b) && b is Dictionary<string, object?> bd) e.Base = StatsFromObject(bd);
-            if (d.TryGetValue("summons", out var s) && s is Dictionary<string, object?> sd) e.Summons = EnemyFromObject(sd);
             return e;
         }
 
@@ -180,9 +181,9 @@ namespace SanGuo.Core.Data
             var s = new BattleSetup
             {
                 Lanes = I(d, "lanes", 5), Rows = I(d, "rows", 5), Seed = (ulong)L(d, "seed", 1),
-                HandSize = I(d, "handSize", 5), CostPerTurn = I(d, "costPerTurn", 3), CostCap = I(d, "costCap", 10),
+                FirstTurnRandom = I(d, "firstTurnRandom", 5), FirstTurnMoves = I(d, "firstTurnMoves", 2), CostPerTurn = I(d, "costPerTurn", 3), CostCap = I(d, "costCap", 10),
                 DrawPerTurn = I(d, "drawPerTurn", 3),
-                TurnLimit = I(d, "turnLimit", 0), AutoAllowed = B(d, "autoAllowed", true),
+                TurnLimit = I(d, "turnLimit", 0), Objective = E(d, "objective", Objective.Annihilate), SurviveTurns = I(d, "surviveTurns", 0), AutoAllowed = B(d, "autoAllowed", true),
                 FormationLocked = B(d, "formationLocked", false), NoRandomness = B(d, "noRandomness", false),
             };
             foreach (var id in List(d, "scriptedDraw"))
@@ -201,7 +202,7 @@ namespace SanGuo.Core.Data
             {
                 var ed = Obj(eo, "enemies[]");
                 var def = EnemyFromObject(Obj(ed.TryGetValue("def", out var dv) ? dv : null, "enemies[].def"));
-                s.Enemies.Add(new EnemySlot(def, PosFromObject(ed, "pos")));
+                s.Enemies.Add(new EnemySlot(def, PosFromObject(ed, "pos"), I(ed, "level", 1)) { IsObjective = B(ed, "objective", false) });
             }
             return s;
         }

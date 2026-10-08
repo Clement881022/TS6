@@ -47,8 +47,8 @@ namespace SanGuo.Core.Meta
         public static int CardUpgradeMaterial(int cardLevel) => 3 * (cardLevel + 1);
         public static int CardUpgradeGold(int cardLevel) => 200 * (cardLevel + 1);
 
-        /// <summary>屬性倍率（血量 / 攻擊 / 防禦）：每級 +8%；1 級為 1.0，與 Demo 關卡校準一致。</summary>
-        public static double StatMultiplier(int level) => 1 + 0.08 * (level - 1);
+        /// <summary>屬性倍率（生命、攻擊、謀略、防禦）：每級 +1.5%（線性，GDD 03 §4.1）。</summary>
+        public static double StatMultiplier(int level) => Battle.HeroLevelFactor(level);
 
         /// <summary>卡牌效果倍率加成：每強化 1 級 +15%。</summary>
         public static double CardEffectMultiplier(int cardLevel) => 1 + 0.15 * cardLevel;
@@ -108,7 +108,7 @@ namespace SanGuo.Core.Meta
             foreach (var e in card.Effects)
             {
                 var copy = (EffectDef)e.Clone();
-                if (e.Type == EffectType.Damage || e.Type == EffectType.Heal || e.Type == EffectType.Armor)
+                if (e.Type == EffectType.Damage || e.Type == EffectType.Heal || e.Type == EffectType.Shield)
                     copy.Multiplier = e.Multiplier * m;
                 effects.Add(copy);
             }
@@ -118,9 +118,7 @@ namespace SanGuo.Core.Meta
                 Name = card.Name,
                 Basic = card.Basic,
                 Cost = card.Cost,
-                Keywords = card.Keywords,
                 Target = card.Target,
-                Range = card.Range,
                 Shape = card.Shape,
                 Effects = effects,
             };

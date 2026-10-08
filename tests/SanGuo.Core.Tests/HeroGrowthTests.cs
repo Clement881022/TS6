@@ -111,7 +111,7 @@ namespace SanGuo.Core.Tests
             var b = new Stats { Hp = 1000, Atk = 100, Def = 50, Move = 2, Crit = 5 };
             Assert.Equal(1000, HeroGrowth.ScaleStats(b, new HeroState()).Hp);
             var s = HeroGrowth.ScaleStats(b, new HeroState { Level = 11, Stars = 5 }); // 沒給突破表：星級不加數值
-            Assert.Equal(1800, s.Hp);   // 1 + 0.08×10
+            Assert.Equal(1150, s.Hp);   // 1 + 0.015×10
             Assert.Equal(2, s.Move);
             Assert.Equal(1000, b.Hp);
         }
@@ -144,7 +144,7 @@ namespace SanGuo.Core.Tests
             Deck =
             {
                 new CardDef { Id = "zf_attack" }, new CardDef { Id = "zf_taunt" },
-                new CardDef { Id = "zf_stance" }, new CardDef { Id = "zf_taunt" },
+                new CardDef { Id = "zf_attack" }, new CardDef { Id = "zf_taunt2" },
             },
         };
 
@@ -197,15 +197,15 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void Deck_UpgradeReplacesEveryCopy_AtItsStar()
+        public void Deck_UpgradeReplacesOnlyTheTargetCard_AtItsStar()
         {
             var table = DemoBreakthroughs.Create();
             var hero = ZhangFeiLike();
             var s2 = table.ResolveDeck(hero, 2).Select(c => c.Id).ToList();
-            Assert.Equal(new[] { "zf_attack", "zf_taunt_1", "zf_stance", "zf_taunt_1" }, s2);
+            Assert.Equal(new[] { "zf_attack", "zf_taunt_plus", "zf_attack", "zf_taunt2" }, s2); // 二突只升級其中一張嘲諷
             Assert.Equal(s2, table.ResolveDeck(hero, 4).Select(c => c.Id).ToList());
             var s5 = table.ResolveDeck(hero, 5).Select(c => c.Id).ToList();
-            Assert.Equal(new[] { "zf_attack", "zf_taunt_1", "zf_stance_1", "zf_taunt_1" }, s5);
+            Assert.Equal(new[] { "zf_attack", "zf_taunt_plus", "zf_attack", "zf_taunt2_plus" }, s5); // 五突升級另一張
         }
 
         [Fact]

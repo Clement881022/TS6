@@ -130,37 +130,25 @@ namespace SanGuo.Core.Meta
         public static BreakthroughTable Create()
         {
             var table = new BreakthroughTable();
+            // 張飛（坦克）：嘲諷 ×2 逐張升級為「嘲諷＋」（持續回合 +1）。
             table.Register("zhangfei",
-                new BreakthroughEffect
-                {
-                    Stars = 2, Kind = BreakthroughKind.UpgradeCard, TargetCardId = "zf_taunt",
-                    Description = "嘲諷 → 嘲諷・威：防禦加成提高並抽 1 張牌",
-                    NewCard = new CardDef
-                    {
-                        Id = "zf_taunt_1", Name = "嘲諷・威", Cost = 1, Target = TargetRule.Self,
-                        Effects =
-                        {
-                            new EffectDef { Type = EffectType.ApplyStatus, Status = StatusType.Taunt, Amount = 3, OnSelf = true },
-                            new EffectDef { Type = EffectType.ApplyStatus, Status = StatusType.DefUp, Multiplier = 0.5, Amount = 3, OnSelf = true },
-                            new EffectDef { Type = EffectType.Draw, Amount = 1, OnSelf = true },
-                        },
-                    },
-                },
-                new BreakthroughEffect
-                {
-                    Stars = 5, Kind = BreakthroughKind.UpgradeCard, TargetCardId = "zf_stance",
-                    Description = "防禦姿態 → 不動如山：防禦加成提高到 +150% 並附帶護甲",
-                    NewCard = new CardDef
-                    {
-                        Id = "zf_stance_1", Name = "不動如山", Basic = true, Cost = 1, Target = TargetRule.Self,
-                        Effects =
-                        {
-                            new EffectDef { Type = EffectType.ApplyStatus, Status = StatusType.DefUp, Multiplier = 1.5, Amount = 2, OnSelf = true },
-                            new EffectDef { Type = EffectType.Armor, Multiplier = 2.0, OnSelf = true },
-                        },
-                    },
-                });
+                TauntPlus(2, "zf_taunt"),
+                TauntPlus(5, "zf_taunt2"));
             return table;
         }
+
+        private static BreakthroughEffect TauntPlus(int stars, string targetCardId) => new BreakthroughEffect
+        {
+            Stars = stars, Kind = BreakthroughKind.UpgradeCard, TargetCardId = targetCardId,
+            Description = "嘲諷 → 嘲諷＋：持續回合 +1",
+            NewCard = new CardDef
+            {
+                Id = targetCardId + "_plus", Name = "嘲諷＋", Cost = 1, Target = TargetRule.AllEnemies, Shape = Shape.All,
+                Effects =
+                {
+                    new EffectDef { Type = EffectType.ApplyStatus, Status = StatusType.Taunt, Amount = 2 },
+                },
+            },
+        };
     }
 }
