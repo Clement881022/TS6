@@ -39,6 +39,23 @@ namespace SanGuo.Core.Tests
             Assert.Equal(70, ids.Count);
         }
 
+        /// <summary>已撰寫劇情的章節（第 0–2 章；第 3–6 章待寫）：每關都有戰前與首通後對白，且每句都有內容。</summary>
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void WrittenChapters_HaveStoryForEveryStage(int chapter)
+        {
+            for (int lv = 1; lv <= Campaign.LevelsPerChapter; lv++)
+            {
+                var before = CampaignStory.Before(chapter, lv);
+                var after = CampaignStory.After(chapter, lv);
+                Assert.NotEmpty(before);
+                Assert.NotEmpty(after);
+                Assert.All(before.Concat(after), line => Assert.False(string.IsNullOrWhiteSpace(line.Text)));
+            }
+        }
+
         [Theory]
         [InlineData("1-0")]
         [InlineData("7-1")]
