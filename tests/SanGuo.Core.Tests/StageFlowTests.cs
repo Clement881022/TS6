@@ -20,7 +20,7 @@ namespace SanGuo.Core.Tests
             var p = PlayerProfile.CreateNew(now);
             p.Level = level;
             p.Stamina.Add(200, now);
-            p.ClearedStages.Add("1-4");   // 解鎖第 1 階素材副本
+            p.ClearedStages.Add("0-4");   // 解鎖第 1 階素材副本
             return p;
         }
 
@@ -103,14 +103,14 @@ namespace SanGuo.Core.Tests
         {
             long now = Sunday();
             var p = Player(now);
-            var start = StageFlow.Start(p, "1-1", now, 11);
+            var start = StageFlow.Start(p, "0-1", now, 11);
             Assert.True(start.Ok);
-            var rec = Play(DemoMeta.BuildSetup("1-1", start.Seed)!);
-            var done = StageFlow.Finish(p, "1-1", rec.Actions, now);
+            var rec = Play(DemoMeta.BuildSetup("0-1", start.Seed)!);
+            var done = StageFlow.Finish(p, "0-1", rec.Actions, now);
             Assert.True(done.Won);
             Assert.InRange(done.Stars, 1, 3);
             Assert.True(done.FirstClear);
-            Assert.Contains("1-1", p.ClearedStages);
+            Assert.Contains("0-1", p.ClearedStages);
         }
 
         [Fact]
@@ -118,9 +118,9 @@ namespace SanGuo.Core.Tests
         {
             long now = Sunday();
             var p = Player(now);
-            Assert.Equal("no_pending_stage", StageFlow.Finish(p, "1-1", new ReplayAction[0], now).Code);
-            StageFlow.Start(p, "1-1", now, 3);
-            Assert.Equal("no_pending_stage", StageFlow.Finish(p, "1-2", new ReplayAction[0], now).Code);
+            Assert.Equal("no_pending_stage", StageFlow.Finish(p, "0-1", new ReplayAction[0], now).Code);
+            StageFlow.Start(p, "0-1", now, 3);
+            Assert.Equal("no_pending_stage", StageFlow.Finish(p, "0-2", new ReplayAction[0], now).Code);
         }
 
         [Fact]
@@ -160,14 +160,14 @@ namespace SanGuo.Core.Tests
         {
             long now = Sunday();
             var p = Player(now, level: 9);
-            Assert.True(StageFlow.Start(p, "1-1", now, 3).Ok); // 教學關不用編隊
-            Assert.True(DemoMeta.BuildSetup("1-1", 3)!.FormationLocked);
+            Assert.True(StageFlow.Start(p, "0-1", now, 3).Ok); // 教學關不用編隊
+            Assert.True(DemoMeta.BuildSetup("0-1", 3)!.FormationLocked);
 
-            Assert.Null(DemoMeta.BuildSetup("1-9", 3));        // 開放編隊的關卡沒給編隊就建不出來
-            Assert.Equal("invalid_formation", StageFlow.Start(p, "1-9", now, 3).Code);
+            Assert.Null(DemoMeta.BuildSetup("0-9", 3));        // 開放編隊的關卡沒給編隊就建不出來
+            Assert.Equal("invalid_formation", StageFlow.Start(p, "0-9", now, 3).Code);
 
             var team = Team(p);
-            var setup = DemoMeta.BuildSetup("1-9", 3, p, team)!;
+            var setup = DemoMeta.BuildSetup("0-9", 3, p, team)!;
             Assert.False(setup.FormationLocked);
             Assert.True(setup.AutoAllowed);
             Assert.Empty(setup.ScriptedDraw);

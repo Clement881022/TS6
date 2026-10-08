@@ -1,0 +1,59 @@
+using static SanGuo.Core.Content.Enemies;
+
+namespace SanGuo.Core.Content
+{
+    /// <summary>第一章　黃巾烽火（上）：涿郡、青州、潁川；章末 Boss 波才。敵人等級 13→19。</summary>
+    public static class Chapter1
+    {
+        public static readonly string[] Names =
+        {
+            "涿郡募兵", "黃巾前哨", "救援鄉民", "力士擋道", "渠帥程遠志",
+            "青州解圍", "投奔盧植", "潁川道上", "長社火攻", "波才",
+        };
+
+        /// <summary>第三星的限定回合數。</summary>
+        public static readonly int[] Pars = { 10, 10, 6, 11, 9, 7, 11, 12, 8, 14 };
+
+        public static BattleSetup Level(int level, ulong seed)
+        {
+            var k = new StageKit(1, level, seed);
+            switch (level)
+            {
+                case 1: // 黃巾兵三面壓來，弓手在後
+                    k.Front(YtSoldier(), 1).Front(YtSoldier(), 2).Front(YtSoldier(), 3).Back(YtArcher(), 2);
+                    break;
+                case 2: // 方士躲在後排放法術
+                    k.Front(YtSoldier(), 1).Front(YtSoldier(), 3).Back(YtArcher(), 0).Back(YtArcher(), 4).Back(YtSorcerer(), 2);
+                    break;
+                case 3: // 護送：鄉民在左下角，黃巾從左側包抄
+                    k.Protect(HeroRoster.Npc("npc_refugee", "逃難鄉民", 560), 0, 4, 7, startHpPercent: 80)
+                     .Front(YtSoldier(), 0).Front(YtSoldier(), 2).Back(YtArcher(), 1).Back(YtArcher(), 3).Near(YtSoldier(), 4);
+                    break;
+                case 4: // 力士防禦高，要破甲或法術
+                    k.Front(YtBrute(), 1).Front(YtSoldier(), 2).Front(YtBrute(), 3).Back(YtArcher(), 2);
+                    break;
+                case 5: // 擊殺指定：程遠志（蓄力）
+                    k.Target(ChengYuanzhi(), 2, 1).Front(YtSoldier(), 1).Front(YtSoldier(), 3).Back(YtArcher(), 0).Back(YtArcher(), 4);
+                    break;
+                case 6: // 守城：青州城門在右下角
+                    k.Protect(HeroRoster.Npc("npc_gate", "青州城門", 700), 4, 4, 8, Objective.Defend)
+                     .Front(YtSoldier(), 2).Front(YtSoldier(), 3).Near(YtSoldier(), 4).Back(YtArcher(), 3).Back(YtSorcerer(), 4);
+                    break;
+                case 7:
+                    k.Front(YtSoldier(), 1).Front(YtBrute(), 2).Front(YtSoldier(), 3).Back(YtSorcerer(), 0).Back(YtSorcerer(), 4);
+                    break;
+                case 8: // 渠帥蓄力，嘲諷可打斷
+                    k.Front(YtSoldier(), 1).Front(YtCaptain(), 2).Front(YtSoldier(), 3).Back(YtArcher(), 0).Back(YtSorcerer(), 4);
+                    break;
+                case 9: // 限時：火攻要快
+                    k.Limit(12).Front(YtSoldier(), 1).Front(YtBrute(), 2).Front(YtSoldier(), 3).Back(YtSorcerer(), 0).Back(YtSorcerer(), 4);
+                    break;
+                case 10: // Boss 波才：蓄力兩回合，半血後蓄力更頻繁
+                    k.Front(BoCai(), 2).Front(YtSoldier(), 1).Front(YtSoldier(), 3).Back(YtArcher(), 0).Back(YtSorcerer(), 4);
+                    break;
+                default: throw new System.ArgumentOutOfRangeException(nameof(level));
+            }
+            return k.Setup;
+        }
+    }
+}

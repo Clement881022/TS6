@@ -40,6 +40,14 @@ namespace SanGuo.Core
             Deck = new List<CardDef>(),
         };
 
+        /// <summary>主線的護送 / 守城目標（鄉民、糧車、城門等）：沒有牌、只能被保護；不在名單內。生命隨關卡等級縮放。</summary>
+        public static HeroDef Npc(string id, string name, int hp = 800) => new HeroDef
+        {
+            Id = id, Name = name, Role = Role.Tank, Rarity = Rarity.R, AttackType = AttackType.Melee,
+            Base = new Stats { Hp = hp, Atk = 0, Def = 30, Move = 1, Crit = 0, CritDmg = 150, Range = 1 },
+            Deck = new List<CardDef>(),
+        };
+
         private static List<HeroDef>? _all;
 
         /// <summary>全部 29 名武將（R、SR、UR 依序）。</summary>

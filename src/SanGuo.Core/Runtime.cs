@@ -35,6 +35,8 @@ namespace SanGuo.Core
         public string Name = "";
         /// <summary>資料表 id（HeroDef.Id / EnemyDef.Id），表現層用來挑選模型。</summary>
         public string DefId = "";
+        /// <summary>表現層用的模型 id（敵人借用模型時與 <see cref="DefId"/> 不同）。</summary>
+        public string ArtId = "";
         public Side Side;
         public AttackType AttackType;
         public Stats Stats = new Stats();
@@ -61,6 +63,10 @@ namespace SanGuo.Core
         /// <summary>距離上次蓄力 / 開場以來的普通行動次數。</summary>
         public int IdleActions;
         public bool IsObjective;
+        /// <summary>目前階段（1 起算）；Boss 跌破 <see cref="EnemyDef.PhaseHpPercent"/> 後變為 2。</summary>
+        public int Phase = 1;
+        /// <summary>敵人的資料定義（階段切換用）；武將為 null。</summary>
+        public EnemyDef? Enemy;
 
         public HeroDef? Hero;
         /// <summary>單槽狀態：Taunt、Burn。</summary>

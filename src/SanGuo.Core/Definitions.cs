@@ -102,6 +102,8 @@ namespace SanGuo.Core
     {
         public string Id = "";
         public string Name = "";
+        /// <summary>借用的模型 / 立繪 id（空字串 = 用 <see cref="Id"/>）；新敵人尚無專屬模型時使用。</summary>
+        public string Art = "";
         /// <summary>職業體系，讓玩家辨識敵人的定位（GDD 04 §2.1）。</summary>
         public Role Role = Role.Warrior;
         public EnemyTier Tier = EnemyTier.Normal;
@@ -118,6 +120,17 @@ namespace SanGuo.Core
         public int ChargeInterval = 1;
         /// <summary>蓄力大招的倍率；大招攻擊我方全體存活武將。</summary>
         public double ChargePower = 2.0;
+
+        // ---- Boss 第二階段（GDD 04 §2.2：切換條件與效果由各 Boss 決定；1.0 只調整蓄力參數）----
+
+        /// <summary>生命降到這個百分比以下時進入第二階段（0 = 沒有階段）。只切換一次。</summary>
+        public int PhaseHpPercent;
+        /// <summary>第二階段的蓄力回合數（0 = 沿用）。</summary>
+        public int Phase2ChargeTurns;
+        /// <summary>第二階段兩次蓄力之間的普通行動次數（-1 = 沿用）。</summary>
+        public int Phase2ChargeInterval = -1;
+        /// <summary>第二階段的蓄力大招倍率（0 = 沿用）。</summary>
+        public double Phase2ChargePower;
     }
 
     public sealed class HeroSlot

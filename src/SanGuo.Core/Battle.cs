@@ -53,6 +53,7 @@ namespace SanGuo.Core
                 unit.Level = slot.Level;
                 if (slot.StartHpPercent < 100) unit.Hp = Math.Max(1, unit.MaxHp * slot.StartHpPercent / 100);
                 unit.DefId = slot.Def.Id;
+                unit.ArtId = slot.Def.Id;
                 var heroCards = new List<CardInstance>();
                 foreach (var cardDef in slot.Def.Deck)
                     heroCards.Add(new CardInstance(_nextCardId++, cardDef, unit));
@@ -620,6 +621,20 @@ namespace SanGuo.Core
             target.Hp -= dmg - absorbed;
             Emit(EventType.Damage, source?.Id ?? -1, target.Id, dmg, text);
             if (target.Hp <= 0) Kill(target);
+            else CheckPhase(target);
+        }
+
+        /// <summary>Boss 生命跌破門檻時進入第二階段：換上第二階段的蓄力參數（正在蓄力的不中斷）。</summary>
+        private void CheckPhase(Unit unit)
+        {
+            var def = unit.Enemy;
+            if (def == null || def.PhaseHpPercent <= 0 || unit.Phase > 1) return;
+            if (unit.Hp * 100 > unit.MaxHp * def.PhaseHpPercent) return;
+            unit.Phase = 2;
+            if (def.Phase2ChargeTurns > 0) unit.ChargeTurns = def.Phase2ChargeTurns;
+            if (def.Phase2ChargeInterval >= 0) unit.ChargeInterval = def.Phase2ChargeInterval;
+            if (def.Phase2ChargePower > 0) unit.ChargePower = def.Phase2ChargePower;
+            Emit(EventType.EnemyPhase, unit.Id, unit.Id, unit.Phase, "");
         }
 
         private void Kill(Unit unit)
@@ -723,6 +738,8 @@ namespace SanGuo.Core
             unit.ChargePower = def.ChargePower;
             unit.IsObjective = slot.IsObjective;
             unit.DefId = def.Id;
+            unit.Enemy = def;
+            unit.ArtId = def.Art != "" ? def.Art : def.Id;
             return unit;
         }
 

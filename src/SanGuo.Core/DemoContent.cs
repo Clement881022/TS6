@@ -84,8 +84,11 @@ namespace SanGuo.Core
             "護送馬商", "火燒山寨", "橫掃千軍", "雙寨主", "鎮山虎",
         };
 
-        /// <summary>已實作的關卡數（其餘在地圖上顯示為尚未開放）。</summary>
+        /// <summary>第零章的關卡數。</summary>
         public const int ChapterLevelCount = 10;
+
+        /// <summary>第零章各關的星級回合數（第三星的限定回合；暫定值，依自動戰鬥模擬抓寬）。</summary>
+        public static readonly int[] TurnPar = { 8, 10, 8, 12, 11, 8, 10, 12, 14, 20 };
 
         /// <summary>第零章各關的我方等級：第 1 天結束（第零章完成）時玩家約 12 級。</summary>
         public static int HeroLevelOf(int level) => 2 + level;

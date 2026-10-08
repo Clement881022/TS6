@@ -86,7 +86,7 @@ namespace SanGuo.Core.Tests
         public void Stage_HasNoPlayerLevelGate_AndCostsTenStamina()
         {
             var p = PlayerProfile.CreateNew(T0);
-            var late = DemoMeta.Chapter1Stage(5);
+            var late = DemoMeta.Stage(0, 5);
             Assert.Equal(10, late.StaminaCost);
             Assert.Equal(StageEntryResult.Ok, p.TryEnterStage(new StageReward { StageId = "6-10", Chapter = 6 }, T0));
             Assert.Equal(52, p.Stamina.Get(T0));

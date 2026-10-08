@@ -102,6 +102,8 @@ namespace SanGuo.Core
         EnemyCharge,
         /// <summary>蓄力被嘲諷打斷。</summary>
         EnemyChargeBreak,
+        /// <summary>Boss 進入第二階段（Value = 新階段）。</summary>
+        EnemyPhase,
         BattleEnd,
     }
 }

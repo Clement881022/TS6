@@ -126,11 +126,11 @@ public sealed class ServerApiTests : IDisposable
         var c = Client();
         await c.PostAsync("/login", null);
 
-        var early = await c.PostAsJsonAsync("/stage/sweep", new { id = "1-5", count = 2 });
+        var early = await c.PostAsJsonAsync("/stage/sweep", new { id = "0-5", count = 2 });
         Assert.Equal("NotThreeStars", (await Json(early)).GetProperty("code").GetString());
 
-        await c.PostAsJsonAsync("/dev/clear", new { stageId = "1-5", stars = 3 });
-        var ok = await Json(await c.PostAsJsonAsync("/stage/sweep", new { id = "1-5", count = 2 }));
+        await c.PostAsJsonAsync("/dev/clear", new { stageId = "0-5", stars = 3 });
+        var ok = await Json(await c.PostAsJsonAsync("/stage/sweep", new { id = "0-5", count = 2 }));
         Assert.True(ok.GetProperty("ok").GetBoolean());
         Assert.Equal(1400, ok.GetProperty("data").GetProperty("gold").GetInt32()); // 700 × 2
     }
@@ -168,9 +168,9 @@ public sealed class ServerApiTests : IDisposable
     {
         var c = Client();
         await c.PostAsync("/login", null);
-        var actions = await PlayStageAuto(c, "1-1");
+        var actions = await PlayStageAuto(c, "0-1");
 
-        var done = await Json(await c.PostAsJsonAsync("/stage/finish", new { stageId = "1-1", actions }));
+        var done = await Json(await c.PostAsJsonAsync("/stage/finish", new { stageId = "0-1", actions }));
         Assert.True(done.GetProperty("ok").GetBoolean());
         var data = done.GetProperty("data");
         Assert.True(data.GetProperty("won").GetBoolean());
@@ -179,7 +179,7 @@ public sealed class ServerApiTests : IDisposable
 
         var profile = await Json(await c.GetAsync("/profile"));
         Assert.Equal(2060, profile.GetProperty("data").GetProperty("yuanbao").GetInt32());
-        Assert.True(profile.GetProperty("data").GetProperty("stageStars").GetProperty("1-1").GetInt32() >= 1);
+        Assert.True(profile.GetProperty("data").GetProperty("stageStars").GetProperty("0-1").GetInt32() >= 1);
     }
 
     [Fact]
@@ -188,7 +188,7 @@ public sealed class ServerApiTests : IDisposable
         var c = Client();
         await c.PostAsync("/login", null);
         // 素材副本第 1 階要先通關主線第 1-4 關（開發端點直接標記通關）。
-        await c.PostAsJsonAsync("/dev/clear", new { stageId = "1-4", stars = 3 });
+        await c.PostAsJsonAsync("/dev/clear", new { stageId = "0-4", stars = 3 });
 
         var team = await BuildTeam(c);
         var actions = await PlayStageAuto(c, "res_1", team);
@@ -206,7 +206,7 @@ public sealed class ServerApiTests : IDisposable
     {
         var c = Client();
         await c.PostAsync("/login", null);
-        await c.PostAsJsonAsync("/dev/clear", new { stageId = "1-4", stars = 3 });
+        await c.PostAsJsonAsync("/dev/clear", new { stageId = "0-4", stars = 3 });
 
         // 沒帶編隊、帶了沒擁有的武將：都被拒絕，體力不扣。
         var before = (await Json(await c.GetAsync("/profile"))).GetProperty("data").GetProperty("stamina").GetProperty("current").GetInt32();
@@ -267,7 +267,7 @@ public sealed class ServerApiTests : IDisposable
     {
         var c = Client();
         await c.PostAsync("/login", null);
-        var r = await c.PostAsJsonAsync("/stage/finish", new { stageId = "1-1", actions = new object[0] });
+        var r = await c.PostAsJsonAsync("/stage/finish", new { stageId = "0-1", actions = new object[0] });
         Assert.Equal("no_pending_stage", (await Json(r)).GetProperty("code").GetString());
     }
 
@@ -276,17 +276,17 @@ public sealed class ServerApiTests : IDisposable
     {
         var c = Client();
         await c.PostAsync("/login", null);
-        await PlayStageAuto(c, "1-1");
+        await PlayStageAuto(c, "0-1");
 
         var bad = new object[] { new { kind = "play", cardId = 424242 } };
-        var r = await c.PostAsJsonAsync("/stage/finish", new { stageId = "1-1", actions = bad });
+        var r = await c.PostAsJsonAsync("/stage/finish", new { stageId = "0-1", actions = bad });
         Assert.Equal("invalid_replay", (await Json(r)).GetProperty("code").GetString());
 
         var profile = await Json(await c.GetAsync("/profile"));
         Assert.Equal(2000, profile.GetProperty("data").GetProperty("yuanbao").GetInt32());
 
         // 進行中的關卡已清掉：不能拿同一個種子再試
-        var again = await c.PostAsJsonAsync("/stage/finish", new { stageId = "1-1", actions = new object[0] });
+        var again = await c.PostAsJsonAsync("/stage/finish", new { stageId = "0-1", actions = new object[0] });
         Assert.Equal("no_pending_stage", (await Json(again)).GetProperty("code").GetString());
     }
 
@@ -295,10 +295,10 @@ public sealed class ServerApiTests : IDisposable
     {
         var c = Client();
         await c.PostAsync("/login", null);
-        var actions = await PlayStageAuto(c, "1-1");
+        var actions = await PlayStageAuto(c, "0-1");
         var half = actions.Take(actions.Count / 2).ToList();
 
-        var done = await Json(await c.PostAsJsonAsync("/stage/finish", new { stageId = "1-1", actions = half }));
+        var done = await Json(await c.PostAsJsonAsync("/stage/finish", new { stageId = "0-1", actions = half }));
         Assert.True(done.GetProperty("ok").GetBoolean());
         Assert.False(done.GetProperty("data").GetProperty("won").GetBoolean());
         var profile = await Json(await c.GetAsync("/profile"));
@@ -310,7 +310,7 @@ public sealed class ServerApiTests : IDisposable
     {
         var c = Client();
         await c.PostAsync("/login", null);
-        var chapter1 = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId = "1-1" }));
+        var chapter1 = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId = "0-1" }));
         Assert.True(chapter1.GetProperty("ok").GetBoolean());
         var profile = await Json(await c.GetAsync("/profile"));
         Assert.Equal(52, profile.GetProperty("data").GetProperty("stamina").GetProperty("current").GetInt32());
@@ -383,7 +383,7 @@ public sealed class ServerApiTests : IDisposable
             }));
         var c = plain.CreateClient();
         c.DefaultRequestHeaders.Add("X-Account", "x");
-        var r = await c.PostAsJsonAsync("/dev/clear", new { stageId = "1-1", stars = 3 });
+        var r = await c.PostAsJsonAsync("/dev/clear", new { stageId = "0-1", stars = 3 });
         Assert.Equal(HttpStatusCode.NotFound, r.StatusCode);
     }
 

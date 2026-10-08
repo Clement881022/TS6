@@ -88,8 +88,8 @@ namespace SanGuo.Core.Meta
     {
         private static readonly string[] Names = { "糧倉護衛", "校場操練", "兵器鋪", "軍械庫", "中軍帳" };
         private static readonly int[] Stamina = { 20, 25, 30, 35, 40 };
-        /// <summary>解鎖各階的主線關卡（第 1 階於教學章中段，其後每階於一章通關後）。</summary>
-        private static readonly string[] Unlock = { "1-4", "2-10", "3-10", "4-10", "5-10" };
+        /// <summary>解鎖各階的主線關卡（第 1 階於第零章中段，其後於第 1–4 章通關後，讓第 N 章期間能刷到第 N 階裝備）。</summary>
+        private static readonly string[] Unlock = { "0-4", "1-10", "2-10", "3-10", "4-10" };
 
         public static string IdOf(int tier) => "res_" + tier;
 

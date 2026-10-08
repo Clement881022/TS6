@@ -10,7 +10,8 @@ namespace SanGuo.Core.Data
     /// </summary>
     public static class ProfileSerializer
     {
-        public const int CurrentVersion = 2;
+        /// <summary>3：第零章關卡 id 由 "1-N" 改為 "0-N"（第 1–6 章使用 "1-N"…"6-N"）。</summary>
+        public const int CurrentVersion = 3;
 
         public static string ToJson(PlayerProfile p, bool indent = false) => MiniJson.Write(ToObject(p), indent);
 
@@ -180,7 +181,21 @@ namespace SanGuo.Core.Data
                 foreach (var kv in od)
                     if (kv.Value is string os) p.Orders[kv.Key] = os;
 
+            if (version < 3) MigrateChapterZeroIds(p);
             return p;
+        }
+
+        /// <summary>版本 3 以前，第零章關卡 id 是 "1-N"；改為 "0-N"，通關紀錄、星數與進行中的關卡一併轉換。</summary>
+        private static void MigrateChapterZeroIds(PlayerProfile p)
+        {
+            static string Fix(string id) => id.StartsWith("1-", StringComparison.Ordinal) ? "0-" + id.Substring(2) : id;
+            var cleared = new List<string>(p.ClearedStages);
+            p.ClearedStages.Clear();
+            foreach (var id in cleared) p.ClearedStages.Add(Fix(id));
+            var stars = new Dictionary<string, int>(p.StageStars);
+            p.StageStars.Clear();
+            foreach (var kv in stars) p.StageStars[Fix(kv.Key)] = kv.Value;
+            p.PendingStageId = Fix(p.PendingStageId);
         }
 
         private static Dictionary<string, object?> IntMap(Dictionary<string, int> map)

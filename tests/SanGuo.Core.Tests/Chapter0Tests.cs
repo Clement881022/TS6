@@ -19,11 +19,11 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void FirstClearOfStages1To3_GrantsLiuBeiZhangFeiGuanYu_InOrder()
         {
-            Assert.Equal("liubei", DemoMeta.Chapter1Stage(1).FirstClearHero);
-            Assert.Equal("zhangfei", DemoMeta.Chapter1Stage(2).FirstClearHero);
-            Assert.Equal("guanyu", DemoMeta.Chapter1Stage(3).FirstClearHero);
+            Assert.Equal("liubei", DemoMeta.Stage(0, 1).FirstClearHero);
+            Assert.Equal("zhangfei", DemoMeta.Stage(0, 2).FirstClearHero);
+            Assert.Equal("guanyu", DemoMeta.Stage(0, 3).FirstClearHero);
             for (int level = 4; level <= DemoContent.ChapterLevelCount; level++)
-                Assert.Equal("", DemoMeta.Chapter1Stage(level).FirstClearHero);
+                Assert.Equal("", DemoMeta.Stage(0, level).FirstClearHero);
         }
 
         [Fact]
@@ -31,7 +31,7 @@ namespace SanGuo.Core.Tests
         {
             long now = 1_700_000_000;
             var p = PlayerProfile.CreateNew(now);
-            var stage = DemoMeta.Chapter1Stage(1);
+            var stage = DemoMeta.Stage(0, 1);
             Assert.DoesNotContain("liubei", p.Heroes.Keys);
 
             var first = p.ClaimClear(stage, now, 1);
@@ -50,10 +50,10 @@ namespace SanGuo.Core.Tests
             long now = 1_700_000_000;
             var p = PlayerProfile.CreateNew(now);
             p.Level = 3;
-            var start = StageFlow.Start(p, "1-1", now, 11);
+            var start = StageFlow.Start(p, "0-1", now, 11);
             Assert.True(start.Ok);
-            var rec = Play(DemoMeta.BuildSetup("1-1", start.Seed, p)!);
-            var done = StageFlow.Finish(p, "1-1", rec.Actions, now);
+            var rec = Play(DemoMeta.BuildSetup("0-1", start.Seed, p)!);
+            var done = StageFlow.Finish(p, "0-1", rec.Actions, now);
             Assert.True(done.Ok && done.Won);
             Assert.Equal("liubei", done.HeroGained);
             Assert.Contains("liubei", p.Heroes.Keys);
