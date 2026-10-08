@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-09",
+  "tool": "built-in imagegen",
+  "status": "sample-under-review",
+  "records": [
+    {
+      "id": "guanyu_body",
+      "source": "client/Assets/Arts/Models/Body/Body_00002/Body_00002_001_T.png",
+      "output": "client/Assets/Resources/ProductionCharacters/Textures/guanyu_body.png",
+      "prompt": "Edit target is a production UV albedo texture atlas for a stylized chibi Guan Yu warrior's body, not an illustration. ABSOLUTELY retain the exact arrangement, pixel-relative location, boundaries, scale, and contour of every UV island from the provided atlas. No layout redesign, no character drawing, no text, no new islands. Replace the dated noisy flat painted surface treatment with premium modern stylized game material painting. Rich dark emerald green woven silk with restrained tiny weave, crisp elegant golden dragon embroidery exactly within the existing green robe islands; warm burnished gilded metal with sculpted-looking dragon relief on the shoulder armor upper left and right bottom islands; polished jade-green lacquer armor plates with warm gold edge wear and rivets; deep dark brown leather belt; ivory gold trim. Maintain skin island at bottom left in warm red tan Guan Yu skin. Reduce all noisy grain, make curves and material edges precise with gentle broad gradients and controlled bright metal edge highlights, real material variation, upscale clean 2048 square production atlas. All patterns must stay strictly inside their original matching colored UV islands. Preserve original green background padding. Nothing rendered in perspective. Flat UV-map image only."
+    },
+    {
+      "id": "guanyu_hair",
+      "source": "client/Assets/Arts/Models/Hair/Hair_00002/Hair_00002_001_T.tga",
+      "output": "client/Assets/Resources/ProductionCharacters/Textures/guanyu_hair.png",
+      "prompt": "This is an exact UV texture atlas edit, NOT a character illustration. Preserve the location, outline, scale, and contour of every UV island exactly. Improve the Guan Yu green wrapped cap and headgear with modern premium stylized material painting: deep emerald silk, elegant broad folded fabric gradients, subtle fine weave, crisp warm golden embroidered seams on precisely the existing golden strips. The existing brown hair island at left must become polished raven black hair with smoothly sculpted directional charcoal highlights. No noisy grain, no new arrangement, no text, no perspective. Entire texture opaque; flat production game albedo atlas only, keep green padding. Preserve all source UV topology."
+    },
+    {
+      "id": "guanyu_face",
+      "source": "client/Assets/Arts/Models/Face/Face_00002/Face_00002_001_T.png",
+      "output": "client/Assets/Resources/ProductionCharacters/Textures/guanyu_face.png",
+      "prompt": "Edit this exact face UV albedo texture atlas for Guan Yu. Keep ALL UV island shapes, layout, boundaries, eye holes and ear positions exactly fixed. This is NOT an illustration or a full character. Upgrade face painting to rich warm red tan skin consistent with iconic Guan Yu, softly sculpted cheek and nose lighting, healthy warm complexion, crisp confident dark brow shapes in their original brow locations. Keep the eye slots in precisely their original positions and preserve their original empty light interior because a separate eyeball mesh supplies pupils. Preserve the face geometry landmarks and all small islands. Keep mouth in its original place. Hair/brow patches on lower islands should be deep charcoal black with subtle silky highlights instead of brown. Smooth clean premium stylized game facial shading, no pores, no grain, no realism, no new facial parts, no text. Square texture atlas, entirely opaque."
+    }
+  ]
+}
