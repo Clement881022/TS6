@@ -2,7 +2,6 @@ using System.Collections.Generic;
 
 namespace SanGuo.Core
 {
-    /// <summary>棋盤上的範圍形狀展開（純函式，不含戰鬥狀態）。</summary>
     public static class Targeting
     {
         public static List<Position> ExpandShape(Position center, Shape shape, int lanes, int rows)

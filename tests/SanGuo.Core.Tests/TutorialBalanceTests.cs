@@ -72,7 +72,7 @@ namespace SanGuo.Core.Tests
                     {
                         // 嘲諷：有敵人尚未被嘲諷（或正在蓄力）才用。
                         var foes = b.AliveUnits(Side.Enemy);
-                        if (!foes.Any(e => !e.Has(StatusType.Taunt) || e.Charging)) continue;
+                        if (!foes.Any(e => !e.Statuses.ContainsKey(StatusType.Taunt) || e.Charging)) continue;
                     }
                     if (c.Def.Target == TargetRule.AllAllies && b.AliveUnits(Side.Enemy).Count == 0) continue;
                     if (b.PlayCard(c) == PlayResult.Ok) return true;

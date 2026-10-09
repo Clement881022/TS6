@@ -2,28 +2,20 @@ using System.Linq;
 
 namespace SanGuo.Core
 {
-    /// <summary>自動戰鬥：能出就出；打不到敵人的武將才用移動卡往最近的敵人靠近。</summary>
     public static class AutoPlayer
     {
-        /// <summary>
-        /// 挑下一個操作：先用移動卡讓夠不到敵人的武將靠近（0 費），再出能出的攻擊 / 技能牌。
-        /// 回傳 (null, null) 表示這回合沒事可做。
-        /// </summary>
-        /// <param name="priority">可選：出牌優先度（越大越先出，同分維持手牌順序；小於 0 = 這回合先不出）；用來模擬「照教學打」的玩家。</param>
         public static (CardInstance? Card, Position? Target, Unit? Mover) Pick(Battle battle, System.Func<Battle, CardInstance, int>? priority = null)
         {
-            // 移動卡 0 費：夠不到敵人的武將先走位，再出牌。
             foreach (var move in battle.Hand.Where(c => c.Def.Target == TargetRule.MoveDest && battle.CanPlay(c) == PlayResult.Ok))
             {
                 foreach (var hero in battle.AliveUnits(Side.Player))
                 {
-                    if (hero.Protected || !battle.CanMoveUnit(hero)) continue; // 保護目標不衝鋒
+                    if (hero.Protected || !battle.CanMoveUnit(hero)) continue;
                     var dest = ChooseMove(battle, hero);
                     if (dest != null) return (move, dest, hero);
                 }
             }
 
-            // 自動戰鬥不空放：射程內有目標才出（單體敵人牌自動挑最近者）。
             var playable = battle.Hand.Where(c => c.Def.Target != TargetRule.MoveDest && battle.CanPlay(c) == PlayResult.Ok
                 && (c.Def.Target != TargetRule.Enemy || battle.ResolveTargets(c.Owner!, c.Def) != null));
             var card = priority == null
@@ -32,7 +24,6 @@ namespace SanGuo.Core
             return (card, null, null);
         }
 
-        /// <summary>移動目的地：範圍內已有敵人就不動；否則走到離最近敵人最近的格子（同距離取步數少）。</summary>
         public static Position? ChooseMove(Battle battle, Unit hero)
         {
             var foes = battle.AliveUnits(hero.Side == Side.Player ? Side.Enemy : Side.Player);
@@ -46,7 +37,6 @@ namespace SanGuo.Core
             foreach (var kv in battle.ReachableTiles(hero))
             {
                 if (kv.Value == 0) continue;
-                // 遠程到達射程後不必再貼近：以「到射程所需」為準，距離小於射程視為同樣好。
                 int d = System.Math.Max(Position.Distance(kv.Key, nearest.Pos), hero.AttackRange);
                 int cur = System.Math.Max(bestDist, hero.AttackRange);
                 if (d < cur || (d == cur && best != null && kv.Value < bestSteps))
@@ -70,7 +60,6 @@ namespace SanGuo.Core
             battle.EndTurn();
         }
 
-        /// <summary>自動打到分出勝負或達到回合上限；回傳結果。</summary>
         public static BattleResult RunToEnd(Battle battle, int maxTurns = 200, System.Func<Battle, CardInstance, int>? priority = null)
         {
             int guard = 0;
