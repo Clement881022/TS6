@@ -21,7 +21,7 @@ namespace SanGuo.Core.Meta
     /// 通行證（GDD 05 §9 的 1.0 付費點；內容與定價為暫定，待確認）：
     /// 每月一季（與世界 Boss 同步），30 級，每級 150 點；消耗體力 1 點 = 通行證經驗 1 點（主線、掃蕩、素材副本）。
     /// 免費線：金幣、武將經驗、將魂，不給元寶（不改變無課玩家的月抽數預算）。
-    /// 付費線（通行證 ¥30／豪華通行證 ¥98）：每級 50 元寶（全滿 1500）、每 5 級一件裝備、第 10／20／30 級將魂。
+    /// 付費線（通行證 ¥30／豪華通行證 ¥98）：每級 50 元寶（全滿 1500）、每 5 級一件裝備（最高 3 階）、第 10／20／30 級將魂。
     /// 豪華版另外立即 +10 級並送 980 元寶。
     /// </summary>
     public static class BattlePass
@@ -65,7 +65,8 @@ namespace SanGuo.Core.Meta
             if (level % 5 == 0)
             {
                 var slot = Equipment.Slots[(level / 5 - 1) % Equipment.Slots.Length];
-                int tier = Math.Min(Equipment.MaxTier, 2 + level / 10);
+                // 付費線裝備最高 3 階（2026-10-09：原本 30 級送 5 階，模擬發現付費玩家第 5 天就有 4–5 階裝、主線快無課 3 倍，違反「主線進度與無課相同」）
+                int tier = level < 15 ? 2 : 3;
                 r.With(Equipment.ItemKey(slot, tier), 1);
             }
             if (level % 10 == 0) r.With(HeroGrowth.Soul, 30);

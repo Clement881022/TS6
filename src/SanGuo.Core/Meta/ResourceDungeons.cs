@@ -89,8 +89,11 @@ namespace SanGuo.Core.Meta
     {
         private static readonly string[] Names = { "糧倉護衛", "校場操練", "兵器鋪", "軍械庫", "中軍帳" };
         private static readonly int[] Stamina = { 20, 25, 30, 35, 40 };
-        /// <summary>解鎖各階的主線關卡（第 1 階於第零章中段，其後於第 1–4 章通關後，讓第 N 章期間能刷到第 N 階裝備）。</summary>
-        private static readonly string[] Unlock = { "0-4", "1-10", "2-10", "3-10", "4-10" };
+        /// <summary>
+        /// 解鎖條件（企劃 2026-10-09）：第 1 階於主線 0-4 通關後開放；之後逐階解鎖，打贏第 N 階就開第 N+1 階，不看主線章節
+        /// （副本的通關紀錄也記在 <see cref="PlayerProfile.ClearedStages"/>，所以條件直接寫前一階的副本 id）。
+        /// </summary>
+        private static readonly string[] Unlock = { "0-4", "res_1", "res_2", "res_3", "res_4" };
 
         public static string IdOf(int tier) => "res_" + tier;
 

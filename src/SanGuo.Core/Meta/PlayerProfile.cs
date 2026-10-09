@@ -201,7 +201,7 @@ namespace SanGuo.Core.Meta
             return SweepResult.Ok;
         }
 
-        /// <summary>加經驗；每升一級提高體力上限（不補體力）。回傳升了幾級。</summary>
+        /// <summary>加經驗；升級時提高體力上限並補滿體力（企劃 2026-10-09：每級升級回滿，常見設計）。回傳升了幾級。</summary>
         public int AddExp(int amount, long now)
         {
             int gained = 0;
@@ -212,7 +212,11 @@ namespace SanGuo.Core.Meta
                 Level++;
                 gained++;
             }
-            if (gained > 0) Stamina.SetCap(PlayerLevelCurve.StaminaCap(Level), now);
+            if (gained > 0)
+            {
+                Stamina.SetCap(PlayerLevelCurve.StaminaCap(Level), now);
+                Stamina.RefillToCap(now);
+            }
             if (Level >= PlayerLevelCurve.MaxLevel) Exp = 0;
             return gained;
         }

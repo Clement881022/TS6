@@ -58,9 +58,12 @@ namespace SanGuo.Client
 
                 var body2 = new VisualElement { pickingMode = PickingMode.Ignore };
                 body2.AddToClassList("card-body");
-                if (!unlocked) body2.Add(UiKit.Text(Campaign.TryParse(d.UnlockStageId, out int chapter, out int unlockLevel)
+                var prev = DemoMeta.FindDungeon(d.UnlockStageId);
+                if (!unlocked) body2.Add(UiKit.Text(prev != null ? $"打贏「{prev.Name}」後解鎖"
+                    : Campaign.TryParse(d.UnlockStageId, out int chapter, out int unlockLevel)
                     ? $"通關第 {chapter} 章第 {unlockLevel} 關後解鎖" : "推進主線後解鎖", "dun-lock"));
                 else body2.Add(UiKit.Text(cleared ? "已通關，可掃蕩" : "尚未通關", "line-sub").WithClass("dun-center"));
+                body2.Add(UiKit.Text($"本階裝備掉率 {Equipment.DropChanceOf(d.Tier) * 100:0}%", "line-sub").WithClass("dun-center"));
                 var cost = UiKit.Cost("item_stamina", d.StaminaCost, v.Stamina);
                 cost.AddToClassList("dun-cost");
                 body2.Add(cost);

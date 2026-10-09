@@ -98,7 +98,7 @@ namespace SanGuo.Core.Meta
         /// 各階素材副本的敵人等級（暫定）：第 1 階於第零章中段解鎖故較低；其後以自動戰鬥校準，
         /// 讓上一章章末養成剛解鎖時勝率約六成以上、再晚一章約九成以上（見 OpenStageBalanceTests）。
         /// </summary>
-        public static readonly int[] DungeonEnemyLevels = { 6, 19, 25, 31, 33 };
+        public static readonly int[] DungeonEnemyLevels = { 6, 22, 28, 33, 37 };
 
         /// <summary>
         /// 資源副本的戰鬥設定：每階有自己的敵人配置（第 1–2 階為第零章盜匪，第 3–5 階沿用解鎖時那一章的主線敵人），我方由玩家編隊決定（套用編隊前是空的），開放自動戰鬥。

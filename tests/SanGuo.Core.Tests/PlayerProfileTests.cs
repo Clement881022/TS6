@@ -71,7 +71,7 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void LevelUp_RaisesStaminaCap_ButDoesNotRefill()
+        public void LevelUp_RaisesStaminaCap_AndRefills()
         {
             var p = PlayerProfile.CreateNew(T0);
             p.Stamina.TrySpend(50, T0);
@@ -79,7 +79,7 @@ namespace SanGuo.Core.Tests
             Assert.Equal(1, gained);
             Assert.Equal(2, p.Level);
             Assert.Equal(64, p.Stamina.Cap);
-            Assert.Equal(12, p.Stamina.Get(T0));
+            Assert.Equal(64, p.Stamina.Get(T0)); // 升級補滿體力
         }
 
         [Fact]

@@ -119,6 +119,31 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
+        public void Dungeon_UnlocksTierByTier_WithoutChapterGates()
+        {
+            var p = PlayerProfile.CreateNew(At(5));
+            p.Stamina.Add(500, At(5));
+            p.ClearedStages.Add("0-4");
+            Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TryEnter(p, Tier(1), At(5)));
+            Assert.Equal(DungeonEntryResult.Locked, ResourceDungeons.TryEnter(p, Tier(2), At(5)));
+            ResourceDungeons.ClaimWin(p, Tier(1), At(5), 1); // 打贏第 1 階
+            Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TryEnter(p, Tier(2), At(5)));
+            Assert.Equal(DungeonEntryResult.Locked, ResourceDungeons.TryEnter(p, Tier(3), At(5)));
+        }
+
+        [Fact]
+        public void HigherTierDrops_AreRarer()
+        {
+            for (int tier = 2; tier <= Equipment.MaxTier; tier++)
+            {
+                var drops = Equipment.RollDrops(tier, 2000, new Rng(7));
+                double rate = drops.Where(kv => kv.Key.EndsWith(":" + tier)).Sum(kv => kv.Value) / 2000.0;
+                Assert.InRange(rate, Equipment.DropChanceOf(tier) - 0.04, Equipment.DropChanceOf(tier) + 0.04);
+                Assert.True(Equipment.DropChanceOf(tier) < Equipment.DropChanceOf(tier - 1));
+            }
+        }
+
+        [Fact]
         public void Dungeon_IsAlwaysOpen_ButLockedUntilItsStageIsCleared()
         {
             var p = PlayerProfile.CreateNew(At(5));
@@ -141,9 +166,10 @@ namespace SanGuo.Core.Tests
             Assert.Equal(6000, p.Gold);
             Assert.Equal(2400, p.GetMaterial(HeroGrowth.HeroExp));
             Assert.Equal(15, p.Yuanbao);
-            int items = Equipment.Slots.Sum(s => Equipment.Count(p, s, 3));
+            // 每次 1 件：本階（機率 Equipment.DropChance）或低一階
+            int items = Equipment.Slots.Sum(s => Equipment.Count(p, s, 3) + Equipment.Count(p, s, 2));
             Assert.Equal(1, items);
-            Assert.Equal(0, Equipment.Slots.Sum(s => Equipment.Count(p, s, 2)));
+            Assert.Equal(0, Equipment.Slots.Sum(s => Equipment.Count(p, s, 1)));
             Assert.Contains(d.Id, p.ClearedStages);
         }
 
@@ -152,12 +178,12 @@ namespace SanGuo.Core.Tests
         {
             long now = At(5);
             var p = Unlocked(now);
-            var d = Tier(2);
+            var d = Tier(5); // Unlocked() 已打贏第 1–4 階，第 5 階已開放但尚未通關
             Assert.Equal(DungeonEntryResult.NotCleared, ResourceDungeons.TrySweep(p, d, 1, now, out _));
             ResourceDungeons.ClaimWin(p, d, now, 1);
             int stamina = p.Stamina.Get(now);
             Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TrySweep(p, d, 4, now, out var reward));
-            Assert.Equal(stamina - 25 * 4, p.Stamina.Get(now));
+            Assert.Equal(stamina - 40 * 4, p.Stamina.Get(now));
             Assert.Equal(4, reward!.Materials.Where(m => m.Key.StartsWith("eq:")).Sum(m => m.Value));
             Assert.Equal(DungeonEntryResult.InvalidCount, ResourceDungeons.TrySweep(p, d, 0, now, out _));
             Assert.Equal(DungeonEntryResult.InvalidCount, ResourceDungeons.TrySweep(p, d, ResourceDungeons.MaxSweepCount + 1, now, out _));
