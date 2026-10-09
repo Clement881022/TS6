@@ -30,3 +30,8 @@
 .root .tag-hp-fill, .root .tag-hp-fill-enemy, .root .tag-hero .tag-hp-fill, .root .tag-enemy .tag-hp-fill { height: 10px; min-height: 10px; border-radius: 5px; }
 
 .root .bl-hint, .root .toast { position: absolute; left: 25%; right: 25%; top: 100px; height: 78px; padding: 0 24px; flex-direction: row; align-items: center; justify-content: center; -unity-text-align: middle-center; font-size: 32px; color: rgb(250, 240, 214); white-space: normal; background-color: rgb(9, 19, 58); border-width: 2px; border-color: rgb(214, 170, 88); border-radius: 14px; }
+
+.root .tag-hp-text { display: none; }
+.root .tag .tag-intent { min-height: 0; margin: 0 6px 0 0; background-color: rgba(0, 0, 0, 0); border-radius: 0; }
+.root .tag .tag-intent .chip-text { display: none; }
+.root .tag .tag-intent .icon { width: 36px; height: 36px; }

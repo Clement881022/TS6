@@ -235,6 +235,7 @@ namespace SanGuo.Client
                 if (faceTex != null) tag.Face.style.backgroundImage = new StyleBackground(faceTex);
                 else tag.Face.style.display = DisplayStyle.None;
                 var nameRow = new VisualElement { pickingMode = PickingMode.Ignore }; nameRow.AddToClassList("tag-name-row");
+                if (unit.Side == Side.Enemy) nameRow.Add(tag.Intent);
                 nameRow.Add(tag.Role); nameRow.Add(tag.Name);
                 var column = new VisualElement { pickingMode = PickingMode.Ignore };
                 column.AddToClassList("tag-column");
@@ -245,7 +246,6 @@ namespace SanGuo.Client
                 mainRow.AddToClassList("tag-main");
                 mainRow.Add(tag.Face);
                 mainRow.Add(column);
-                if (unit.Side == Side.Enemy) tag.Root.Add(tag.Intent);
                 tag.Root.Add(mainRow);
                 tag.Root.Add(tag.Extra);
                 _tagLayer.Add(tag.Root);

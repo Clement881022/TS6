@@ -155,7 +155,7 @@ namespace SanGuo.Client
                 var tag = _tags[unit.Id];
                 if (!tag.Root.Contains(tag.Name) || !tag.Root.Contains(tag.HpText)) throw new InvalidOperationException("Missing head HUD");
                 if (tag.Root.resolvedStyle.visibility != Visibility.Visible) throw new InvalidOperationException("Hidden head HUD: "+unit.Name);
-                if (unit.Side == Side.Enemy && tag.Root.ElementAt(0) != tag.Intent) throw new InvalidOperationException("Intent order");
+                if (unit.Side == Side.Enemy && (tag.Intent.parent != tag.Name.parent || tag.Intent.parent.IndexOf(tag.Intent) != 0)) throw new InvalidOperationException("Intent order");
             }
             for (int i = 0; i < _handCards.Count; i++)
             {
