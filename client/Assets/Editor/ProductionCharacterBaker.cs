@@ -126,7 +126,7 @@ namespace SanGuo.Client.Editor
         }
 
         private static float NeckExtensionFor(string role) => role=="caster" ? 0f
-            : role=="guard" || role=="archer" ? .35f : .20f;
+            : role=="guard" || role=="archer" ? .12f : .08f;
 
         private static void Finish()
         {
@@ -189,6 +189,7 @@ namespace SanGuo.Client.Editor
                 if(id == "guanyu")
                     foreach(var t in root.GetComponentsInChildren<Transform>())
                         if(t.name == "Weapon_00029") t.localRotation = Quaternion.Euler(0,180,0);
+                ProductionIdlePosture.Apply(root,id,Output);
                 Normalize(root,clips);
                 ProductionCharacterAssembly.Validate(root);
                 PrefabUtility.SaveAsPrefabAsset(root, Output + "/"+id+".prefab");
@@ -198,7 +199,7 @@ namespace SanGuo.Client.Editor
             finally { UnityEngine.Object.DestroyImmediate(root); }
         }
 
-        private static void Normalize(GameObject root,CharacterClipSet clips)
+        internal static void Normalize(GameObject root,CharacterClipSet clips)
         {
                 var head=root.GetComponentsInChildren<Transform>().FirstOrDefault(t=>t.name=="Bip001 Head");
                 var originalHeadScale=head!=null?head.localScale:Vector3.one;

@@ -14,6 +14,7 @@ namespace SanGuo.Client
         // Extend the existing neck-to-head bone span; skin weights keep the neck continuous.
         public float NeckExtension;
         public int ProportionVersion;
+        public AnimationClip? SourceIdle;
         public AnimationClip? Idle;
         public AnimationClip? Attack;
         public AnimationClip? Cast;
