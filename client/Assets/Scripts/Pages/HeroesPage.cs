@@ -332,7 +332,7 @@ namespace SanGuo.Client
                 row.AddToClassList("card-row");
                 var head = new VisualElement();
                 head.AddToClassList("card-row-head");
-                head.Add(UiKit.Text(worn > 0 ? $"{Equipment.SlotName(sl)}：{Equipment.Name(sl, worn)}" : $"{Equipment.SlotName(sl)}：未配戴", "card-row-name"));
+                head.Add(UiKit.Text(worn > 0 ? $"{Equipment.SlotName(sl)}：{Equipment.Name(sl, worn, def.Role)}（{Equipment.TierLabel(worn)}）" : $"{Equipment.SlotName(sl)}：未配戴", "card-row-name"));
                 if (worn > 0) head.Add(UiKit.Btn("卸下", () => _ = Act(() => GameSession.Backend.Unequip(def.Id, sl.ToString()))).WithClass("btn-sm"));
                 row.Add(head);
                 row.Add(UiKit.Text(SlotEffect(def, sl), "card-row-desc"));
@@ -343,27 +343,38 @@ namespace SanGuo.Client
                 bool any = false;
                 for (int tier = 1; tier <= Equipment.MaxTier; tier++)
                 {
-                    int have = v.Material(Equipment.ItemKey(sl, tier));
+                    // 通用裝備（含無職業的兵胚）加上本職業已定型的武器；其他職業的武器不能穿，不列出
+                    int have = v.Material(Equipment.ItemKey(sl, tier)) + (sl == EquipSlot.Weapon ? v.Material(Equipment.WeaponKey(def.Role, tier)) : 0);
                     if (have <= 0) continue;
                     any = true;
                     int t = tier;
-                    stock.Add(UiKit.Btn($"穿 {t} 階 ×{have}", () => _ = Act(() => GameSession.Backend.Equip(def.Id, sl.ToString(), t)), primary: t > worn).WithClass("btn-sm"));
+                    stock.Add(UiKit.Btn($"穿 {Equipment.Name(sl, t, def.Role)} ×{have}", () => _ = Act(() => GameSession.Backend.Equip(def.Id, sl.ToString(), t)), primary: t > worn).WithClass("btn-sm"));
                     stock.Add(UiKit.Btn($"分解 +{Equipment.DismantleGold(t)}", () => _ = Act(() => GameSession.Backend.Dismantle(sl.ToString(), t, 1))).WithClass("btn-sm"));
                 }
-                if (!any) stock.Add(UiKit.Text("庫存沒有這個部位的裝備（素材副本可取得）", "card-row-desc"));
+                if (!any) stock.Add(UiKit.Text(sl == EquipSlot.Weapon ? $"庫存沒有可用的{Equipment.WeaponTypeName(def.Role)}（素材副本可取得兵胚與碎片）" : "庫存沒有這個部位的裝備（素材副本可取得）", "card-row-desc"));
                 row.Add(stock);
+                // 高階裝備碎片進度
+                for (int tier = 1; tier <= Equipment.MaxTier; tier++)
+                {
+                    if (!Equipment.UsesShards(tier)) continue;
+                    int shards = v.Material(Equipment.ShardKey(sl, tier));
+                    if (shards > 0) row.Add(UiKit.Text($"{Equipment.ShardName(sl, tier)} {shards}/{Equipment.ShardCostOf(tier)}", "card-row-desc"));
+                }
                 scroll.Add(row);
             }
             content.Add(scroll);
         }
 
+        /// <summary>各品質的加成範圍，例如「+5%（凡品）～ +65%（神品）」。</summary>
+        private static string PercentRange() => $"+{Equipment.PercentOf(1)}%（{Equipment.TierLabel(1)}）～ +{Equipment.PercentOf(Equipment.MaxTier)}%（{Equipment.TierLabel(Equipment.MaxTier)}）";
+
         private static string SlotEffect(HeroDef def, EquipSlot slot)
         {
             switch (slot)
             {
-                case EquipSlot.Weapon: return (Equipment.WeaponBoostsInt(def.Role) ? "謀略" : "攻擊") + " 每階 +10%";
-                case EquipSlot.Armor: return "生命、防禦 每階 +10%";
-                default: return def.Role == Role.Warrior || def.Role == Role.Ranger ? "爆擊率 每階 +3" : "閃避 每階 +2";
+                case EquipSlot.Weapon: return $"只能配戴{Equipment.WeaponTypeName(def.Role)}　{(Equipment.WeaponBoostsInt(def.Role) ? "謀略" : "攻擊")} {PercentRange()}";
+                case EquipSlot.Armor: return $"生命、防禦 {PercentRange()}";
+                default: return def.Role == Role.Warrior || def.Role == Role.Ranger ? "爆擊率 +2～+20 點" : "閃避 +1～+13 點";
             }
         }
     }

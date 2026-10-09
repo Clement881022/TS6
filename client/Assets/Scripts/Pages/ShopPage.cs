@@ -142,7 +142,7 @@ namespace SanGuo.Client
                 int left = Shop.MonthCardDaysLeft(p, pr.Id, v.Now);
                 bool claimed = Shop.MonthCardClaimedToday(p, pr.Id, v.Now);
                 text.Add(UiKit.Text($"購買即得 {pr.ImmediateYuanbao} 元寶", "line-title").WithClass("dun-center"));
-                text.Add(UiKit.Text($"每日領 {pr.DailyYuanbao}（{pr.Days} 天）", "line-sub").WithClass("dun-center"));
+                text.Add(UiKit.Text($"每日領 {pr.DailyYuanbao} 元寶、{pr.DailyStamina} 體力（{pr.Days} 天）", "line-sub").WithClass("dun-center"));
                 text.Add(UiKit.Text(left > 0 ? $"剩餘 {left} 天" : "未持有", left > 0 ? "txt-good" : "line-sub").WithClass("dun-center"));
                 if (left > 0)
                 {

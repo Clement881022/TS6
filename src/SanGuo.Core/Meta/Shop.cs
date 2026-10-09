@@ -19,6 +19,8 @@ namespace SanGuo.Core.Meta
         public int ImmediateYuanbao;
         /// <summary>月卡：每日領取的元寶與有效天數。</summary>
         public int DailyYuanbao;
+        /// <summary>月卡：每日領取的體力（可超過體力上限）。</summary>
+        public int DailyStamina;
         public int Days = 30;
         /// <summary>通行證：啟用的付費版（<see cref="BattlePass.Basic"/> / <see cref="BattlePass.Luxury"/>）。</summary>
         public string PassTier = "";
@@ -47,7 +49,7 @@ namespace SanGuo.Core.Meta
         public static string RechargeId(int cny) => "recharge_" + cny;
         public static bool RechargeFirstTime(PlayerProfile p, string productId) => !p.RechargeBought.Contains(productId);
 
-        /// <summary>首儲禮包（¥6，每帳號一次）：600 元寶、金幣 20000、武將經驗 5000、二階武器／防具／飾品各 1。</summary>
+        /// <summary>首儲禮包（¥6，每帳號一次）：600 元寶、金幣 20000、武將經驗 5000、良品兵胚／防具／飾品各 1。</summary>
         public static Reward FirstPackReward()
         {
             var r = new Reward(yuanbao: 600, gold: 20000).With(HeroGrowth.HeroExp, 5000);
@@ -65,8 +67,8 @@ namespace SanGuo.Core.Meta
 
         private static List<ProductDef> BaseProducts() => new List<ProductDef>
         {
-            new ProductDef { Id = MonthSmall, Name = "小月卡", Kind = ProductKind.MonthCard, PriceCny = 30, ImmediateYuanbao = 300, DailyYuanbao = 100 },
-            new ProductDef { Id = MonthBig, Name = "大月卡", Kind = ProductKind.MonthCard, PriceCny = 68, ImmediateYuanbao = 680, DailyYuanbao = 200 },
+            new ProductDef { Id = MonthSmall, Name = "小月卡", Kind = ProductKind.MonthCard, PriceCny = 30, ImmediateYuanbao = 300, DailyYuanbao = 100, DailyStamina = 60 },
+            new ProductDef { Id = MonthBig, Name = "大月卡", Kind = ProductKind.MonthCard, PriceCny = 68, ImmediateYuanbao = 680, DailyYuanbao = 200, DailyStamina = 120 },
             new ProductDef { Id = PassBasic, Name = "通行證", Kind = ProductKind.Pass, PriceCny = 30, PassTier = BattlePass.Basic },
             new ProductDef { Id = PassLuxury, Name = "豪華通行證", Kind = ProductKind.Pass, PriceCny = 98, ImmediateYuanbao = 980, PassTier = BattlePass.Luxury },
             new ProductDef { Id = FirstPack, Name = "首儲禮包", Kind = ProductKind.FirstPack, PriceCny = 6 },
@@ -150,6 +152,7 @@ namespace SanGuo.Core.Meta
             if (MonthCardClaimedToday(p, cardId, now)) return ShopResult.AlreadyClaimedToday;
             p.MonthCardClaimedDay[cardId] = DailyClock.DayIndex(now);
             p.Yuanbao += product.DailyYuanbao;
+            if (product.DailyStamina > 0) p.Stamina.Add(product.DailyStamina, now);
             return ShopResult.Ok;
         }
     }

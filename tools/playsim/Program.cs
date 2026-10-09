@@ -491,7 +491,7 @@ public sealed class PlayerSim
             {
                 p.Heroes[id].Equipment.TryGetValue(slot.ToString(), out int curTier);
                 for (int t = Equipment.MaxTier; t > curTier; t--)
-                    if (Equipment.Count(p, slot, t) > 0) { if ((await _g.Equip(Id, id, slot.ToString(), t)).Ok) Menu(3); p = await P(); break; }
+                    if (Equipment.CountFor(p, HeroRoster.Find(id)!.Role, slot, t) > 0) { if ((await _g.Equip(Id, id, slot.ToString(), t)).Ok) Menu(3); p = await P(); break; }
             }
 
         // 分解比隊伍已穿戴最低階還低的庫存裝備
@@ -677,7 +677,7 @@ public sealed class PlayerSim
                     continue;
                 }
             }
-            var target = unlocked.LastOrDefault(d => p.ClearedStages.Contains(d.Id));
+            var target = PickFarmTier(p, unlocked.Where(d => p.ClearedStages.Contains(d.Id)).ToList());
             if (target == null)
             {
                 // 連第一階都沒打過
@@ -696,6 +696,30 @@ public sealed class PlayerSim
             if (!r.Ok) return;
             Menu(6); _today.Sweeps += n; _today.StaminaSpent += n * target.StaminaCost;
         }
+    }
+
+
+    /// <summary>
+    /// 玩家選要刷哪一階副本：算每一階「每花 1 點體力，隊伍裝備加成平均提升多少」，挑最划算的；
+    /// 沒有任何提升（隊伍都已畢業）就刷最高階。碎片階的掉率換算成「每次副本掉出一件裝備的機率」（1 / 合成所需碎片）。
+    /// </summary>
+    private ResourceDungeonDef PickFarmTier(PlayerProfile p, List<ResourceDungeonDef> cleared)
+    {
+        if (cleared.Count == 0) return null;
+        var ids = ChooseTeam(p).Select(t => t.HeroId).Concat(BossTeam(p).Select(t => t.HeroId)).Distinct().Where(i => p.Heroes.ContainsKey(i)).ToList();
+        var cur = new List<int>();
+        foreach (var id in ids)
+            foreach (var slot in Equipment.Slots)
+                cur.Add(p.Heroes[id].Equipment.TryGetValue(slot.ToString(), out int t) ? t : 0);
+        ResourceDungeonDef best = null; double bestEff = 0;
+        foreach (var d in cleared)
+        {
+            double perRun = Equipment.UsesShards(d.Tier) ? 1.0 / Equipment.ShardCostOf(d.Tier) : Equipment.DropChanceOf(d.Tier);
+            double gain = cur.Count == 0 ? 0 : cur.Average(c => Math.Max(0, Equipment.PercentOf(d.Tier) - (c > 0 ? Equipment.PercentOf(c) : 0)));
+            double eff = gain * perRun / d.StaminaCost;
+            if (eff > bestEff) { bestEff = eff; best = d; }
+        }
+        return best ?? cleared.Last();
     }
 
     private async Task Gacha()

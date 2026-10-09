@@ -17,7 +17,8 @@ namespace SanGuo.Client
                 case HeroGrowth.HeroExp: return "武將經驗";
                 case HeroGrowth.Soul: return "將魂";
             }
-            if (Equipment.TryParseKey(key, out var slot, out int tier)) return Equipment.Name(slot, tier);
+            if (Equipment.TryParseShardKey(key, out var shardSlot, out int shardTier)) return Equipment.ShardName(shardSlot, shardTier);
+            if (Equipment.TryParseKey(key, out var slot, out int tier, out var role)) return Equipment.Name(slot, tier, role);
             if (key.StartsWith("shard:"))
             {
                 var hero = HeroRoster.Find(key.Substring(6));

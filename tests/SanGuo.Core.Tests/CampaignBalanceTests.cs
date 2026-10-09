@@ -26,27 +26,37 @@ namespace SanGuo.Core.Tests
         /// （帳號經驗 = 消耗的體力、副本逐階解鎖、裝備機率掉落）各章打完時的中位數；第 6 章末為月底養成（40 級、5★、4 階），
         /// 6-10 是月底大關。目標節奏：第 7 天第 2 章、第 14 天第 4 章、約第 30 天全通。
         /// </summary>
-        public static readonly (int Level, int Stars, int Gear)[] Growth =
+        public static readonly (int Level, int Stars, double Gear)[] Growth =
         {
-            (12, 0, 0), (12, 0, 1), (23, 0, 2), (27, 1, 2), (30, 2, 2), (33, 3, 3), (40, 5, 4),
+            (3, 0, 0), (20, 0, 1.5), (28, 1, 2.0), (34, 1, 2.3), (36, 2, 2.7), (38, 3, 3.0), (42, 5, 4.0),
         };
 
-        private static PlayerProfile Profile((int Level, int Stars, int Gear) g, out List<FormationEntry> team)
+        /// <summary>把平均裝備階（可有小數）分配到三個部位：整數部分每個部位都有，小數部分的幾個部位高一階。</summary>
+        public static void SetGear(HeroState hero, double avg)
+        {
+            int baseTier = (int)System.Math.Floor(avg), higher = (int)System.Math.Round((avg - baseTier) * 3);
+            for (int i = 0; i < Equipment.Slots.Length; i++)
+            {
+                int tier = baseTier + (i < higher ? 1 : 0);
+                if (tier > 0) hero.Equipment[Equipment.Slots[i].ToString()] = System.Math.Min(tier, Equipment.MaxTier);
+            }
+        }
+
+        private static PlayerProfile Profile((int Level, int Stars, double Gear) g, out List<FormationEntry> team)
         {
             var p = PlayerProfile.CreateNew(0);
             team = new List<FormationEntry>();
             foreach (var (id, lane, row) in Team)
             {
                 var hero = new HeroState { HeroId = id, Level = g.Level, Stars = g.Stars };
-                if (g.Gear > 0)
-                    foreach (var slot in Equipment.Slots) hero.Equipment[slot.ToString()] = g.Gear;
+                SetGear(hero, g.Gear);
                 p.Heroes[id] = hero;
                 team.Add(new FormationEntry(id, lane, row));
             }
             return p;
         }
 
-        public static double WinRate(string stage, (int Level, int Stars, int Gear) g, int runs = 40)
+        public static double WinRate(string stage, (int Level, int Stars, double Gear) g, int runs = 40)
         {
             var p = Profile(g, out var team);
             int wins = 0;
@@ -60,7 +70,7 @@ namespace SanGuo.Core.Tests
         }
 
         /// <summary>診斷：勝率、全滅率、逾時率、勝場平均回合、勝場平均存活人數。</summary>
-        public static string Detail(string stage, (int Level, int Stars, int Gear) g, int runs = 20)
+        public static string Detail(string stage, (int Level, int Stars, double Gear) g, int runs = 20)
         {
             var p = Profile(g, out var team);
             int wins = 0, wiped = 0, timeout = 0, turns = 0, alive = 0;

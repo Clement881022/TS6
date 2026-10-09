@@ -24,9 +24,10 @@ namespace SanGuo.Core.Tests
             var battle = Fight(zf, state);
 
             var unit = battle.Units.First(u => u.Side == Side.Player);
-            // 等級 ×1.135、一突（坦克主屬性生命）×1.1、防具三階 ×1.3
-            Assert.Equal((int)System.Math.Round(zf.Base.Hp * 1.135 * 1.1 * 1.3), unit.MaxHp);
-            Assert.Equal((int)System.Math.Round(zf.Base.Def * 1.135 * 1.3), unit.Stats.Def);
+            // 等級 ×1.135、一突（坦克主屬性生命）×1.1、防具三階（Equipment.Percents）
+            double armor = 1 + Equipment.PercentOf(3) / 100.0;
+            Assert.Equal((int)System.Math.Round(zf.Base.Hp * 1.135 * 1.1 * armor), unit.MaxHp);
+            Assert.Equal((int)System.Math.Round(zf.Base.Def * 1.135 * armor), unit.Stats.Def);
         }
 
         [Fact]

@@ -149,6 +149,7 @@ namespace SanGuo.Core.Meta
             Gold += reward.Gold;
             if (reward.Stamina > 0) Stamina.Add(reward.Stamina, now);
             foreach (var m in reward.Materials) AddMaterial(m.Key, m.Value);
+            Equipment.AutoForge(this); // 裝備碎片集滿就合成
             foreach (var id in reward.Heroes)
             {
                 if (Heroes.ContainsKey(id)) HeroGrowth.AddDuplicate(this, id);

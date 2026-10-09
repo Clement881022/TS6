@@ -234,12 +234,13 @@ namespace SanGuo.Core.Tests
         {
             var sword = HeroRoster.MilitiaSword();
             var hero = new HeroState { HeroId = sword.Id, Level = 41, Stars = 5 };
-            hero.Equipment["Weapon"] = 5;                               // 攻擊 +50%
-            hero.Equipment["Armor"] = 2;                                // 生命 / 防禦 +20%
+            hero.Equipment["Weapon"] = 5;                               // 攻擊 +Percents[5]
+            hero.Equipment["Armor"] = 2;                                // 生命 / 防禦 +Percents[2]
+            double weapon = 1 + Equipment.PercentOf(5) / 100.0, armor = 1 + Equipment.PercentOf(2) / 100.0;
             var s = HeroGrowth.ScaleStats(sword, hero);
-            Assert.Equal((int)System.Math.Round(600 * 1.6 * 1.1 * 1.2), s.Hp);
-            Assert.Equal((int)System.Math.Round(120 * 1.6 * 1.2 * 1.5), s.Atk);
-            Assert.Equal((int)System.Math.Round(50 * 1.6 * 1.0 * 1.2), s.Def);
+            Assert.Equal((int)System.Math.Round(600 * 1.6 * 1.1 * armor), s.Hp);
+            Assert.Equal((int)System.Math.Round(120 * 1.6 * 1.2 * weapon), s.Atk);
+            Assert.Equal((int)System.Math.Round(50 * 1.6 * 1.0 * armor), s.Def);
             Assert.Equal(sword.Base.Move, s.Move);
             Assert.Equal(sword.Base.Range, s.Range);
         }
@@ -302,18 +303,57 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void Equipment_TierBonusIsLinear10PercentPerTier()
+        public void Equipment_TierBonusFollowsConvexCurve()
         {
             var empty = new System.Collections.Generic.Dictionary<string, int>();
             Assert.Equal(1.0, Equipment.Mods(Role.Warrior, empty).Atk);
             for (int tier = 1; tier <= 5; tier++)
             {
+                double bonus = Equipment.PercentOf(tier) / 100.0;
                 var eq = new System.Collections.Generic.Dictionary<string, int> { ["Weapon"] = tier, ["Armor"] = tier };
-                Assert.Equal(1 + 0.1 * tier, Equipment.Mods(Role.Warrior, eq).Atk, 6);
-                Assert.Equal(1 + 0.1 * tier, Equipment.Mods(Role.Warrior, eq).Hp, 6);
-                Assert.Equal(1 + 0.1 * tier, Equipment.Mods(Role.Mage, eq).Int, 6); // 法系武器加謀略
+                Assert.Equal(1 + bonus, Equipment.Mods(Role.Warrior, eq).Atk, 6);
+                Assert.Equal(1 + bonus, Equipment.Mods(Role.Warrior, eq).Hp, 6);
+                Assert.Equal(1 + bonus, Equipment.Mods(Role.Mage, eq).Int, 6); // 法系武器加謀略
                 Assert.Equal(1.0, Equipment.Mods(Role.Mage, eq).Atk);
             }
+            // 非線性：低階比線性（每階 10%）弱、最高階比線性強，且逐階遞增
+            for (int tier = 1; tier <= 3; tier++) Assert.True(Equipment.PercentOf(tier) < 10 * tier);
+            Assert.True(Equipment.PercentOf(5) > 50);
+            for (int tier = 2; tier <= 5; tier++) Assert.True(Equipment.PercentOf(tier) - Equipment.PercentOf(tier - 1) > Equipment.PercentOf(tier - 1) - Equipment.PercentOf(tier - 2));
+        }
+
+        [Fact]
+        public void Equipment_WeaponsAreRoleBound()
+        {
+            var p = Rich();
+            p.Heroes["handang"] = new HeroState { HeroId = "handang" };
+            Assert.Equal(Role.Ranger, HeroRoster.Find("handang")!.Role);
+            // 兵胚（無職業）穿上就定型；卸下後只剩該職業能再穿
+            p.AddMaterial(Equipment.ItemKey(EquipSlot.Weapon, 3), 1);
+            Assert.Equal(EquipResult.Ok, Equipment.Equip(p, "handang", EquipSlot.Weapon, 3));
+            Assert.Equal(EquipResult.Ok, Equipment.Unequip(p, "handang", EquipSlot.Weapon));
+            Assert.Equal(1, p.GetMaterial(Equipment.WeaponKey(Role.Ranger, 3)));
+            Assert.Equal(0, p.GetMaterial(Equipment.ItemKey(EquipSlot.Weapon, 3)));
+            Assert.Equal(1, Equipment.CountFor(p, Role.Ranger, EquipSlot.Weapon, 3));
+            Assert.Equal(0, Equipment.CountFor(p, Role.Tank, EquipSlot.Weapon, 3));
+            Assert.Equal(EquipResult.NotOwned, Equipment.Equip(p, "zhangfei", EquipSlot.Weapon, 3)); // 坦克不能穿長弓
+            Assert.Equal(EquipResult.Ok, Equipment.Equip(p, "handang", EquipSlot.Weapon, 3));
+            // 防具與飾品全職業通用
+            p.AddMaterial(Equipment.ItemKey(EquipSlot.Armor, 2), 1);
+            Assert.Equal(EquipResult.Ok, Equipment.Equip(p, "zhangfei", EquipSlot.Armor, 2));
+            Assert.Equal("長梢弓", Equipment.Name(EquipSlot.Weapon, 3, Role.Ranger));
+        }
+
+        [Fact]
+        public void Equipment_ShardsAutoForgeIntoPieces()
+        {
+            var p = PlayerProfile.CreateNew(0);
+            int cost = Equipment.ShardCostOf(5);
+            p.Grant(new Reward().With(Equipment.ShardKey(EquipSlot.Armor, 5), cost - 1), 0);
+            Assert.Equal(0, Equipment.Count(p, EquipSlot.Armor, 5));
+            p.Grant(new Reward().With(Equipment.ShardKey(EquipSlot.Armor, 5), 1 + cost), 0);
+            Assert.Equal(2, Equipment.Count(p, EquipSlot.Armor, 5));
+            Assert.Equal(0, p.GetMaterial(Equipment.ShardKey(EquipSlot.Armor, 5)));
         }
 
         [Fact]

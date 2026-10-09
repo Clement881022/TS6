@@ -62,6 +62,18 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
+        public void MonthCard_DailyClaimAlsoGrantsStamina()
+        {
+            var p = Player();
+            Buy(p, Shop.MonthBig, "o1", T0);
+            int before = p.Stamina.Get(T0);
+            Assert.Equal(ShopResult.Ok, Shop.ClaimMonthCardDaily(p, Shop.MonthBig, T0));
+            Assert.Equal(before + Shop.Find(Shop.MonthBig)!.DailyStamina, p.Stamina.Get(T0));
+            Assert.True(Shop.Find(Shop.MonthBig)!.DailyStamina > Shop.Find(Shop.MonthSmall)!.DailyStamina);
+            Assert.True(Shop.Find(Shop.MonthSmall)!.DailyStamina > 0);
+        }
+
+        [Fact]
         public void MonthCard_NotOwned_CannotClaim()
         {
             Assert.Equal(ShopResult.NotActive, Shop.ClaimMonthCardDaily(Player(), Shop.MonthSmall, T0));

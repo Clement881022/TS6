@@ -135,13 +135,23 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void HigherTierDrops_AreRarer()
         {
-            for (int tier = 2; tier <= Equipment.MaxTier; tier++)
+            // 1–3 階直接掉裝備，掉率逐階降低；4–5 階每次掉 1 個碎片，合成所需碎片逐階增加
+            for (int tier = 2; tier <= 3; tier++)
             {
                 var drops = Equipment.RollDrops(tier, 2000, new Rng(7));
                 double rate = drops.Where(kv => kv.Key.EndsWith(":" + tier)).Sum(kv => kv.Value) / 2000.0;
                 Assert.InRange(rate, Equipment.DropChanceOf(tier) - 0.04, Equipment.DropChanceOf(tier) + 0.04);
                 Assert.True(Equipment.DropChanceOf(tier) < Equipment.DropChanceOf(tier - 1));
             }
+            for (int tier = 4; tier <= 5; tier++)
+            {
+                Assert.True(Equipment.UsesShards(tier));
+                var drops = Equipment.RollDrops(tier, 300, new Rng(7));
+                Assert.Equal(300, drops.Where(kv => kv.Key.StartsWith("eqs:") && kv.Key.EndsWith(":" + tier)).Sum(kv => kv.Value));
+                Assert.DoesNotContain(drops.Keys, k => k.StartsWith("eq:"));
+            }
+            Assert.True(Equipment.ShardCostOf(5) > Equipment.ShardCostOf(4));
+            Assert.False(Equipment.UsesShards(3));
         }
 
         [Fact]
@@ -185,7 +195,7 @@ namespace SanGuo.Core.Tests
             int stamina = p.Stamina.Get(now);
             Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TrySweep(p, d, 4, now, out var reward));
             Assert.Equal(stamina - 40 * 4, p.Stamina.Get(now));
-            Assert.InRange(reward!.Materials.Where(m => m.Key.StartsWith("eq:")).Sum(m => m.Value), 0, 4); // 每場最多 1 件（機率掉落）
+            Assert.Equal(4, reward!.Materials.Where(m => m.Key.StartsWith("eqs:")).Sum(m => m.Value)); // 第 5 階每場掉 1 個碎片
             Assert.Equal(DungeonEntryResult.InvalidCount, ResourceDungeons.TrySweep(p, d, 0, now, out _));
             Assert.Equal(DungeonEntryResult.InvalidCount, ResourceDungeons.TrySweep(p, d, ResourceDungeons.MaxSweepCount + 1, now, out _));
         }

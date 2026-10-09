@@ -48,7 +48,7 @@ namespace SanGuo.Client
                 var head = new VisualElement { pickingMode = PickingMode.Ignore };
                 head.AddToClassList("dun-head");
                 head.Add(UiKit.Text(d.Name, "dun-name"));
-                head.Add(UiKit.Text($"產出 {d.Tier} 階裝備", "dun-sub"));
+                head.Add(UiKit.Text($"產出{Equipment.TierLabel(d.Tier)}裝備", "dun-sub"));
                 card.Add(head);
 
                 var art = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -63,7 +63,9 @@ namespace SanGuo.Client
                     : Campaign.TryParse(d.UnlockStageId, out int chapter, out int unlockLevel)
                     ? $"通關第 {chapter} 章第 {unlockLevel} 關後解鎖" : "推進主線後解鎖", "dun-lock"));
                 else body2.Add(UiKit.Text(cleared ? "已通關，可掃蕩" : "尚未通關", "line-sub").WithClass("dun-center"));
-                body2.Add(UiKit.Text($"本階裝備掉率 {Equipment.DropChanceOf(d.Tier) * 100:0}%", "line-sub").WithClass("dun-center"));
+                body2.Add(UiKit.Text(Equipment.UsesShards(d.Tier)
+                    ? $"掉落{Equipment.TierLabel(d.Tier)}裝備碎片（集滿 {Equipment.ShardCostOf(d.Tier)} 個合成）"
+                    : $"{Equipment.TierLabel(d.Tier)}裝備掉率 {Equipment.DropChanceOf(d.Tier) * 100:0}%", "line-sub").WithClass("dun-center"));
                 var cost = UiKit.Cost("item_stamina", d.StaminaCost, v.Stamina);
                 cost.AddToClassList("dun-cost");
                 body2.Add(cost);

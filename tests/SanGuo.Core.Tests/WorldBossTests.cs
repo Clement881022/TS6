@@ -14,7 +14,7 @@ namespace SanGuo.Core.Tests
         // 2026-10-15 12:00（北京時間）與隔月 2026-11-02 12:00。
         private const long Oct = 1792036800, Nov = 1793592000;
 
-        private static PlayerProfile Unlocked(out List<FormationEntry> team, (int Level, int Stars, int Gear)? growth = null)
+        private static PlayerProfile Unlocked(out List<FormationEntry> team, (int Level, int Stars, double Gear)? growth = null)
         {
             var p = PlayerProfile.CreateNew(0);
             p.ClearedStages.Add(WorldBoss.UnlockStage);
@@ -23,7 +23,7 @@ namespace SanGuo.Core.Tests
             foreach (var (id, lane, row) in new[] { ("zhangfei", 2, 3), ("guanyu", 1, 3), ("handang", 3, 4), ("liubei", 2, 4) })
             {
                 var hero = new HeroState { HeroId = id, Level = g.Level, Stars = g.Stars };
-                foreach (var slot in Equipment.Slots) hero.Equipment[slot.ToString()] = g.Gear;
+                CampaignBalanceTests.SetGear(hero, g.Gear);
                 p.Heroes[id] = hero;
                 team.Add(new FormationEntry(id, lane, row));
             }
