@@ -11,9 +11,11 @@ namespace SanGuo.Client.Editor
     public static class ProductionInfantryDesign
     {
         private static readonly Color Gold=new Color(.80f,.52f,.16f),Bronze=new Color(.30f,.22f,.13f),Red=new Color(.58f,.018f,.026f),Jade=new Color(.07f,.43f,.23f);
+        private static string _prefix="";
+        public static bool IsBandit(string id)=>id=="bandit_grunt" || id=="bandit_archer" || id=="bandit_ironbrute" || id=="bandit_marksman";
         public static void PrepareParts(GameObject root,string id)
         {
-            if(id == "r_shield" || id == "r_archer" || id == "r_sword")
+            if(id == "r_shield" || id == "r_archer" || id == "r_sword" || IsBandit(id))
             {
                 CopyPart(root,"FaceRenderer","r_militia");
                 var hair=root.GetComponentsInChildren<SkinnedMeshRenderer>(true).First(r=>r.name=="HairRenderer");
@@ -24,10 +26,71 @@ namespace SanGuo.Client.Editor
 
         public static void AddDesign(GameObject root,string id,string output)
         {
+            _prefix=IsBandit(id)?id+"_":"";
+            try
+            {
             if(id == "r_shield") { ShortHair(root,id,output);Helmet(root,output);ShortSpear(root,output); }
             if(id == "r_archer") { ClearWeapons(root);ShortHair(root,id,output);Headscarf(root,output);Quiver(root,output); }
             if(id == "r_healer") { HealerCrown(root,output);MedicineGourd(root,output); }
             if(id == "r_sword") { ShortHair(root,id,output);SwordHeadband(root,id,output);Sword(root,id,output); }
+            if(IsBandit(id))
+            {
+                ClearWeapons(root);ShortHair(root,id,output);
+                if(id=="bandit_ironbrute"){Helmet(root,output);ShortSpear(root,output);BanditBeard(root,id,output);}
+                else if(id=="bandit_marksman"){SwordHeadband(root,id,output);HunterTopknot(root,id,output);Quiver(root,output);}
+                else{BanditTurban(root,id,output);if(id=="bandit_archer")Quiver(root,output);else Sword(root,id,output);}
+            }
+            }
+            finally{_prefix="";}
+        }
+
+        private static void HunterTopknot(GameObject root,string id,string output)
+        {
+            var face=SkinBounds(root,"FaceRenderer");var anchor=Anchor(root,"Bip001 Head","Design_HunterTopknot");
+            var centre=new Vector3(face.center.x,face.max.y-.012f,face.center.z-.075f);
+            Add(anchor,"HunterHairCap",Dome(centre,.065f,.060f,.090f),new Color(.20f,.07f,.025f),output);
+            for(int i=-3;i<=3;i++)
+                Add(anchor,"HunterHairLock"+i,Sweep(new[]{centre+new Vector3(i*.014f,.035f,-.015f),centre+new Vector3(i*.018f,.073f,-.08f),centre+new Vector3(i*.020f,.016f,-.14f)},.016f,.65f),new Color(.20f,.07f,.025f),output);
+            Add(anchor,"HunterYellowHeadbandTie",Tube(new[]{centre-Vector3.up*.005f,centre+Vector3.up*.012f},.039f,24),new Color(.9f,.55f,.06f),output);
+        }
+
+        private static void BanditTurban(GameObject root,string id,string output)
+        {
+            var face=SkinBounds(root,"FaceRenderer");var anchor=Anchor(root,"Bip001 Head","Design_BanditTurban");
+            var centre=new Vector3(face.center.x,face.max.y-face.size.y*.25f,face.center.z-.015f);
+            float rx=face.size.x*.60f,rz=face.size.z*.82f,height=face.size.y*.42f;
+            var yellow=new Color(.92f,.55f,.055f);
+            Add(anchor,"TurbanCrown",Dome(centre,rx,rz,height),yellow,output);
+            for(int ring=0;ring<3;ring++)
+            {
+                float y=centre.y-.008f+ring*.030f;
+                var strip=Lathe(new[]{new Vector2(rx,y-.014f),new Vector2(rx+.012f,y),new Vector2(rx,y+.021f)},64);
+                var vertices=strip.vertices;
+                for(int i=0;i<vertices.Length;i++){vertices[i].z*=rz/rx;vertices[i].x+=centre.x;vertices[i].z+=centre.z;vertices[i].y+=.012f*Mathf.Sin(Mathf.Atan2(vertices[i].x-centre.x,vertices[i].z-centre.z)+ring*.35f);}
+                strip.vertices=vertices;strip.RecalculateNormals();SmoothSeam(strip,64);
+                Add(anchor,"TurbanWrap"+ring,strip,ring%2==0?yellow:new Color(.78f,.43f,.027f),output);
+            }
+            Add(anchor,"TurbanTopKnot",Dome(centre+Vector3.up*(height-.01f),rx*.42f,rz*.42f,.052f),yellow,output);
+            for(int sign=-1;sign<=1;sign+=2)
+            {
+                var path=new List<Vector3>();for(int i=0;i<=24;i++){float t=i/24f;path.Add(centre+new Vector3(sign*(rx*.82f+.09f*t),-.10f*t+.018f*Mathf.Sin(t*Mathf.PI),-rz*.52f-.11f*t));}
+                Add(anchor,"TurbanTail"+sign,Ribbon(path,.041f),yellow,output);
+            }
+        }
+
+        private static void BanditBeard(GameObject root,string id,string output)
+        {
+            var face=SkinBounds(root,"FaceRenderer");var anchor=Anchor(root,"Bip001 Head","Design_BanditBeard");
+            var profile=new[]{new Vector2(0,-.090f),new Vector2(.039f,-.081f),new Vector2(.074f,-.050f),new Vector2(.089f,-.015f),new Vector2(.079f,.009f),new Vector2(.062f,.025f),new Vector2(0,.027f)};
+            var volume=Lathe(SmoothProfile(profile),64);var vertices=volume.vertices;
+            for(int i=0;i<vertices.Length;i++){vertices[i].x+=face.center.x;vertices[i].y+=face.min.y;vertices[i].z=vertices[i].z*.42f+face.max.z+.004f;}
+            volume.vertices=vertices;volume.RecalculateNormals();SmoothSeam(volume,64);
+            Add(anchor,"BeardHairCap",volume,new Color(.05f,.045f,.04f),output);
+            for(int i=-4;i<=4;i++)
+            {
+                float x=i*.017f;var p=new Vector3(face.center.x+x,face.min.y+.010f,face.max.z+.035f);
+                Add(anchor,"BeardHairLock"+i,Sweep(new[]{p,p+new Vector3(x*.04f,-.032f,.014f),p+new Vector3(-x*.16f,-.077f+.008f*Mathf.Abs(i),-.001f)},.010f,.8f),new Color(.05f,.045f,.04f),output);
+            }
         }
 
         private static void SwordHeadband(GameObject root,string id,string output)
@@ -125,10 +188,15 @@ namespace SanGuo.Client.Editor
             Bounds bounds=new Bounds();bool first=true;
             foreach(int i in mesh.triangles.Distinct())
             {
-                var w=weights[i];var p=matrices[w.boneIndex0].MultiplyPoint3x4(vertices[i])*w.weight0
-                    +matrices[w.boneIndex1].MultiplyPoint3x4(vertices[i])*w.weight1
-                    +matrices[w.boneIndex2].MultiplyPoint3x4(vertices[i])*w.weight2
-                    +matrices[w.boneIndex3].MultiplyPoint3x4(vertices[i])*w.weight3;
+                if(i>=weights.Length)throw new InvalidOperationException("Missing vertex weights: "+root.name+" / "+name+" vertices="+vertices.Length+" weights="+weights.Length);
+                var w=weights[i];var p=Vector3.zero;
+                void AddWeight(int bone,float weight)
+                {
+                    if(weight<=0)return;
+                    if(bone>=matrices.Length)throw new InvalidOperationException("Invalid weighted bone: "+root.name+" / "+name+" bone="+bone+" bones="+matrices.Length+" mesh="+mesh.name);
+                    p+=matrices[bone].MultiplyPoint3x4(vertices[i])*weight;
+                }
+                AddWeight(w.boneIndex0,w.weight0);AddWeight(w.boneIndex1,w.weight1);AddWeight(w.boneIndex2,w.weight2);AddWeight(w.boneIndex3,w.weight3);
                 if(first){bounds=new Bounds(p,Vector3.zero);first=false;}else bounds.Encapsulate(p);
             }
             Debug.Log("ART_PART_BOUNDS "+root.name+" "+name+" "+bounds);
@@ -142,7 +210,28 @@ namespace SanGuo.Client.Editor
             return go.transform;
         }
 
-        private static Transform Add(Transform parent,string name,Mesh mesh,Color color,string output)=>ProductionCharacterProps.Piece(parent,name,mesh,color,output);
+        private static Transform Add(Transform parent,string name,Mesh mesh,Color color,string output)
+        {
+            bool fabric=_prefix!="" && (name.Contains("Turban") || name.Contains("Scarf") || name.Contains("Headband"));
+            if(fabric)
+            {
+                var uv=mesh.uv;for(int i=0;i<uv.Length;i++)uv[i]=new Vector2(.16f+uv[i].x*.26f,.44f+uv[i].y*.26f);mesh.uv=uv;
+            }
+            if(_prefix!="" && (name.Contains("Plume") && !name.Contains("Mount") || name.Contains("Scarf")))color=new Color(.90f,.53f,.045f);
+            var part=ProductionCharacterProps.Piece(parent,_prefix+name,mesh,color,output);
+            if(fabric)
+            {
+                var mat=part.GetComponent<MeshRenderer>().sharedMaterial;mat.SetTexture("_BaseMap",AssetDatabase.LoadAssetAtPath<Texture2D>(output+"/Textures/bandit_body.png"));mat.SetColor("_BaseColor",Color.white);mat.SetFloat("_MetalStrength",.06f);EditorUtility.SetDirty(mat);
+            }
+            if(_prefix!="" && name.Contains("Hair"))
+            {
+                var mat=part.GetComponent<MeshRenderer>().sharedMaterial;
+                var black=AssetDatabase.LoadAssetAtPath<Texture2D>(output+"/Textures/"+(_prefix.StartsWith("bandit_marksman")?"equipment_hair":"equipment_black_hair")+".png");
+                if(black!=null){mat.SetTexture("_BaseMap",black);mat.SetColor("_BaseColor",Color.white);}else mat.SetColor("_BaseColor",new Color(.20f,.23f,.27f));
+                mat.SetFloat("_MetalStrength",.05f);EditorUtility.SetDirty(mat);
+            }
+            return part;
+        }
         private static Mesh Tube(IReadOnlyList<Vector3> points,float radius,int sides=12)=>ProductionCharacterProps.Tube(points,radius,sides);
 
         private static void ShortHair(GameObject root,string id,string output)

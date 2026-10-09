@@ -53,6 +53,12 @@ namespace SanGuo.Client.Editor
             Prepare();Bake("r_sword","sword");Finish();
         }
 
+        [MenuItem("SanGuo/重製山賊戰鬥角色")]
+        public static void BakeBanditArt()
+        {
+            Prepare();Bake("bandit_grunt","sword");Bake("bandit_archer","archer");Bake("bandit_ironbrute","guard");Bake("bandit_marksman","archer");Finish();
+        }
+
         [MenuItem("SanGuo/統一實際角色骨架尺寸")]
         public static void NormalizeWorldSizes()
         {
@@ -88,7 +94,7 @@ namespace SanGuo.Client.Editor
 
         private static void Bake(string id,string role)
         {
-            string sourceId=id=="r_sword"?"r_shield":id;
+            string sourceId=id=="r_sword" || ProductionInfantryDesign.IsBandit(id)?"r_shield":id;
             var source = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Characters/"+sourceId+".prefab");
             if (source == null) throw new InvalidOperationException("Missing textured character source: "+id);
             var root = UnityEngine.Object.Instantiate(source);
@@ -129,13 +135,13 @@ namespace SanGuo.Client.Editor
                 // 待機檔名不含 FightStandby 時，替換會原樣回傳待機檔，攻擊就被換成待機動作。
                 var attack=!clipPath.Contains("FightStandby") ? null : AssetDatabase.LoadAllAssetsAtPath(clipPath.Replace("FightStandby",motion)).OfType<AnimationClip>().FirstOrDefault(c=>!c.name.StartsWith("__preview__"));
                 if(attack != null) clips.Attack=attack;
-                if(id == "r_shield" || id == "r_archer" || id == "r_healer" || id == "r_sword") clips.Idle.SampleAnimation(root,0);
+                if(id == "r_shield" || id == "r_archer" || id == "r_healer" || id == "r_sword" || ProductionInfantryDesign.IsBandit(id)) clips.Idle.SampleAnimation(root,0);
                 ProductionInfantryCostume.Apply(root,id,Output);
                 if(role == "archer") { ProductionCharacterProps.Bow(root,Output);root.AddComponent<ArcherPoseRig>(); }
                 if(role == "guard") ProductionCharacterProps.Shield(root,Output);
                 ProductionInfantryDesign.AddDesign(root,id,Output);
                 ProductionArcherAnimation.Apply(root,id,Output);
-                if(id == "r_shield" || id == "r_archer" || id == "r_healer" || id == "r_sword") ProductionCharacterAssembly.Consolidate(root,id,Output);
+                if(id == "r_shield" || id == "r_archer" || id == "r_healer" || id == "r_sword" || ProductionInfantryDesign.IsBandit(id)) ProductionCharacterAssembly.Consolidate(root,id,Output);
                 if(id == "guanyu")
                     foreach(var t in root.GetComponentsInChildren<Transform>())
                         if(t.name == "Weapon_00029") t.localRotation = Quaternion.Euler(0,180,0);
@@ -196,6 +202,7 @@ namespace SanGuo.Client.Editor
             {
                 var painted = AssetDatabase.LoadAssetAtPath<Texture2D>(Output + "/Textures/"+id+"_body.png");
                 if(painted==null && id=="r_sword")painted=AssetDatabase.LoadAssetAtPath<Texture2D>(Output+"/Textures/r_shield_body.png");
+                if(painted==null && ProductionInfantryDesign.IsBandit(id))painted=AssetDatabase.LoadAssetAtPath<Texture2D>(Output+"/Textures/bandit_body.png");
                 if (painted != null) texture = painted;
             }
             foreach (string slot in new[] { "Hair", "Face", "Cosmetic", "Weapon" })
@@ -203,6 +210,7 @@ namespace SanGuo.Client.Editor
                 {
                     var painted=AssetDatabase.LoadAssetAtPath<Texture2D>(Output+"/Textures/"+id+"_"+slot.ToLowerInvariant()+".png");
                     if(painted==null && id=="r_sword" && slot=="Face")painted=AssetDatabase.LoadAssetAtPath<Texture2D>(Output+"/Textures/r_shield_face.png");
+                    if(painted==null && ProductionInfantryDesign.IsBandit(id) && slot=="Face")painted=AssetDatabase.LoadAssetAtPath<Texture2D>(Output+"/Textures/r_shield_face.png");
                     if(painted!=null) texture=painted;
                 }
             mat.SetTexture("_BaseMap", texture);
@@ -219,7 +227,11 @@ namespace SanGuo.Client.Editor
         {
             var existing = AssetDatabase.LoadMainAssetAtPath(path);
             if (existing == null) AssetDatabase.CreateAsset(asset, path);
-            else { EditorUtility.CopySerialized(asset, existing); UnityEngine.Object.DestroyImmediate(asset); }
+            else
+            {
+                if(existing is Mesh oldMesh)oldMesh.Clear(false);
+                EditorUtility.CopySerialized(asset, existing);EditorUtility.SetDirty(existing);UnityEngine.Object.DestroyImmediate(asset);
+            }
         }
 
         private readonly struct Edge : IEquatable<Edge>

@@ -12,7 +12,7 @@ namespace SanGuo.Client.Editor
     {
         public static void Apply(GameObject root,string id,string output)
         {
-            if(id!="r_archer")return;
+            if(id!="r_archer" && id!="bandit_archer" && id!="bandit_marksman")return;
             var set=root.GetComponent<CharacterClipSet>();
             var rig=root.GetComponent<ArcherPoseRig>();if(rig!=null)UnityEngine.Object.DestroyImmediate(rig);
             set.Idle=Author(root,set.Idle,id+"_BowIdle",output,false);
@@ -22,6 +22,9 @@ namespace SanGuo.Client.Editor
 
         private static AnimationClip Author(GameObject root,AnimationClip source,string name,string output,bool attack)
         {
+            var sampled=UnityEngine.Object.Instantiate(source);
+            foreach(var binding in AnimationUtility.GetObjectReferenceCurveBindings(sampled))
+                AnimationUtility.SetObjectReferenceCurve(sampled,binding,null);
             var all=root.GetComponentsInChildren<Transform>();
             Transform Bone(string n)=>all.First(t=>t.name==n);
             var left=Bone("Bip001 L Hand");var right=Bone("Bip001 R Hand");var bow=Bone("PropBow");var arrow=Bone("PropArrow");
@@ -33,7 +36,7 @@ namespace SanGuo.Client.Editor
             {
                 float time=duration*frame/frames;
                 foreach(var t in all){var p=initial[t];t.localPosition=p.localPosition;t.localRotation=p.localRotation;t.localScale=p.localScale;}
-                source.SampleAnimation(root,time);
+                sampled.SampleAnimation(root,time);
                 float phase=frame/(float)frames;
                 float draw=attack?(phase<.45f?Mathf.Lerp(.65f,1,phase/.45f):Mathf.Lerp(1,.35f,Mathf.Clamp01((phase-.45f)/.2f))):.65f;
                 float height=root.transform.InverseTransformPoint((left.parent.parent.position+right.parent.parent.position)*.5f).y;
@@ -59,7 +62,7 @@ namespace SanGuo.Client.Editor
                 }
             }
             foreach(var t in all){var p=initial[t];t.localPosition=p.localPosition;t.localRotation=p.localRotation;t.localScale=p.localScale;}
-            var result=UnityEngine.Object.Instantiate(source);result.name=name;
+            var result=sampled;result.name=name;
             var names=new[]{"m_LocalPosition.x","m_LocalPosition.y","m_LocalPosition.z","m_LocalRotation.x","m_LocalRotation.y","m_LocalRotation.z","m_LocalRotation.w"};
             foreach(var t in targets)
                 for(int k=0;k<names.Length;k++)

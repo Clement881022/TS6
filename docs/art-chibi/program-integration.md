@@ -16,6 +16,8 @@
 
 第五階段 r_archer 已改用 `ProductionCharacters/Animations/r_archer_BowIdle.anim`、`r_archer_BowAttack.anim` 兩個完整骨架動畫素材，Prefab 不再帶有 ArcherPoseRig，避免舊校正覆蓋新美術姿勢。保持既有 CharacterClipSet 的 Idle／Attack 播放；其他舊弓兵的程式接入規格仍有效。製作工具 `ProductionArcherAnimation.cs` 僅在 Editor 執行，沒有新增執行期 IK 程式。
 
+第六階段 bandit_archer 與 bandit_marksman 也各自改用 `Animations/<角色ID>_BowIdle.anim`、`<角色ID>_BowAttack.anim`，Prefab 不再帶有 ArcherPoseRig。這四種山賊的正式資產仍位於 ProductionCharacters，接入時保留各自 ID，不要把獵戶映射回舊 bandit_archer 模型。驗收與待修項見 `bandit-stage6-review.md`。
+
 驗證條件：模型旋轉後不出框、不空白、材質不呈粉紅色；弓與盾跟隨手骨；出牌、受擊、施法、死亡正常。HUD 與卡牌的文字／重疊檢查也必須保留。
 
 ## 下一輪由 Codex 處理的美術缺口
