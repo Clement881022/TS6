@@ -3,7 +3,6 @@ using static SanGuo.Core.Data.Cast;
 
 namespace SanGuo.Core.Data
 {
-    /// <summary>第一章　黃巾烽火（上）：投軍鄒靖、斬程遠志、青州解圍、投奔盧植、潁川長社火攻，章末擊敗波才。</summary>
     public static class Chapter1Story
     {
         private static StoryLine ZouJing(string text) => S("鄒靖", "zoujing", text);

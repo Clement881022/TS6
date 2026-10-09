@@ -4,19 +4,11 @@ using Xunit.Abstractions;
 
 namespace SanGuo.Core.Tests
 {
-    /// <summary>
-    /// 第零章教學關的難度：依教學流程（優先打出該關的教學特殊卡）可通關，只靠基本攻擊則失敗（GDD 04 §5.3）。
-    /// 以自動戰鬥模擬量測，人類玩家會比機器人打得更好。
-    /// </summary>
     public class TutorialBalanceTests
     {
         private readonly ITestOutputHelper _out;
         public TutorialBalanceTests(ITestOutputHelper output) { _out = output; }
 
-        /// <summary>
-        /// 模擬「照教學打」或「無視教學」的玩家：移動沿用自動戰鬥；出牌時會挑對象
-        /// （破甲 / 燃燒打防禦最高者、其餘集火最脆者，優先擊殺後排法術單位），治療只在有人受傷時使用。
-        /// </summary>
         private sealed class Bot
         {
             public bool UseSpecials;
@@ -26,7 +18,6 @@ namespace SanGuo.Core.Tests
                 for (int guard = 0; guard < 60 && b.Result == BattleResult.Ongoing; guard++)
                 {
                     if (PlayOne(b)) continue;
-                    // 沒有可出的牌時用移動牌：先推進還打不到敵人的輸出，最後才是坦克。
                     var move = b.Hand.FirstOrDefault(c => c.Def.Target == TargetRule.MoveDest && b.CanPlay(c) == PlayResult.Ok);
                     var advancer = move == null ? null : b.AliveUnits(Side.Player)
                         .Where(h => !h.Protected && h.Hero != null && b.CanMoveUnit(h) && AutoPlayer.ChooseMove(b, h) != null)
@@ -70,7 +61,6 @@ namespace SanGuo.Core.Tests
                     }
                     if (c.Def.Target == TargetRule.AllEnemies && effect.Status == StatusType.Taunt)
                     {
-                        // 嘲諷：有敵人尚未被嘲諷（或正在蓄力）才用。
                         var foes = b.AliveUnits(Side.Enemy);
                         if (!foes.Any(e => !e.Statuses.ContainsKey(StatusType.Taunt) || e.Charging)) continue;
                     }
@@ -124,7 +114,6 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void KeyLevels_FailWhenTheTutorialMechanicIsIgnored()
         {
-            // 教學重點必須實際有用：第 3 關（破甲）與第 10 關（Boss 蓄力）無視機制只用基本攻擊會輸。
             foreach (var level in new[] { 3, 10 })
                 Assert.True(WinRate(level, IgnoreTutorial) <= 30, $"第 {level} 關無視教學應該失敗");
         }

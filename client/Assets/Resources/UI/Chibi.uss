@@ -1,5 +1,3 @@
-/* Q 版策略國風：以使用者選定示意圖為基準。最後載入，文字與操作為真正 UI 元件。
-   1920×1080 設計基準：玄青漆面 / 暖銅金 / 象牙白文字 / 朱砂提示。 */
 .meta-page {
     background-color: rgb(15, 24, 26);
     background-image: url("../ChibiSkin/hall.png");
@@ -27,7 +25,6 @@
 .meta-page .res-pill-icon { width: 40px; height: 40px; }
 .meta-page .page-content { padding: 20px 20px 18px 20px; }
 
-/* Text and status remain semantic, with legible neutral secondary text. */
 .meta-page .txt, .meta-page .line-title, .meta-page .card-row-name { color: rgb(240, 232, 212); }
 .meta-page .txt-sub, .meta-page .txt-gold, .meta-page .section-text,
 .meta-page .bpanel-title, .meta-page .popup-title, .meta-page .tier-title { color: rgb(222, 193, 135); }
@@ -38,7 +35,6 @@
 .meta-page .section-line { background-color: rgb(103, 92, 63); }
 .meta-page .reddot { width: 20px; height: 20px; border-width: 2px; border-color: rgb(231, 195, 125); background-color: rgb(176, 57, 40); border-radius: 10px; }
 
-/* Fresh lacquer panel / gold button art. Border texels use 9-slice, never stretched corners. */
 .meta-page .bpanel, .meta-page .panel, .meta-page .popup,
 .meta-page .gacha-info, .meta-page .quest-ms, .meta-page .tier {
     border-radius: 3px; border-width: 0;
@@ -83,7 +79,6 @@
 .meta-page .bar-fill.bar-gold { background-color: rgb(197, 157, 80); border-radius: 2px; }
 .meta-page .badge-role { background-color: rgb(41, 54, 48); color: rgb(212, 211, 185); border-radius: 3px; }
 
-/* Main town: no scattered building labels or giant mascot blocking scenery. */
 .strategy-home-shade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(3, 13, 17, 0.10); }
 .strategy-home-top { position: absolute; left: 0; right: 0; top: 0; height: 124px; background-color: rgba(10, 20, 23, 0.96); border-bottom-width: 1px; border-bottom-color: rgb(141, 114, 64); }
 .meta-page .home-player { left: 30px; top: 18px; height: 90px; padding: 4px 16px; width: 354px; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); }
@@ -117,7 +112,6 @@
 .strategy-home-hint { font-size: 25px; color: rgb(204, 208, 188); }
 .meta-page .strategy-formation-link, .meta-page .strategy-formation-link:hover { min-height: 60px; min-width: 200px; font-size: 26px; }
 
-/* Icon URLs are the newly painted atlas cells, also used by resource helpers. */
 .tile-ico-heroes, .nav-icon-heroes { background-image: url("../ChibiSkin/nav_heroes.png"); }
 .tile-ico-gacha, .nav-icon-gacha { background-image: url("../ChibiSkin/nav_gacha.png"); }
 .tile-ico-dungeons, .nav-icon-dungeons { background-image: url("../ChibiSkin/nav_dungeons.png"); }
@@ -126,7 +120,6 @@
 .tile-ico-map, .nav-icon-map { background-image: url("../ChibiSkin/nav_map.png"); }
 .nav-icon-home { background-image: url("../ChibiSkin/nav_home.png"); }
 
-/* Hero roster, illustration stage, and separate growth console. */
 .meta-page.bg-heroes .page-content { padding: 22px; }
 .meta-page .hero-left { width: 312px; padding: 20px 12px; margin-right: 18px; background-color: rgba(12, 23, 26, 0.97); border-width: 1px; border-color: rgb(106, 92, 64); }
 .strategy-roster-title { font-size: 30px; color: rgb(224, 196, 139); padding: 0 8px; }
@@ -172,7 +165,6 @@
 .meta-page .card-row { background-color: rgba(18, 32, 35, 0.90); border-left-color: rgb(141, 117, 71); border-radius: 2px; }
 .meta-page .break-row-mark { color: rgb(126, 126, 99); }
 
-/* Map, recruitment, dungeons, shop, quests and formation share new assets. */
 .meta-page .mnode { border-width: 2px; border-color: rgb(174, 145, 87); background-color: rgb(26, 41, 41); }
 .meta-page .mnode-open, .meta-page .mnode-open:hover { background-color: rgb(125, 71, 40); border-color: rgb(241, 211, 141); }
 .meta-page .mnode-clear { background-color: rgb(42, 79, 64); border-color: rgb(164, 204, 157); }
@@ -212,7 +204,6 @@
 .meta-page .formation-label, .meta-page .form-strip-label { color: rgb(207, 187, 143); }
 .meta-page .form-toolbar .btn { background-image: none; }
 
-/* Battle HUD: same new material language, meaningful buff/HP colors retained. */
 .root .header { height: 68px; background-color: rgba(10, 21, 24, 0.97); border-bottom-width: 1px; border-bottom-color: rgb(169, 136, 74); }
 .root .header-title { color: rgb(234, 209, 150); font-size: 34px; }
 .root .btn, .root .btn:hover { background-image: none; background-color: rgb(28, 43, 44); border-width: 1px; border-color: rgb(119, 103, 64); border-radius: 3px; color: rgb(234, 221, 186); }
@@ -250,7 +241,6 @@
 .root .result-star-on { background-image: url("../ChibiSkin/star_on.png"); }
 .root .bl-d-use, .root .bl-d-cancel { -unity-text-align: middle-center; }
 
-/* Dialogue overlays are part of the same redesign. */
 .tut-band, .story-band { background-color: rgb(14, 27, 30); border-top-color: rgb(165, 128, 67); border-top-width: 1px; }
 .tut-name, .story-name { color: rgb(238, 210, 149); background-color: rgb(29, 44, 43); -unity-text-outline-width: 0; }
 .tut-text, .story-text, .tut-body { color: rgb(236, 230, 210); }
@@ -260,7 +250,6 @@
 .meta-page .home-chapter { -unity-slice-scale: 0.18px; }
 .root .bl-end { -unity-slice-scale: 0.15px; }
 
-/* Bottom hand: readable portrait cards, shallow fan, hover and selected lift. */
 .root .sts-hand { position: absolute; left: 230px; right: 230px; bottom: 8px; height: 366px; overflow: visible; }
 .root .sts-card { position: absolute; width: 204px; height: 286px; padding: 10px; border-width: 2px; border-radius: 12px; border-color: rgb(153, 129, 77); background-color: rgb(19, 35, 38); transition-property: top, rotate, scale, border-color; transition-duration: 120ms; }
 .root .sts-card-move { border-color: rgb(100, 150, 121); }
@@ -299,7 +288,6 @@
 .meta-page .home-fn { background-image: url("../ChibiSkin/panel.png"); -unity-slice-left: 180; -unity-slice-right: 180; -unity-slice-top: 180; -unity-slice-bottom: 180; -unity-slice-scale: 0.12px; border-width: 0; background-color: rgba(0, 0, 0, 0); }
 .meta-page .home-fn:hover { background-color: rgba(0, 0, 0, 0); -unity-background-image-tint-color: rgb(255, 232, 176); }
 
-/* Acceptance fixes: layout bounds, readable actions, long names and stable font. */
 .meta-page .hdr { flex-shrink: 0; }
 .meta-page .hdr-back, .meta-page .hdr-close { font-size: 46px; color: rgb(238, 216, 166); -unity-text-align: middle-center; background-image: none; }
 .meta-page .hdr-title { flex-shrink: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -348,7 +336,6 @@
 .root .sts-card-description { font-size: 22px; }
 .root .bl-log-line, .root .bl-d-owner, .root .bl-d-target { color: rgb(206, 213, 194); }
 
-/* Runtime uses an empty Unity theme: explicitly lay out ScrollView internals. */
 .meta-page .unity-scroll-view { flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
 .meta-page .unity-scroll-view__content-and-vertical-scroll-container { flex-direction: row; flex-grow: 1; flex-shrink: 1; min-height: 0; overflow: hidden; }
 .meta-page .unity-scroll-view__content-viewport { flex-grow: 1; flex-shrink: 1; min-width: 0; min-height: 0; overflow: hidden; }
@@ -367,7 +354,6 @@
 .meta-page .hero-namebar-name { white-space: normal; font-size: 38px; }
 .meta-page .strategy-hero-summary-head { flex-wrap: wrap; }
 
-/* Approved chibi direction: bright toy-diorama scenes, dark lacquer and fine gold chrome. */
 .meta-page { background-color: rgb(17, 34, 36); -unity-background-image-tint-color: white; }
 .meta-page.bg-map { -unity-background-image-tint-color: white; }
 .strategy-home-shade { background-color: rgba(0, 0, 0, 0); }
@@ -443,7 +429,6 @@
 .meta-page .popup-close { background-image: none; background-color: rgb(25, 44, 46); color: rgb(249, 233, 184); border-width: 1px; border-color: rgb(173, 136, 65); border-radius: 3px; font-size: 32px; -unity-text-align: middle-center; }
 .meta-page .popup-close:hover { background-color: rgb(63, 72, 52); }
 
-/* Bottom hand uses the same lacquer frame as the roster and Q-style faces. */
 .root .sts-card { background-color: rgb(20, 38, 40); border-color: rgb(168, 134, 72); background-image: url("../ChibiSkin/panel.png"); -unity-slice-left: 96; -unity-slice-right: 96; -unity-slice-top: 96; -unity-slice-bottom: 96; -unity-slice-scale: 0.16px; }
 .root .sts-card-name { color: rgb(252, 226, 169); }
 .root .sts-card-owner { color: rgb(218, 221, 188); }
@@ -486,7 +471,6 @@
 .meta-page .gacha-character-art { flex-grow: 1; flex-shrink: 1; min-height: 0; width: 100%; margin-top: 12px; margin-bottom: 8px; -unity-background-scale-mode: scale-to-fit; }
 .meta-page .gacha-card-name { position: relative; left: auto; right: auto; bottom: auto; flex-shrink: 0; width: 100%; }
 
-/* Classical display headings; body text keeps the stable, readable sans font. */
 .strategy-brand-title, .strategy-expedition-title, .meta-page .hdr-title,
 .meta-page .home-fn-label, .meta-page .home-chapter-title, .meta-page .hero-namebar-name,
 .meta-page .strategy-summary-name, .meta-page .bpanel-title, .meta-page .popup-title,

@@ -8,7 +8,6 @@ using SanGuo.Client;
 
 namespace SanGuo.EditorTools
 {
-    /// <summary>專案建置工具：場景與打包都由程式產生，不需要手動拖拉。</summary>
     public static class SanGuoTools
     {
         private const string SceneDir = "Assets/Scenes";
@@ -16,7 +15,6 @@ namespace SanGuo.EditorTools
         private static readonly string InitScenePath = $"{SceneDir}/Init.unity";
         private static readonly string MainScenePath = $"{SceneDir}/Main.unity";
 
-        /// <summary>Init（一次性初始化，啟動場景）與 Main（常駐 UI 外殼，頁面以 prefab 載入）。</summary>
         [MenuItem("三國/建立 Init 與 Main 場景")]
         public static void CreateScenes()
         {
@@ -42,7 +40,6 @@ namespace SanGuo.EditorTools
             EditorSceneManager.SaveScene(scene, path);
         }
 
-        /// <summary>每個頁面一個 prefab：Resources/Pages/&lt;Page&gt;.prefab，上面掛對應的 &lt;Page&gt;Page 元件。</summary>
         [MenuItem("三國/建立頁面 Prefab")]
         public static void CreatePagePrefabs()
         {
@@ -81,7 +78,6 @@ namespace SanGuo.EditorTools
                 EditorApplication.Exit(report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded ? 0 : 1);
         }
 
-        /// <summary>批次模式入口：建立場景後離開。</summary>
         public static void CreateAllScenesAndExit()
         {
             CreateScenes();

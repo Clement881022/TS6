@@ -4,18 +4,12 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 卡牌範圍圖示：5x5 小棋盤，正中央是施放者；亮起來的格子是「射程」（曼哈頓格距）內可選 / 會影響的位置。
-    /// 敵方目標為紅、我方為藍、自身為黃、移動為綠；下方文字標出射程與形狀。
-    /// </summary>
     public static class RangeIcon
     {
         private const int Size = 5;
         private const int Mid = 2;
-        /// <summary>移動卡示意圖畫的格數（實際格數看被移動武將的移動力）。</summary>
         private const int SampleMoveRange = 2;
 
-        /// <param name="attackRange">施放者的攻擊範圍。</param>
         public static VisualElement Build(CardDef def, int attackRange)
         {
             bool ally = def.Target == TargetRule.Self || def.Target == TargetRule.Ally || def.Target == TargetRule.AllAllies;

@@ -7,7 +7,6 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>素材副本：五階，與裝備品階 1–5 對應；沒有每日次數限制，通關一次後可掃蕩；各階隨主線進度解鎖。</summary>
     public sealed class DungeonsPage : PageBase
     {
         private readonly List<ResourceDungeonDef> _dungeons = DemoResourceDungeons.Create();

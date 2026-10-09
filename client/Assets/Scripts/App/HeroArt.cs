@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace SanGuo.Client
 {
-    /// <summary>Q 版武將美術：Resources/ChibiSkin/face_&lt;id&gt; 與 full_&lt;id&gt;。缺圖回傳 null，避免混入舊寫實立繪。</summary>
     public static class HeroArt
     {
         private static readonly Dictionary<string, Texture2D?> Cache = new Dictionary<string, Texture2D?>();
@@ -14,10 +13,6 @@ namespace SanGuo.Client
         public static Texture2D? Full(string heroId) => Load("ChibiSkin/full_" + heroId);
         public static Texture2D? Bust(string heroId) => Load("ChibiSkin/bust_" + heroId);
 
-        /// <summary>
-        /// 原創 Q 版模型由 tools/blender/chibi_v2.py 匯出到 ChibiModels；
-        /// 未登錄角色依職業借用同系列模型。
-        /// </summary>
         public static GameObject? Model(string defId)
         {
             var refined = Resources.Load<GameObject>("ProductionCharacters/" + defId);
@@ -29,7 +24,6 @@ namespace SanGuo.Client
             return Resources.Load<GameObject>("ChibiModels/" + fallback);
         }
 
-        /// <summary>有專屬模型（不是依職業借用的）。</summary>
         public static bool HasOwnModel(string defId) =>
             Resources.Load<GameObject>("ProductionCharacters/" + defId) != null || Resources.Load<GameObject>("ChibiModels/" + defId) != null;
 

@@ -3,13 +3,10 @@ using System.Collections.Generic;
 
 namespace SanGuo.Core.Meta
 {
-    /// <summary>玩家本季的通行證進度（存檔的一部分）。</summary>
     public sealed class PassState
     {
-        /// <summary>賽季（<see cref="DailyClock.MonthKey"/>）；換季時進度、購買與領取紀錄全部重置。</summary>
         public string Season = "";
         public int Points;
-        /// <summary>本季購買的付費版：空字串 = 未購買；<see cref="BattlePass.Basic"/> 或 <see cref="BattlePass.Luxury"/>。</summary>
         public string Tier = "";
         public HashSet<int> ClaimedFree = new HashSet<int>();
         public HashSet<int> ClaimedPaid = new HashSet<int>();
@@ -17,13 +14,6 @@ namespace SanGuo.Core.Meta
 
     public enum PassClaimResult { Ok, InvalidLevel, NotReached, NotPurchased, AlreadyClaimed }
 
-    /// <summary>
-    /// 通行證（GDD 05 §9 的 1.0 付費點；內容與定價為暫定，待確認）：
-    /// 每月一季（與世界 Boss 同步），30 級，每級 150 點；消耗體力 1 點 = 通行證經驗 1 點（主線、掃蕩、素材副本）。
-    /// 免費線：金幣、武將經驗、將魂，不給元寶（不改變無課玩家的月抽數預算）。
-    /// 付費線（通行證 ¥30／豪華通行證 ¥98）：每級 50 元寶（全滿 1500）、每 5 級一件裝備（最高 3 階）、第 10／20／30 級將魂。
-    /// 豪華版另外立即 +10 級並送 980 元寶。
-    /// </summary>
     public static class BattlePass
     {
         public const string Basic = "basic";
@@ -34,7 +24,6 @@ namespace SanGuo.Core.Meta
 
         public static string SeasonOf(long now) => DailyClock.MonthKey(now);
 
-        /// <summary>換季：重置本季進度與購買。</summary>
         public static void Roll(PlayerProfile p, long now)
         {
             string season = SeasonOf(now);
@@ -65,7 +54,6 @@ namespace SanGuo.Core.Meta
             if (level % 5 == 0)
             {
                 var slot = Equipment.Slots[(level / 5 - 1) % Equipment.Slots.Length];
-                // 付費線裝備最高 3 階（2026-10-09：原本 30 級送 5 階，模擬發現付費玩家第 5 天就有 4–5 階裝、主線快無課 3 倍，違反「主線進度與無課相同」）
                 int tier = level < 15 ? 2 : 3;
                 r.With(Equipment.ItemKey(slot, tier), 1);
             }
@@ -85,7 +73,6 @@ namespace SanGuo.Core.Meta
             return PassClaimResult.Ok;
         }
 
-        /// <summary>一鍵領取所有已達成、尚未領取的獎勵；回傳領了幾項。</summary>
         public static int ClaimAll(PlayerProfile p, long now)
         {
             Roll(p, now);
@@ -98,7 +85,6 @@ namespace SanGuo.Core.Meta
             return n;
         }
 
-        /// <summary>付款完成後啟用付費版（由 <see cref="Shop.Fulfill"/> 呼叫）。</summary>
         internal static void Activate(PlayerProfile p, string tier, long now)
         {
             Roll(p, now);

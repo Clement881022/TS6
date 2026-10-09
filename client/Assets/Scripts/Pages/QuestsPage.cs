@@ -10,7 +10,6 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>任務：左側分頁（每日 / 每週 / 七日目標），右側任務卡兩欄排列；七日目標上方有里程碑獎勵。</summary>
     public sealed class QuestsPage : PageBase
     {
         private bool _claiming;
@@ -26,7 +25,6 @@ namespace SanGuo.Client
         protected override Page Id => Page.Quests;
         protected override string Title => "任務";
 
-        /// <summary>截圖 / 除錯用：切到七日目標分頁。</summary>
         public void DebugShowSevenDay()
         {
             _tab = QuestKind.SevenDay;
@@ -76,7 +74,6 @@ namespace SanGuo.Client
             scroll.contentContainer.AddToClassList("quest-grid");
             main.Add(scroll);
 
-            // 可領取的排最前面，其次進行中，已領取的沉到最後。
             IEnumerable<QuestDef> list = _sevenDayTab
                 ? book.Quests.Where(x => x.Kind == QuestKind.SevenDay && x.Day <= Math.Max(day, 1))
                 : book.Quests.Where(x => x.Kind == _tab);
@@ -157,7 +154,6 @@ namespace SanGuo.Client
             return b.RedDot(reddot);
         }
 
-        /// <summary>任務卡：左獎勵、中描述 + 進度條、右操作按鈕（寬度固定，不隨文字伸縮）。</summary>
         private void AddQuestCard(VisualElement host, QuestDef q, PlayerProfile p)
         {
             int have = Math.Min(Quests.Progress(p, q), q.Target);

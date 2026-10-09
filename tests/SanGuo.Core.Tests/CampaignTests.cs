@@ -6,7 +6,6 @@ using Xunit;
 
 namespace SanGuo.Core.Tests
 {
-    /// <summary>主線章節總表：關卡 id、解鎖順序、每關的戰鬥設定與 Boss 第二階段、存檔遷移。</summary>
     public class CampaignTests
     {
         [Fact]
@@ -39,7 +38,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(70, ids.Count);
         }
 
-        /// <summary>每一章：每關都有戰前與首通後對白，且每句都有內容。</summary>
         [Theory]
         [InlineData(0)]
         [InlineData(1)]
@@ -60,7 +58,6 @@ namespace SanGuo.Core.Tests
             }
         }
 
-        /// <summary>劇情武將（劉關張）不在卡池：第 2–6 章章末首通各送 1 份重複份，打完 1.0 剛好可以滿突。</summary>
         [Fact]
         public void StoryHeroes_GetOneDuplicatePerChapterEnd_FromChapter2()
         {
@@ -73,7 +70,6 @@ namespace SanGuo.Core.Tests
                     Assert.Equal(expected ? Meta.DemoMeta.StoryHeroes.Length : 0, clear.DuplicatesGained.Count);
                 }
             foreach (var id in Meta.DemoMeta.StoryHeroes) Assert.Equal(Meta.HeroGrowth.MaxStars, Meta.HeroGrowth.Shards(p, id));
-            // 再打一次不重複送。
             Assert.Empty(p.ClaimClear(Meta.DemoMeta.Stage(2, 10), 0, 3).DuplicatesGained);
         }
 
@@ -171,7 +167,6 @@ namespace SanGuo.Core.Tests
             Assert.False(p.StageStars.ContainsKey("1-3"));
             Assert.Equal("0-4", p.PendingStageId);
 
-            // 新版存檔的 "1-N" 是第一章，不可再轉換。
             var fresh = PlayerProfile.CreateNew(0);
             fresh.ClearedStages.Add("1-1");
             Assert.Contains("1-1", ProfileSerializer.FromJson(ProfileSerializer.ToJson(fresh)).ClearedStages);

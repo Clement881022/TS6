@@ -8,7 +8,6 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>征戰：一章一張地圖（底部可切換章節），關卡是圓形節點（星數、鎖頭、名牌），點下去開關卡面板（獎勵、敵人、挑戰 / 掃蕩）。</summary>
     public sealed class MapPage : PageBase
     {
         protected override Page Id => Page.Map;
@@ -18,7 +17,6 @@ namespace SanGuo.Client
 
         protected override void OnReady()
         {
-            // 第一次進地圖：跳到目前該打的那一章。
             if (!GameSession.StageChosen) { GameSession.EnsureSelection(); Rebuild(); }
             if (!GameSession.OpenSelectedStageOnMap) return;
             GameSession.OpenSelectedStageOnMap = false;
@@ -36,7 +34,6 @@ namespace SanGuo.Client
             area.AddToClassList("map-area");
             body.Add(area);
 
-            // 路徑小圓點
             var centers = new Vector2[total];
             for (int i = 0; i < total; i++)
                 centers[i] = new Vector2(7f + i * (86f / (total - 1)), 50f + Mathf.Sin(i * 0.9f) * 17f);
@@ -87,7 +84,6 @@ namespace SanGuo.Client
                 area.Add(holder);
             }
 
-            // 底部：章節切換與進度條（下一章要等該章第一關開放）
             var info = new VisualElement();
             info.AddToClassList("map-info");
             info.style.flexDirection = FlexDirection.Row;
@@ -105,7 +101,6 @@ namespace SanGuo.Client
             var nextBtn = UiKit.Btn("下一章 ▶", () => SwitchChapter(next)).WithClass("btn-sm");
             nextBtn.SetEnabled(next <= Campaign.LastChapter && GameSession.IsUnlocked(next, 1));
             info.Add(nextBtn);
-            // 普通／困難切換（主線全通後開放；困難主線從第 1 章開始）
             if (GameSession.HardModeOpen || GameSession.HardMode)
             {
                 var mode = UiKit.Btn(GameSession.HardMode ? "切換：普通" : "切換：困難", ToggleHard).WithClass("btn-sm");
@@ -120,7 +115,6 @@ namespace SanGuo.Client
             GameSession.HardMode = !GameSession.HardMode;
             if (GameSession.HardMode)
             {
-                // 跳到第一個還沒打過的困難關
                 for (int c = HardStages.FirstChapter; c <= Campaign.LastChapter; c++)
                     for (int l = 1; l <= Campaign.LevelsPerChapter; l++)
                         if (!GameSession.View.ClearedStages.Contains(HardStages.StageId(c, l))) { GameSession.Select(c, l); Rebuild(); return; }
@@ -138,16 +132,12 @@ namespace SanGuo.Client
         {
             if (chapter < Campaign.FirstChapter || chapter > Campaign.LastChapter || !GameSession.IsUnlocked(chapter, 1)) return;
             if (GameSession.HardMode) { GameSession.Select(chapter, 1); Rebuild(); return; }
-            // 切到目前該打的那一章時停在該關，其餘停在第 1 關。
             var (fc, fl) = GameSession.Frontier();
             GameSession.Select(chapter, chapter == fc ? fl : 1);
             Rebuild();
         }
 
-        /// <summary>截圖 / 除錯用：直接開啟關卡面板。</summary>
         public void DebugOpenStage(int level) => OpenStageDetail(level);
-
-        // ---- 關卡面板（獎勵 / 敵人 / 挑戰 / 掃蕩）----
 
         private void OpenStageDetail(int level)
         {
@@ -160,7 +150,6 @@ namespace SanGuo.Client
 
             var overlay = new VisualElement();
             overlay.AddToClassList("overlay");
-            // 點面板外的暗處也能關閉
             overlay.RegisterCallback<ClickEvent>(e => { if (e.target == overlay) overlay.RemoveFromHierarchy(); });
             var panel = new VisualElement();
             panel.AddToClassList("bpanel");
@@ -187,7 +176,7 @@ namespace SanGuo.Client
             foreach (var m in stage.Materials)
             {
                 int n = m.Value + (first && stage.FirstClearMaterials.TryGetValue(m.Key, out int extra) ? extra : 0);
-                tiles.Add(UiKit.ItemTile(m.Key == HeroGrowth.HeroExp ? "item_expbook" : "item_shard", n.ToString())); // 與獎勵列一致：將魂用碎片圖示
+                tiles.Add(UiKit.ItemTile(m.Key == HeroGrowth.HeroExp ? "item_expbook" : "item_shard", n.ToString()));
             }
             rewards.Add(tiles);
             rewards.Add(StarCondition(1, "通關", stars));
@@ -211,7 +200,6 @@ namespace SanGuo.Client
             cost.AddToClassList("stage-cost");
             panel.Add(cost);
 
-            // 左：掃蕩（三星後才有）；右：戰鬥。關閉靠右上角 ✕ 或點暗處。
             var row = new VisualElement();
             row.AddToClassList("stage-buttons");
             var sweeps = new VisualElement();
@@ -229,7 +217,6 @@ namespace SanGuo.Client
             Host.Add(overlay);
         }
 
-        /// <summary>關卡目標（全滅以外才顯示）：護送 / 守城 / 擊殺指定 / 限時。</summary>
         private static string? ObjectiveText(BattleSetup setup)
         {
             string? text = setup.Objective switch
@@ -245,7 +232,6 @@ namespace SanGuo.Client
 
         private static string ProtectedName(BattleSetup setup) => setup.Heroes.FirstOrDefault(h => h.IsProtected)?.Def.Name ?? "目標";
 
-        /// <summary>星級條件一行：已達成的打勾變綠。</summary>
         private static VisualElement StarCondition(int need, string text, int stars)
         {
             var row = new VisualElement { pickingMode = PickingMode.Ignore };

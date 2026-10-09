@@ -10,7 +10,6 @@ using SanGuo.Server;
 
 namespace SanGuo.Server.Tests;
 
-/// <summary>帳號系統：遊客登入、註冊 / 登入、綁定、token 驗證、暱稱，以及正式模式不接受 X-Account。</summary>
 public sealed class AccountTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"sanguo-acct-{Guid.NewGuid():N}.db");
@@ -89,7 +88,6 @@ public sealed class AccountTests : IDisposable
         var reg = await Token(await anon.PostAsJsonAsync("/auth/register", new { username = "Liu_Bei", password = "taoyuan123" }));
         Assert.Equal(HttpStatusCode.OK, (await WithToken(f, reg).PostAsync("/login", null)).StatusCode);
 
-        // 帳號不分大小寫
         await Token(await anon.PostAsJsonAsync("/auth/login", new { username = "liu_bei", password = "taoyuan123" }));
         var wrong = await anon.PostAsJsonAsync("/auth/login", new { username = "liu_bei", password = "wrongpass1" });
         Assert.Equal("wrong_credentials", (await Json(wrong)).GetProperty("code").GetString());
@@ -119,7 +117,6 @@ public sealed class AccountTests : IDisposable
         var again = await guest.PostAsJsonAsync("/auth/bind", new { username = "zhaoyun2", password = "changban1" });
         Assert.Equal("already_bound", (await Json(again)).GetProperty("code").GetString());
 
-        // 換一台裝置用帳號密碼登入，看到同一份存檔。
         var device2 = WithToken(f, await Token(await anon.PostAsJsonAsync("/auth/login", new { username = "zhaoyun", password = "changban1" })));
         var profile = (await Json(await device2.GetAsync("/profile"))).GetProperty("data");
         Assert.Equal(yuanbao, profile.GetProperty("yuanbao").GetInt32());

@@ -3,7 +3,6 @@ using static SanGuo.Core.Data.Cast;
 
 namespace SanGuo.Core.Data
 {
-    /// <summary>第五章　虎牢關：并州狼騎、穆順方悅之死、高順與陷陣營、張飛救公孫瓚，章末三英戰呂布（呂布沒有暗光，命牌卻因三兄弟並肩而歸位）。</summary>
     public static class Chapter5Story
     {
         private static StoryLine GongsunZan(string text) => S("公孫瓚", "gongsunzan", text);

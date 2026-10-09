@@ -24,8 +24,6 @@ import sys
 import bpy
 
 
-# ---------------------------------------------------------------- 基本工具
-
 def clear_scene():
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete()
@@ -97,8 +95,6 @@ def prim(kind, name, loc, scale, color, parent, rot=(0, 0, 0), minor=0.1):
     return o
 
 
-# ---------------------------------------------------------------- 武將建模
-
 SKIN = (0.96, 0.78, 0.64)
 DARK = (0.08, 0.07, 0.09)
 GOLD = (0.9, 0.7, 0.2)
@@ -109,33 +105,33 @@ WOOD = (0.45, 0.3, 0.18)
 def build_weapon(kind, arm_r, arm_l, hand_r, hand_l):
     """武器掛在手臂樞紐上，手臂揮動時武器跟著動。"""
     x = hand_r[0]
-    if kind == "guandao":      # 青龍偃月刀
+    if kind == "guandao":
         prim("cyl", "wp_shaft", (x, -0.02, 0.62), (0.018, 0.018, 0.62), WOOD, arm_r)
         prim("cube", "wp_blade", (x - 0.1, -0.02, 1.2), (0.11, 0.012, 0.2), (0.35, 0.8, 0.6), arm_r)
         prim("cube", "wp_blade_back", (x + 0.03, -0.02, 1.2), (0.03, 0.014, 0.16), GOLD, arm_r)
         prim("cone", "wp_tip", (x, -0.02, 1.47), (0.03, 0.03, 0.09), STEEL, arm_r)
-    elif kind == "serpent":    # 丈八蛇矛
+    elif kind == "serpent":
         prim("cyl", "wp_shaft", (x, -0.02, 0.62), (0.02, 0.02, 0.62), (0.15, 0.12, 0.14), arm_r)
         prim("cone", "wp_tip", (x, -0.02, 1.35), (0.045, 0.02, 0.17), STEEL, arm_r)
-    elif kind == "twin_swords":  # 雙股劍
+    elif kind == "twin_swords":
         for hx, parent in ((hand_r[0], arm_r), (hand_l[0], arm_l)):
             prim("cube", "wp_blade", (hx, -0.08, 0.5), (0.035, 0.012, 0.22), STEEL, parent, rot=(math.radians(20), 0, 0))
             prim("cube", "wp_guard", (hx, -0.04, 0.31), (0.075, 0.012, 0.016), GOLD, parent)
-    elif kind == "fan":        # 羽扇
+    elif kind == "fan":
         prim("sphere", "wp_fan", (hand_l[0] - 0.04, -0.1, 0.42), (0.13, 0.014, 0.17), (0.97, 0.97, 0.95), arm_l,
              rot=(0, math.radians(25), math.radians(10)))
         prim("cyl", "wp_fan_handle", (hand_l[0] - 0.02, -0.1, 0.28), (0.012, 0.012, 0.06), WOOD, arm_l)
-    elif kind == "silver_spear":   # 龍膽亮銀槍
+    elif kind == "silver_spear":
         prim("cyl", "wp_shaft", (x, -0.02, 0.62), (0.016, 0.016, 0.62), STEEL, arm_r)
         prim("cone", "wp_tip", (x, -0.02, 1.33), (0.035, 0.02, 0.14), STEEL, arm_r)
         prim("sphere", "wp_tassel", (x, -0.02, 1.18), (0.04, 0.04, 0.05), (0.85, 0.15, 0.15), arm_r)
-    elif kind == "bow":        # 弓（左手持）
+    elif kind == "bow":
         hx = hand_l[0]
         prim("cube", "wp_bow_top", (hx - 0.06, -0.05, 0.66), (0.014, 0.02, 0.1), WOOD, arm_l, rot=(0, math.radians(-22), 0))
         prim("cube", "wp_bow_mid", (hx - 0.09, -0.05, 0.5), (0.016, 0.02, 0.09), WOOD, arm_l)
         prim("cube", "wp_bow_bot", (hx - 0.06, -0.05, 0.34), (0.014, 0.02, 0.1), WOOD, arm_l, rot=(0, math.radians(22), 0))
         prim("cube", "wp_string", (hx - 0.035, -0.05, 0.5), (0.004, 0.004, 0.26), (0.9, 0.9, 0.85), arm_l)
-    elif kind == "club":       # 狼牙棒
+    elif kind == "club":
         prim("cyl", "wp_shaft", (x, -0.02, 0.5), (0.03, 0.03, 0.4), WOOD, arm_r)
         prim("sphere", "wp_head", (x, -0.02, 0.98), (0.09, 0.09, 0.13), (0.3, 0.25, 0.25), arm_r)
 
@@ -156,16 +152,13 @@ def build_hero(name, p):
     arm_r = pivot("pivot_arm_R", (0.27 * s, 0, 0.52), torso)
     arm_l = pivot("pivot_arm_L", (-0.27 * s, 0, 0.52), torso)
 
-    # 腿與鞋（靜態）
     for sx in (-1, 1):
         prim("cyl", "leg", (sx * 0.09 * s, 0, 0.12), (0.075 * s, 0.075 * s, 0.12), pants, root)
         prim("sphere", "shoe", (sx * 0.09 * s, -0.04, 0.03), (0.09 * s, 0.13, 0.05), DARK, root)
 
-    # 身體、腰帶
     prim("sphere", "body", (0, 0, 0.42), (0.23 * s, 0.18 * s, 0.22), robe, torso)
     prim("cyl", "belt", (0, 0, 0.34), (0.228 * s, 0.178 * s, 0.025), belt, torso)
 
-    # 手臂與手
     hands = {}
     for sx, pv in ((1, arm_r), (-1, arm_l)):
         prim("sphere", "arm_mesh", (sx * 0.27 * s, 0, 0.43), (0.07, 0.07, 0.14), robe, pv, rot=(0, sx * 0.3, 0))
@@ -173,20 +166,18 @@ def build_hero(name, p):
         prim("sphere", "hand_mesh", hp, (0.065, 0.065, 0.065), skin, pv)
         hands[sx] = hp
 
-    # 頭、臉
     prim("sphere", "head_mesh", (0, 0, 0.82), (0.31, 0.28, 0.28), skin, head)
     for sx in (-1, 1):
         prim("sphere", "eye", (sx * 0.1, -0.262, 0.83), (0.034, 0.02, 0.05), DARK, head)
         prim("sphere", "blush", (sx * 0.17, -0.245, 0.77), (0.04, 0.012, 0.025), (0.95, 0.55, 0.5), head)
     prim("sphere", "mouth", (0, -0.272, 0.745), (0.03, 0.01, 0.012), (0.55, 0.25, 0.25), head)
 
-    # 頭髮（覆蓋頭頂與後腦，保留臉）
     prim("sphere", "hair", (0, 0.045, 0.91), (0.32, 0.29, 0.22), hair, head)
 
     headgear = p.get("headgear")
     if headgear == "bun":
         prim("sphere", "bun", (0, 0.02, 1.13), (0.1, 0.1, 0.09), hair, head)
-    elif headgear == "scholar_hat":   # 綸巾
+    elif headgear == "scholar_hat":
         c = p.get("hat_color", (0.95, 0.95, 0.92))
         prim("cube", "hat", (0, 0.03, 1.1), (0.15, 0.13, 0.13), c, head)
         prim("cube", "hat_top", (0, 0.03, 1.27), (0.1, 0.09, 0.05), c, head)
@@ -195,11 +186,10 @@ def build_hero(name, p):
     elif headgear == "helmet":
         prim("sphere", "helmet", (0, 0.04, 0.95), (0.335, 0.31, 0.2), p.get("hat_color", STEEL), head)
         prim("cone", "plume", (0, 0.08, 1.16), (0.04, 0.04, 0.16), (0.85, 0.15, 0.15), head)
-    elif headgear == "yellow_turban":   # 黃巾
+    elif headgear == "yellow_turban":
         prim("torus", "band", (0, 0.0, 0.97), (0.31, 0.28, 0.31), (0.95, 0.8, 0.15), head, minor=0.06)
         prim("sphere", "knot", (0.28, 0.0, 0.97), (0.07, 0.07, 0.07), (0.95, 0.8, 0.15), head)
 
-    # 鬍子
     beard = p.get("beard")
     if beard == "long":
         prim("cone", "beard", (0, -0.2, 0.55), (0.15, 0.07, 0.25), p.get("beard_color", DARK), head, rot=(math.pi, 0, 0))
@@ -207,12 +197,10 @@ def build_hero(name, p):
         prim("sphere", "beard", (0, -0.2, 0.69), (0.2, 0.1, 0.1), p.get("beard_color", DARK), head)
         prim("sphere", "mustache", (0, -0.26, 0.74), (0.12, 0.04, 0.03), p.get("beard_color", DARK), head)
 
-    # 大耳（劉備）
     if p.get("big_ears"):
         for sx in (-1, 1):
             prim("sphere", "ear", (sx * 0.31, 0, 0.82), (0.05, 0.035, 0.09), skin, head)
 
-    # 盔甲肩甲（跟著手臂動）
     if p.get("pauldrons"):
         for sx, pv in ((1, arm_r), (-1, arm_l)):
             prim("sphere", "pauldron", (sx * 0.27 * s, 0, 0.55), (0.1, 0.1, 0.06), p["pauldrons"], pv)
@@ -264,8 +252,6 @@ ENEMIES = {
                      headgear="yellow_turban", weapon="club"),
 }
 
-
-# ---------------------------------------------------------------- 預覽 / 匯出
 
 def setup_render(width, height, ortho):
     scene = bpy.context.scene

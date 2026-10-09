@@ -4,12 +4,10 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using SanGuo.Core.Data;
 using SanGuo.Core;
-using SanGuo.Core.Data;
 using SanGuo.Core.Meta;
 
 namespace SanGuo.Client
 {
-    /// <summary>客戶端顯示用的玩家資料快照（本機與伺服器兩種後端都轉成這個）。</summary>
     public sealed class ProfileView
     {
         public int Level = 1;
@@ -23,9 +21,7 @@ namespace SanGuo.Client
         public Dictionary<string, HeroState> Heroes = new Dictionary<string, HeroState>();
         public Dictionary<string, int> Materials = new Dictionary<string, int>();
         public Dictionary<string, PoolState> Pools = new Dictionary<string, PoolState>();
-        /// <summary>完整存檔的複本（任務進度、每日次數等唯讀顯示用；修改它不影響真正的存檔）。</summary>
         public PlayerProfile Raw = new PlayerProfile();
-        /// <summary>顯示用的目前時間（Unix 秒，客戶端時鐘；實際判定一律以後端為準）。</summary>
         public long Now;
 
         public int ExpToNext => PlayerLevelCurve.ExpToNext(Level);
@@ -48,7 +44,6 @@ namespace SanGuo.Client
         };
     }
 
-    /// <summary>機器可讀的失敗原因（Code）；Ok 時為 "ok"。連線失敗為 "network"。</summary>
     public class BackendResult
     {
         public bool Ok;
@@ -69,13 +64,9 @@ namespace SanGuo.Client
         public int Gold;
         public int Yuanbao;
         public int LevelsGained;
-        /// <summary>首通獲得的武將 id（沒有則空字串）。</summary>
         public string HeroGained = "";
-        /// <summary>首通獲得的重複份（武將 id）。</summary>
         public List<string> DuplicatesGained = new List<string>();
-        /// <summary>資源副本掉落的素材。</summary>
         public Dictionary<string, int> Materials = new Dictionary<string, int>();
-        /// <summary>世界 Boss：這場傷害、本季最佳、是否刷新、目前名次 / 人數。</summary>
         public long Damage;
         public long BestDamage;
         public bool NewBest;
@@ -83,7 +74,6 @@ namespace SanGuo.Client
         public int Total;
     }
 
-    /// <summary>世界 Boss 面板（本季 Boss、次數、成績、排行榜、上一季結算）。</summary>
     public sealed class WorldBossView
     {
         public string Season = "";
@@ -112,25 +102,18 @@ namespace SanGuo.Client
         public List<PullResult> Results = new List<PullResult>();
     }
 
-    /// <summary>
-    /// 客戶端與「遊戲規則所在處」之間的介面：本機版直接跑 SanGuo.Core（離線 / 單機），
-    /// 伺服器版呼叫 SanGuo.Server。兩者的流程相同：開始關卡取得種子 → 打 → 交出操作紀錄結算。
-    /// </summary>
     public interface IGameBackend
     {
         string Name { get; }
         Task<ProfileView?> GetProfile();
         Task<WorldBossView?> GetWorldBoss();
-        /// <param name="formation">開放編隊的關卡 / 副本要帶（教學關為 null）。</param>
         Task<StartStageResult> StartStage(string stageId, IReadOnlyList<FormationEntry>? formation = null);
         Task<FinishStageResult> FinishStage(string stageId, IReadOnlyList<ReplayAction> actions);
-        /// <summary>開發用：跳過戰鬥直接算勝利（三星）。只有單機版在 Debug 版本 / 編輯器可用，伺服器版一律拒絕。</summary>
         Task<FinishStageResult> DebugWin(string stageId);
         Task<SweepOutcome> Sweep(string stageId, int count);
         Task<BackendResult> SweepDungeon(string dungeonId, int count);
         Task<BackendResult> ClaimQuest(string questId);
         Task<BackendResult> ClaimMilestone(int points);
-        /// <summary>測試付款購買：建立訂單並模擬付款成功（正式版改走支付渠道，付款完成由伺服器發貨）。</summary>
         Task<BackendResult> BuyWithTestPayment(string productId);
         Task<BackendResult> ClaimMonthCard(string cardId);
         Task<BackendResult> ClaimPass(int level, bool paid);
@@ -138,12 +121,9 @@ namespace SanGuo.Client
         Task<PullOutcomeResult> Pull(string poolId, int count);
         Task<BackendResult> LevelUp(string heroId);
         Task<BackendResult> Breakthrough(string heroId);
-        /// <summary>穿上庫存中的裝備（slot 為 Weapon / Armor / Accessory）。</summary>
         Task<BackendResult> Equip(string heroId, string slot, int tier);
         Task<BackendResult> Unequip(string heroId, string slot);
-        /// <summary>分解庫存中的裝備換金幣。</summary>
         Task<BackendResult> Dismantle(string slot, int tier, int count);
-        /// <summary>將魂商店兌換。</summary>
         Task<BackendResult> BuySoulItem(string itemId);
     }
 }

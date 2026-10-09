@@ -14,7 +14,6 @@ builder.Services.AddSingleton<IProfileStore>(_ => new SqliteProfileStore($"Data 
 builder.Services.AddSingleton<IWorldBossBoard>(_ => new SqliteWorldBossBoard($"Data Source={dbPath}"));
 builder.Services.AddSingleton(sp => new SqliteAccountStore($"Data Source={dbPath}", sp.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<GameService>();
-// 登入類端點限流（每個 IP 每分鐘 30 次），擋暴力猜密碼。
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -32,8 +31,6 @@ static string? Bearer(HttpRequest req)
     return header.StartsWith("Bearer ", StringComparison.Ordinal) && header.Length > 7 ? header.Substring(7).Trim() : null;
 }
 
-// 帳號辨識：Authorization: Bearer <token>（由 /auth/* 取得）。
-// 用 X-Account 標頭直接指定帳號只在開發模式（EnableDevEndpoints）可用，給測試與自動截圖。
 static string? Account(HttpRequest req)
 {
     var services = req.HttpContext.RequestServices;
@@ -56,7 +53,6 @@ static async Task<IResult> Handle(HttpRequest req, Func<string, Task<ApiResult>>
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
-// ---- 帳號 ----
 static IResult SessionResult(Session s) => Results.Ok(ApiResult.Success(new
 {
     token = s.Token, accountId = s.AccountId, nickname = s.Nickname, username = s.Username, bound = s.Username != null, expiresAt = s.ExpiresAt,

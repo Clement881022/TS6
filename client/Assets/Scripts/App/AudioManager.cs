@@ -8,10 +8,6 @@ namespace SanGuo.Client
 
     public enum Bgm { None, Home, Battle }
 
-    /// <summary>
-    /// 最小音效系統：BGM 讀 Resources/Audio，音效用程式合成（不依賴音檔）。
-    /// 第一次使用時自動建立常駐物件，不需要擺進場景。
-    /// </summary>
     public sealed class AudioManager : MonoBehaviour
     {
         private const int Rate = 44100;
@@ -35,7 +31,6 @@ namespace SanGuo.Client
         public static float BgmVolume { get; set; } = 0.35f;
         public static float SfxVolume { get; set; } = 0.8f;
 
-        /// <summary>啟動時就建立（含 AudioListener）：場景裡沒有任何 AudioListener，Editor 會每幀印一次警告拖慢編輯器，玩家版也聽不到聲音。</summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Bootstrap() => _ = Inst;
 
@@ -69,8 +64,6 @@ namespace SanGuo.Client
             var clip = _clips[(int)id] ??= Build(id);
             _sfx.PlayOneShot(clip, SfxVolume);
         }
-
-        // ---------- 合成 ----------
 
         private static AudioClip Build(Sfx id)
         {
@@ -115,7 +108,6 @@ namespace SanGuo.Client
         private static float Env(float t, float length, float decay) => Mathf.Exp(-decay * t / Mathf.Max(0.01f, length)) * Mathf.Min(1f, t * 400f);
         private static float Sin01(float x) => Mathf.Sin(Mathf.Clamp01(x) * Mathf.PI);
 
-        // 決定性雜訊，避免每次合成結果不同
         private static float Noise(int n)
         {
             uint x = (uint)n * 747796405u + 2891336453u;

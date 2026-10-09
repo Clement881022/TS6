@@ -2,7 +2,6 @@ using System.Collections.Generic;
 
 namespace SanGuo.Core.Data
 {
-    /// <summary>一句對白。<see cref="Speaker"/> 空字串＝旁白；<see cref="Portrait"/> 是武將 / 角色 id（客戶端找立繪或 3D 模型，找不到就不顯示）。</summary>
     public sealed class StoryLine
     {
         public string Speaker;
@@ -17,17 +16,10 @@ namespace SanGuo.Core.Data
         }
     }
 
-    /// <summary>
-    /// 第零章劇情（草案，見 docs/chapter0.md / worldbuilding.md）：序章 + 每關戰前（Before）與首通後（After）對白。
-    /// 貫穿全章的線索：①主角失憶般的「穿越」與手中發光的命牌（每有人加入，牌面就多一張新名字）；
-    /// ②山賊身上的黃布與「大當家得了仙物」的傳聞，指向第一章黃巾與命牌來歷；③三兄弟與義勇軍的成形。
-    /// </summary>
     public static class DemoStory
     {
-        /// <summary>主角（穿越者）的對白署名；名字尚未定案，暫以第一人稱「我」帶過。</summary>
         public const string Protagonist = "我";
 
-        /// <summary>劇情旁白：無說話者、無立繪（客戶端不顯示名牌）。巴豆妖只負責系統性教學，不出現在劇情裡。</summary>
         public const string Narrator = "";
 
         private static StoryLine N(string text) => new StoryLine(Narrator, "", text);
@@ -37,7 +29,6 @@ namespace SanGuo.Core.Data
         private static StoryLine Gy(string text) => new StoryLine("關羽", "guanyu", text);
         private static StoryLine Zsp(string text) => new StoryLine("張世平", "r_villager", text);
 
-        /// <summary>序章：新帳號第一次進遊戲播放（日常對話中搞不清楚自己穿越了）。</summary>
         public static List<StoryLine> Intro() => new List<StoryLine>
         {
             N("涿縣，清晨。一間漏風的茅屋裡，有個人睡得口水直流，嘴裡還說著奇怪的夢話。"),
@@ -63,7 +54,6 @@ namespace SanGuo.Core.Data
             Me("（先搞清楚狀況……不對，先活下來再說！）"),
         };
 
-        /// <summary>戰前劇情。關卡編號 1–10（對應 <see cref="DemoContent.LevelNames"/>）。</summary>
         public static List<StoryLine> Before(int level)
         {
             switch (level)
@@ -186,7 +176,6 @@ namespace SanGuo.Core.Data
             }
         }
 
-        /// <summary>首通後劇情（失敗不播）。第 1–3 關結尾分別是劉備、張飛、關羽加入。</summary>
         public static List<StoryLine> After(int level)
         {
             switch (level)

@@ -1,4 +1,3 @@
-/* 此輪排版規則最後載入，統一實際可讀尺寸。 */
 .meta-page .btn, .meta-page .tab { min-height: 64px; font-size: 28px; }
 .meta-page .btn-sm { min-height: 64px; font-size: 26px; }
 .meta-page .txt, .meta-page .txt-sub, .meta-page .txt-dim, .meta-page .line-sub, .meta-page .card-row-desc { font-size: 26px; }
@@ -27,7 +26,6 @@
 .ui-help-content { min-height: 0; flex-shrink: 1; }
 .ui-help-text { font-size: 28px; color: rgb(234, 232, 213); white-space: normal; margin-bottom: 22px; }
 
-/* 主城：大圖示底部入口與右側主線。 */
 .meta-page.bg-home .strategy-home-top { height: 104px; }
 .meta-page.bg-home .home-player { top: 14px; height: 76px; width: 360px; }
 .meta-page.bg-home .home-player .avatar { width: 72px; height: 72px; }
@@ -51,7 +49,6 @@
 .meta-page.bg-home .home-formation, .meta-page.bg-home .home-formation:hover, .meta-page.bg-home .home-formation:disabled { min-height: 64px; font-size: 28px; }
 .meta-page.bg-home .home-campaign-progress.bar-bg, .meta-page.bg-home .home-campaign-progress .bar-fill { height: 10px; min-height: 10px; }
 
-/* 戰鬥：半身卡圖與放大的隊伍生命區。 */
 .root .bl-bar { width: 350px; left: 12px; top: 84px; padding: 6px; }
 .root .bl-hero { width: 336px; height: 108px; padding: 8px; }
 .root .bl-hero-face { width: 82px; height: 82px; -unity-background-scale-mode: scale-to-fit; flex-shrink: 0; }

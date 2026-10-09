@@ -116,7 +116,6 @@ def build(name,p):
             blade('armored_tasset',xx,-.25,.62,[(-.065,0),(-.072,-.23),(.06,-.25),(.065,0)],GOLD,torso)
         obj('sphere','chest_medallion',(0,-.32,1.09),(.105,.04,.105),GOLD,torso)
         obj('sphere','medallion_jade',(0,-.365,1.10),(.038,.018,.048),color,torso)
-    # Large sculpted face, layered eyes and shaped eyebrows.
     obj('sphere','face',(0,0,1.79),(.52,.43,.46),skin,head)
     obj('sphere','hair_mass',(0,.10,1.97),(.54,.43,.40),hair,head)
     for i in range(5):
@@ -163,10 +162,8 @@ def build(name,p):
     if p.get('eyepatch'):
         obj('sphere','eyepatch',(-.19,-.486,1.82),(.14,.023,.13),INK,head)
         line('eyepatch_strap',[(-.47,-.12,2.00),(-.19,-.46,1.89),(.39,-.28,1.56)],.025,INK,head)
-    # Cape has an actual curved silhouette, not a flat rectangular plane.
     blade('cape',0,.26,.92,[(-.32,.29),(-.43,-.18),(-.36,-.48),(0,-.40),(.42,-.53),(.47,-.16),(.32,.29)],color,torso)
     weapon(kind,r,l)
-    # Different silhouette and hand position for each weapon family.
     r.rotation_euler.y=math.radians(18 if kind in ('glaive','halberd','spear') else 15 if kind=='bow' else 25)
     r.rotation_euler.x=math.radians(-65 if kind=='bow' else -28 if pose=='caster' else 0)
     l.rotation_euler.x=math.radians(-65 if kind=='bow' else -35 if pose=='caster' else -30 if pose=='guard' else 5)
@@ -208,7 +205,6 @@ def main():
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.export_scene.fbx(filepath=os.path.join(out,name+'.fbx'),use_selection=True,object_types={'EMPTY','MESH'},axis_forward='-Z',axis_up='Y',apply_scale_options='FBX_SCALE_ALL',add_leaf_bones=False,mesh_smooth_type='FACE',use_mesh_modifiers=True)
         print('CHIBI_V2',name,flush=True)
-    # Editable native source for the representative playable models.
     old.clear_scene()
     for i,name in enumerate(('guanyu','r_shield','r_archer','r_healer','lvbu','xiahoudun','gongsunzan')):
         root=build(name,HEROES[name]); root.location.x=i*2.7

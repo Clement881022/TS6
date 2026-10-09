@@ -10,10 +10,9 @@ using SanGuo.Server;
 
 namespace SanGuo.Server.Tests;
 
-/// <summary>可手動撥時間的時鐘，用來測換日與體力。</summary>
 public sealed class TestTime : TimeProvider
 {
-    public DateTimeOffset Current { get; set; } = new(2026, 10, 5, 6, 0, 0, TimeSpan.FromHours(8)); // 週一
+    public DateTimeOffset Current { get; set; } = new(2026, 10, 5, 6, 0, 0, TimeSpan.FromHours(8));
     public override DateTimeOffset GetUtcNow() => Current.ToUniversalTime();
 }
 
@@ -96,11 +95,9 @@ public sealed class ServerApiTests : IDisposable
         Assert.True(body.GetProperty("ok").GetBoolean());
         var results = body.GetProperty("data").GetProperty("results");
         Assert.Equal(10, results.GetArrayLength());
-        // 新手池首次十連保底 UR
         Assert.Contains(results.EnumerateArray(), x => x.GetProperty("rarity").GetString() == "UR");
         Assert.Equal(0, body.GetProperty("data").GetProperty("yuanbao").GetInt32());
 
-        // 元寶不夠：不能再抽，且不改變狀態
         var again = await c.PostAsJsonAsync("/gacha/pull", new { poolId = "newbie", count = 1 });
         Assert.Equal(HttpStatusCode.BadRequest, again.StatusCode);
         Assert.Equal("NotEnoughYuanbao", (await Json(again)).GetProperty("code").GetString());
@@ -137,10 +134,9 @@ public sealed class ServerApiTests : IDisposable
         await c.PostAsJsonAsync("/dev/clear", new { stageId = "0-5", stars = 3 });
         var ok = await Json(await c.PostAsJsonAsync("/stage/sweep", new { id = "0-5", count = 2 }));
         Assert.True(ok.GetProperty("ok").GetBoolean());
-        Assert.Equal(1400, ok.GetProperty("data").GetProperty("gold").GetInt32()); // 700 × 2
+        Assert.Equal(1400, ok.GetProperty("data").GetProperty("gold").GetInt32());
     }
 
-    /// <summary>扮演客戶端：抽卡取得武將，再從已擁有的武將排出編隊（最多 4 人）。</summary>
     private async Task<List<SanGuo.Core.Meta.FormationEntry>> BuildTeam(HttpClient c)
     {
         await c.PostAsJsonAsync("/gacha/pull", new { poolId = "newbie", count = 10 });
@@ -150,7 +146,6 @@ public sealed class ServerApiTests : IDisposable
             .Select((id, i) => new SanGuo.Core.Meta.FormationEntry(id, cells[i].Item1, cells[i].Item2)).ToList();
     }
 
-    /// <summary>扮演客戶端：向伺服器開始關卡、用伺服器給的種子自動打完並錄下操作。開放編隊的關卡 / 副本要帶 team。</summary>
     private async Task<List<object>> PlayStageAuto(HttpClient c, string stageId, List<SanGuo.Core.Meta.FormationEntry>? team = null)
     {
         var formation = team?.Select(f => new { heroId = f.HeroId, lane = f.Lane, row = f.Row }).ToList();
@@ -192,7 +187,6 @@ public sealed class ServerApiTests : IDisposable
     {
         var c = Client();
         await c.PostAsync("/login", null);
-        // 素材副本第 1 階要先通關主線第 1-4 關（開發端點直接標記通關）。
         await c.PostAsJsonAsync("/dev/clear", new { stageId = "0-4", stars = 3 });
 
         var team = await BuildTeam(c);
@@ -213,7 +207,6 @@ public sealed class ServerApiTests : IDisposable
         await c.PostAsync("/login", null);
         await c.PostAsJsonAsync("/dev/clear", new { stageId = "0-4", stars = 3 });
 
-        // 沒帶編隊、帶了沒擁有的武將：都被拒絕，體力不扣。
         var before = (await Json(await c.GetAsync("/profile"))).GetProperty("data").GetProperty("stamina").GetProperty("current").GetInt32();
         var none = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId = "res_1" }));
         Assert.Equal("invalid_formation", none.GetProperty("code").GetString());
@@ -233,11 +226,10 @@ public sealed class ServerApiTests : IDisposable
         Assert.True(order.GetProperty("ok").GetBoolean());
         string orderId = order.GetProperty("data").GetProperty("orderId").GetString()!;
 
-        // 付款前什麼都沒有
         Assert.Equal(2000, (await Json(await c.GetAsync("/profile"))).GetProperty("data").GetProperty("yuanbao").GetInt32());
 
         Assert.True((await Json(await c.PostAsJsonAsync("/shop/dev/pay", new { orderId }))).GetProperty("ok").GetBoolean());
-        await c.PostAsJsonAsync("/shop/dev/pay", new { orderId }); // 重複通知
+        await c.PostAsJsonAsync("/shop/dev/pay", new { orderId });
         Assert.Equal(2300, (await Json(await c.GetAsync("/profile"))).GetProperty("data").GetProperty("yuanbao").GetInt32());
 
         var claim = await Json(await c.PostAsJsonAsync("/shop/month-card/claim", new { productId = "month_small" }));
@@ -290,7 +282,6 @@ public sealed class ServerApiTests : IDisposable
         var profile = await Json(await c.GetAsync("/profile"));
         Assert.Equal(2000, profile.GetProperty("data").GetProperty("yuanbao").GetInt32());
 
-        // 進行中的關卡已清掉：不能拿同一個種子再試
         var again = await c.PostAsJsonAsync("/stage/finish", new { stageId = "0-1", actions = new object[0] });
         Assert.Equal("no_pending_stage", (await Json(again)).GetProperty("code").GetString());
     }
@@ -343,7 +334,7 @@ public sealed class ServerApiTests : IDisposable
         string heroId = profile.GetProperty("data").GetProperty("heroes").EnumerateObject().First().Name;
 
         var r = await c.PostAsJsonAsync("/hero/levelup", new { heroId });
-        Assert.Equal(HttpStatusCode.BadRequest, r.StatusCode); // 帳號等級 1、沒有經驗書
+        Assert.Equal(HttpStatusCode.BadRequest, r.StatusCode);
     }
 
     [Fact]
@@ -352,13 +343,11 @@ public sealed class ServerApiTests : IDisposable
         var c = Client();
         await c.PostAsync("/login", null);
 
-        // 登入任務在登入時已回報
         var claim = await Json(await c.PostAsJsonAsync("/quest/claim", new { questId = "d_login" }));
         Assert.True(claim.GetProperty("ok").GetBoolean());
         var twice = await Json(await c.PostAsJsonAsync("/quest/claim", new { questId = "d_login" }));
         Assert.Equal("AlreadyClaimed", twice.GetProperty("code").GetString());
 
-        // 抽卡後，每日抽卡任務可領
         await c.PostAsJsonAsync("/gacha/pull", new { poolId = "standard", count = 1 });
         var gacha = await Json(await c.PostAsJsonAsync("/quest/claim", new { questId = "d_gacha" }));
         Assert.True(gacha.GetProperty("ok").GetBoolean());
@@ -399,7 +388,6 @@ public sealed class ServerApiTests : IDisposable
     {
         var c = Client();
         await c.PostAsync("/login", null);
-        // 2000 元寶只夠一次十連；同時送 5 個請求，只能成功 1 個
         var tasks = Enumerable.Range(0, 5)
             .Select(_ => c.PostAsJsonAsync("/gacha/pull", new { poolId = "standard", count = 10 }));
         var responses = await Task.WhenAll(tasks);
@@ -426,7 +414,6 @@ public sealed class ServerApiTests : IDisposable
         var formation = new[] { new { heroId = "zhangfei", lane = 2, row = 3 }, new { heroId = "liubei", lane = 2, row = 4 } };
         var start = await Json(await c.PostAsJsonAsync("/stage/start", new { stageId = WorldBoss.StageId, formation }));
         Assert.True(start.GetProperty("ok").GetBoolean());
-        // 只結束一回合就交卷：紀錄合法，傷害 0、不上榜。
         var finish = await Json(await c.PostAsJsonAsync("/stage/finish", new { stageId = WorldBoss.StageId, actions = new[] { new { kind = "end" } } }));
         Assert.True(finish.GetProperty("ok").GetBoolean());
         Assert.Equal(0, finish.GetProperty("data").GetProperty("damage").GetInt64());

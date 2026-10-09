@@ -4,7 +4,6 @@ using Xunit;
 
 namespace SanGuo.Core.Tests
 {
-    /// <summary>武將成長：升級、突破（重複份 + 金幣）、將魂溢出、突破模板與裝備（GDD 03 §4、05 §3–4、09）。</summary>
     public class HeroGrowthTests
     {
         private static PlayerProfile Rich(int playerLevel = 60)
@@ -17,8 +16,6 @@ namespace SanGuo.Core.Tests
             return p;
         }
 
-        // ---- 升級 ----
-
         [Fact]
         public void LevelUp_ConsumesGoldAndHeroExp()
         {
@@ -27,8 +24,8 @@ namespace SanGuo.Core.Tests
             p.Materials[HeroGrowth.HeroExp] = 500;
             Assert.Equal(GrowthResult.Ok, HeroGrowth.LevelUp(p, "zhangfei"));
             Assert.Equal(2, p.Heroes["zhangfei"].Level);
-            Assert.Equal(1000 - 30, p.Gold);                 // 金幣 = 30 × 等級
-            Assert.Equal(500 - 50, p.GetMaterial(HeroGrowth.HeroExp)); // 經驗 = 50 × 等級
+            Assert.Equal(1000 - 30, p.Gold);
+            Assert.Equal(500 - 50, p.GetMaterial(HeroGrowth.HeroExp));
         }
 
         [Fact]
@@ -64,8 +61,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(23_400, gold);
         }
 
-        // ---- 重複武將、突破、將魂 ----
-
         [Fact]
         public void Duplicates_StoreAsShardsUntilFiveThenBecomeSouls()
         {
@@ -76,7 +71,7 @@ namespace SanGuo.Core.Tests
                 Assert.Equal((1, 0), (r.Shards, r.Souls));
             }
             Assert.Equal(5, HeroGrowth.Shards(p, "zhangfei"));
-            var overflow = HeroGrowth.AddDuplicate(p, "zhangfei"); // 張飛是 SR
+            var overflow = HeroGrowth.AddDuplicate(p, "zhangfei");
             Assert.Equal((0, 20), (overflow.Shards, overflow.Souls));
             Assert.Equal(20, p.GetMaterial(HeroGrowth.Soul));
             Assert.Equal(5, HeroGrowth.Shards(p, "zhangfei"));
@@ -89,7 +84,7 @@ namespace SanGuo.Core.Tests
             p.Heroes["zhangfei"].Stars = 3;
             HeroGrowth.AddDuplicate(p, "zhangfei");
             HeroGrowth.AddDuplicate(p, "zhangfei");
-            var third = HeroGrowth.AddDuplicate(p, "zhangfei"); // 已突 3 + 持有 2 = 5
+            var third = HeroGrowth.AddDuplicate(p, "zhangfei");
             Assert.True(third.Souls > 0);
         }
 
@@ -113,7 +108,6 @@ namespace SanGuo.Core.Tests
                 Assert.Equal(GrowthResult.Ok, HeroGrowth.Breakthrough(p, "zhangfei"));
                 Assert.Equal(star, p.Heroes["zhangfei"].Stars);
             }
-            // SR：1500 × (1+2+3+4+5)
             Assert.Equal(gold - 1500 * 15, p.Gold);
             Assert.Equal(0, HeroGrowth.Shards(p, "zhangfei"));
             Assert.Equal(GrowthResult.AtCap, HeroGrowth.Breakthrough(p, "zhangfei"));
@@ -141,12 +135,10 @@ namespace SanGuo.Core.Tests
             Assert.Equal(gold, HeroGrowth.BreakthroughGold(rarity, step));
         }
 
-        // ---- 突破模板 ----
-
         [Fact]
         public void Template_FiveStepsFollowGdd_AndMainStatsSumToPlus20Percent()
         {
-            var sword = HeroRoster.MilitiaSword(); // 戰士：攻擊 / 生命
+            var sword = HeroRoster.MilitiaSword();
             var fx = Breakthroughs.For(sword);
             Assert.Equal(5, fx.Count);
             Assert.Equal(new[] { BreakthroughKind.StatBonus, BreakthroughKind.UpgradeCard, BreakthroughKind.StatBonus, BreakthroughKind.StatBonus, BreakthroughKind.UpgradeCard },
@@ -192,27 +184,26 @@ namespace SanGuo.Core.Tests
 
             var d2 = Breakthroughs.ResolveDeck(sword, 2);
             Assert.Contains(d2, c => c.Id == "r_swd_sweep_plus");
-            Assert.Contains(d2, c => c.Id == "r_swd_heavy");          // 另一張尚未升級
+            Assert.Contains(d2, c => c.Id == "r_swd_heavy");
             Assert.DoesNotContain(d2, c => c.Id == "r_swd_sweep");
 
             var d5 = Breakthroughs.ResolveDeck(sword, 5);
             Assert.Contains(d5, c => c.Id == "r_swd_heavy_plus");
             Assert.Equal(5, d5.Count);
-            Assert.Equal(5, sword.Deck.Count);                         // 原定義不變
+            Assert.Equal(5, sword.Deck.Count);
             Assert.Contains(sword.Deck, c => c.Id == "r_swd_sweep");
         }
 
         [Fact]
         public void PairedCards_UpgradeIndependently_TauntExample()
         {
-            // GDD 02 §5 範例：二突將 1 張嘲諷升級為「嘲諷＋」，五突再將另 1 張升級。
             var shield = HeroRoster.MilitiaShield();
             var d2 = Breakthroughs.ResolveDeck(shield, 2);
             Assert.Equal(1, d2.Count(c => c.Name == "嘲諷＋"));
             Assert.Equal(1, d2.Count(c => c.Name == "嘲諷"));
             var d5 = Breakthroughs.ResolveDeck(shield, 5);
             Assert.Equal(2, d5.Count(c => c.Name == "嘲諷＋"));
-            Assert.Equal(2, d5.First(c => c.Name == "嘲諷＋").Effects[0].Amount); // 持續回合 +1
+            Assert.Equal(2, d5.First(c => c.Name == "嘲諷＋").Effects[0].Amount);
         }
 
         [Fact]
@@ -221,21 +212,19 @@ namespace SanGuo.Core.Tests
             var sword = HeroRoster.MilitiaSword();
             var heavy = sword.Deck.First(c => c.Id.EndsWith("_heavy"));
             var up = CardLibrary.Upgrade(heavy);
-            Assert.Equal(heavy.Effects[0].Multiplier + 0.33, up.Effects[0].Multiplier, 2); // 0.5 ÷ 1.5
+            Assert.Equal(heavy.Effects[0].Multiplier + 0.33, up.Effects[0].Multiplier, 2);
             Assert.Equal(heavy.Cost, up.Cost);
             var sweep = CardLibrary.Upgrade(sword.Deck.First(c => c.Id.EndsWith("_sweep")));
-            Assert.Equal(1.11 + 0.22, sweep.Effects[0].Multiplier, 2); // 0.5 ÷ 2.25
+            Assert.Equal(1.11 + 0.22, sweep.Effects[0].Multiplier, 2);
         }
-
-        // ---- 數值縮放 ----
 
         [Fact]
         public void ScaleStats_MultipliesLevelBreakthroughAndEquipment()
         {
             var sword = HeroRoster.MilitiaSword();
             var hero = new HeroState { HeroId = sword.Id, Level = 41, Stars = 5 };
-            hero.Equipment["Weapon"] = 5;                               // 攻擊 +Percents[5]
-            hero.Equipment["Armor"] = 2;                                // 生命 / 防禦 +Percents[2]
+            hero.Equipment["Weapon"] = 5;
+            hero.Equipment["Armor"] = 2;
             double weapon = 1 + Equipment.PercentOf(5) / 100.0, armor = 1 + Equipment.PercentOf(2) / 100.0;
             var s = HeroGrowth.ScaleStats(sword, hero);
             Assert.Equal((int)System.Math.Round(600 * 1.6 * 1.1 * armor), s.Hp);
@@ -248,7 +237,6 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void FullMonthBuild_MatchesGddContributionTable()
         {
-            // GDD 03 §4.2：40 級、5 突、裝備平均 3.5 階 → 攻擊約 ×2.6、生命約 ×2.4。
             var sword = HeroRoster.MilitiaSword();
             var hero = new HeroState { HeroId = sword.Id, Level = 40, Stars = 5 };
             hero.Equipment["Weapon"] = 4;
@@ -268,8 +256,6 @@ namespace SanGuo.Core.Tests
             Assert.True(built.Base.Hp > hp);
             Assert.Equal(5, built.Deck.Count);
         }
-
-        // ---- 裝備 ----
 
         [Fact]
         public void Equipment_EquipSwapsAndReturnsOldToInventory()
@@ -313,10 +299,9 @@ namespace SanGuo.Core.Tests
                 var eq = new System.Collections.Generic.Dictionary<string, int> { ["Weapon"] = tier, ["Armor"] = tier };
                 Assert.Equal(1 + bonus, Equipment.Mods(Role.Warrior, eq).Atk, 6);
                 Assert.Equal(1 + bonus, Equipment.Mods(Role.Warrior, eq).Hp, 6);
-                Assert.Equal(1 + bonus, Equipment.Mods(Role.Mage, eq).Int, 6); // 法系武器加謀略
+                Assert.Equal(1 + bonus, Equipment.Mods(Role.Mage, eq).Int, 6);
                 Assert.Equal(1.0, Equipment.Mods(Role.Mage, eq).Atk);
             }
-            // 非線性：低階比線性（每階 10%）弱、最高階比線性強，且逐階遞增
             for (int tier = 1; tier <= 3; tier++) Assert.True(Equipment.PercentOf(tier) < 10 * tier);
             Assert.True(Equipment.PercentOf(5) > 50);
             for (int tier = 2; tier <= 5; tier++) Assert.True(Equipment.PercentOf(tier) - Equipment.PercentOf(tier - 1) > Equipment.PercentOf(tier - 1) - Equipment.PercentOf(tier - 2));
@@ -328,7 +313,6 @@ namespace SanGuo.Core.Tests
             var p = Rich();
             p.Heroes["handang"] = new HeroState { HeroId = "handang" };
             Assert.Equal(Role.Ranger, HeroRoster.Find("handang")!.Role);
-            // 自選武器匣（贈送用、無職業）穿上就定型；卸下後只剩該職業能再穿
             p.AddMaterial(Equipment.ItemKey(EquipSlot.Weapon, 3), 1);
             Assert.Equal(EquipResult.Ok, Equipment.Equip(p, "handang", EquipSlot.Weapon, 3));
             Assert.Equal(EquipResult.Ok, Equipment.Unequip(p, "handang", EquipSlot.Weapon));
@@ -336,9 +320,8 @@ namespace SanGuo.Core.Tests
             Assert.Equal(0, p.GetMaterial(Equipment.ItemKey(EquipSlot.Weapon, 3)));
             Assert.Equal(1, Equipment.CountFor(p, Role.Ranger, EquipSlot.Weapon, 3));
             Assert.Equal(0, Equipment.CountFor(p, Role.Tank, EquipSlot.Weapon, 3));
-            Assert.Equal(EquipResult.NotOwned, Equipment.Equip(p, "zhangfei", EquipSlot.Weapon, 3)); // 坦克不能穿長弓
+            Assert.Equal(EquipResult.NotOwned, Equipment.Equip(p, "zhangfei", EquipSlot.Weapon, 3));
             Assert.Equal(EquipResult.Ok, Equipment.Equip(p, "handang", EquipSlot.Weapon, 3));
-            // 防具與飾品全職業通用
             p.AddMaterial(Equipment.ItemKey(EquipSlot.Armor, 2), 1);
             Assert.Equal(EquipResult.Ok, Equipment.Equip(p, "zhangfei", EquipSlot.Armor, 2));
             Assert.Equal("長梢弓", Equipment.Name(EquipSlot.Weapon, 3, Role.Ranger));
@@ -350,8 +333,8 @@ namespace SanGuo.Core.Tests
             var p = PlayerProfile.CreateNew(0);
             int cost = Equipment.ShardCostOf(5);
             p.Grant(new Reward().With(Equipment.ShardKey(EquipSlot.Weapon, 5, Role.Mage), cost).With(Equipment.ShardKey(EquipSlot.Weapon, 5, Role.Tank), cost - 1), 0);
-            Assert.Equal(1, p.GetMaterial(Equipment.WeaponKey(Role.Mage, 5)));   // 神品法杖
-            Assert.Equal(0, p.GetMaterial(Equipment.WeaponKey(Role.Tank, 5)));   // 重盾碎片還沒集滿，不會跟法杖碎片混用
+            Assert.Equal(1, p.GetMaterial(Equipment.WeaponKey(Role.Mage, 5)));
+            Assert.Equal(0, p.GetMaterial(Equipment.WeaponKey(Role.Tank, 5)));
             Assert.Equal(cost - 1, p.GetMaterial(Equipment.ShardKey(EquipSlot.Weapon, 5, Role.Tank)));
         }
 

@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace SanGuo.Client
 {
-    /// <summary>效能量測（啟動參數 -sanguoFps）：每秒把平均 / 最差幀時間與目前頁面寫進 Player.log，找卡頓用。</summary>
     public sealed class FpsProbe : MonoBehaviour
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -14,7 +13,6 @@ namespace SanGuo.Client
             var go = new GameObject("FpsProbe");
             DontDestroyOnLoad(go);
             go.AddComponent<FpsProbe>();
-            // -sanguoUncap：解除 60fps 上限，看真實的每幀成本（沒給就維持遊戲原本設定）。
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sanguoUncap") >= 0)
             {
                 QualitySettings.vSyncCount = 0;

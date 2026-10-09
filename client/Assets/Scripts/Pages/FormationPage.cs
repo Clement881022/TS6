@@ -7,10 +7,6 @@ using Position = SanGuo.Core.Position;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 戰前編隊：3x2 站位（共用 5x5 戰場的我方下兩排中央）與上場武將（最多 4 人，只能帶已擁有的武將，戰鬥會套用他們的等級、突破與裝備）。
-    /// 教學關之後的主線關卡與資源副本才會來這裡；按「開戰」才向後端開始並扣體力。
-    /// </summary>
     public sealed class FormationPage : PageBase
     {
         private string? _pick;
@@ -33,10 +29,6 @@ namespace SanGuo.Client
         }
         protected override Page BackPage =>
             StageId == WorldBoss.StageId ? Page.WorldBoss : DemoMeta.FindDungeon(StageId) != null ? Page.Dungeons : Page.Map;
-
-        /// <summary>武將卡下方的小字：等級與職業。</summary>
-        private static string HeroSub(HeroDef h) =>
-            $"Lv.{(GameSession.View.Heroes.TryGetValue(h.Id, out var st) ? st.Level : 1)} {CardText.RoleName(h.Role)}";
 
         private void Back() => Nav.Go(DemoMeta.FindDungeon(StageId) != null ? Page.Dungeons : Page.Map);
 
@@ -66,13 +58,11 @@ namespace SanGuo.Client
                 body.Add(go);
                 return;
             }
-            // 第一次進來（或編隊裡有沒擁有的武將）先自動排好一隊。
             GameSession.EnsureFormation();
             var formation = GameSession.Formation;
 
             body.style.flexDirection = FlexDirection.Column;
 
-            // ---- 上：敵情與提示 ----
             var foes = level.Enemies.GroupBy(e => e.Def.Name).Select(g => g.Count() > 1 ? $"{g.Key} ×{g.Count()}" : g.Key);
             var strip = new VisualElement();
             strip.AddToClassList("form-strip");
@@ -90,7 +80,6 @@ namespace SanGuo.Client
             main.AddToClassList("form-main");
             body.Add(main);
 
-            // ---- 左：站位（前排在上，朝向敵人）----
             var board = new VisualElement();
             board.AddToClassList("bpanel");
             board.AddToClassList("form-board");
@@ -99,7 +88,7 @@ namespace SanGuo.Client
             laneHead.Add(FormLabel("", 80));
             string[] laneNames = { "左", "中", "右" };
             for (int lane = BattleSetup.FormationMinLane; lane <= BattleSetup.FormationMaxLane; lane++)
-                laneHead.Add(FormLabel(laneNames[lane - BattleSetup.FormationMinLane], 190, 6)); // 與 htile-md（190 寬 + 左右各 6）對齊
+                laneHead.Add(FormLabel(laneNames[lane - BattleSetup.FormationMinLane], 190, 6));
             board.Add(laneHead);
             for (int r = BattleSetup.FormationMinRow; r <= BattleSetup.FormationMaxRow; r++)
             {
@@ -128,7 +117,6 @@ namespace SanGuo.Client
             }
             main.Add(board);
 
-            // ---- 右：待命武將 ----
             var bench = new VisualElement();
             bench.AddToClassList("bpanel");
             bench.AddToClassList("form-bench");
@@ -147,7 +135,6 @@ namespace SanGuo.Client
             bench.Add(scroll);
             main.Add(bench);
 
-            // 底部操作列：返回（左）、上場人數（中）、戰鬥（右）。
             var footer = new VisualElement();
             footer.AddToClassList("form-footer");
             footer.Add(UiKit.Btn("返回", Back));
@@ -183,17 +170,16 @@ namespace SanGuo.Client
                 bool pickOnBoard = formation.ContainsKey(_pick);
                 if (occupant == _pick)
                 {
-                    // 再點一次 = 取消選取
                 }
                 else if (pickOnBoard)
                 {
                     var from = formation[_pick];
-                    if (occupant != null) formation[occupant] = from; // 落在隊友格 → 換位
+                    if (occupant != null) formation[occupant] = from;
                     formation[_pick] = new Position(lane, row);
                 }
                 else
                 {
-                    if (occupant != null) formation.Remove(occupant); // 替換：原本的人下場
+                    if (occupant != null) formation.Remove(occupant);
                     else if (formation.Count >= GameSession.MaxTeamSize)
                     {
                         _message = $"場上最多 {GameSession.MaxTeamSize} 人，請先讓一名武將下場";

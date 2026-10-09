@@ -11,13 +11,9 @@ namespace SanGuo.Core.Meta
         public string Name = "";
         public SoulItemKind Kind;
         public int Cost;
-        /// <summary>每月限購次數（每月重置）。</summary>
         public int MonthlyLimit;
-        /// <summary>HeroShard：指定武將。</summary>
         public string HeroId = "";
-        /// <summary>HeroExp / Gold：每次兌換的數量。</summary>
         public int Amount;
-        /// <summary>Equipment：部位與品階。</summary>
         public EquipSlot Slot;
         public int Tier;
     }
@@ -32,11 +28,6 @@ namespace SanGuo.Core.Meta
         HeroMaxed,
     }
 
-    /// <summary>
-    /// 將魂商店（GDD 05 §3.1）：將魂只能在這裡使用，不可兌換為元寶或抽卡。商品各設每月限購。
-    /// 商品清單、價格與限購次數為待決事項；重複份價格 SR 100、UR 300，其餘為暫定值。
-    /// 劇情固定武將（劉備、關羽、張飛）的重複份是否可兌換待決，暫不開放。
-    /// </summary>
     public static class SoulShop
     {
         public static List<SoulShopItem> Items()
@@ -65,7 +56,6 @@ namespace SanGuo.Core.Meta
 
         public static SoulShopItem? Find(string id) => Items().FirstOrDefault(i => i.Id == id);
 
-        /// <summary>換月就清空本月購買紀錄。</summary>
         public static void EnsureMonth(PlayerProfile p, long now)
         {
             string key = DailyClock.MonthKey(now);
@@ -92,7 +82,6 @@ namespace SanGuo.Core.Meta
             {
                 case SoulItemKind.HeroShard:
                     if (!p.Heroes.TryGetValue(item.HeroId, out var hero)) return SoulShopResult.HeroNotOwned;
-                    // 兌換的是突破用的重複份，已經不需要時不賣（避免白白浪費將魂）。
                     if (hero.Stars + HeroGrowth.Shards(p, item.HeroId) >= HeroGrowth.MaxStars) return SoulShopResult.HeroMaxed;
                     p.AddMaterial(HeroGrowth.ShardKey(item.HeroId), 1);
                     break;

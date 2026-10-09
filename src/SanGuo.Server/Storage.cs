@@ -5,7 +5,6 @@ using SanGuo.Core.Meta;
 
 namespace SanGuo.Server;
 
-/// <summary>玩家存檔儲存層。上線前要換成 PostgreSQL 時，只需要另寫一個實作。</summary>
 public interface IProfileStore
 {
     Task<PlayerProfile?> LoadAsync(string accountId);
@@ -26,7 +25,6 @@ public sealed class InMemoryProfileStore : IProfileStore
     }
 }
 
-/// <summary>以 SQLite 儲存：一個帳號一列，存整份存檔 JSON（含版本號，欄位演進由序列化器處理）。</summary>
 public sealed class SqliteProfileStore : IProfileStore
 {
     private readonly string _connectionString;
@@ -78,7 +76,6 @@ public sealed class SqliteProfileStore : IProfileStore
     }
 }
 
-/// <summary>世界 Boss 排行榜（SQLite）：每季每帳號一列，只保留最高分；歷季資料保留，換季結算查上一季。</summary>
 public sealed class SqliteWorldBossBoard : IWorldBossBoard
 {
     private readonly string _connectionString;

@@ -6,10 +6,8 @@ using Xunit;
 
 namespace SanGuo.Core.Tests
 {
-    /// <summary>P5 經濟（企劃 2026-10-09）：每週任務與元寶儲值。</summary>
     public class EconomyTests
     {
-        // 2026-10-05 是星期一；北京時間 06:00 已過 5 點重置。
         private static long At(int day, int hour = 6) =>
             new DateTimeOffset(2026, 10, day, hour, 0, 0, TimeSpan.FromHours(8)).ToUnixTimeSeconds();
 
@@ -35,7 +33,7 @@ namespace SanGuo.Core.Tests
             Assert.Equal(QuestClaimResult.Ok, Quests.Claim(p, "w_login", At(9)));
             Assert.Equal(q.Reward.Yuanbao, p.Yuanbao);
             Assert.Equal(QuestClaimResult.AlreadyClaimed, Quests.Claim(p, "w_login", At(11)));
-            p.OnLogin(At(12)); // 下週一
+            p.OnLogin(At(12));
             Assert.Equal(1, Quests.Progress(p, q));
             Assert.Empty(p.WeeklyClaimed);
         }
@@ -55,7 +53,7 @@ namespace SanGuo.Core.Tests
             Assert.Equal(ShopResult.Ok, Shop.CreateOrder(p, id, "o1", At(5)));
             Assert.Equal(ShopResult.Ok, Shop.Fulfill(p, "o1", At(5)));
             Assert.Equal(600, p.Yuanbao);
-            Assert.Equal(ShopResult.Ok, Shop.Fulfill(p, "o1", At(5))); // 重複通知不重複發
+            Assert.Equal(ShopResult.Ok, Shop.Fulfill(p, "o1", At(5)));
             Assert.Equal(600, p.Yuanbao);
             Assert.Equal(ShopResult.Ok, Shop.CreateOrder(p, id, "o2", At(5)));
             Assert.Equal(ShopResult.Ok, Shop.Fulfill(p, "o2", At(5)));

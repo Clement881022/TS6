@@ -5,7 +5,6 @@ using Xunit;
 
 namespace SanGuo.Core.Tests
 {
-    /// <summary>困難主線（P6）：解鎖、難度、條件與獎勵。</summary>
     public class HardStageTests
     {
         [Fact]
@@ -16,7 +15,7 @@ namespace SanGuo.Core.Tests
             Assert.Equal((2, 7), (c, l));
             Assert.False(HardStages.TryParse("2-7", out _, out _));
             Assert.False(Campaign.TryParse("H2-7", out _, out _));
-            Assert.False(HardStages.TryParse("H0-3", out _, out _)); // 第零章沒有困難版
+            Assert.False(HardStages.TryParse("H0-3", out _, out _));
             Assert.Equal("H2-7", DemoMeta.FindStage("H2-7")!.StageId);
         }
 
@@ -24,7 +23,7 @@ namespace SanGuo.Core.Tests
         public void Unlock_NeedsMainCampaignClear_AndPreviousHardClear()
         {
             var cleared = new HashSet<string> { "1-1", "1-2" };
-            Assert.False(HardStages.IsUnlocked(cleared, 1, 1)); // 主線尚未全通
+            Assert.False(HardStages.IsUnlocked(cleared, 1, 1));
             cleared.Add(HardStages.UnlockStage);
             Assert.True(HardStages.IsUnlocked(cleared, 1, 1));
             Assert.False(HardStages.IsUnlocked(cleared, 1, 2));
@@ -39,7 +38,7 @@ namespace SanGuo.Core.Tests
             var hard = HardStages.Setup(1, 3, 1);
             Assert.Equal(normal.Enemies.Count, hard.Enemies.Count);
             Assert.All(hard.Enemies.Zip(normal.Enemies, (h, n) => h.Level - n.Level), d => Assert.True(d > 0));
-            Assert.True(hard.TurnLimit > 0); // 第 3 關限回合
+            Assert.True(hard.TurnLimit > 0);
             Assert.NotNull(HardStages.BannedRole(2, 6));
             Assert.Null(HardStages.BannedRole(2, 5));
             Assert.True(HardStages.EnemyLevelOf(6, 10) > HardStages.EnemyLevelOf(1, 1));
@@ -52,7 +51,7 @@ namespace SanGuo.Core.Tests
             p.Heroes["liubei"] = new HeroState { HeroId = "liubei" };
             p.Heroes["zhangfei"] = new HeroState { HeroId = "zhangfei" };
             p.ClearedStages.UnionWith(new[] { HardStages.UnlockStage, "H1-5" });
-            var banned = HardStages.BannedRole(1, 6); // 第 1 章禁醫者
+            var banned = HardStages.BannedRole(1, 6);
             Assert.Equal(Role.Healer, banned);
             var withHealer = new List<FormationEntry> { new FormationEntry("liubei", 2, 4), new FormationEntry("zhangfei", 2, 3) };
             Assert.Equal("banned_role", StageFlow.Start(p, "H1-6", 0, 1, withHealer).Code);

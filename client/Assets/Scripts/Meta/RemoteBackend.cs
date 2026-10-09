@@ -12,11 +12,6 @@ using UnityEngine.Networking;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 伺服器後端：呼叫 SanGuo.Server 的 HTTP 端點。規則與結算都在伺服器，客戶端只交出操作紀錄。
-    /// 帳號：登入取得 token（Authorization: Bearer），存在 PlayerPrefs 下次沿用。
-    /// 開發用：建構時給 devAccount 就改送 X-Account 標頭（伺服器需開啟開發模式）。
-    /// </summary>
     public sealed class RemoteBackend : IGameBackend, IAccountBackend
     {
         private const string TokenPref = "sanguo.token";
@@ -43,12 +38,10 @@ namespace SanGuo.Client
         private void SetToken(string token)
         {
             _token = token;
-            _loggedIn = false; // 換了帳號：下次取存檔先走 /login（建立存檔 / 換日）
+            _loggedIn = false;
             PlayerPrefs.SetString(TokenPref, token);
             PlayerPrefs.Save();
         }
-
-        // ---- 帳號 ----
 
         private static string GuestKey()
         {
@@ -134,14 +127,12 @@ namespace SanGuo.Client
             {
                 if (request.responseCode == 401)
                 {
-                    // token 過期或已登出：清掉並通知畫面回登入頁。
                     if (_devAccount == null && _token != "") SetToken("");
                     SessionLost?.Invoke();
                     return new Response { Code = "unauthorized" };
                 }
                 if (request.responseCode == 429) return new Response { Code = "rate_limited" };
                 string text = request.downloadHandler.text;
-                // 伺服器業務錯誤是 400 + JSON；連不上或其他錯誤沒有 JSON。
                 if (text.Length > 0 && MiniJson.Parse(text) is Dictionary<string, object?> root && root.ContainsKey("ok"))
                 {
                     var r = new Response { Ok = root["ok"] is true, Code = root["code"] as string ?? "error" };
@@ -190,12 +181,10 @@ namespace SanGuo.Client
 
         public async Task<ProfileView?> GetProfile()
         {
-            // 第一次先登入（建立帳號 / 換日），之後只讀。
             var r = _loggedIn ? await Send("GET", "/profile") : await Send("POST", "/login");
             if (!r.Ok) return null;
             _loggedIn = true;
 
-            // 伺服器回的是完整存檔（同 ProfileSerializer 格式）加上換算好的體力。
             var d = r.Data;
             var view = ProfileView.From(ProfileSerializer.FromObject(d), 0);
             if (d.TryGetValue("stamina", out var st) && st is Dictionary<string, object?> sd)

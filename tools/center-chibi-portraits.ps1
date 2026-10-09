@@ -1,4 +1,3 @@
-# Independent face and bust compositions. Anchors are inspected eye centres, not alpha bounding boxes.
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Drawing
 $projectRoot=Split-Path -Parent $PSScriptRoot

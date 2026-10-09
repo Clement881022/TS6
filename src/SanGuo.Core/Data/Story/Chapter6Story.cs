@@ -3,10 +3,6 @@ using static SanGuo.Core.Data.Cast;
 
 namespace SanGuo.Core.Data
 {
-    /// <summary>
-    /// 第六章　火燒洛陽：董卓西遷、救洛陽百姓與糧倉、滎陽救曹操、追擊車隊、李傕郭汜，章末擊敗手持天書第二卷的董卓。
-    /// 命牌第七枚歸位並顯現異象（群雄眼中的暗光），天書第三卷下落不明——為架空章節的魔化埋伏筆。
-    /// </summary>
     public static class Chapter6Story
     {
         private static StoryLine CaoCao(string text) => S("曹操", "", text);

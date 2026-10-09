@@ -5,11 +5,6 @@ using System.Text;
 
 namespace SanGuo.Core.Data
 {
-    /// <summary>
-    /// 極小的 JSON 讀寫（無外部依賴，Unity / 伺服器共用）。
-    /// 物件模型：null、bool、long、double、string、List&lt;object?&gt;、Dictionary&lt;string, object?&gt;。
-    /// 輸出的物件鍵依序排序，結果可重現（方便比對與測試）。
-    /// </summary>
     public static class MiniJson
     {
         public static object? Parse(string json)

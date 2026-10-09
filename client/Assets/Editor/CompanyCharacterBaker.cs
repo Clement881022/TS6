@@ -7,11 +7,6 @@ using UnityEngine;
 
 namespace SanGuo.Client.Editor
 {
-    /// <summary>
-    /// 把公司的模組化角色（Avatar 骨架 + Body / Hair / Face 部件）烘焙成 Resources/Characters/&lt;defId&gt;.prefab，
-    /// 取代 Blender 程式化生成的占位 FBX。部件以骨頭名稱重新綁到 Avatar 骨架上，並填入 CharacterClipSet。
-    /// 選單：SanGuo / 烘焙公司角色。
-    /// </summary>
     public static class CompanyCharacterBaker
     {
         private const string ModelRoot = "Assets/Arts/Models";
@@ -27,8 +22,6 @@ namespace SanGuo.Client.Editor
             }
         }
 
-        // defId → 外觀。數字取自公司 CharacterSkin 表（體型 / 身體 / 臉 / 頭髮 / 鬍子 / 主手武器 與各自的材質版本）。
-        // 武將本人用同名角色的外觀；鄉勇、黃巾沿用公司的雜兵外觀；公司沒有的龐統借用荀彧的外觀。
         private static readonly Dictionary<string, Look> Looks = new Dictionary<string, Look>
         {
             ["liubei"] = new Look(1, 1, 1, 1, cosmetic: 1, weapon: 1),
@@ -40,13 +33,11 @@ namespace SanGuo.Client.Editor
             ["pangtong"] = new Look(2, 23, 23, 23, cosmetic: 4, weapon: 30),
             ["zhangjiao"] = new Look(2, 5, 5, 5, cosmetic: 5, weapon: 6),
             ["yt_zhangjiao"] = new Look(2, 5, 5, 5, cosmetic: 5, weapon: 6),
-            // 鄉勇（公司「男體1拚」）
             ["r_militia"] = new Look(1, 1, 10002, 10001, bodyMat: 2, cosmetic: 10006, weapon: 5),
             ["r_villager"] = new Look(1, 1, 10003, 10001, bodyMat: 3, cosmetic: 10006, weapon: 17),
             ["r_shield"] = new Look(1, 1, 10005, 10003, bodyMat: 4, cosmetic: 10006, weapon: 15),
             ["r_archer"] = new Look(1, 1, 10006, 10006, bodyMat: 6, cosmetic: 10006),
             ["r_healer"] = new Look(4, 14, 14, 14, cosmetic: 4, weapon: 4),
-            // 黃巾（公司黃巾賊 / 黃巾頭目）
             ["yt_soldier"] = new Look(1, 1, 10002, 10005, bodyMat: 6, cosmetic: 10006, weapon: 11),
             ["yt_archer"] = new Look(1, 6, 20001, 20001, cosmetic: 10003),
             ["yt_brute"] = new Look(2, 2, 20001, 20005, bodyMat: 3, cosmetic: 20004, weapon: 5),
@@ -56,7 +47,6 @@ namespace SanGuo.Client.Editor
             ["yt_priest"] = new Look(1, 10, 20003, 20005, bodyMat: 6, cosmetic: 10006, weapon: 14),
             ["yt_sharpshooter"] = new Look(2, 2, 20001, 20005, bodyMat: 3, cosmetic: 20004),
             ["yt_warlock"] = new Look(1, 12, 20004, 20004, bodyMat: 6, cosmetic: 10003, weapon: 20),
-            // 第零章盜匪 / 山賊：先沿用黃巾雜兵的外觀（之後換成沒有黃巾頭飾的專屬外觀）
             ["bandit_grunt"] = new Look(1, 1, 10002, 10005, bodyMat: 6, cosmetic: 10006, weapon: 11),
             ["bandit_archer"] = new Look(1, 6, 20001, 20001, cosmetic: 10003),
             ["bandit_marksman"] = new Look(2, 2, 20001, 20005, bodyMat: 3, cosmetic: 20004),
@@ -72,7 +62,6 @@ namespace SanGuo.Client.Editor
         private static readonly Vector3 WeaponPos = Vector3.zero;
         private static readonly Vector3 WeaponEuler = Vector3.zero;
 
-        /// <summary>吉祥物「巴豆妖」：Avatar_10001 骨架 + 對應部件，烘成 Resources/Characters/badou.prefab（教學對話用）。</summary>
         [MenuItem("SanGuo/烘焙巴豆妖")]
         public static void BakeMascot()
         {
@@ -84,7 +73,6 @@ namespace SanGuo.Client.Editor
             if (Application.isBatchMode) EditorApplication.Exit(ok ? 0 : 1);
         }
 
-        /// <summary>只烘焙第零章盜匪（bandit_*），不動其他已烘焙的角色。</summary>
         [MenuItem("SanGuo/烘焙盜匪")]
         public static void BakeBandits()
         {
@@ -131,11 +119,9 @@ namespace SanGuo.Client.Editor
                           & (look.Hair <= 0 || Attach(renderers, bones, "HairRenderer", $"Hair/Hair_{look.Hair:00000}/Hair_{look.Hair:00000}_Fbx.fbx", look.HairMat))
                           & (look.Face <= 0 || Attach(renderers, bones, "FaceRenderer", $"Face/Face_{look.Face:00000}/Face_{look.Face:00000}_Fbx.fbx", look.FaceMat));
                 if (!good) return false;
-                // 鬍子 / 配件：沒有或失敗都不致命，只是少一個部件。
                 if (look.Cosmetic > 0)
                     Attach(renderers, bones, "CosmeticRenderer", $"Cosmetic/Cosmetic_{look.Cosmetic:00000}/Cosmetic_{look.Cosmetic:00000}_Fbx.fbx", 1);
 
-                // 沒有衣飾部件的 renderer 留空 mesh 會出錯，直接關掉。
                 foreach (var r in renderers) if (r.sharedMesh == null) r.gameObject.SetActive(false);
 
                 if (look.Weapon > 0) AttachWeapon(bones, look.Weapon);
@@ -173,7 +159,6 @@ namespace SanGuo.Client.Editor
                 string n = src.bones[i] != null ? src.bones[i].name : "";
                 if (!bones.TryGetValue(n, out var bone))
                 {
-                    // 部件自帶的額外骨頭（胸甲、披風等）：沿部件的階層往上找到 Avatar 上已有的祖先，補建缺的那段。
                     bone = src.bones[i] != null ? EnsureBone(src.bones[i], bones) : null;
                     if (bone == null)
                     {
@@ -185,7 +170,6 @@ namespace SanGuo.Client.Editor
             }
             target.sharedMesh = src.sharedMesh;
             target.sharedMaterials = src.sharedMaterials;
-            // 材質版本（公司表的「身體 / 臉 / 頭髮材質」）：<部件>_<版本>_Mat.mat；只有單一材質槽的部件才換。
             if (matVariant > 1 && src.sharedMaterials.Length == 1)
             {
                 string dir = path.Substring(0, path.LastIndexOf('/'));

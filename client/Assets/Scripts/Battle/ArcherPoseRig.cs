@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace SanGuo.Client
 {
-    /// <summary>Correct the bow grip after the source animation; arms still use the original skin weights.</summary>
     [DefaultExecutionOrder(200)]
     public sealed class ArcherPoseRig : MonoBehaviour
     {

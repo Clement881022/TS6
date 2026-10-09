@@ -4,7 +4,6 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>頁面說明獨立於常駐 HUD；不改變首次教學的完成狀態。</summary>
     public static class UiHelp
     {
         public static Button Button(VisualElement host, Page page) =>

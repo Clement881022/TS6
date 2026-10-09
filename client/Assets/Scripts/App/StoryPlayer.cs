@@ -7,16 +7,10 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 劇情對白播放（視覺小說式）：沿用新手引導的版面，每句話可換說話者與立繪（有全身立繪用立繪，沒有就用 3D 模型）。
-    /// 劇情資料在 <see cref="CampaignStory"/>（序章在 <see cref="DemoStory"/>）；看過與否由呼叫端決定（戰前＝關卡尚未通關、戰後＝首通）。
-    /// 截圖模式（-sanguoShot）不彈，除非加 -sanguoShowTutorial。
-    /// </summary>
     public static class StoryPlayer
     {
         private const long CharIntervalMs = 28;
 
-        /// <summary>序章：新帳號（沒通關過任何關卡）第一次進主城時播放，播完（或略過）呼叫 <paramref name="proceed"/>。</summary>
         public static void ShowIntro(VisualElement layer, Action proceed)
         {
             const string key = "story_intro";
@@ -24,10 +18,8 @@ namespace SanGuo.Client
             Show(layer, "序章　涿縣的清晨", DemoStory.Intro(), () => { Tutorial.MarkSeen(key); proceed(); });
         }
 
-        /// <summary>主線關卡戰前劇情：該關尚未通關才播，播完（或沒有劇情）呼叫 <paramref name="proceed"/>。</summary>
         public static void ShowBefore(VisualElement layer, int chapter, int level, Action proceed)
         {
-            // 第零章沿用舊 key（已看過的玩家不重播）。
             string key = chapter == 0 ? "story_before_" + level : $"story_before_{chapter}_{level}";
             bool cleared = GameSession.View.ClearedStages.Contains(GameSession.StageIdOf(chapter, level));
             if (cleared || Tutorial.Seen(key) || !SanGuo.Core.Campaign.IsValid(chapter, level)
@@ -35,18 +27,15 @@ namespace SanGuo.Client
                 proceed();
         }
 
-        /// <summary>主線關卡首通後劇情。</summary>
         public static void ShowAfter(VisualElement layer, int chapter, int level)
         {
-            if (GameSession.HardMode) return; // 困難主線不重播劇情
+            if (GameSession.HardMode) return;
             if (SanGuo.Core.Campaign.IsValid(chapter, level))
                 Show(layer, StageTitle(chapter, level), CampaignStory.After(chapter, level));
         }
 
-        /// <summary>劇情標題：「2-10　張角」。</summary>
         public static string StageTitle(int chapter, int level) => $"{chapter}-{level}　{SanGuo.Core.Campaign.LevelName(chapter, level)}";
 
-        /// <summary>播放對白；播完或略過都呼叫 <paramref name="onDone"/>。沒有對白或截圖模式時直接回傳 false（不呼叫 onDone）。</summary>
         public static bool Show(VisualElement layer, string title, IReadOnlyList<StoryLine> lines, Action? onDone = null)
         {
             if (lines.Count == 0 || Tutorial.Seen("_story_suppress")) return false;
@@ -83,7 +72,6 @@ namespace SanGuo.Client
             overlay.Add(band);
 
             int index = 0;
-            // 驗證畫面用：-sanguoStoryLine <n> 從第 n 句開始（0 起算）。
             var args = Environment.GetCommandLineArgs();
             int dbg = Array.IndexOf(args, "-sanguoStoryLine");
             if (dbg >= 0 && dbg + 1 < args.Length && int.TryParse(args[dbg + 1], out int startAt)) index = Mathf.Clamp(startAt, 0, lines.Count - 1);
@@ -120,7 +108,6 @@ namespace SanGuo.Client
                     portrait.style.backgroundImage = new StyleBackground(art);
                     return;
                 }
-                // 劇情一律用半身像：把 3D 角色只框住上半身畫到 RenderTexture（背景透明）。
                 if (!stages.TryGetValue(line.Portrait, out var model))
                 {
                     model = ModelStage.Create(line.Portrait, 640, 600, bust: true);
@@ -169,7 +156,6 @@ namespace SanGuo.Client
                 if (index < lines.Count - 1) { index++; Render(); }
             }
 
-            // 點對話帶任何地方：先把字顯示完，再點才進下一句（最後一句用按鈕結束）
             band.RegisterCallback<ClickEvent>(e =>
             {
                 if (e.target is Button) return;

@@ -5,10 +5,6 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 新手引導（視覺小說式對話）：底部半透明對話帶 + 菱形名牌 + 右側角色立繪，逐字顯示，點一下繼續；
-    /// 看過就記在本機 PlayerPrefs。截圖模式（-sanguoShot）不彈，避免擋住畫面。
-    /// </summary>
     public static class Tutorial
     {
         private const string Prefix = "sanguo_tut_";
@@ -21,28 +17,15 @@ namespace SanGuo.Client
             catch (Exception) { return false; }
         }
 
-        /// <summary>截圖模式加 -sanguoShowTutorial 才會彈教學（驗證畫面用）。</summary>
         private static readonly bool ForceShow = Array.IndexOf(Environment.GetCommandLineArgs(), "-sanguoShowTutorial") >= 0;
 
         public static void MarkSeen(string key)
         {
             if (GameSession.ShotDir != null) return;
             try { PlayerPrefs.SetInt(Prefix + key, 1); PlayerPrefs.Save(); }
-            catch (Exception) { /* 存不了就下次再看一次，不影響遊戲 */ }
+            catch (Exception) {  }
         }
 
-        /// <summary>清掉所有引導紀錄（重看一次新手流程用）。</summary>
-        public static void ResetAll()
-        {
-            foreach (var key in new[] { "home", "battle1", "battle2", "battle3", "battle4", "battle5", "battle6", "battle7", "battle8", "battle10", "story_intro", "story_before_1", "story_before_2", "story_before_3", "story_before_4", "story_before_5", "story_before_6", "story_before_7", "story_before_8", "story_before_9", "story_before_10" })
-                PlayerPrefs.DeleteKey(Prefix + key);
-            PlayerPrefs.Save();
-        }
-
-        /// <summary>
-        /// 沒看過才顯示。title 是對話標題；speaker 是名牌上的說話者（預設用 title）；heroId 有全身立繪時站在右側。
-        /// 最後一頁的按鈕文字為 doneText，按下後記為看過並呼叫 onDone；跳過只記為看過。回傳 true 表示有彈出。
-        /// </summary>
         public static bool Show(VisualElement layer, string key, string title, string[] pages,
             string doneText = "知道了", Action? onDone = null, string? speaker = null, string? heroId = null, string? model = null)
         {
@@ -147,13 +130,11 @@ namespace SanGuo.Client
                 }).Every(CharIntervalMs);
             }
 
-            // 點對話帶任何地方：先把字顯示完，再點才進下一頁（最後一頁用按鈕結束）
             band.RegisterCallback<ClickEvent>(e =>
             {
                 if (e.target is Button) return;
                 Advance();
             });
-            // ▽ 提示閃爍
             next.schedule.Execute(() => next.ToggleInClassList("tut-next-dim")).Every(520);
 
             Render();

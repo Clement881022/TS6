@@ -5,29 +5,20 @@ namespace SanGuo.Core.Meta
     public enum DungeonEntryResult
     {
         Ok,
-        /// <summary>尚未通關解鎖該階的主線關卡。</summary>
         Locked,
         NotEnoughStamina,
         InvalidCount,
         NotCleared,
     }
 
-    /// <summary>
-    /// 素材副本（GDD 05 §7）：分五階，與裝備品階 1–5 對應，體力 20／25／30／35／40；
-    /// 產出金幣、武將經驗、裝備與少量元寶。各階隨章節解鎖。沒有每日次數限制。
-    /// </summary>
     public sealed class ResourceDungeonDef
     {
         public string Id = "";
         public string Name = "";
-        /// <summary>副本階數 1–5，同時決定掉落的裝備品階。</summary>
         public int Tier = 1;
         public int StaminaCost = 20;
-        /// <summary>通關這個主線關卡後解鎖（空字串 = 一開始就開放）。</summary>
         public string UnlockStageId = "";
-        /// <summary>每次通關固定獲得的獎勵（裝備掉落另計）。</summary>
         public Reward Reward = new Reward();
-        /// <summary>每次掉落的裝備數量。</summary>
         public int EquipmentDrops = 1;
     }
 
@@ -38,22 +29,19 @@ namespace SanGuo.Core.Meta
         public static bool IsUnlocked(PlayerProfile p, ResourceDungeonDef d) =>
             d.UnlockStageId == "" || p.ClearedStages.Contains(d.UnlockStageId);
 
-        /// <summary>開打前檢查：已解鎖、體力夠；成功才扣體力。</summary>
         public static DungeonEntryResult TryEnter(PlayerProfile p, ResourceDungeonDef d, long now) =>
             Consume(p, d, 1, now);
 
-        /// <summary>戰鬥勝利：發固定獎勵與裝備掉落（以種子決定部位），並記為已通關（之後可掃蕩）。回傳實際獲得的獎勵。</summary>
         public static Reward ClaimWin(PlayerProfile p, ResourceDungeonDef d, long now, ulong seed)
         {
             var reward = WithDrops(d, 1, new Rng(seed));
             p.Grant(reward, now);
-            p.AddExp(d.StaminaCost, now); // 帳號經驗 = 消耗的體力
+            p.AddExp(d.StaminaCost, now);
             p.ClearedStages.Add(d.Id);
             Quests.Report(p, Quests.Events.ResourceRun, 1, now);
             return reward;
         }
 
-        /// <summary>掃蕩：通關過的副本直接領獎勵，消耗與該關相同的體力。回傳實際獲得的獎勵。</summary>
         public static DungeonEntryResult TrySweep(PlayerProfile p, ResourceDungeonDef d, int count, long now, out Reward? reward)
         {
             reward = null;
@@ -63,7 +51,7 @@ namespace SanGuo.Core.Meta
             if (r != DungeonEntryResult.Ok) return r;
             reward = WithDrops(d, count, new Rng((ulong)now * 2654435761UL + (ulong)count));
             p.Grant(reward, now);
-            p.AddExp(d.StaminaCost * count, now); // 帳號經驗 = 消耗的體力
+            p.AddExp(d.StaminaCost * count, now);
             Quests.Report(p, Quests.Events.ResourceRun, count, now);
             Quests.Report(p, Quests.Events.Sweep, count, now);
             return DungeonEntryResult.Ok;
@@ -86,15 +74,10 @@ namespace SanGuo.Core.Meta
         }
     }
 
-    /// <summary>素材副本表（五階；獎勵數值與解鎖關卡為暫定值）。</summary>
     public static class DemoResourceDungeons
     {
         private static readonly string[] Names = { "糧倉護衛", "校場操練", "兵器鋪", "軍械庫", "中軍帳" };
         private static readonly int[] Stamina = { 20, 25, 30, 35, 40 };
-        /// <summary>
-        /// 解鎖條件（企劃 2026-10-09）：第 1 階於主線 0-4 通關後開放；之後逐階解鎖，打贏第 N 階就開第 N+1 階，不看主線章節
-        /// （副本的通關紀錄也記在 <see cref="PlayerProfile.ClearedStages"/>，所以條件直接寫前一階的副本 id）。
-        /// </summary>
         private static readonly string[] Unlock = { "0-4", "res_1", "res_2", "res_3", "res_4" };
 
         public static string IdOf(int tier) => "res_" + tier;

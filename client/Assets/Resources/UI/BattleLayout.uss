@@ -1,12 +1,8 @@
-/* 戰鬥畫面版面（仿超時空方舟）：左 = 結束回合 / 費用 + 手牌清單，右 = 選定技能後的卡片詳情，底 = 武將資訊列。
-   參考解析度 1920x1080；最後載入，覆蓋 Battle.uss / BattleTheme.uss 舊的底部手牌樣式。 */
 
-/* 所有版面文字加描邊，疊在 3D 場景上才讀得清楚 */
 .bl-left Label, .bl-bar Label, .bl-detail Label, .bl-log Label {
     -unity-text-outline-width: 0;
 }
 
-/* ---- 左側 ---- */
 .bl-left {
     position: absolute;
     left: 12px; top: 68px;
@@ -61,7 +57,6 @@
     -unity-text-outline-width: 0;
 }
 
-/* ---- 右側：卡片詳情 ---- */
 .bl-detail {
     position: absolute;
     right: 14px; top: 200px;
@@ -94,7 +89,6 @@
 .bl-d-cancel { background-color: rgb(70, 76, 100); height: 44px; font-size: 26px; }
 .bl-d-cancel:hover { background-color: rgb(92, 100, 132); }
 
-/* ---- 底部：武將資訊列 ---- */
 .bl-bar {
     position: absolute;
     left: 0; right: 0; bottom: 0;
@@ -138,7 +132,6 @@
 .bl-stat.ui-down, .bl-stat-main.ui-down { color: rgb(255, 120, 108); }
 .bl-chips { flex-direction: row; flex-wrap: wrap; margin-top: 2px; }
 
-/* ---- 紀錄：右上 ---- */
 .bl-log {
     position: absolute;
     right: 14px; top: 66px;
@@ -149,7 +142,6 @@
 }
 .bl-log-line { font-size: 23px; color: rgb(214, 226, 250); white-space: normal; }
 
-/* ---- 懸停面板與角色標籤：字放大、加描邊 ---- */
 .unit-info { width: 330px; }
 .unit-info Label { -unity-text-outline-width: 0; }
 .ui-name { font-size: 32px; }
@@ -167,7 +159,6 @@
 .tag-hp-text { font-size: 19px; }
 .tag-hero .tag-hp-text { font-size: 18px; }
 
-/* ---- 牌堆按鈕 ---- */
 .bl-piles { flex-direction: row; margin-bottom: 6px; }
 .bl-pile-btn {
     flex-grow: 1;
@@ -181,7 +172,6 @@
 }
 .bl-pile-btn:hover { background-color: rgba(40, 60, 120, 0.95); border-color: rgb(190, 214, 255); }
 
-/* ---- 牌堆檢視（全螢幕卡片格，仿殺戮尖塔）---- */
 .pv-overlay {
     position: absolute;
     left: 0; right: 0; top: 0; bottom: 0;
@@ -225,7 +215,6 @@
 .pv-tag { position: absolute; right: 10px; top: 6px; font-size: 20px; color: rgb(255, 150, 110); }
 .pv-card Label, .pv-panel Label { -unity-text-outline-width: 0; }
 
-/* 牌堆按鈕：圖示 + 張數，兩顆等寬等高 */
 .bl-pile-btn { flex-direction: row; align-items: center; justify-content: center; height: 56px; padding: 0 8px; }
 .bl-pile-icon { width: 40px; height: 40px; margin-right: 10px; }
 .bl-pile-count { font-size: 32px; -unity-font-style: bold; color: rgb(255, 232, 150); }

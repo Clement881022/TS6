@@ -4,7 +4,6 @@ using SanGuo.Core;
 
 namespace SanGuo.Client
 {
-    /// <summary>把規則資料轉成玩家看得懂的中文文字（顯示名稱與規則欄位分離）。</summary>
     public static class CardText
     {
         public static string StatusName(StatusType type)
@@ -23,18 +22,6 @@ namespace SanGuo.Client
             }
         }
 
-        /// <summary>武將定位（刷圖型／Boss 型／泛用）。</summary>
-        public static string FocusName(HeroFocus focus)
-        {
-            switch (focus)
-            {
-                case HeroFocus.Farming: return "刷圖型";
-                case HeroFocus.Boss: return "Boss 型";
-                default: return "泛用";
-            }
-        }
-
-        /// <summary>被動說明（未解鎖時註明 5★ 解鎖）。</summary>
         public static string Passive(HeroDef def, bool unlocked) =>
             def.Passive == PassiveKind.None ? "" :
             $"被動「{Passives.Name(def.Passive)}」{(unlocked ? "" : "（5★ 解鎖）")}：{Passives.Description(def.Passive)}";
@@ -67,10 +54,8 @@ namespace SanGuo.Client
             }
         }
 
-        /// <summary>屬性名稱（懸停面板用）。謀略 = 法術傷害、治療、護盾與燃燒層數的計算基礎。</summary>
-        public const string AtkName = "攻擊", IntName = "謀略", DefName = "防禦", MoveName = "移動力";
+        public const string IntName = "謀略", DefName = "防禦", MoveName = "移動力";
 
-        /// <param name="range">施放者的攻擊範圍（單體牌的射程）。</param>
         public static string Target(CardDef def, int range)
         {
             string who;
@@ -138,7 +123,6 @@ namespace SanGuo.Client
 
         private static string Pct(double multiplier) => $"{multiplier * 100:0}%";
 
-        /// <summary>卡面用短句；完整規則保留於詳情和 tooltip，不讓長描述擠出牌框。</summary>
         public static string Summary(CardDef def)
         {
             var parts = new List<string>();
@@ -160,14 +144,12 @@ namespace SanGuo.Client
                 }
             }
             if (def.KillRefund > 0) parts.Add($"擊敗回 {def.KillRefund} 費");
-            // 卡面只放得下 2 行短句：放得下就用原格式，多段效果的專屬牌改用精簡寫法，超過 2 段以「…」表示（完整規則在詳情與 tooltip）。
             if (parts.Count <= 2 && parts.All(p => Width(p) <= 14)) return string.Join("\n", parts);
             var compact = Compact(def);
             if (compact.Count > 2) compact = new List<string> { compact[0], compact[1] + "…" };
             return string.Join("\n", compact);
         }
 
-        /// <summary>顯示寬度估算：全形字算 2、半形算 1。</summary>
         private static int Width(string s) => s.Sum(ch => ch > 0x7F ? 2 : 1);
 
         private static string ShortStatus(StatusType s)

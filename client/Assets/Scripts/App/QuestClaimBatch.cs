@@ -6,7 +6,6 @@ using SanGuo.Core.Meta;
 
 namespace SanGuo.Client
 {
-    /// <summary>只協調既有領取 API；所有達成與發獎判定仍由後端執行。</summary>
     public static class QuestClaimBatch
     {
         public sealed class Result
@@ -33,7 +32,6 @@ namespace SanGuo.Client
                 result.Claimed++;
             }
             if (kind != QuestKind.SevenDay) return result;
-            // 領任務後的新點數可能讓更多里程碑達標。
             view = await refresh();
             if (view == null) { result.Error = "network"; return result; }
             int points = Quests.SevenDayPoints(view.Raw);

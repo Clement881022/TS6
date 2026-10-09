@@ -3,12 +3,9 @@ using Xunit;
 
 namespace SanGuo.Core.Tests
 {
-    /// <summary>標竿卡組、效價驗算、職業屬性基準與武將名單（GDD 02、03、08）。</summary>
     public class StarterDeckTests
     {
         private static CardDef Special(HeroDef h, string suffix) => h.Deck.First(c => c.Id.EndsWith(suffix));
-
-        // ---- 名單 ----
 
         [Fact]
         public void Roster_HasGddCounts()
@@ -62,7 +59,6 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void SameRoleDifferentRarity_StatsScaleByRarity()
         {
-            // 企劃 2026-10-09：稀有度影響基礎屬性 R 100%／SR 115%／UR 135%（生命、攻擊、謀略、防禦）；射程與移動力只看職業。
             foreach (var h in HeroRoster.All())
             {
                 var role = CardLibrary.RoleStats(h.Role);
@@ -75,8 +71,6 @@ namespace SanGuo.Core.Tests
             Assert.True(HeroRoster.Find("lvbu")!.Base.Atk > HeroRoster.Find("huaxiong")!.Base.Atk);
             Assert.True(HeroRoster.Find("huaxiong")!.Base.Atk > HeroRoster.Find("r_sword")!.Base.Atk);
         }
-
-        // ---- 屬性基準（08 §5）與預設範圍（03 §2.1）----
 
         [Theory]
         [InlineData(Role.Tank, 800, 80, 50, 100, 0, 5, 1, 1)]
@@ -92,8 +86,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(150, s.CritDmg);
         }
 
-        // ---- 標竿卡組（02 §3）----
-
         [Fact]
         public void Benchmark_Tank_TauntTwice()
         {
@@ -107,7 +99,7 @@ namespace SanGuo.Core.Tests
                 Assert.Equal(StatusType.Taunt, t.Effects[0].Status);
                 Assert.Equal(1, t.Effects[0].Amount);
             });
-            Assert.NotEqual(taunts[0].Id, taunts[1].Id); // 兩張各自可升級
+            Assert.NotEqual(taunts[0].Id, taunts[1].Id);
         }
 
         [Fact]
@@ -179,20 +171,18 @@ namespace SanGuo.Core.Tests
             });
         }
 
-        // ---- 效價驗算（02 §4）：效價 = 費用 + 0.5 ----
-
         private static double Efficiency(CardDef c)
         {
             var e = c.Effects[0];
             double shape = c.Shape == Shape.Row3 || c.Shape == Shape.Column3 ? 1.5 : c.Shape == Shape.Cross ? 2.0 : c.Shape == Shape.All ? 3.0 : 1.0;
             switch (e.Type)
             {
-                case EffectType.Damage: return e.Multiplier * 1.5 * shape + (c.Effects.Count > 1 ? 0.25 : 0); // 破甲 25% ≈ 0.25 費
+                case EffectType.Damage: return e.Multiplier * 1.5 * shape + (c.Effects.Count > 1 ? 0.25 : 0);
                 case EffectType.Heal: return e.Multiplier * 1.5 * shape;
                 case EffectType.Shield: return e.Multiplier * 1.5 * 1.5 * shape;
                 default:
                     if (e.Status == StatusType.Burn) return e.Multiplier * 1.5;
-                    return c.Cost + 0.5; // 嘲諷、鼓舞：預算 1.5，依 GDD 直接視為定價
+                    return c.Cost + 0.5;
             }
         }
 
@@ -212,8 +202,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(card.Cost + 0.5, expected);
             Assert.Equal(expected, Efficiency(card), 1);
         }
-
-        // ---- 稀有度：SR / UR 特殊卡每張效價 +1 / +2 ----
 
         [Theory]
         [InlineData("_sweep")]

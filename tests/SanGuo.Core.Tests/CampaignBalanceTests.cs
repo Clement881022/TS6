@@ -6,32 +6,21 @@ using Xunit.Abstractions;
 
 namespace SanGuo.Core.Tests
 {
-    /// <summary>
-    /// 主線第 1–6 章的戰力門檻（GDD 04 §5.2–5.3）：照預期進度養成可通過章末關卡，停在上一章的養成則過不了。
-    /// 以自動戰鬥量測（人類玩家會比自動打得更好），只鎖大方向。
-    /// </summary>
     public class CampaignBalanceTests
     {
         private readonly ITestOutputHelper _out;
         public CampaignBalanceTests(ITestOutputHelper output) { _out = output; }
 
-        /// <summary>F2P 預期隊伍：劇情三兄弟 + 一名 UR（新手池首次十連保底；以模擬中最常見的呂布代表）。</summary>
         private static readonly (string Id, int Lane, int Row)[] Team =
         {
             ("zhangfei", 2, 3), ("guanyu", 1, 3), ("lvbu", 3, 3), ("liubei", 2, 4),
         };
 
-        /// <summary>
-        /// 各章末的預期養成：等級、突破次數、裝備品階（三部位同階）。2026-10-09 起取自 tools/playsim 的無課模擬
-        /// （帳號經驗 = 消耗的體力、副本逐階解鎖、裝備機率掉落）各章打完時的中位數；第 6 章末為月底養成（40 級、5★、4 階），
-        /// 6-10 是月底大關。目標節奏：第 7 天第 2 章、第 14 天第 4 章、約第 30 天全通。
-        /// </summary>
         public static readonly (int Level, int Stars, double Gear)[] Growth =
         {
             (3, 0, 0), (20, 0, 1.5), (28, 1, 2.0), (34, 1, 2.3), (36, 2, 2.7), (38, 3, 3.0), (42, 5, 4.0),
         };
 
-        /// <summary>把平均裝備階（可有小數）分配到三個部位：整數部分每個部位都有，小數部分的幾個部位高一階。</summary>
         public static void SetGear(HeroState hero, double avg)
         {
             int baseTier = (int)System.Math.Floor(avg), higher = (int)System.Math.Round((avg - baseTier) * 3);
@@ -69,7 +58,6 @@ namespace SanGuo.Core.Tests
             return 100.0 * wins / runs;
         }
 
-        /// <summary>診斷：勝率、全滅率、逾時率、勝場平均回合、勝場平均存活人數。</summary>
         public static string Detail(string stage, (int Level, int Stars, double Gear) g, int runs = 20)
         {
             var p = Profile(g, out var team);
@@ -103,7 +91,6 @@ namespace SanGuo.Core.Tests
                 }
         }
 
-        /// <summary>章末關卡是戰力門檻：照預期養成多半能過，停在上一章的養成多半過不了。</summary>
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
@@ -116,12 +103,10 @@ namespace SanGuo.Core.Tests
             string id = Campaign.StageId(chapter, Campaign.LevelsPerChapter);
             double grown = WinRate(id, Growth[chapter]), behind = WinRate(id, Growth[chapter - 1]);
             _out.WriteLine($"{id}：章末養成 {grown:F0}%　上一章養成 {behind:F0}%");
-            // 一般自動戰鬥不會挑目標、不會換隊，真人與模擬中的玩家機器人勝率更高（模擬：約一成的場次需要重打）。
             Assert.True(grown >= 30, $"{id} 照預期養成勝率 {grown}% 應 ≥ 30%");
             Assert.True(behind <= 20, $"{id} 停在上一章養成勝率 {behind}% 應 ≤ 20%");
         }
 
-        /// <summary>每一關照章末預期養成都打得過（自動戰鬥勝率 ≥ 30%，人類玩家會打得更好）。</summary>
         [Fact]
         public void EveryStage_IsClearableAtChapterEndGrowth()
         {

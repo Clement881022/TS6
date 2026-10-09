@@ -3,13 +3,10 @@ using System.Linq;
 
 namespace SanGuo.Core
 {
-    /// <summary>武將名單（GDD 08）：R 6、SR 15（劉備、關羽、張飛為劇情固定、不可抽取）、UR 8。同職業同稀有度的基礎屬性相同。</summary>
     public static class HeroRoster
     {
-        /// <summary>劇情固定武將（SR，不在卡池內）。</summary>
         public static readonly string[] StoryHeroIds = { "liubei", "guanyu", "zhangfei" };
 
-        /// <summary>建立武將：基礎屬性依稀有度縮放（R 100／SR 115／UR 135%），SR／UR 有專屬牌時取代職業特殊卡（<see cref="Signatures"/>）。</summary>
         private static HeroDef Make(string id, string name, string prefix, Role role, Rarity rarity)
         {
             var def = new HeroDef
@@ -23,10 +20,6 @@ namespace SanGuo.Core
             return def;
         }
 
-        /// <summary>
-        /// 教學關（第零章 1–8 關）專用的劉關張：職業標竿卡與職業基礎屬性（教學內容與 TutorialBalanceTests 依賴這組牌與牌序 id），
-        /// 正式編隊（0-9 起）才用專屬牌與 SR 屬性。
-        /// </summary>
         private static HeroDef Tutorial(string id, string name, string prefix, Role role) => new HeroDef
         {
             Id = id, Name = name, Role = role, Rarity = Rarity.SR,
@@ -39,8 +32,6 @@ namespace SanGuo.Core
         public static HeroDef TutorialGuanYu() => Tutorial("guanyu", "關羽", "gy", Role.Warrior);
         public static HeroDef TutorialZhangFei() => Tutorial("zhangfei", "張飛", "zf", Role.Tank);
 
-        // ---- R：義勇系列 ----
-
         public static HeroDef MilitiaShield() => Make("r_shield", "義勇盾兵", "r_shd", Role.Tank, Rarity.R);
         public static HeroDef MilitiaSword() => Make("r_sword", "義勇劍兵", "r_swd", Role.Warrior, Rarity.R);
         public static HeroDef MilitiaArcher() => Make("r_archer", "義勇弓兵", "r_arc", Role.Ranger, Rarity.R);
@@ -48,13 +39,10 @@ namespace SanGuo.Core
         public static HeroDef MilitiaHealer() => Make("r_healer", "義勇醫士", "r_hlr", Role.Healer, Rarity.R);
         public static HeroDef MilitiaStrategist() => Make("r_strategist", "義勇謀士", "r_str", Role.Strategist, Rarity.R);
 
-        // ---- SR：劇情固定 ----
-
         public static HeroDef LiuBei() => Make("liubei", "劉備", "lb", Role.Healer, Rarity.SR);
         public static HeroDef GuanYu() => Make("guanyu", "關羽", "gy", Role.Warrior, Rarity.SR);
         public static HeroDef ZhangFei() => Make("zhangfei", "張飛", "zf", Role.Tank, Rarity.SR);
 
-        /// <summary>第 6 關的保護目標「馬商張世平」：沒有牌，只能被保護；不在名單內。</summary>
         public static HeroDef Villager() => new HeroDef
         {
             Id = "r_villager", Name = "馬商張世平", Role = Role.Tank, Rarity = Rarity.R, AttackType = AttackType.Melee,
@@ -62,7 +50,6 @@ namespace SanGuo.Core
             Deck = new List<CardDef>(),
         };
 
-        /// <summary>主線的護送 / 守城目標（鄉民、糧車、城門等）：沒有牌、只能被保護；不在名單內。生命隨關卡等級縮放。</summary>
         public static HeroDef Npc(string id, string name, int hp = 800) => new HeroDef
         {
             Id = id, Name = name, Role = Role.Tank, Rarity = Rarity.R, AttackType = AttackType.Melee,
@@ -72,7 +59,6 @@ namespace SanGuo.Core
 
         private static List<HeroDef>? _all;
 
-        /// <summary>全部 29 名武將（R、SR、UR 依序）。</summary>
         public static List<HeroDef> All() => _all ??= Build();
 
         public static HeroDef? Find(string id) => All().FirstOrDefault(h => h.Id == id);
@@ -83,9 +69,7 @@ namespace SanGuo.Core
             {
                 MilitiaShield(), MilitiaSword(), MilitiaArcher(), MilitiaMage(), MilitiaHealer(), MilitiaStrategist(),
 
-                // SR 劇情固定
                 ZhangFei(), GuanYu(), LiuBei(),
-                // SR 可抽取（每職業 2 隻）
                 Make("zhoucang", "周倉", "zc", Role.Tank, Rarity.SR),
                 Make("huangfusong", "皇甫嵩", "hfs", Role.Tank, Rarity.SR),
                 Make("huaxiong", "華雄", "hx", Role.Warrior, Rarity.SR),
@@ -99,10 +83,8 @@ namespace SanGuo.Core
                 Make("zhangzhongjing", "張仲景", "zzj", Role.Healer, Rarity.SR),
                 Make("ganfuren", "甘夫人", "gfr", Role.Healer, Rarity.SR),
 
-                // UR 首個 UP 池
                 Make("ur_zhangfei", "燕人．張飛", "uzf", Role.Tank, Rarity.UR),
                 Make("ur_guanyu", "武聖．關羽", "ugy", Role.Warrior, Rarity.UR),
-                // UR 常駐／新手池
                 Make("xiahoudun", "獨眼猛將．夏侯惇", "xhd", Role.Tank, Rarity.UR),
                 Make("lvbu", "飛將．呂布", "lb2", Role.Warrior, Rarity.UR),
                 Make("gongsunzan", "白馬義從．公孫瓚", "gsz", Role.Ranger, Rarity.UR),
@@ -113,13 +95,10 @@ namespace SanGuo.Core
             return list;
         }
 
-        /// <summary>常駐／新手池的 UR（每職業 1 隻，共 6 隻）。</summary>
         public static readonly string[] StandardUrIds = { "xiahoudun", "lvbu", "gongsunzan", "zhangjiao", "xunyu", "huatuo" };
 
-        /// <summary>首個 UP 池的 UR（張飛、關羽）。</summary>
         public static readonly string[] FirstUpUrIds = { "ur_zhangfei", "ur_guanyu" };
 
-        /// <summary>可抽取的 SR（不含劇情固定的劉備、關羽、張飛），每職業 2 隻。</summary>
         public static List<string> DrawableSrIds() =>
             All().Where(h => h.Rarity == Rarity.SR && !StoryHeroIds.Contains(h.Id)).Select(h => h.Id).ToList();
     }

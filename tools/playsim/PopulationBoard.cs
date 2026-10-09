@@ -1,9 +1,5 @@
 using SanGuo.Core.Meta;
 
-/// <summary>
-/// 世界 Boss 排行榜 + 背景玩家族群：名次與參賽人數把族群檔裡的分數也算進去，讓百分位獎勵有意義。
-/// 族群檔每行「賽季,分數」，由 <see cref="Kpi"/> 用前一批模擬的成績依付費比例抽樣產生；沒有族群檔就只有模擬帳號自己。
-/// </summary>
 public sealed class PopulationBoard : IWorldBossBoard
 {
     private readonly IWorldBossBoard _inner;

@@ -4,10 +4,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using SanGuo.Core;
 
-/// <summary>
-/// 多輪模擬與驗收指標（docs/adjust-plan.md §1）。
-/// multi：先跑一批（只有模擬帳號自己）→ 依付費比例抽樣出 100 名背景玩家的 Boss 成績 → 帶著族群再跑一批 → 彙總 kpi.md。
-/// </summary>
 public static class Kpi
 {
     static readonly (string User, string Label)[] Personas =
@@ -15,7 +11,6 @@ public static class Kpi
         ("f2p_player01", "無課"), ("light_spender01", "小課"), ("heavy_spender01", "大課"), ("whale_hypo01", "鯨魚"),
     };
 
-    /// <summary>背景族群的付費比例（暫定）：無課 70%、小課 25%、大課 5%。</summary>
     static readonly (string User, int Weight)[] PopulationMix = { ("f2p_player01", 70), ("light_spender01", 25), ("heavy_spender01", 5) };
     const int PopulationSize = 100;
 
@@ -45,7 +40,6 @@ public static class Kpi
             var proc = Process.Start(psi)!;
             tasks.Add(Task.Run(async () =>
             {
-                // 兩個管線要同時讀，不然子程序寫滿其中一個就會卡住
                 var outTask = proc.StandardOutput.ReadToEndAsync();
                 var errTask = proc.StandardError.ReadToEndAsync();
                 await Task.WhenAll(outTask, errTask);
@@ -57,8 +51,6 @@ public static class Kpi
         await Task.WhenAll(tasks);
         Console.WriteLine($"完成 {runs} 輪：{dir}");
     }
-
-    // ------------------------------------------------------------------ data
 
     sealed class Row : Dictionary<string, string>
     {
@@ -73,7 +65,6 @@ public static class Kpi
         var rows = new List<Row>();
         foreach (var line in lines.Skip(1))
         {
-            // 最後一欄（team）可能含逗號以外的字元，但不含逗號
             var cells = line.Split(',');
             var r = new Row();
             for (int i = 0; i < head.Length && i < cells.Length; i++) r[head[i]] = cells[i];
@@ -96,7 +87,6 @@ public static class Kpi
             foreach (var (user, _) in PopulationMix)
             {
                 var rows = Load(Path.Combine(dir, $"daily-{user}.csv"));
-                // 第 31 天 = 10/31（10 月賽季最終）；最後一天 = 11 月賽季到目前為止
                 void Add(string season, Row r)
                 {
                     if (!bySeason.TryGetValue(season, out var m)) bySeason[season] = m = new();
@@ -114,14 +104,11 @@ public static class Kpi
                 int roll = rng.Next(totalWeight), acc = 0;
                 string user = PopulationMix.First(x => (acc += x.Weight) > roll).User;
                 var list = m[user];
-                // 背景玩家投入程度不一：在模擬帳號成績的 70%–105% 之間
                 long score = (long)(list[rng.Next(list.Count)] * (0.70 + 0.35 * rng.NextDouble()));
                 sb.AppendLine($"{season},{score}");
             }
         File.WriteAllText(popFile, sb.ToString());
     }
-
-    // ------------------------------------------------------------------ report
 
     static int Cleared(string frontier)
     {
@@ -179,7 +166,6 @@ public static class Kpi
         string Pulls(string user, int a, int b) =>
             b <= days ? Fmt(data[user].Select(r => (double)(r[b - 1].I("pulls") - (a > 0 ? r[a - 1].I("pulls") : 0)))) : "—";
 
-        // 世界 Boss 名次：10 月結算（第 32 天後才有）
         int orderOk = 0, orderN = 0;
         for (int i = 0; i < dirs.Count; i++)
         {
@@ -192,7 +178,6 @@ public static class Kpi
         string Pct(string u) => Fmt(sums[u].Where(s => int.TryParse(s.GetValueOrDefault("settleRank"), out int r) && r > 0)
             .Select(s => 100.0 * int.Parse(s["settleRank"]) / int.Parse(s["settleTotal"])));
 
-        // ---- 對照實验
         var exp = ExperimentKpis();
 
         var sb = new StringBuilder();
@@ -250,7 +235,6 @@ public static class Kpi
         return HeroRoster.All().Where(h => h.Rarity == Rarity.UR && h.Role == role).Select(h => h.Id).FirstOrDefault();
     }
 
-    /// <summary>指定武將（依職業自動站位）、Lv60、5 階裝，星級由 stars 決定；回傳世界 Boss 平均傷害。</summary>
     static double TeamBoss(List<string> ids, Func<string, int> stars, int seeds)
     {
         var p = SanGuo.Core.Meta.PlayerProfile.CreateNew(0);
@@ -264,7 +248,6 @@ public static class Kpi
         return Experiments.Boss(p, PlayerSim.Place(ids), true, seeds).Avg;
     }
 
-    /// <summary>在可用武將中找世界 Boss 傷害最高的「坦 + 補 + 兩名輸出」（滿養成）。</summary>
     static (double Damage, List<string> Team) BestBossTeam(bool urAllowed)
     {
         var pool = HeroRoster.All().Where(h => h.Rarity == Rarity.SR || (urAllowed && h.Rarity == Rarity.UR)).ToList();
@@ -287,21 +270,18 @@ public static class Kpi
     static ExpResult ExperimentKpis()
     {
         var r = new ExpResult();
-        var tw = Experiments.Comps[0].Roles; // 坦補戰戰
-        var tb = Experiments.Comps[2].Roles; // 坦補弓法
+        var tw = Experiments.Comps[0].Roles;
+        var tb = Experiments.Comps[2].Roles;
         double B(Role[] roles, bool ur, int lv, int st, int gear)
         {
             var (p, t) = Experiments.Team(roles, ur, lv, st, gear);
             return Experiments.Boss(p, t, true, 30).Avg;
         }
-        // 課金上限：能用 UR 時的最佳 Boss 隊 ÷ 只有 SR 時的最佳 Boss 隊（同為 Lv60／5★／5 階）。
-        // UR 有刷圖型與 Boss 型之分，不能拿同職業硬比，所以各自在可用武將中找最佳組合。
         var (srBest, srTeam) = BestBossTeam(urAllowed: false);
         var (urBest, urTeam) = BestBossTeam(urAllowed: true);
         r.UrSrA = urBest / srBest;
         r.BestSrBoss = string.Join("+", srTeam.Select(id => HeroRoster.Find(id)!.Name));
         r.BestUrBoss = string.Join("+", urTeam.Select(id => HeroRoster.Find(id)!.Name));
-        // 剛抽到 UR：在 SR 最佳隊裡，把同職業的 5★ SR 換成 0★ UR（取各職業中最好的那次替換）
         double bestSwap = 0;
         foreach (var urId in HeroRoster.All().Where(h => h.Rarity == Rarity.UR).Select(h => h.Id))
         {
@@ -315,7 +295,7 @@ public static class Kpi
         r.Ur0Sr5 = bestSwap;
         var used = new HashSet<string>();
         var allUr = srTeam.Select(id => { var u = UrOfSameRole(id); return u != null && used.Add(u) ? u : id; }).ToList();
-        r.UrSrB = TeamBoss(allUr, _ => 5, 10) / srBest; // SR 最佳隊同職業換 UR（同一隻 UR 只換一次）
+        r.UrSrB = TeamBoss(allUr, _ => 5, 10) / srBest;
         r.SkillVsMoney = srBest / B(tw, true, 60, 5, 5);
         {
             var (p, t) = Experiments.Team(tw, false, 60, 5, 5);
@@ -323,7 +303,6 @@ public static class Kpi
             r.BossCv = 100 * bo.Sd / bo.Avg;
         }
 
-        // 深度：專家 vs 啟發式 vs 自動
         {
             var (p, team) = Experiments.Team(tw, false, 36, 3, 4);
             var stages = new[] { "4-10", "5-10", "6-10" };
@@ -348,7 +327,6 @@ public static class Kpi
             r.Expert = 100.0 * we / total; r.Smart = 100.0 * ws / total; r.Auto = 100.0 * wa / total;
         }
 
-        // 主線最佳組合（6-10 勝率）與 Boss 最佳組合（傷害），SR、第 5 章末養成
         double bestS = -1, bestB = -1;
         foreach (var (name, roles) in Experiments.Comps)
         {

@@ -1,6 +1,4 @@
-/* 戰鬥介面主題（覆寫 Battle.uss）：藍色頂欄、卡面有頭像與類型色、圓形費用與結束回合、角色標籤帶頭像。 */
 
-/* ---- 頂欄 ---- */
 .header {
     height: 76px;
     padding: 0 28px;
@@ -10,7 +8,6 @@
 }
 .header-title { font-size: 38px; -unity-font-style: bold; color: rgb(255, 240, 200); }
 
-/* 戰鬥按鈕：藍色貼圖、接近方塊 */
 .root .btn {
     min-width: 110px;
     min-height: 60px;
@@ -30,7 +27,6 @@
 .root .btn:hover { background-color: rgba(0, 0, 0, 0); -unity-background-image-tint-color: white; }
 .root .btn-on { background-image: url("../UiSkin/btn_orange.png"); }
 
-/* ---- 底部：左 費用 / 牌堆，中 手牌，右 結束回合 ---- */
 .bottom {
     position: absolute;
     left: 0; right: 0; bottom: 0;
@@ -81,7 +77,6 @@
 .end-turn:hover { background-color: rgb(232, 104, 52); scale: 1.06 1.06; }
 .end-turn:active { background-color: rgb(170, 66, 30); }
 
-/* ---- 紀錄：左上，沒內容就隱藏 ---- */
 .log {
     left: 20px; top: 92px; bottom: auto;
     height: auto; width: 380px;
@@ -90,7 +85,6 @@
 }
 .log-line { font-size: 20px; color: rgb(214, 226, 250); }
 
-/* ---- 手牌：頭像卡面、類型色框 ---- */
 .card {
     width: 180px; height: 296px;
     margin: 0 5px;
@@ -138,7 +132,6 @@
 .card .icon { width: 28px; height: 28px; }
 .card-kw { margin: auto 8px 6px 8px; }
 
-/* ---- 角色頭上標籤：頭像 + 名字 + 血條 ---- */
 .tag {
     padding: 5px 8px 5px 5px;
     border-radius: 14px;
@@ -163,7 +156,6 @@
 .tag-hp-fill { height: 22px; border-radius: 11px; }
 .tag-hp-text { font-size: 17px; top: 0; }
 
-/* ---- 結算卡 ---- */
 .overlay { background-color: rgba(4, 10, 30, 0.74); }
 .result-card {
     width: 680px;
@@ -193,10 +185,8 @@
 .result-buttons .btn { min-width: 170px; min-height: 76px; margin: 0 6px; font-size: 28px; }
 .result-buttons .btn-primary { background-image: url("../UiSkin/btn_orange.png"); }
 
-/* 戰場只用手牌上方的區域：棋盤與手牌不重疊 */
 .field { margin-bottom: 214px; }
 
-/* 手牌縮小一號，讓戰場有更多高度 */
 .card { width: 152px; height: 246px; margin: 0 4px; }
 .card-art { height: 100px; }
 .card-cost { width: 46px; height: 46px; font-size: 28px; }
@@ -213,7 +203,6 @@
 .end-turn { width: 130px; height: 130px; border-radius: 65px; font-size: 30px; margin-bottom: 24px; }
 .bottom-left, .bottom-right { width: 190px; }
 
-/* ---- 手牌：平時縮小貼底，滑鼠移上去整排往上放大 ---- */
 .bottom { padding-bottom: 6px; }
 .hand {
     transform-origin: 50% 100%;
@@ -226,7 +215,6 @@
 .card-art { height: 108px; }
 .card-name { font-size: 27px; }
 
-/* ---- 範圍圖示（5x5 小棋盤，中央是施放者；右側文字標射程）---- */
 .range-icon {
     align-self: flex-start;
     margin: 4px 4px 0 4px;
@@ -246,7 +234,6 @@
 .range-text { font-size: 17px; margin-left: 6px; color: rgb(60, 50, 40); white-space: nowrap; }
 .range-hp { position: absolute; right: -24px; top: 6px; width: 20px; height: 20px; }
 
-/* ---- 單位懸停資訊面板（屬性與增減益）---- */
 .unit-info {
     position: absolute;
     width: 262px;
@@ -272,7 +259,6 @@
 .ui-status-text { font-size: 17px; color: rgb(230, 232, 242); margin-left: 4px; white-space: normal; flex-shrink: 1; }
 .ui-none { font-size: 17px; color: rgb(130, 136, 154); }
 
-/* 我方標籤精簡：小頭像 + 血條 + 狀態，不顯示名字（避免蓋住後排角色） */
 .tag-hero { padding: 3px 6px 3px 3px; }
 .tag-hero .tag-name-row { display: none; }
 .tag-hero .tag-face { width: 38px; height: 38px; border-radius: 19px; margin-right: 5px; }

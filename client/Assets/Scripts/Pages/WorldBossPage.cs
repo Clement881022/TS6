@@ -7,10 +7,6 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 世界 Boss：本季 Boss（模型）、剩餘挑戰次數、本季最佳與名次、前 10 名、上一季結算。
-    /// 挑戰走編隊頁 → 戰鬥（10 回合，對 Boss 造成的傷害即分數，由後端重播計算）。
-    /// </summary>
     public sealed class WorldBossPage : PageBase
     {
         private WorldBossView? _view;
@@ -32,7 +28,7 @@ namespace SanGuo.Client
             {
                 _view = await GameSession.Backend.GetWorldBoss();
                 if (_view == null) Toast(UiText.ExplainBackend("network"));
-                await GameSession.Refresh(); // 換季結算可能發了元寶
+                await GameSession.Refresh();
                 Rebuild();
             }
             catch (Exception e)
@@ -49,7 +45,6 @@ namespace SanGuo.Client
             string season = _view?.Season is { Length: > 0 } s ? s : WorldBoss.SeasonOf(GameSession.View.Now);
             var boss = WorldBoss.BossOf(season);
 
-            // ---- 左：Boss 模型與資訊 ----
             var left = UiKit.Panel();
             left.style.width = Length.Percent(42);
             left.style.marginRight = 24;
@@ -78,7 +73,6 @@ namespace SanGuo.Client
             left.Add(UiKit.Text("每月結算：依名次發放元寶，前 10 名獲得稱號。", "line-sub"));
             body.Add(left);
 
-            // ---- 右：成績、排行榜、挑戰 ----
             var right = new VisualElement();
             right.style.flexGrow = 1;
             right.style.flexShrink = 1;

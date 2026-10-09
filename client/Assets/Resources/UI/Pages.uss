@@ -1,13 +1,9 @@
-/* 非戰鬥頁面的共用樣式（主城、地圖、編隊、招募、武將、副本、任務、商店）。參考解析度 1920x1080。
-   配色：墨黑底 + 金銅描邊 + 朱紅 / 玉綠點綴。稀有度：R 藍、SR 紫、UR 金。
-   按鈕（.btn）在頁面內以 .page-host 開頭的選擇器覆寫，不影響戰鬥畫面。 */
 
 .page-root {
     flex-grow: 1;
     color: rgb(238, 232, 220);
 }
 
-/* 每個頁面 prefab 專用的 UI 容器（切換頁面時整個移除）；背景由各頁自己決定，戰鬥頁要透明才看得到 3D 戰場 */
 .page-container {
     position: absolute;
     left: 0; right: 0; top: 0; bottom: 0;
@@ -20,7 +16,6 @@
     background-color: rgb(17, 15, 22);
 }
 
-/* ---- 頂欄 ---- */
 .topbar {
     flex-direction: row;
     justify-content: space-between;
@@ -62,14 +57,12 @@
 .pill-stamina .pill-text { color: rgb(150, 232, 176); }
 .pill-level .pill-dot { background-color: rgb(210, 90, 80); }
 
-/* ---- 內容區 ---- */
 .page-scroll { flex-grow: 1; }
 .page-body {
     align-items: center;
     padding: 28px 40px 40px 40px;
 }
 
-/* ---- 底部導覽 ---- */
 .nav {
     flex-direction: row;
     height: 112px;
@@ -100,7 +93,6 @@
 .nav-tab-on .nav-glyph { color: rgb(255, 226, 150); }
 .nav-tab-on .nav-label { color: white; -unity-font-style: bold; }
 
-/* ---- 文字 ---- */
 .txt { font-size: 27px; color: rgb(238, 232, 220); white-space: normal; margin: 3px 0; }
 .txt-dim { font-size: 23px; color: rgb(168, 160, 148); white-space: normal; margin: 3px 0; }
 .txt-sub { font-size: 32px; -unity-font-style: bold; color: rgb(252, 226, 164); white-space: normal; margin: 4px 0; }
@@ -108,13 +100,11 @@
 .txt-good { font-size: 25px; color: rgb(130, 220, 160); white-space: normal; margin: 3px 0; }
 .txt-gold { font-size: 27px; color: rgb(255, 214, 96); white-space: normal; margin: 3px 0; }
 
-/* ---- 版面 ---- */
 .row { flex-direction: row; flex-wrap: wrap; align-items: center; margin: 4px 0; }
 .row-center { justify-content: center; }
 .grow { flex-grow: 1; flex-shrink: 1; }
 .col { flex-direction: column; }
 
-/* 小節標題：金色文字 + 兩側細線 */
 .section {
     flex-direction: row;
     align-items: center;
@@ -156,7 +146,6 @@
 .panel-row { flex-direction: row; align-items: center; justify-content: space-between; }
 .panel-good { border-top-color: rgb(80, 170, 116); }
 
-/* ---- 按鈕（只在頁面內覆寫）---- */
 .page-host .btn {
     margin: 4px 6px 4px 0;
     padding: 10px 28px;
@@ -184,7 +173,6 @@
 .page-host .btn-done:hover { background-color: rgb(34, 30, 36); border-color: rgb(60, 52, 50); }
 .page-host .btn-wide { padding: 16px 52px; font-size: 32px; }
 
-/* 分頁籤（卡池、任務類型） */
 .tabs { flex-direction: row; justify-content: center; margin: 4px 0 10px 0; }
 .page-host .tab {
     margin: 0 6px;
@@ -199,14 +187,12 @@
 .page-host .tab:hover { background-color: rgb(56, 44, 44); }
 .page-host .tab-on { background-color: rgb(150, 54, 46); border-color: rgb(236, 190, 96); color: white; -unity-font-style: bold; }
 
-/* ---- 進度條 ---- */
 .bar-bg { width: 100%; height: 20px; margin: 6px 0 10px 0; border-radius: 10px; border-width: 2px; border-color: rgb(64, 52, 44); background-color: rgb(12, 10, 14); }
 .bar-fill { height: 100%; border-radius: 8px; background-color: rgb(84, 184, 112); }
 .bar-gold { background-color: rgb(226, 170, 56); }
 .bar-red { background-color: rgb(206, 78, 66); }
 .bar-slim { height: 12px; border-radius: 6px; margin: 4px 0; }
 
-/* ---- 徽章 ---- */
 .badge {
     margin: 0 8px 0 0;
     padding: 2px 14px;
@@ -223,12 +209,10 @@
 .badge-up { background-color: rgb(60, 150, 100); }
 .badge-role { background-color: rgb(52, 60, 84); color: rgb(200, 210, 236); }
 
-/* ---- 彈出視窗 ---- */
 .page-host .overlay { background-color: rgba(6, 4, 8, 0.8); }
 .popup { width: 900px; align-items: center; background-color: rgb(34, 27, 32); border-color: rgb(176, 128, 52); border-top-color: rgb(244, 196, 100); }
 .popup-title { font-size: 42px; -unity-font-style: bold; color: rgb(252, 226, 164); margin-bottom: 10px; white-space: normal; }
 
-/* ---- 主城 ---- */
 .banner {
     align-items: flex-start;
     padding: 30px 40px;
@@ -272,7 +256,6 @@
 .tile-hot .tile-icon { background-color: rgb(196, 120, 40); }
 .tile-badge { position: absolute; right: 14px; top: 12px; padding: 1px 12px; border-radius: 12px; background-color: rgb(204, 62, 56); font-size: 21px; -unity-font-style: bold; color: white; }
 
-/* ---- 武將：左清單 + 右詳情 ---- */
 .split { flex-direction: row; align-items: flex-start; width: 1500px; max-width: 100%; }
 .split-list { width: 360px; margin-right: 18px; }
 .split-detail { flex-grow: 1; flex-shrink: 1; width: auto; margin: 0; align-items: stretch; }
@@ -298,7 +281,6 @@
 .hero-item-name { font-size: 29px; -unity-font-style: bold; color: white; }
 .hero-item-sub { font-size: 21px; color: rgb(176, 166, 152); }
 
-/* 武將頭像（圓章）：以稀有度上色，內為姓氏 */
 .avatar {
     width: 76px; height: 76px;
     margin-right: 14px;
@@ -348,7 +330,6 @@
 
 .star-text { font-size: 28px; color: rgb(255, 204, 70); }
 
-/* ---- 地圖 ---- */
 .map-card { padding: 10px; border-top-width: 4px; }
 .page-host .map-field { width: 1700px; max-width: 100%; height: 540px; margin-top: 4px; }
 .page-host .map-dot { width: 12px; height: 12px; border-radius: 6px; background-color: rgba(226, 190, 120, 0.5); }
@@ -361,7 +342,6 @@
 .page-host .map-node-boss { border-color: rgb(255, 210, 90); }
 .page-host .map-caption { width: 130px; font-size: 22px; color: rgb(236, 228, 212); }
 
-/* ---- 招募 ---- */
 .gacha-rates { flex-direction: row; flex-wrap: wrap; align-items: center; }
 .rate-chip { flex-direction: row; align-items: center; margin-right: 22px; }
 .pull-row { flex-direction: row; justify-content: center; margin: 14px 0; }
@@ -388,7 +368,6 @@
 .pull-rarity-sr { color: rgb(200, 150, 255); }
 .pull-rarity-ur { color: rgb(255, 214, 96); }
 
-/* ---- 任務 / 商店 ---- */
 .quest-card { padding: 16px 26px; }
 .quest-done { border-top-color: rgb(80, 170, 116); }
 .reward-text { font-size: 23px; color: rgb(255, 214, 96); white-space: normal; }
@@ -410,7 +389,6 @@
 .tier-title { font-size: 26px; color: rgb(190, 180, 164); }
 .tier-value { font-size: 34px; -unity-font-style: bold; color: rgb(255, 214, 96); margin-bottom: 6px; }
 
-/* ---- 編隊 ---- */
 .formation-board { align-items: center; }
 .formation-cell {
     width: 280px;
@@ -443,7 +421,6 @@
 .formation-chip:hover { background-color: rgb(78, 62, 62); border-color: rgb(190, 148, 80); }
 .formation-cell.btn-on, .formation-chip.btn-on { background-color: rgb(56, 128, 92); border-color: rgb(150, 230, 180); }
 
-/* ---- Toast ---- */
 .page-container .toast {
     left: 460px; right: 460px; top: 120px;
     padding: 16px 24px;

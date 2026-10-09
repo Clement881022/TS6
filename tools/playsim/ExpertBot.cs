@@ -1,11 +1,6 @@
 using SanGuo.Core;
 using SanGuo.Core.Data;
 
-/// <summary>
-/// 專家機器人（代表「很會玩的真人」）：每回合產生多個候選打法（啟發式、隨機變體、一般自動），
-/// 各自在戰鬥複本上打完這回合再往後推演幾回合，挑評分最高的那個實際打出。
-/// 戰鬥是確定性的，複本 = 同一份設定重播目前為止的操作。只用在對照實驗（成本高）。
-/// </summary>
 public sealed class ExpertBot
 {
     public int Candidates = 8;
@@ -13,8 +8,6 @@ public sealed class ExpertBot
     private readonly Func<BattleSetup> _setup;
     private readonly Func<Battle, double> _eval;
 
-    /// <param name="setup">每次呼叫都要回傳全新的同一份設定（Battle 可能改動設定物件）。</param>
-    /// <param name="eval">非終局時的評分；null = 預設（我方血量比例 − 敵方血量比例）。</param>
     public ExpertBot(Func<BattleSetup> setup, Func<Battle, double> eval = null)
     {
         _setup = setup;
@@ -52,7 +45,6 @@ public sealed class ExpertBot
             var crec = new ReplayRecorder(clone);
             if (k == Candidates)
             {
-                // 一般自動戰鬥這回合
                 while (clone.Result == BattleResult.Ongoing)
                 {
                     var (card, target, mover) = AutoPlayer.Pick(clone);
@@ -63,7 +55,6 @@ public sealed class ExpertBot
             }
             else new SmartBot("expert", null) { Random = k == 0 ? null : new Random(k * 7919 + rec.Actions.Count) }.PlayTurn(crec);
             var planned = new List<ReplayAction>(crec.Actions);
-            // 往後推演：用啟發式打 Horizon 回合
             var roll = new SmartBot("expert", null);
             for (int i = 0; i < Horizon && clone.Result == BattleResult.Ongoing; i++) roll.PlayTurn(crec);
             double s = Score(clone);

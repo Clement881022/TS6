@@ -7,10 +7,6 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 武將查看與獨立養成頁共用角色展示；GrowthMode 決定是否建立養成操作。
-    /// 查看頁只呈現目前狀態、牌組與已穿裝備。
-    /// </summary>
     public class HeroesPage : PageBase
     {
         private enum Tab { Level, Break, Equip }
@@ -31,7 +27,6 @@ namespace SanGuo.Client
             _stage = null;
         }
 
-        /// <summary>截圖 / 除錯用：切到指定分頁（0 升級、1 突破、2 裝備）。</summary>
         public void DebugSetTab(int tab)
         {
             _tab = (Tab)tab;
@@ -78,7 +73,6 @@ namespace SanGuo.Client
             var def = GameSession.DefOf(_heroId)!;
             var hero = v.Heroes[_heroId];
 
-            // ---- 左：武將卡格 ----
             var left = new VisualElement();
             left.AddToClassList("hero-left");
             left.Add(UiKit.Text("麾下武將", "strategy-roster-title"));
@@ -96,10 +90,8 @@ namespace SanGuo.Client
             left.Add(scroll);
             body.Add(left);
 
-            // ---- 中：3D 角色 + 屬性 ----
             body.Add(BuildCenter(def, hero, v));
 
-            // ---- 右：功能分頁 ----
             body.Add(BuildRight(def, hero, v));
         }
 
@@ -168,7 +160,6 @@ namespace SanGuo.Client
         private static VisualElement BuildStats(HeroDef def, HeroState hero, ProfileView v, bool preview)
         {
             var summary = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("strategy-hero-summary");
-            // 屬性：目前 → 升級後（只有隨等級成長的四項會顯示預覽）
             var now = HeroGrowth.ScaleStats(def, hero);
             var next = HeroGrowth.ScaleStats(def, new HeroState { HeroId = hero.HeroId, Level = hero.Level + 1, Stars = hero.Stars, Equipment = hero.Equipment });
             bool canLevel = preview && hero.Level < v.Level;
@@ -191,7 +182,6 @@ namespace SanGuo.Client
             stats.Add(colB);
             summary.Add(stats);
 
-            // 品階（突破星級）：星星下方標示數字，沒突破時暗星也看得到。
             var grade = new VisualElement { pickingMode = PickingMode.Ignore };
             grade.AddToClassList("hero-grade");
             grade.Add(UiKit.StarsRow(hero.Stars, HeroGrowth.MaxStars, "stars-lg"));
@@ -236,7 +226,6 @@ namespace SanGuo.Client
             seg.Add(SegTab("裝備", Tab.Equip));
             right.Add(seg);
 
-            // 面板分上下兩塊：內容（撐滿）與底部主要操作（貼底），三個分頁的按鈕位置一致。
             var panel = new VisualElement();
             panel.AddToClassList("bpanel");
             panel.AddToClassList("side-panel");
@@ -368,14 +357,12 @@ namespace SanGuo.Client
                 if (worn > 0) head.Add(UiKit.Btn("卸下", () => _ = Act(() => GameSession.Backend.Unequip(def.Id, sl.ToString()))).WithClass("btn-sm"));
                 row.Add(head);
                 row.Add(UiKit.Text(SlotEffect(def, sl), "card-row-desc"));
-                // 庫存：每個品階一顆按鈕，點了穿上（原本的退回庫存）。
                 var stock = new VisualElement();
                 stock.style.flexDirection = FlexDirection.Row;
                 stock.style.flexWrap = Wrap.Wrap;
                 bool any = false;
                 for (int tier = 1; tier <= Equipment.MaxTier; tier++)
                 {
-                    // 通用裝備（含贈送的自選武器匣）加上本職業已定型的武器；其他職業的武器不能穿，不列出
                     int have = v.Material(Equipment.ItemKey(sl, tier)) + (sl == EquipSlot.Weapon ? v.Material(Equipment.WeaponKey(def.Role, tier)) : 0);
                     if (have <= 0) continue;
                     any = true;
@@ -385,7 +372,6 @@ namespace SanGuo.Client
                 }
                 if (!any) stock.Add(UiKit.Text(sl == EquipSlot.Weapon ? $"庫存沒有可用的{Equipment.WeaponTypeName(def.Role)}" : "庫存沒有這個部位的裝備", "card-row-desc"));
                 row.Add(stock);
-                // 高階裝備碎片進度
                 for (int tier = 1; tier <= Equipment.MaxTier; tier++)
                 {
                     if (!Equipment.UsesShards(tier)) continue;
@@ -397,7 +383,6 @@ namespace SanGuo.Client
             content.Add(scroll);
         }
 
-        /// <summary>各品質的加成範圍，例如「+5%（凡品）～ +65%（神品）」。</summary>
         private static string PercentRange() => $"+{Equipment.PercentOf(1)}%（{Equipment.TierLabel(1)}）～ +{Equipment.PercentOf(Equipment.MaxTier)}%（{Equipment.TierLabel(Equipment.MaxTier)}）";
 
         private static string SlotEffect(HeroDef def, EquipSlot slot)

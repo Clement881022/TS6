@@ -4,13 +4,11 @@ using System.Linq;
 
 namespace SanGuo.Core.Meta
 {
-    /// <summary>卡池定義（機率、保底、UP 全部資料驅動，可由後台調整；機率單位為萬分比）。</summary>
     public sealed class GachaPool
     {
         public string Id = "";
         public string Name = "";
 
-        /// <summary>UR / SR 基礎機率（萬分比，300 = 3%）；R 為其餘。</summary>
         public int UrRateBp = 300;
         public int SrRateBp = 1700;
 
@@ -18,26 +16,20 @@ namespace SanGuo.Core.Meta
         public List<string> SrHeroes = new List<string>();
         public List<string> RHeroes = new List<string>();
 
-        /// <summary>UP 的 UR（空 = 常駐池，可多隻）。出 UR 時有 <see cref="UpRateBp"/> 機率為 UP（UP 武將中隨機一隻）；未中時依 <see cref="UpGuarantee"/> 決定下一隻 UR 是否必為 UP（大小保底）。</summary>
         public List<string> UpUrs = new List<string>();
         public int UpRateBp = 5000;
 
-        /// <summary>大小保底：上一隻 UR 沒中 UP，下一隻 UR 必為 UP（2026-10-07 採用，見 gacha.md 第 7 節）。</summary>
         public bool UpGuarantee = true;
 
         public int SingleCost = 200;
         public int TenCost = 2000;
 
-        /// <summary>十連至少 1 張 SR（含以上）。</summary>
         public bool TenPullGuaranteesSr = true;
 
-        /// <summary>硬保底：連續這麼多抽未出 UR 時下一抽必出 UR；0 = 停用。預設 80（2026-10-07 採用）。</summary>
         public int HardPityUr = 80;
 
-        /// <summary>新手池：玩家在本池的第一次十連至少 1 張 UR。</summary>
         public bool FirstTenGuaranteesUr;
 
-        /// <summary>保底規則公示文字（機率公示須同時說明保底，合規要求與實際一致）。</summary>
         public string PityDescription()
         {
             var parts = new List<string>();
@@ -52,7 +44,6 @@ namespace SanGuo.Core.Meta
             return string.Join("；", parts);
         }
 
-        /// <summary>每個稀有度的機率公示（合規：公示值必須與實際一致，所以由同一份資料產生）。</summary>
         public Dictionary<Rarity, double> DisclosedRates()
         {
             int rBp = 10000 - UrRateBp - SrRateBp;
@@ -65,11 +56,9 @@ namespace SanGuo.Core.Meta
         }
     }
 
-    /// <summary>玩家在某個卡池的保底計數（需存檔，伺服器端保存）。</summary>
     public sealed class PoolState
     {
         public int PullsSinceUr;
-        /// <summary>true = 上一隻 UR 沒中 UP，下一隻 UR 必為 UP（大小保底）。</summary>
         public bool UpGuaranteed;
         public int TotalPulls;
         public int TenPulls;
@@ -80,12 +69,9 @@ namespace SanGuo.Core.Meta
         public string HeroId = "";
         public Rarity Rarity;
         public bool IsUp;
-        /// <summary>true = 由保底（十連保底 / 新手保底 / 硬保底）強制提升而來。</summary>
         public bool FromPity;
         public bool IsNew;
-        /// <summary>重複武將存成的重複份（未滿突時為 1），新武將為 0。</summary>
         public int Shards;
-        /// <summary>重複武將轉成的將魂（已滿突時），新武將為 0。</summary>
         public int Souls;
     }
 
@@ -104,10 +90,6 @@ namespace SanGuo.Core.Meta
 
     public static class Gacha
     {
-        /// <summary>
-        /// 抽卡（純規則，不扣款）：單抽或十連。<paramref name="state"/> 會被更新。
-        /// 不論保底如何介入，單抽 / 十連的實際機率都在 <see cref="GachaPool.DisclosedRates"/> 公示的基礎機率上。
-        /// </summary>
         public static List<PullResult> Roll(GachaPool pool, PoolState state, int count, Rng rng)
         {
             var results = new List<PullResult>(count);
@@ -156,7 +138,6 @@ namespace SanGuo.Core.Meta
             return results;
         }
 
-        /// <summary>抽卡並結算：檢查元寶、扣款、發武將，重複的轉成突破素材。</summary>
         public static PullOutcome Pull(PlayerProfile player, GachaPool pool, int count, Rng rng)
         {
             var outcome = new PullOutcome();

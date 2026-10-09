@@ -1,4 +1,3 @@
-# Deterministic sprite-atlas import. Sources are generated artwork; cells keep their original alpha.
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -14,7 +13,6 @@ function Split-Atlas([string]$Source, [int]$Columns, [int]$Rows, [string[]]$Name
             $y0 = [int][Math]::Floor($row * $atlas.Height / $Rows)
             $x1 = [int][Math]::Floor(($column + 1) * $atlas.Width / $Columns)
             $y1 = [int][Math]::Floor(($row + 1) * $atlas.Height / $Rows)
-            # The generated roster sheet has nonuniform rows; use its inspected portrait boundaries.
             if ($Source -eq 'atlas-roster.png') {
                 $rowEdges = @(0,232,466,697,932,1198,1536)
                 $y0 = $rowEdges[$row]
@@ -44,7 +42,6 @@ if (Test-Path -LiteralPath (Join-Path $skinRoot 'atlas-portraits.png')) {
     }
     foreach ($alias in $portraitAliases.Keys) { Copy-Item -LiteralPath (Join-Path $skinRoot ($portraitAliases[$alias] + '.png')) -Destination (Join-Path $skinRoot ($alias + '.png')) -Force }
 }
-# Hero portrait crops are UI views of the new full illustrations; the complete source art is kept.
 $heroCrops = @{
     'guanyu'=@(0.33,0.015,0.40); 'liubei'=@(0.39,0.005,0.42); 'zhangfei'=@(0.28,0.015,0.44);
     'zhaoyun'=@(0.28,0.015,0.44); 'huangzhong'=@(0.30,0.015,0.44); 'pangtong'=@(0.28,0.015,0.44); 'zhugeliang'=@(0.30,0.005,0.46)

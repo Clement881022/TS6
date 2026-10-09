@@ -1,5 +1,3 @@
-/* 藍色主題（參考 TS6Client 設計稿，貼圖取自 Resources/UiSkin）。
-   在 Pages.uss 之後載入，覆寫其中的暖色配色，並把按鈕 / 分頁 / 導覽換成貼圖。 */
 
 .page-host { background-color: rgb(24, 48, 98); }
 
@@ -22,7 +20,6 @@
 .pill { background-color: rgba(10, 22, 56, 0.7); border-width: 0; }
 .pill-text, .pill-gold .pill-text, .pill-yuanbao .pill-text, .pill-stamina .pill-text { color: white; }
 
-/* ---- 底部導覽 ---- */
 .nav { background-color: rgb(18, 36, 80); border-top-width: 2px; border-top-color: rgb(150, 182, 240); }
 .nav-tab { background-color: rgba(40, 70, 140, 0.55); border-color: rgb(70, 104, 178); border-radius: 14px; }
 .nav-tab:hover { background-color: rgba(70, 108, 196, 0.8); border-color: rgb(170, 200, 255); }
@@ -40,7 +37,6 @@
 .nav-icon-quests { background-image: url("../UiSkin/nav_quests.png"); }
 .nav-icon-shop { background-image: url("../UiSkin/nav_shop.png"); }
 
-/* ---- 文字 / 面板 ---- */
 .txt-sub, .section-text, .popup-title, .banner-eyebrow { color: rgb(255, 230, 160); }
 .txt-dim, .tile-desc, .hero-item-sub, .stat-label, .card-row-desc, .tier-title, .pull-card-sub { color: rgb(176, 196, 232); }
 .section-line { background-color: rgba(150, 182, 240, 0.4); }
@@ -60,7 +56,6 @@
 .banner-title { color: white; }
 .bar-bg { background-color: rgb(8, 16, 42); border-color: rgb(60, 92, 170); }
 
-/* ---- 按鈕：橘（主要）／藍（一般）／灰（已完成），9 宮格貼圖 ---- */
 .page-host .btn, .page-host .btn-primary, .page-host .btn-on, .page-host .btn-done,
 .page-host .btn:hover, .page-host .btn-primary:hover, .page-host .btn-on:hover, .page-host .btn-done:hover {
     min-height: 76px;
@@ -85,7 +80,6 @@
 .page-host .btn:active, .page-host .btn-primary:active { -unity-background-image-tint-color: rgb(170, 182, 214); }
 .page-host .btn-wide { padding: 10px 70px; font-size: 32px; min-height: 84px; }
 
-/* ---- 分頁籤：未選＝藍、選中＝橘 ---- */
 .page-host .tab, .page-host .tab:hover, .page-host .tab-on, .page-host .tab-on:hover {
     min-height: 76px;
     margin: 0 8px;
@@ -103,7 +97,6 @@
 .page-host .tab:hover { -unity-background-image-tint-color: white; }
 .page-host .tab-on, .page-host .tab-on:hover { background-image: url("../UiSkin/btn_orange.png"); -unity-background-image-tint-color: white; color: white; }
 
-/* ---- 主城入口 ---- */
 .tile { background-color: rgba(14, 30, 72, 0.82); border-color: rgb(84, 120, 200); }
 .tile:hover { background-color: rgba(40, 72, 150, 0.9); border-color: rgb(255, 214, 120); }
 .tile-icon, .tile-hot .tile-icon {
@@ -122,7 +115,6 @@
 .tile-ico-shop { background-image: url("../UiSkin/nav_shop.png"); }
 .tile-ico-map { background-image: url("../UiSkin/nav_map.png"); }
 
-/* ---- 武將 / 商店 / 任務 ---- */
 .hero-item { background-color: rgba(14, 30, 72, 0.82); border-color: rgb(70, 104, 178); }
 .hero-item:hover { background-color: rgba(40, 72, 150, 0.9); }
 .hero-item-on { background-color: rgba(52, 98, 196, 0.85); border-color: rgb(255, 214, 120); }
@@ -134,7 +126,6 @@
 .tier { background-color: rgba(8, 18, 48, 0.6); border-color: rgb(70, 104, 178); }
 .tier-ready { background-color: rgba(80, 56, 20, 0.7); border-color: rgb(255, 214, 120); }
 
-/* ---- 編隊 ---- */
 .page-host .formation-cell, .page-host .formation-chip { background-color: rgba(40, 72, 150, 0.7); border-color: rgb(110, 146, 220); }
 .page-host .formation-cell:hover, .page-host .formation-chip:hover { background-color: rgba(70, 108, 196, 0.85); border-color: white; }
 .page-host .formation-cell-empty { background-color: rgba(8, 18, 48, 0.55); border-color: rgb(50, 76, 140); color: rgb(110, 130, 180); }
@@ -146,10 +137,8 @@
 .row-center { max-width: 1500px; }
 .page-host .map-field { width: 1424px; }
 
-/* 內容區的區塊不可被壓扁，放不下就捲動（小視窗時橫幅不會疊在一起） */
 .page-body > * { flex-shrink: 0; }
 
-/* ---- 場景背景（取自 TS6Client 的 UIBackground / Home），調暗讓前景面板易讀 ---- */
 .bg-home, .bg-map, .bg-heroes, .bg-gacha, .bg-dungeons, .bg-quests, .bg-shop, .bg-formation {
     -unity-background-scale-mode: scale-and-crop;
     -unity-background-image-tint-color: rgb(170, 180, 210);
@@ -163,7 +152,6 @@
 .bg-shop { background-image: url("../UiBg/shop.jpg"); }
 .bg-formation { background-image: url("../UiBg/formation.jpg"); }
 
-/* ---- 武將美術 ---- */
 .avatar-art { -unity-background-scale-mode: scale-and-crop; background-color: rgba(0, 0, 0, 0); }
 .avatar-lg { width: 128px; height: 128px; border-radius: 64px; }
 .hero-full {
@@ -181,7 +169,6 @@
 .pull-card .avatar { margin-right: 0; }
 .pull-rarity { font-size: 30px; margin-top: 4px; }
 
-/* ---- 主城：戰鬥圓章 ---- */
 .orb-battle {
     width: 190px; height: 190px;
     margin: 6px 0 0 0;
@@ -196,17 +183,11 @@
 
 .panel-dim { opacity: 0.75; }
 
-/* 微調：戰鬥圓章靠右放大、抽卡卡片加高 */
 .banner { min-height: 330px; }
 .orb-battle { position: absolute; right: 40px; bottom: 24px; width: 240px; height: 240px; margin: 0; }
 .pull-card { height: 270px; }
 .pull-card-name { margin-top: 2px; }
 
-/* =====================================================================
-   方塊式版型：卡片接近正方、圖在上字在下，避免橫長條
-   ===================================================================== */
-
-/* 按鈕：不拉太長，高度加高，接近方塊 */
 .page-host .btn, .page-host .btn-primary, .page-host .btn-on, .page-host .btn-done,
 .page-host .btn:hover, .page-host .btn-primary:hover, .page-host .btn-on:hover, .page-host .btn-done:hover {
     min-width: 150px;
@@ -217,7 +198,6 @@
 .page-host .btn-wide { padding: 12px 40px; min-width: 230px; min-height: 96px; }
 .page-host .tab, .page-host .tab:hover, .page-host .tab-on, .page-host .tab-on:hover { min-height: 84px; padding: 8px 32px; }
 
-/* 主城：直立方塊入口 */
 .banner { padding-right: 320px; }
 .tile {
     width: 232px; height: 262px;
@@ -232,14 +212,12 @@
 .tile-title { font-size: 38px; }
 .tile-desc { font-size: 21px; -unity-text-align: upper-center; }
 
-/* 卡片格線（副本、任務、商店） */
 .card-grid { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: stretch; width: 1500px; max-width: 100%; }
 .card-grid > .panel { width: 470px; margin: 10px; min-height: 300px; }
 .card-grid .quest-card { min-height: 250px; }
 .card-grid .tier { width: 200px; margin: 6px 8px 6px 0; }
 .card-grid .product-price { margin-bottom: 6px; }
 
-/* 方形武將卡（待命席、編隊格） */
 .hcard, .fcell {
     margin: 8px;
     padding: 12px 6px 8px 6px;
@@ -265,7 +243,6 @@
 .formation-board { align-items: flex-start; padding: 16px 24px; }
 .formation-label { color: rgb(255, 230, 160); -unity-text-align: middle-center; }
 
-/* 教學對話修正：名牌描邊、角色卡放在對話帶上方 */
 .tut-name { -unity-text-outline-width: 2px; }
 .tut-band { background-color: rgba(236, 242, 252, 0.98); }
 .tut-hero { bottom: 308px; }
@@ -273,13 +250,9 @@
 .fcell { height: 190px; }
 .formation-board { align-items: center; }
 
-/* =====================================================================
-   主城 HUD：場景當底，入口是建築名牌，四周是玩家卡 / 資源 / 功能鍵 / 戰鬥圓章 / 巴豆妖
-   ===================================================================== */
 .bg-home { background-image: none; background-color: rgb(236, 210, 170); }
 .home-scene { position: absolute; -unity-background-scale-mode: scale-and-crop; }
 
-/* 建築名牌 */
 .home-spot {
     position: absolute;
     flex-direction: row;
@@ -297,7 +270,6 @@
 .home-spot-text { font-size: 34px; -unity-font-style: bold; color: white; margin: 0 12px; }
 .home-diamond { width: 22px; height: 22px; background-image: url("../UiSkin/diamond.png"); -unity-background-scale-mode: scale-to-fit; }
 
-/* 左上：玩家卡 */
 .home-player {
     position: absolute;
     left: 22px; top: 18px;
@@ -316,7 +288,6 @@
 .home-player-level { font-size: 28px; -unity-font-style: bold; color: rgb(255, 224, 140); }
 .home-player-exp { font-size: 19px; color: rgb(196, 214, 250); }
 
-/* 章節進度牌 */
 .home-chapter {
     position: absolute;
     left: 22px; top: 162px;
@@ -335,10 +306,8 @@
 .home-chapter-title { font-size: 28px; -unity-font-style: bold; color: rgb(255, 230, 160); }
 .home-chapter-sub { font-size: 22px; color: white; }
 
-/* 右上資源 */
 .home-res { position: absolute; right: 22px; top: 24px; flex-direction: row; }
 
-/* 底部功能鍵 */
 .home-fn-bar { position: absolute; left: 0; right: 0; bottom: 14px; flex-direction: row; justify-content: center; }
 .home-fn { align-items: center; margin: 0 14px; padding: 0; border-width: 0; background-color: rgba(0, 0, 0, 0); transition: translate 120ms ease-out; }
 .home-fn:hover { translate: 0 -6px; background-color: rgba(0, 0, 0, 0); }
@@ -356,7 +325,6 @@
     padding: 1px 12px; border-radius: 10px; background-color: rgba(14, 30, 72, 0.72);
 }
 
-/* 右下：戰鬥圓章 */
 .home-orb {
     position: absolute;
     right: 26px; bottom: 26px;
@@ -369,7 +337,6 @@
 }
 .home-orb:hover { scale: 1.07 1.07; background-color: rgba(0, 0, 0, 0); }
 
-/* 左下：巴豆妖 + 氣泡 */
 .home-mascot-box { position: absolute; left: 10px; bottom: 6px; width: 330px; height: 470px; }
 .home-mascot {
     position: absolute; left: 0; bottom: 0;

@@ -18,18 +18,14 @@ namespace SanGuo.Core.Meta
     {
         public string Id = "";
         public QuestKind Kind;
-        /// <summary>七日任務：第幾天開放（1–7）。每日任務忽略。</summary>
         public int Day = 1;
         public string Description = "";
-        /// <summary>要累積的事件（見 <see cref="Quests.Events"/>）。</summary>
         public string EventKey = "";
         public int Target = 1;
-        /// <summary>七日任務領取後獲得的任務點數。</summary>
         public int Points;
         public Reward Reward = new Reward();
     }
 
-    /// <summary>七日目標的點數里程碑（終極大獎放在最高那一檔）。</summary>
     public sealed class QuestMilestone
     {
         public int Points;
@@ -44,11 +40,6 @@ namespace SanGuo.Core.Meta
         public QuestDef? Find(string id) => Quests.FirstOrDefault(q => q.Id == id);
     }
 
-    /// <summary>
-    /// 任務與七日目標（見 docs/days-1-7.md 4）。
-    /// 遊戲內的動作成功後呼叫 <see cref="Report"/>；有帶時間的動作（關卡結算、掃蕩、資源副本）已自動回報，
-    /// 其餘（升級、穿戴裝備、突破、抽卡）由伺服器的 API 層在成功後回報。
-    /// </summary>
     public static class Quests
     {
         public const int SevenDays = 7;
@@ -63,16 +54,12 @@ namespace SanGuo.Core.Meta
             public const string Breakthrough = "breakthrough";
             public const string GachaPull = "gacha_pull";
             public const string Login = "login";
-            /// <summary>每天第一次登入（每週任務「登入 N 天」）。</summary>
             public const string LoginDay = "login_day";
-            /// <summary>挑戰世界 Boss（結算一場）。</summary>
             public const string WorldBossFight = "world_boss";
         }
 
-        /// <summary>今天是帳號的第幾天（建立當天 = 1）。</summary>
         public static int DayNumber(PlayerProfile p, long now) => (int)(DailyClock.DayIndex(now) - p.CreatedDay) + 1;
 
-        /// <summary>回報事件：累積所有對應任務的進度（只累積到目標，七日任務限第 1–7 天且已開放的）。</summary>
         public static void Report(PlayerProfile p, string eventKey, int count, long now, QuestBook? book = null)
         {
             if (count <= 0) return;
@@ -115,18 +102,15 @@ namespace SanGuo.Core.Meta
             return QuestClaimResult.Ok;
         }
 
-        /// <summary>該任務所屬的已領取集合（每日／每週／七日）。</summary>
         public static HashSet<string> Claimed(PlayerProfile p, QuestDef q) =>
             q.Kind == QuestKind.Daily ? p.DailyTaskClaimed : q.Kind == QuestKind.Weekly ? p.WeeklyClaimed : p.SevenDayClaimed;
 
-        /// <summary>七日任務點數（已領取的任務點數總和）。</summary>
         public static int SevenDayPoints(PlayerProfile p, QuestBook? book = null)
         {
             book ??= DemoQuests.Book;
             return book.Quests.Where(q => q.Kind == QuestKind.SevenDay && p.SevenDayClaimed.Contains(q.Id)).Sum(q => q.Points);
         }
 
-        /// <summary>領取點數里程碑（點數夠就能領，不受第 7 天限制：沒領完的之後仍可補足）。</summary>
         public static QuestClaimResult ClaimMilestone(PlayerProfile p, int points, long now, QuestBook? book = null)
         {
             book ??= DemoQuests.Book;
@@ -141,7 +125,6 @@ namespace SanGuo.Core.Meta
         }
     }
 
-    /// <summary>Demo 任務表（建議值；七日大獎的 UR 尚未決定，暫以張飛佔位）。</summary>
     public static class DemoQuests
     {
         public static readonly QuestBook Book = Create();
@@ -149,7 +132,6 @@ namespace SanGuo.Core.Meta
         private static QuestDef Daily(string id, string desc, string ev, int target, Reward reward) =>
             new QuestDef { Id = id, Kind = QuestKind.Daily, Description = desc, EventKey = ev, Target = target, Reward = reward };
 
-        /// <summary>每週任務（2026-10-09 企劃定案，暫定約 1000 元寶／週，讓無課每月多約 20 抽）。</summary>
         private static QuestDef Weekly(string id, string desc, string ev, int target, int yuanbao) =>
             new QuestDef { Id = id, Kind = QuestKind.Weekly, Description = desc, EventKey = ev, Target = target, Reward = new Reward(yuanbao: yuanbao) };
 

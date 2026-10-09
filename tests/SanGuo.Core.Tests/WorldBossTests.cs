@@ -11,7 +11,6 @@ namespace SanGuo.Core.Tests
         private readonly ITestOutputHelper _out;
         public WorldBossTests(ITestOutputHelper output) { _out = output; }
 
-        // 2026-10-15 12:00（北京時間）與隔月 2026-11-02 12:00。
         private const long Oct = 1792036800, Nov = 1793592000;
 
         private static PlayerProfile Unlocked(out List<FormationEntry> team, (int Level, int Stars, double Gear)? growth = null)
@@ -73,12 +72,10 @@ namespace SanGuo.Core.Tests
             Assert.Equal(System.Math.Max(best, second.Damage), p.WorldBoss.Best);
         }
 
-        /// <summary>Boss 要夠硬：1.0 畢業養成（第 6 章末）的自動戰鬥 10 回合內打不死，分數才有差距可比。</summary>
         [Fact]
         public void Boss_SurvivesTenTurnsAgainstEndgameTeam()
         {
             var p = Unlocked(out var team);
-            long hp = WorldBoss.Setup(WorldBoss.SeasonOf(Oct), 1).Enemies[0].Def.Base.Hp;
             for (ulong seed = 1; seed <= 3; seed++)
             {
                 p.WorldBoss.Used = 0;
@@ -104,7 +101,7 @@ namespace SanGuo.Core.Tests
         public void BossRotatesBySeason()
         {
             Assert.NotEqual(WorldBoss.BossOf("2026-10").Id, WorldBoss.BossOf("2026-11").Id);
-            Assert.Equal(WorldBoss.BossOf("2026-10").Id, WorldBoss.BossOf("2027-04").Id); // 6 隻循環
+            Assert.Equal(WorldBoss.BossOf("2026-10").Id, WorldBoss.BossOf("2027-04").Id);
         }
 
         [Fact]
@@ -126,11 +123,10 @@ namespace SanGuo.Core.Tests
             Assert.Equal(yuanbao + 3000, p.Yuanbao);
             Assert.Contains("群雄榜第 1 名", p.WorldBoss.Title);
 
-            WorldBoss.SettlePending(p, board, Nov); // 不重複發
+            WorldBoss.SettlePending(p, board, Nov);
             Assert.Equal(yuanbao + 3000, p.Yuanbao);
         }
 
-        /// <summary>月底開打、隔月才交卷：用開打時的 Boss 重播（紀錄仍合法），但成績不算進新賽季。</summary>
         [Fact]
         public void FightAcrossMonthBoundary_ReplaysOldBoss_AndDoesNotScoreNewSeason()
         {
@@ -142,7 +138,7 @@ namespace SanGuo.Core.Tests
             for (int i = 0; i < 200 && battle.Result == BattleResult.Ongoing; i++) rec.PlayAuto();
             Assert.True(WorldBoss.Score(battle) > 0);
 
-            WorldBoss.SettlePending(p, new InMemoryWorldBossBoard(), Nov); // 伺服器每個請求先做換季
+            WorldBoss.SettlePending(p, new InMemoryWorldBossBoard(), Nov);
             var r = StageFlow.Finish(p, WorldBoss.StageId, rec.Actions, Nov);
             Assert.True(r.Ok, r.Code);
             Assert.Equal(WorldBoss.Score(battle), r.Damage);

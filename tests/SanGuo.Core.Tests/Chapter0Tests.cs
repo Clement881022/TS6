@@ -6,7 +6,6 @@ using Xunit;
 
 namespace SanGuo.Core.Tests
 {
-    /// <summary>第零章（盜匪教學）：首通發將、敵人已換成盜匪、劇情資料完整。</summary>
     public class Chapter0Tests
     {
         private static ReplayRecorder Play(BattleSetup setup)

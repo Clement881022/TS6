@@ -4,7 +4,6 @@ using Xunit;
 
 namespace SanGuo.Core.Tests
 {
-    /// <summary>成長結果帶進實際戰鬥：屬性、套牌升級、裝備都要反映在戰鬥單位上，且不重複套用等級。</summary>
     public class HeroGrowthBattleTests
     {
         private static Battle Fight(HeroDef def, HeroState state)
@@ -24,7 +23,6 @@ namespace SanGuo.Core.Tests
             var battle = Fight(zf, state);
 
             var unit = battle.Units.First(u => u.Side == Side.Player);
-            // 等級 ×1.135、一突（坦克主屬性生命）×1.1、防具三階（Equipment.Percents）
             double armor = 1 + Equipment.PercentOf(3) / 100.0;
             Assert.Equal((int)System.Math.Round(zf.Base.Hp * 1.135 * 1.1 * armor), unit.MaxHp);
             Assert.Equal((int)System.Math.Round(zf.Base.Def * 1.135 * armor), unit.Stats.Def);
@@ -40,7 +38,7 @@ namespace SanGuo.Core.Tests
             battle.DrawPile.Remove(plus);
             Assert.Equal(PlayResult.Ok, battle.PlayCard(plus));
             var enemy = battle.Units.First(u => u.Side == Side.Enemy);
-            Assert.Equal(2, enemy.Statuses[StatusType.Taunt].Turns); // 張飛「燕人怒吼」嘲諷 1 回合，2★ 升級後 +1
+            Assert.Equal(2, enemy.Statuses[StatusType.Taunt].Turns);
         }
 
         [Fact]

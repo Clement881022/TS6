@@ -6,10 +6,6 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 帳號頁：暱稱、帳號類型、遊客綁定帳號密碼、登出。單機版沒有帳號，只顯示說明。
-    /// 畫面為程式佔位，正式美術待美術組提供。
-    /// </summary>
     public sealed class AccountPage : PageBase
     {
         private Label? _status;
@@ -29,7 +25,6 @@ namespace SanGuo.Client
 
         protected override void BuildBody(VisualElement body)
         {
-            // 內容可能比畫面高（遊客多了綁定表單）：放進滾動區，面板水平置中。
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.style.flexGrow = 1;
             scroll.style.alignSelf = Align.Stretch;

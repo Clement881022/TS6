@@ -5,15 +5,9 @@ using UnityEngine.Playables;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 把 Resources/Characters/&lt;名稱&gt; 的 3D 角色畫到一張 RenderTexture，給 UI 當立繪用（背景透明）。
-    /// 模型放在遠處的專用圖層、用自己的相機與燈光，不影響主場景；循環播放待機動作，Cheer() 播一次施法動作。
-    /// 不需要時呼叫 Dispose。
-    /// </summary>
     [DefaultExecutionOrder(250)]
     public sealed class ModelStage : MonoBehaviour
     {
-        /// <summary>專用圖層（相機與燈光只看這層）。</summary>
         private const int StageLayer = 31;
         private static int _count;
         private Vector3 _origin;
@@ -41,7 +35,6 @@ namespace SanGuo.Client
         private Vector3 _frameDirection;
         private Coroutine? _framing;
 
-        /// <param name="bust">true = 半身像：鏡頭只框住上半身（劇情對白用）。</param>
         public static ModelStage? Create(string characterName, int width = 512, int height = 640, bool bust = false)
         {
             var prefab = characterName == "badou" ? Resources.Load<GameObject>("Characters/badou") : HeroArt.Model(characterName);
@@ -76,7 +69,6 @@ namespace SanGuo.Client
                 _proceduralView.Init(_model.transform);
             }
 
-            // 以模型的外框決定相機距離與高度
             var bounds = new Bounds(_origin, Vector3.zero);
             bool first = true;
             foreach (var r in _model.GetComponentsInChildren<Renderer>())
@@ -85,14 +77,12 @@ namespace SanGuo.Client
                 else bounds.Encapsulate(r.bounds);
             }
             float fov = 24f;
-            // 水平方向以身體（模型原點）為中心，不用整個外框：武器 / 披風往一側伸出時，外框中心會偏，角色就看起來歪在一邊。
             float halfW = Mathf.Max(Mathf.Abs(bounds.max.x - _origin.x), Mathf.Abs(bounds.min.x - _origin.x));
             float fullW = Mathf.Max(halfW * 2f, 0.1f);
             float size = Mathf.Max(bounds.size.y, fullW * height / (float)width, 0.1f);
             var focus = new Vector3(_origin.x, bounds.center.y, bounds.center.z);
             if (bust)
             {
-                // 半身像：只取最上面約 52% 的身高，鏡頭對準那一段的中心。
                 float bustHeight = bounds.size.y * 0.52f;
                 focus = new Vector3(_origin.x, bounds.max.y - bustHeight * 0.5f, bounds.center.z);
                 size = Mathf.Max(bustHeight, fullW * 0.8f * height / (float)width, 0.1f);
@@ -156,14 +146,12 @@ namespace SanGuo.Client
             _once = !loop;
         }
 
-        /// <summary>false = 暫停這台相機的渲染（畫面上沒在顯示時關掉，省下每幀的繪製）。</summary>
         public bool Visible
         {
             get => _camera != null && _camera.enabled;
             set { if (_camera != null) _camera.enabled = value; }
         }
 
-        /// <summary>播一次歡呼 / 施法動作，結束後回到待機。</summary>
         public void Cheer()
         {
             if (_proceduralView != null) _proceduralView.Cast();
@@ -212,9 +200,7 @@ namespace SanGuo.Client
 
         private System.Collections.IEnumerator FramePosedModel()
         {
-            // Imported skin bounds include helper vertices. Frame visible rendered pixels instead.
             float distance=_frameDistance*1.4f;
-            // 固定用初始方向：從上次調整後的相機位置推方向，會因 focus 偏移而逐次漂移。
             Vector3 direction=_frameDirection;
             _camera.transform.position=_frameFocus+direction*distance;_camera.transform.LookAt(_frameFocus);
             yield return new WaitForEndOfFrame();
@@ -237,8 +223,6 @@ namespace SanGuo.Client
             float width=2*Mathf.Max(Mathf.Abs(minX-Texture.width*.5f),Mathf.Abs(maxX-Texture.width*.5f))/Texture.width;
             float height=(maxY-minY)/(float)Texture.height;
             distance*=Mathf.Max(width,height)/.72f;
-            // A long weapon sweeps farther than the first attack pose. Reserve
-            // room for its follow-through in the art preview camera.
             if (_once && _clips?.MotionProfile == "polearm") distance*=1.55f;
             _camera.transform.position=focus+direction*distance;_camera.transform.LookAt(focus);
             _camera.farClipPlane=Mathf.Max(_camera.farClipPlane,distance+worldHeight*3);

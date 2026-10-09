@@ -24,7 +24,6 @@ namespace SanGuo.Core.Tests
         {
             var s = new StaminaClock(10, 60, T0);
             s.TrySpend(5, T0);
-            // 90 秒後有 1 點，再花 1 點，剩餘 30 秒的進度不能被吃掉。
             Assert.True(s.TrySpend(1, T0 + 90));
             Assert.Equal(5, s.Get(T0 + 90));
             Assert.Equal(6, s.Get(T0 + 120));
@@ -66,14 +65,13 @@ namespace SanGuo.Core.Tests
             Assert.Equal(62, PlayerLevelCurve.StaminaCap(1));
             Assert.Equal(140, PlayerLevelCurve.StaminaCap(40));
             Assert.Equal(180, PlayerLevelCurve.StaminaCap(60));
-            Assert.Equal(360, PlayerLevelCurve.StaminaRegenSeconds); // 每 6 分鐘 1 點
+            Assert.Equal(360, PlayerLevelCurve.StaminaRegenSeconds);
             Assert.Equal(62, PlayerProfile.CreateNew(T0).Stamina.Get(T0));
         }
 
         [Fact]
         public void ExpCurve_AlwaysCostsMoreThanARefill()
         {
-            // 帳號經驗 = 消耗的體力；每級所需必須大於升級後補滿的體力，否則會形成「升級 → 補滿 → 再升級」的循環。
             for (int lv = 1; lv < PlayerLevelCurve.MaxLevel; lv++)
                 Assert.True(PlayerLevelCurve.ExpToNext(lv) > PlayerLevelCurve.StaminaCap(lv + 1), $"Lv{lv}");
             Assert.Equal(0, PlayerLevelCurve.ExpToNext(PlayerLevelCurve.MaxLevel));
@@ -88,7 +86,7 @@ namespace SanGuo.Core.Tests
             Assert.Equal(1, gained);
             Assert.Equal(2, p.Level);
             Assert.Equal(64, p.Stamina.Cap);
-            Assert.Equal(64, p.Stamina.Get(T0)); // 升級補滿體力
+            Assert.Equal(64, p.Stamina.Get(T0));
         }
 
         [Fact]

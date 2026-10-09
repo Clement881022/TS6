@@ -5,10 +5,8 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>以臉中心定位的原圖取景。只改 UI 取景，不重繪或覆寫角色素材。</summary>
     public static class PortraitArt
     {
-        // x/y 為原圖臉中心；z 為正方頭像取景寬度比例。武器不參與定位。
         private static readonly Dictionary<string, Vector3> Frames = new Dictionary<string, Vector3>
         {
             { "guanyu", new Vector3(0.590f, 0.340f, 0.400f) },

@@ -3,7 +3,6 @@ using UnityEditor;
 
 namespace SanGuo.Editor
 {
-    /// <summary>Resources/UiSkin、HeroArt、UiBg 下的貼圖（取自 TS6Client）：不縮放成 2 的次方、不產生 mipmap，9 宮格才不會變形。</summary>
     public sealed class UiSkinImporter : AssetPostprocessor
     {
         private void OnPreprocessTexture()

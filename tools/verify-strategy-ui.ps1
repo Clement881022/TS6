@@ -15,7 +15,6 @@ if (-not $SkipBuild) {
     }
     $buildLog = Join-Path $projectRoot 'build/strategy-build.log'
     $unityArguments = @('-batchmode','-nographics','-projectPath', ('"' + $copyRoot + '"'), '-executeMethod','SanGuo.EditorTools.SanGuoTools.BuildWindows','-sanguoOut', ('"' + $outRoot + '"'),'-logFile',('"' + $buildLog + '"'))
-    # Wait for the editor itself: Start-Process -Wait also waits for licensing children.
     $buildProcess = Start-Process -FilePath $unityExe -ArgumentList $unityArguments -WindowStyle Hidden -PassThru
     if (-not $buildProcess.WaitForExit(600000)) { $buildProcess.Kill(); throw "Unity build timed out: $buildLog" }
     if ($buildProcess.ExitCode -ne 0) { throw "Unity build failed: $buildLog" }
@@ -23,7 +22,6 @@ if (-not $SkipBuild) {
 New-Item -ItemType Directory -Force -Path $shotsRoot | Out-Null
 $playerLog = Join-Path $shotsRoot 'player.log'
 $gameArguments = @('-screen-width',$Width,'-screen-height',$Height,'-screen-fullscreen','0','-sanguoLevel','1','-sanguoShot',('"' + $shotsRoot + '"'),'-logFile',('"' + $playerLog + '"'))
-# The interactive game preview must be visible: minimized swapchains cannot capture the rendered UI.
 $game = Start-Process -FilePath (Join-Path $outRoot 'SanGuo.exe') -ArgumentList $gameArguments -WindowStyle Normal -PassThru
 $captureStarted = Get-Date
 if (-not $game.WaitForExit(60000)) { $game.Kill(); throw 'Screenshot run timed out.' }

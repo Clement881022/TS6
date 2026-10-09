@@ -3,7 +3,6 @@ using SanGuo.Core;
 using SanGuo.Core.Data;
 using SanGuo.Core.Meta;
 
-/// <summary>對照實驗：固定養成，比較職業組合、稀有度、打法對勝率與世界 Boss 傷害的影響（離線戰鬥，不經伺服器）。</summary>
 public static class Experiments
 {
     static readonly Dictionary<Role, (string Sr, string Ur)> Ids = new()
@@ -44,7 +43,7 @@ public static class Experiments
         foreach (var r in roles.OrderBy(r => r == Role.Tank ? 0 : r == Role.Warrior ? 1 : 2))
         {
             string id = ur ? Ids[r].Ur : Ids[r].Sr;
-            if (!used.Add(id)) id = ur ? Ids[r].Sr : AltSr[r]; // 同職業第二隻
+            if (!used.Add(id)) id = ur ? Ids[r].Sr : AltSr[r];
             used.Add(id);
             var h = new HeroState { HeroId = id, Level = level, Stars = stars };
             if (gear > 0) foreach (var s in Equipment.Slots) h.Equipment[s.ToString()] = gear;
@@ -92,7 +91,7 @@ public static class Experiments
     {
         var sb = new StringBuilder();
         string[] stages = { "3-10", "4-10", "5-10", "6-10" };
-        var midGrowth = (Level: 36, Stars: 3, Gear: 4); // 第 5 章末的預期養成（CampaignBalanceTests）
+        var midGrowth = (Level: 36, Stars: 3, Gear: 4);
         sb.AppendLine("# 對照實驗（離線戰鬥，每格 40 場）");
         sb.AppendLine($"## A. 職業組合 × 稀有度：章末關勝率（養成固定 Lv{midGrowth.Level}／{midGrowth.Stars}★／{midGrowth.Gear} 階裝，聰明打）");
         sb.AppendLine("| 組合 | 稀有度 | " + string.Join(" | ", stages) + " | Boss 平均傷害（滿養成 Lv60/5★/5階） |");
@@ -118,7 +117,6 @@ public static class Experiments
             var bs = Boss(ps, ts, true, 40); var bu = Boss(pu, tu, true, 40);
             sb.AppendLine($"| Lv{g.Item1}/{g.Item2}★/{g.Item3}階 | {bs.Avg:0}（{bs.Min}–{bs.Max}） | {bu.Avg:0}（{bu.Min}–{bu.Max}） | {bu.Avg / bs.Avg:0.00} |");
         }
-        // 混合：UR 0★ vs SR 5★（大課剛抽到 UR 時的取捨）
         {
             var (ps, ts) = Team(Comps[0].Roles, false, 60, 5, 5);
             var (pu, tu) = Team(Comps[0].Roles, true, 60, 0, 5);

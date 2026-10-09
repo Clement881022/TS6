@@ -3,7 +3,6 @@ using static SanGuo.Core.Data.Cast;
 
 namespace SanGuo.Core.Data
 {
-    /// <summary>第四章　十八路諸侯：陳留遇曹操、北平會公孫瓚、酸棗會盟、為孫堅送糧、斬胡軫、救孫堅，章末溫酒斬華雄。</summary>
     public static class Chapter4Story
     {
         private static StoryLine CaoCao(string text) => S("曹操", "", text);

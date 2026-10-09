@@ -10,7 +10,6 @@ namespace SanGuo.Client
 {
     public enum TileState { None, Target, Reach, Range, Owner }
 
-    /// <summary>掛在每塊地磚上，記錄它對應的棋盤格（點擊選格用）。</summary>
     public sealed class TileTag : MonoBehaviour
     {
         public Position Pos;
@@ -18,23 +17,19 @@ namespace SanGuo.Client
         public Color BaseColor;
     }
 
-    /// <summary>
-    /// 3D 戰場：45 度俯視的正交攝影機、地磚、角色模型。
-    /// UI（UI Toolkit）畫在 3D 之上；血條等資訊由 BattleScreen 依 WorldToPanel 貼在角色頭上。
-    /// </summary>
     public sealed class BattleStage : MonoBehaviour
     {
-        public const float CameraPitchDegrees = 36f;   // 俯視角（等角視角約 45–55）
+        public const float CameraPitchDegrees = 36f;
         public const float BoardLeftBias = 0f;
-        private const float BoardZoom = 1.0f;         // 棋盤完整放進 field（手牌區不再蓋住棋盤）
-        public const float CameraYawDegrees = 60f;     // 棋盤繞 Y 軸轉 30°（原本 90° = 軸對齊；轉向相反就改成 120）
-        private const float TilePitch = 1.85f;      // 欄與欄之間（螢幕上下方向；參考 TS6Client 角色間距 1.5）
-        private const float TilePitchX = 1.55f;     // 列與列之間（螢幕左右方向）
+        private const float BoardZoom = 1.0f;
+        public const float CameraYawDegrees = 60f;
+        private const float TilePitch = 1.85f;
+        private const float TilePitchX = 1.55f;
         private const float TileTop = 0.03f;
         private const float ModelScale = 0.90f;
-        private const float UnitHeadHeight = 2.4f;     // 模型縮小後的頭頂高度（ModelScale 1.5 時為 3.1）
-        private const float TagRoomAbove = 0.5f;       // 頭頂血量標籤的預留高度（世界單位），避免被切到畫面外
-        private const float TagRoomBelow = 0.35f;       // 我方標籤在腳下
+        private const float UnitHeadHeight = 2.4f;
+        private const float TagRoomAbove = 0.5f;
+        private const float TagRoomBelow = 0.35f;
 
         private sealed class UnitView
         {
@@ -45,14 +40,12 @@ namespace SanGuo.Client
             public Vector3 Facing;
         }
 
-        // 視角：滾輪縮放、拖曳平移（BattleScreen 轉送輸入）。預設比「剛好塞進戰場區」再近一些，讓棋盤與角色更大。
         private const float DefaultZoom = 1.3f, MinZoom = 0.7f, MaxZoom = 3.2f;
         private float _zoom = DefaultZoom;
         private Vector2 _panScreenPx;
 
         public void ZoomBy(float factor) => _zoom = Mathf.Clamp(_zoom * factor, MinZoom, MaxZoom);
 
-        /// <summary>拖曳平移（面板座標的位移量；往右拖 = 棋盤往右）。</summary>
         public void PanBy(Vector2 panelDelta)
         {
             float k = _panelRoot != null && _panelRoot.worldBound.width > 1f ? Screen.width / _panelRoot.worldBound.width : 1f;
@@ -88,7 +81,6 @@ namespace SanGuo.Client
             _camera.nearClipPlane = 0.1f;
             _camera.farClipPlane = 80f;
 
-            // 劇情 / 主城的 3D 立繪（ModelStage）自帶燈光，但它們隨時會被銷毀：戰場只認不屬於立繪的燈，沒有就自己補一盞。
             bool hasKeyLight = false;
             foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None))
                 if (l.GetComponentInParent<ModelStage>() == null) { hasKeyLight = true; break; }
@@ -108,12 +100,9 @@ namespace SanGuo.Client
             RenderSettings.ambientLight = new Color(0.64f, 0.62f, 0.56f);
         }
 
-        // ------------------------------------------------------------ 綁定戰鬥
-
         private Transform? _backdrop;
         private const float BackdropDistance = 60f;
 
-        /// <summary>戰場背景：貼圖貼在攝影機正後方的一張 Quad，跟著鏡頭縮放、永遠填滿畫面（Resources/UiBg/battle）。</summary>
         private void CreateBackdrop()
         {
             var tex = Resources.Load<Texture2D>("ChibiSkin/battle");
@@ -135,7 +124,6 @@ namespace SanGuo.Client
             if (_backdrop == null) return;
             float h = _camera.orthographicSize * 2f;
             float w = h * _camera.aspect;
-            // 貼圖是 16:9：以「填滿」的方式放大（寬或高其中一邊剛好、另一邊裁掉）
             float imageAspect = 16f / 9f;
             if (_camera.aspect > imageAspect) h = w / imageAspect; else w = h * imageAspect;
             _backdrop.localScale = new Vector3(w, h, 1f);
@@ -158,7 +146,6 @@ namespace SanGuo.Client
 
         public CharacterView? ViewOf(int unitId) => _views.TryGetValue(unitId, out var v) ? v.View : null;
 
-        /// <summary>敵我共用的 5x5 棋盤，全部是中立格；底下鋪一塊石板地板與木框，做成戰鬥場地。</summary>
         private void BuildTiles()
         {
             _tileRoot = new GameObject("Tiles");
@@ -180,7 +167,6 @@ namespace SanGuo.Client
                     tag.Pos = pos;
                     tag.Renderer = tile.GetComponent<Renderer>();
                     if (TileShader != null) tag.Renderer.sharedMaterial = new Material(TileShader);
-                    // 共用棋盤沒有敵我領土：所有格子都是中立色（只有技能預覽才會上色）。
                     tag.BaseColor = new Color(0.82f, 0.78f, 0.60f, 0f);
                     tag.Renderer.material.SetFloat("_Border", 0.024f);
                     tag.Renderer.material.color = tag.BaseColor;
@@ -188,8 +174,6 @@ namespace SanGuo.Client
                 }
             }
         }
-
-        private static Shader? FloorShader => Resources.Load<Shader>("Shaders/BattleFloor");
 
         private void BuildFloor(Transform parent)
         {
@@ -229,7 +213,6 @@ namespace SanGuo.Client
             }
         }
 
-        // Real bevel geometry gives the board a thin crafted edge and individual stone relief.
         private void Solid(Transform parent, string name, Vector3 center, Vector3 size, Color color, float bevel)
         {
             var go = new GameObject(name);
@@ -267,7 +250,6 @@ namespace SanGuo.Client
             go.AddComponent<MeshRenderer>().sharedMaterial = mat;
         }
 
-        /// <summary>棋盤格的世界座標（地磚頂面中心）。第 0 列（敵方底線）在右、第 4 列（我方底線）在左；第 0 欄在遠端。</summary>
         public Vector3 TileWorld(Position pos)
         {
             int lanes = _battle != null ? _battle.Setup.Lanes : 5;
@@ -293,8 +275,6 @@ namespace SanGuo.Client
             }
         }
 
-        // ------------------------------------------------------------ 座標轉換
-
         public Vector2 WorldToPanel(Vector3 world)
         {
             var sp = _camera.WorldToScreenPoint(world);
@@ -303,11 +283,9 @@ namespace SanGuo.Client
             return new Vector2(sp.x / Screen.width * w, (Screen.height - sp.y) / Screen.height * h);
         }
 
-        /// <summary>某個棋盤格上方（約角色頭頂）的面板座標，飄字用。</summary>
         public Vector2 TileHeadPanel(Side side, Position pos) =>
             WorldToPanel(TileWorld(pos) + Vector3.up * UnitHeadHeight);
 
-        /// <summary>角色目前（含移動動畫）腳下的面板座標；我方標籤放這裡（頭頂方向是敵方區域）。</summary>
         public Vector2? UnitFootPanel(Unit unit)
         {
             if (!_views.TryGetValue(unit.Id, out var uv) || !uv.Anchor.activeSelf) return null;
@@ -320,14 +298,12 @@ namespace SanGuo.Client
             return WorldToPanel(uv.Anchor.transform.position + Vector3.up * 0.05f);
         }
 
-        /// <summary>角色目前（含移動動畫）頭頂的面板座標，血條用；找不到回傳 null。</summary>
         public Vector2? UnitHeadPanel(Unit unit)
         {
             if (!_views.TryGetValue(unit.Id, out var uv) || !uv.Anchor.activeSelf) return null;
             return WorldToPanel(uv.Anchor.transform.position + Vector3.up * UnitHeadHeight);
         }
 
-        /// <summary>點擊選格：面板座標 → 射線打到的地磚。</summary>
         public bool TryPick(Vector2 panelPoint, out Position pos)
         {
             pos = default;
@@ -353,15 +329,11 @@ namespace SanGuo.Client
             Debug.Log("[shot] Battle grid center raycasts verified: "+_tiles.Count);
         }
 
-        // ------------------------------------------------------------ 模型
-
-        // URP 專案裡 CreatePrimitive 的預設材質是 Built-in Standard（會變粉紅），地磚改用 URP/Lit。
         private static Shader? TileShader => Resources.Load<Shader>("Shaders/TileOverlay");
 
         private UnitView? Ensure(Unit unit)
         {
             if (_views.TryGetValue(unit.Id, out var existing)) return existing;
-            // 敵人可借用模型（ArtId）；護送 / 守城目標沒有專屬模型時借用村民。
             string art = unit.Protected && !HeroArt.HasOwnModel(unit.ArtId) ? "r_villager" : unit.ArtId;
             if (!_prefabs.TryGetValue(art, out var prefab))
             {
@@ -426,8 +398,6 @@ namespace SanGuo.Client
             }
         }
 
-        // ------------------------------------------------------------ 每幀
-
         private void LateUpdate()
         {
             if (_battle == null || _panelRoot == null || _field == null) return;
@@ -455,7 +425,6 @@ namespace SanGuo.Client
             }
         }
 
-        /// <summary>把棋盤整個框進 UI 中間那塊（field）的範圍：以攝影機空間的包圍盒算出縮放與平移。</summary>
         private void FitCamera()
         {
             var pb = _panelRoot!.worldBound;
@@ -465,12 +434,11 @@ namespace SanGuo.Client
             float sx = Screen.width / pb.width, sy = Screen.height / pb.height;
             float fieldW = fb.width * sx, fieldH = fb.height * sy;
             var fieldCenter = new Vector2((fb.x + fb.width * 0.5f) * sx, Screen.height - (fb.y + fb.height * 0.5f) * sy);
-            fieldCenter.x -= fieldW * BoardLeftBias;   // 棋盤略往左，右下角留給手牌與按鈕
+            fieldCenter.x -= fieldW * BoardLeftBias;
 
             var rot = Quaternion.Euler(CameraPitchDegrees, CameraYawDegrees, 0f);
             var inv = Quaternion.Inverse(rot);
 
-            // 所有地磚的四角（地面與頭頂高度）投影到攝影機空間，求包圍盒。
             float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue;
             foreach (var key in _tiles.Keys)
             {
@@ -479,7 +447,7 @@ namespace SanGuo.Client
                 {
                     for (int cz = -1; cz <= 1; cz += 2)
                     {
-                        for (int h = 0; h < 2; h++) // 0 = 腳下（再往下留給我方標籤），1 = 頭頂（再往上留給敵方標籤）
+                        for (int h = 0; h < 2; h++)
                         {
                             var p = center + new Vector3(cx * TilePitchX * 0.5f, h == 0 ? -TagRoomBelow : UnitHeadHeight + TagRoomAbove, cz * TilePitch * 0.5f);
                             var c = inv * p;
@@ -491,16 +459,12 @@ namespace SanGuo.Client
             }
             float needW = (maxX - minX) / BoardZoom + 0.4f;
             float needH = (maxY - minY) / BoardZoom + 0.3f;
-            // Tall displays have more vertical room but less room beside the board.
-            // Reduce the initial framing magnification while preserving user zoom.
             float framingZoom = _zoom * Mathf.Min(1f, _camera.aspect / (16f / 9f));
             float worldPerPx = Mathf.Max(needH / fieldH, needW / fieldW) / framingZoom;
             _camera.orthographicSize = worldPerPx * Screen.height * 0.5f;
 
-            // 包圍盒中心要落在 field 中心：在攝影機空間反向平移。
             float dx = (fieldCenter.x - Screen.width * 0.5f) * worldPerPx;
             float dy = (fieldCenter.y - Screen.height * 0.5f) * worldPerPx;
-            // 拖曳平移：棋盤往右拖 → 鏡頭往左；往下拖 → 鏡頭往上（攝影機空間 y 向上）。
             var camLocal = new Vector3((minX + maxX) * 0.5f - dx - _panScreenPx.x * worldPerPx, (minY + maxY) * 0.5f - dy + _panScreenPx.y * worldPerPx, -40f);
             _camera.transform.rotation = rot;
             _camera.transform.position = rot * camLocal;

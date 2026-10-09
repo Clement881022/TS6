@@ -5,16 +5,12 @@ namespace SanGuo.Core.Data
 {
     public enum ReplayActionKind { Play, EndTurn }
 
-    /// <summary>玩家的一個操作。卡牌與單位以戰鬥內的 id 指定（同一個關卡設定與種子下 id 是確定的）。</summary>
     public sealed class ReplayAction
     {
         public ReplayActionKind Kind;
-        /// <summary>Play：<see cref="CardInstance.Id"/>。</summary>
         public int CardId;
-        /// <summary>Play：玩家指定的目標格（單體敵人牌的中心格；移動卡的目的地）；-1 = 沒指定（自動挑目標）。</summary>
         public int Lane = -1;
         public int Row = -1;
-        /// <summary>Play：移動卡要移動的武將 <see cref="Unit.Id"/>；-1 = 不是移動卡。</summary>
         public int UnitId = -1;
 
         public static ReplayAction Play(int cardId, int lane = -1, int row = -1, int unitId = -1) =>
@@ -22,7 +18,6 @@ namespace SanGuo.Core.Data
         public static ReplayAction EndTurn() => new ReplayAction { Kind = ReplayActionKind.EndTurn };
     }
 
-    /// <summary>驗證結果。<see cref="Valid"/> = false 代表操作紀錄不合法（作弊或損毀），不應發任何獎勵。</summary>
     public sealed class ReplayResult
     {
         public bool Valid;
@@ -35,13 +30,8 @@ namespace SanGuo.Core.Data
         public bool Won => Valid && Result == BattleResult.Won;
     }
 
-    /// <summary>
-    /// 戰鬥重播：用同一份關卡設定（含伺服器發的種子）把玩家操作逐一重放，得出確定的結果。
-    /// 戰鬥核心是確定性的，所以客戶端只需回傳操作，不需要也不能「自報」勝負。
-    /// </summary>
     public static class ReplayVerifier
     {
-        /// <summary>單場操作數上限，擋掉惡意的超長紀錄。</summary>
         public const int MaxActions = 5000;
 
         public static ReplayResult Verify(BattleSetup setup, IReadOnlyList<ReplayAction> actions)
@@ -94,10 +84,6 @@ namespace SanGuo.Core.Data
             new ReplayResult { Valid = false, Error = error, Battle = battle };
     }
 
-    /// <summary>
-    /// 錄製器：客戶端把每個成功的操作透過它送進戰鬥，打完把 <see cref="Actions"/> 交給伺服器。
-    /// 自動戰鬥也能錄（<see cref="PlayAuto"/>）。
-    /// </summary>
     public sealed class ReplayRecorder
     {
         public Battle Battle { get; }
@@ -105,8 +91,6 @@ namespace SanGuo.Core.Data
 
         public ReplayRecorder(Battle battle) { Battle = battle; }
 
-        /// <param name="target">指定的目標格（單體敵人牌的中心格 / 移動卡的目的地）。</param>
-        /// <param name="mover">移動卡要移動的武將。</param>
         public PlayResult Play(CardInstance card, Position? target = null, Unit? mover = null)
         {
             var r = Battle.PlayCard(card, target, mover);
@@ -121,12 +105,11 @@ namespace SanGuo.Core.Data
 
         public void EndTurn()
         {
-            if (Battle.Result != BattleResult.Ongoing) return; // 已分出勝負：不再有操作
+            if (Battle.Result != BattleResult.Ongoing) return;
             Battle.EndTurn();
             Actions.Add(ReplayAction.EndTurn());
         }
 
-        /// <summary>自動戰鬥一個回合（同 <see cref="AutoPlayer.PlayTurn"/>），並錄下操作。</summary>
         public void PlayAuto(Func<Battle, CardInstance, int>? priority = null)
         {
             while (Battle.Result == BattleResult.Ongoing)

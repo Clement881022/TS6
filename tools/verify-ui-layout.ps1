@@ -6,7 +6,6 @@ $copyRoot = Join-Path $projectRoot 'build/ui-layout-client-copy'
 $outRoot = Join-Path $projectRoot 'build/ui-layout-win'
 $shotsRoot = Join-Path $projectRoot "build/$ReviewName/${Width}x${Height}"
 if (-not $SkipBuild) {
-    # Use the existing core DLL; this review changes only presentation.
     foreach ($folder in @('Assets','Packages','ProjectSettings')) {
         $sourcePath = Join-Path (Join-Path $projectRoot 'client') $folder
         $destinationPath = Join-Path $copyRoot $folder
@@ -15,7 +14,6 @@ if (-not $SkipBuild) {
     }
     $buildLog = Join-Path $projectRoot 'build/ui-layout-build.log'
     $unityArguments = @('-batchmode','-nographics','-projectPath', ('"' + $copyRoot + '"'), '-executeMethod','SanGuo.EditorTools.SanGuoTools.BuildWindows','-sanguoOut', ('"' + $outRoot + '"'),'-logFile',('"' + $buildLog + '"'))
-    # Wait for the editor itself: Start-Process -Wait also waits for licensing children.
     $buildProcess = Start-Process -FilePath $unityExe -ArgumentList $unityArguments -WindowStyle Hidden -PassThru
     if (-not $buildProcess.WaitForExit(600000)) { $buildProcess.Kill(); throw "Unity build timed out: $buildLog" }
     if ($buildProcess.ExitCode -ne 0) { throw "Unity build failed: $buildLog" }
@@ -23,7 +21,6 @@ if (-not $SkipBuild) {
 New-Item -ItemType Directory -Force -Path $shotsRoot | Out-Null
 $playerLog = Join-Path $shotsRoot 'player.log'
 $gameArguments = @('-screen-width',$Width,'-screen-height',$Height,'-screen-fullscreen','0','-sanguoLevel','1','-sanguoShot',('"' + $shotsRoot + '"'),'-logFile',('"' + $playerLog + '"'))
-# The interactive game preview must be visible: minimized swapchains cannot capture the rendered UI.
 $game = Start-Process -FilePath (Join-Path $outRoot 'SanGuo.exe') -ArgumentList $gameArguments -WindowStyle Normal -PassThru
 $captureStarted = Get-Date
 if (-not $game.WaitForExit(120000)) { $game.Kill(); throw 'Screenshot run timed out.' }

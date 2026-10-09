@@ -2,10 +2,6 @@ using System.Text;
 using SanGuo.Core;
 using SanGuo.Core.Meta;
 
-/// <summary>
-/// 校準工具：主線章末關的戰力門檻（同 CampaignBalanceTests 的隊伍與各章預期養成）。
-/// 用法：calib [每章敵人等級偏移, 例 0,3,3,4,4,5,5]，印出各章末「照預期養成／停在上一章」的自動戰鬥勝率。
-/// </summary>
 public static class Calibrate
 {
     static readonly (string Id, int Lane, int Row)[] Team = { ("zhangfei", 2, 3), ("guanyu", 1, 3), ("lvbu", 3, 3), ("liubei", 2, 4) };
@@ -32,7 +28,6 @@ public static class Calibrate
         return 100.0 * wins / runs;
     }
 
-    /// <summary>指定關卡在指定養成下的勝率（除錯用）。</summary>
     public static double WinAt(string stage, int level, int stars, int gear, int runs = 40) => Win(stage, (level, stars, gear), runs);
 
     public static string Run(int[] offsets)

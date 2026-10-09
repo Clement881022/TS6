@@ -5,35 +5,25 @@ namespace SanGuo.Core.Meta
 {
     public enum BreakthroughKind
     {
-        /// <summary>屬性提升（加在等級成長之上，與等級、裝備相乘）。</summary>
         StatBonus,
-        /// <summary>把套牌中的某張特殊卡升級為強化版（逐張生效，同名其餘複本不變）。</summary>
         UpgradeCard,
-        /// <summary>解鎖武將被動（UR 與劇情劉關張的 5★，見 <see cref="HeroDef.Passive"/>）。</summary>
         UnlockPassive,
     }
 
     public enum StatKind { Hp, Atk, Int, Def, Crit }
 
-    /// <summary>突破某一階段帶來的效果。</summary>
     public sealed class BreakthroughEffect
     {
-        /// <summary>第幾突解鎖（1–5）。</summary>
         public int Stars;
         public BreakthroughKind Kind;
         public StatKind Stat;
-        /// <summary>StatBonus：生命 / 攻擊 / 謀略 / 防禦為百分比（10 = +10%）；爆擊率為百分點（10 = +10 點）。</summary>
         public int Value;
-        /// <summary>UpgradeCard：被替換的卡牌 id。</summary>
         public string TargetCardId = "";
-        /// <summary>UnlockPassive：解鎖的被動。</summary>
         public PassiveKind Passive;
         public CardDef? NewCard;
-        /// <summary>顯示給玩家的說明。</summary>
         public string Description = "";
     }
 
-    /// <summary>突破後累計的屬性修正：倍率（1.1 = +10%）與爆擊 / 閃避點數。</summary>
     public struct StatMods
     {
         public double Hp, Atk, Int, Def;
@@ -42,10 +32,6 @@ namespace SanGuo.Core.Meta
         public static StatMods Identity => new StatMods { Hp = 1, Atk = 1, Int = 1, Def = 1 };
     }
 
-    /// <summary>
-    /// 突破模板（GDD 05 §4.2）：一突主屬性提升、二突第 1 張特殊卡升級、三突次屬性提升、四突主屬性提升、五突第 2 張特殊卡升級。
-    /// 滿突合計主屬性 +20%（×1.2）、次屬性 +10%（×1.1）。主 / 次屬性依職業統一（待決事項的暫定值，日後可逐武將覆寫）。
-    /// </summary>
     public static class Breakthroughs
     {
         public const int StatStepPercent = 10;
@@ -84,23 +70,21 @@ namespace SanGuo.Core.Meta
             }
         }
 
-        /// <summary>武將的 5 階突破效果。</summary>
         public static List<BreakthroughEffect> For(HeroDef hero)
         {
             var specials = hero.Deck.Where(c => !c.Basic).Select(c => c).GroupBy(c => c.Id).Select(g => g.First()).ToList();
             var primary = PrimaryStat(hero.Role);
             var secondary = SecondaryStat(hero.Role);
-            // 有被動的武將（UR、劇情劉關張）：5★ 改為解鎖被動（企劃 2026-10-09），其餘維持第 2 張特殊卡升級。
             var fifth = hero.Passive != PassiveKind.None
                 ? new BreakthroughEffect
                 {
                     Stars = 5, Kind = BreakthroughKind.UnlockPassive, Passive = hero.Passive,
                     Description = $"被動「{Passives.Name(hero.Passive)}」：{Passives.Description(hero.Passive)}",
                 }
-                : Upgrade(5, specials, 1, hero.Rarity);
+                : Upgrade(5, specials, 1);
             var list = new List<BreakthroughEffect>
             {
-                Stat(1, primary), Upgrade(2, specials, 0, hero.Rarity), Stat(3, secondary), Stat(4, primary), fifth,
+                Stat(1, primary), Upgrade(2, specials, 0), Stat(3, secondary), Stat(4, primary), fifth,
             };
             return list;
         }
@@ -111,7 +95,7 @@ namespace SanGuo.Core.Meta
             Description = stat == StatKind.Crit ? $"爆擊率 +{StatStepPercent}%" : $"{StatName(stat)} +{StatStepPercent}%",
         };
 
-        private static BreakthroughEffect Upgrade(int stars, List<CardDef> specials, int index, Rarity rarity)
+        private static BreakthroughEffect Upgrade(int stars, List<CardDef> specials, int index)
         {
             if (index >= specials.Count)
                 return new BreakthroughEffect { Stars = stars, Kind = BreakthroughKind.StatBonus, Stat = StatKind.Hp, Value = StatStepPercent, Description = "生命 +10%" };
@@ -124,11 +108,9 @@ namespace SanGuo.Core.Meta
             };
         }
 
-        /// <summary>目前星級已解鎖的效果。</summary>
         public static IEnumerable<BreakthroughEffect> Unlocked(HeroDef hero, int stars) =>
             For(hero).Where(e => e.Stars <= stars);
 
-        /// <summary>依星級解出實際套牌：升級版取代原卡（只換該 id 的第一張）。不修改原 <see cref="HeroDef"/>。</summary>
         public static List<CardDef> ResolveDeck(HeroDef hero, int stars)
         {
             var deck = new List<CardDef>(hero.Deck);
@@ -141,7 +123,6 @@ namespace SanGuo.Core.Meta
             return deck;
         }
 
-        /// <summary>目前星級累計的屬性修正（加成相加後換成倍率）。</summary>
         public static StatMods Mods(HeroDef hero, int stars)
         {
             double hp = 0, atk = 0, intl = 0, def = 0;

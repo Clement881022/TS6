@@ -14,35 +14,20 @@ namespace SanGuo.Core.Meta
         NothingEquipped,
     }
 
-    /// <summary>
-    /// 裝備（GDD 09）：每名武將 3 個部位（武器、防具、飾品），品階 1–5，屬性固定、無隨機詞條；品階加成為非線性曲線（見 <see cref="Percents"/>，低階比線性弱、高階比線性強）。
-    /// 武器依職業分類（重盾、戰刀、長弓、法杖、羽扇、藥杖），只有對應職業能配戴；防具與飾品全職業通用。
-    /// 取得自素材副本：低階（1–3 階）直接掉裝備，高階（4–5 階）掉碎片，集滿合成；掉落的武器（含碎片）都是某個職業專屬的，例如「神品法杖碎片」。
-    /// 庫存存放於 <see cref="PlayerProfile.Materials"/>：
-    ///   防具、飾品、自選武器匣（贈送用，穿上時依配戴者職業定型成該職業武器）= <c>eq:部位:品階</c>；
-    ///   職業武器 = <c>eq:weapon:職業:品階</c>；碎片 = <c>eqs:部位:品階</c>（武器碎片為 <c>eqs:weapon:職業:品階</c>）。
-    /// 武將身上的裝備記為部位 → 品階。
-    /// </summary>
     public static class Equipment
     {
         public const int MaxTier = 5;
 
         public static readonly EquipSlot[] Slots = { EquipSlot.Weapon, EquipSlot.Armor, EquipSlot.Accessory };
 
-        /// <summary>各品階的主屬性加成（%），索引 0 不使用。線性是 10／20／30／40／50；曲線讓 1–3 階比線性弱、4 階略強、5 階明顯更強。</summary>
         public static readonly int[] Percents = { 0, 5, 11, 22, 40, 65 };
 
         public static int PercentOf(int tier) => Percents[Math.Max(1, Math.Min(MaxTier, tier))];
 
-        // ---- 庫存鍵 ----
-
-        /// <summary>通用裝備（防具、飾品、贈送用的自選武器匣）的庫存鍵。</summary>
         public static string ItemKey(EquipSlot slot, int tier) => $"eq:{slot.ToString().ToLowerInvariant()}:{tier}";
 
-        /// <summary>已定型的職業武器庫存鍵。</summary>
         public static string WeaponKey(Role role, int tier) => $"eq:weapon:{role.ToString().ToLowerInvariant()}:{tier}";
 
-        /// <summary>碎片庫存鍵（高階裝備以碎片取得）；武器碎片依職業分開。</summary>
         public static string ShardKey(EquipSlot slot, int tier, Role? role = null) =>
             slot == EquipSlot.Weapon && role.HasValue
                 ? $"eqs:weapon:{role.Value.ToString().ToLowerInvariant()}:{tier}"
@@ -50,7 +35,6 @@ namespace SanGuo.Core.Meta
 
         public static bool TryParseKey(string key, out EquipSlot slot, out int tier) => TryParseKey(key, out slot, out tier, out _);
 
-        /// <summary>解析裝備庫存鍵（通用或職業武器）；<paramref name="role"/> 只有職業武器才有值。</summary>
         public static bool TryParseKey(string key, out EquipSlot slot, out int tier, out Role? role)
         {
             slot = EquipSlot.Weapon;
@@ -85,17 +69,13 @@ namespace SanGuo.Core.Meta
             return int.TryParse(parts[parts.Length - 1], out tier) && tier >= 1 && tier <= MaxTier;
         }
 
-        // ---- 名稱 ----
-
         public static string SlotName(EquipSlot slot) =>
             slot == EquipSlot.Weapon ? "武器" : slot == EquipSlot.Armor ? "防具" : "飾品";
 
-        /// <summary>品質名稱（介面上取代「N 階」的說法）。</summary>
         public static readonly string[] TierLabels = { "", "凡品", "良品", "上品", "極品", "神品" };
 
         public static string TierLabel(int tier) => TierLabels[Math.Max(1, Math.Min(MaxTier, tier))];
 
-        /// <summary>職業對應的武器種類名稱。</summary>
         public static string WeaponTypeName(Role role)
         {
             switch (role)
@@ -109,7 +89,6 @@ namespace SanGuo.Core.Meta
             }
         }
 
-        // 索引順序同 Role 列舉：Tank、Warrior、Ranger、Mage、Strategist、Healer
         private static readonly string[][] WeaponNames =
         {
             new[] { "木盾", "鐵葉盾", "玄鐵塔盾", "虎紋巨盾", "鎮嶽玄武盾" },
@@ -123,7 +102,6 @@ namespace SanGuo.Core.Meta
         private static readonly string[] ArmorNames = { "麻布戰袍", "硬皮甲", "鐵札甲", "明光鎧", "龍鱗寶甲" };
         private static readonly string[] AccessoryNames = { "麻繩護符", "銅虎符", "青玉環", "金絲玉珮", "麒麟玄玉" };
 
-        /// <summary>裝備名稱；武器給了職業就是該職業的武器名，沒給就是贈送用的「自選武器匣」。</summary>
         public static string Name(EquipSlot slot, int tier, Role? role = null)
         {
             int i = Math.Max(1, Math.Min(MaxTier, tier)) - 1;
@@ -135,21 +113,14 @@ namespace SanGuo.Core.Meta
             }
         }
 
-        /// <summary>碎片名稱，例如「神品法杖碎片」「極品防具碎片」。</summary>
         public static string ShardName(EquipSlot slot, int tier, Role? role = null) =>
             TierLabel(tier) + (slot == EquipSlot.Weapon ? (role.HasValue ? WeaponTypeName(role.Value) : "武器") : SlotName(slot)) + "碎片";
 
-        /// <summary>分解可得的金幣（暫定：品階 × 300）。</summary>
         public static int DismantleGold(int tier) => 300 * tier;
 
-        /// <summary>吃謀略的職業，武器加成謀略；其餘加成攻擊。</summary>
         public static bool WeaponBoostsInt(Role role) =>
             role == Role.Mage || role == Role.Strategist || role == Role.Healer;
 
-        /// <summary>
-        /// 武將身上裝備的累計屬性修正：武器 = 攻擊 / 謀略 +加成%；防具 = 生命與防禦 +加成%；
-        /// 飾品（暫定）= 戰士與遊俠爆擊 +加成×0.3 點，其餘職業閃避 +加成×0.2 點。加成依 <see cref="Percents"/>。
-        /// </summary>
         public static StatMods Mods(Role role, IReadOnlyDictionary<string, int> equipped)
         {
             var m = StatMods.Identity;
@@ -177,9 +148,6 @@ namespace SanGuo.Core.Meta
             return m;
         }
 
-        // ---- 庫存 ----
-
-        /// <summary>某部位某品階的庫存總數（含通用與所有職業的武器）。</summary>
         public static int Count(PlayerProfile p, EquipSlot slot, int tier)
         {
             int n = p.GetMaterial(ItemKey(slot, tier));
@@ -188,7 +156,6 @@ namespace SanGuo.Core.Meta
             return n;
         }
 
-        /// <summary>某職業的武將能穿的庫存數：通用裝備加上（武器的話）該職業已定型的武器。</summary>
         public static int CountFor(PlayerProfile p, Role role, EquipSlot slot, int tier)
         {
             int n = p.GetMaterial(ItemKey(slot, tier));
@@ -196,7 +163,6 @@ namespace SanGuo.Core.Meta
             return n;
         }
 
-        /// <summary>穿上庫存中的裝備；武器只能穿自己職業的（有職業武器先用，否則用自選武器匣定型）。該部位原本的裝備退回庫存。</summary>
         public static EquipResult Equip(PlayerProfile p, string heroId, EquipSlot slot, int tier)
         {
             if (!p.Heroes.TryGetValue(heroId, out var hero)) return EquipResult.UnknownHero;
@@ -225,11 +191,9 @@ namespace SanGuo.Core.Meta
             return EquipResult.Ok;
         }
 
-        /// <summary>卸下後回到庫存的鍵：武器已經定型成該職業的武器，其餘維持通用。</summary>
         private static string StockKeyOf(Role role, EquipSlot slot, int tier) =>
             slot == EquipSlot.Weapon ? WeaponKey(role, tier) : ItemKey(slot, tier);
 
-        /// <summary>分解庫存中的裝備換金幣（先分解通用的，再分解各職業定型的武器）。</summary>
         public static EquipResult Dismantle(PlayerProfile p, EquipSlot slot, int tier, int count)
         {
             if (tier < 1 || tier > MaxTier || count < 1) return EquipResult.InvalidTier;
@@ -249,15 +213,8 @@ namespace SanGuo.Core.Meta
             return EquipResult.Ok;
         }
 
-        // ---- 副本掉落 ----
-
-        /// <summary>
-        /// 低階副本（1–3 階）直接掉裝備的機率（企劃 2026-10-09：機率掉落、越高階越難掉）。沒掉到就沒有。
-        /// 4–5 階不走這個表，改掉碎片（<see cref="ShardCost"/>）。
-        /// </summary>
         public static readonly double[] DropChance = { 1.0, 0.4, 0.2, 0, 0 };
 
-        /// <summary>高階裝備合成一件所需的碎片數（0 = 該階直接掉裝備）。每次副本掉 1 個隨機部位的碎片。</summary>
         public static readonly int[] ShardCost = { 0, 0, 0, 9, 30 };
 
         public static bool UsesShards(int tier) => ShardCostOf(tier) > 0;
@@ -266,10 +223,6 @@ namespace SanGuo.Core.Meta
 
         public static double DropChanceOf(int tier) => DropChance[Math.Max(1, Math.Min(MaxTier, tier)) - 1];
 
-        /// <summary>
-        /// 素材副本的裝備掉落：低階每次最多 1 件、高階每次 1 個碎片；部位隨機，掉到武器時職業也隨機
-        /// （所以某職業的專屬武器只佔掉落的 1/18）。回傳「庫存鍵 → 數量」。
-        /// </summary>
         public static Dictionary<string, int> RollDrops(int tier, int count, Rng rng)
         {
             var drops = new Dictionary<string, int>();
@@ -286,7 +239,6 @@ namespace SanGuo.Core.Meta
             return drops;
         }
 
-        /// <summary>碎片集滿就自動合成裝備（武器碎片合成該職業的武器）；回傳合成了幾件。</summary>
         public static int AutoForge(PlayerProfile p)
         {
             int made = 0;

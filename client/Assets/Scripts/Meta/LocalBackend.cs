@@ -10,10 +10,6 @@ using UnityEngine;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 單機後端：存檔放 PlayerPrefs，規則與伺服器共用 SanGuo.Core，
-    /// 結算同樣以「重播操作紀錄」自算勝負與星數（跟伺服器走一樣的路徑）。
-    /// </summary>
     public sealed class LocalBackend : IGameBackend
     {
         private const string SaveKey = "sanguo_local_profile";
@@ -25,12 +21,10 @@ namespace SanGuo.Client
 
         public string Name => "單機";
 
-        /// <param name="persist">false = 不讀不寫 PlayerPrefs，每次都是全新存檔（自動截圖 / 測試用）。</param>
         public LocalBackend(bool persist = true)
         {
             _persist = persist;
             _profile = (persist ? Load() : null) ?? NewProfile();
-            // 開發用：-sanguoClearTo <章-關> 把該關之前的主線全標為三星通關（含首通贈送的武將），擁有的武將拉到上一章章末等級（驗證後面章節的畫面）。
             string? clearTo = GameSession.CommandLineValue("-sanguoClearTo");
             if (clearTo != null && Campaign.TryParse(clearTo, out int toChapter, out int toLevel)) DebugClearTo(toChapter, toLevel);
         }
@@ -53,7 +47,6 @@ namespace SanGuo.Client
 
         private static long Now => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        /// <summary>單機沒有其他玩家：排行榜只有自己（名次一律 1 / 1）。</summary>
         private sealed class SoloBoard : IWorldBossBoard
         {
             public void Submit(string season, string accountId, long best) { }
@@ -68,7 +61,6 @@ namespace SanGuo.Client
             var p = PlayerProfile.CreateNew(Now);
             p.Yuanbao = StartingYuanbao;
             p.Gold = StartingGold;
-            // 開發用起始武將經驗（方便測試升級）。
             p.AddMaterial(HeroGrowth.HeroExp, 3000);
             return p;
         }

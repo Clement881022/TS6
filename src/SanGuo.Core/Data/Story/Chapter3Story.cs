@@ -3,7 +3,6 @@ using static SanGuo.Core.Data.Cast;
 
 namespace SanGuo.Core.Data
 {
-    /// <summary>第三章　洛陽風雲：鞭打督郵、亡命洛陽、何進之死、追段珪與張讓、董卓入京、送盧植出城，章末李儒現身（天書第二卷在董卓手中）。</summary>
     public static class Chapter3Story
     {
         private static StoryLine LuZhi(string text) => S("盧植", "luzhi", text);

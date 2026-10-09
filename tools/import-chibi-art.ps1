@@ -1,4 +1,3 @@
-# Deterministic atlas slicing and portrait views of the approved Q-style source art.
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -26,7 +25,6 @@ Split-ChibiAtlas 'atlas-combat.png' 6 4 @('damage','heal','armor','hp','cost','c
 Split-ChibiAtlas 'atlas-roster.png' 6 3 @('face_zhoucang','face_huangfusong','face_huaxiong','face_zhujun','face_handang','face_zoujing','face_zhangbao','face_yuji','face_jianyong','face_luzhi','face_zhangzhongjing','face_ganfuren','face_xiahoudun','face_lvbu','face_gongsunzan','face_zhangjiao','face_xunyu','face_huatuo')
 Split-ChibiAtlas 'atlas-portraits.png' 4 4 @('face_r_sword','face_r_shield','face_r_archer','face_r_healer','face_r_villager','face_yt_archer','face_yt_brute','face_yt_chief','face_yt_ironbrute','face_yt_lieutenant','face_yt_priest','face_yt_sharpshooter','face_yt_soldier','face_r_mage','face_yt_zhangjiao','face_r_strategist')
 Split-ChibiAtlas 'atlas-full-sr.png' 4 3 @('full_zhoucang','full_huangfusong','full_huaxiong','full_zhujun','full_handang','full_zoujing','full_zhangbao','full_yuji','full_jianyong','full_luzhi','full_zhangzhongjing','full_ganfuren')
-# The militia source puts the swordsman before the shield soldier.
 Split-ChibiAtlas 'atlas-full-militia.png' 3 2 @('full_r_sword','full_r_shield','full_r_archer','full_r_mage','full_r_healer','full_r_strategist')
 $portraitAliases = @{
     'face_r_militia'='face_r_sword'; 'face_yt_warlock'='face_r_mage';
@@ -36,7 +34,6 @@ $portraitAliases = @{
     'face_tutorial_hunter'='face_r_archer'; 'face_tutorial_scholar'='face_r_strategist'; 'face_tutorial_wanderer'='face_r_sword'
 }
 foreach ($alias in $portraitAliases.Keys) { Copy-Item -LiteralPath (Join-Path $skinRoot ($portraitAliases[$alias] + '.png')) -Destination (Join-Path $skinRoot ($alias + '.png')) -Force }
-# Head framing follows each inspected full illustration rather than the old realistic crops.
 $heroCrops = @{
     'guanyu'=@(0.44,0.025,0.40); 'liubei'=@(0.36,0.00,0.46); 'zhangfei'=@(0.40,0.015,0.40);
     'zhaoyun'=@(0.40,0.005,0.40); 'huangzhong'=@(0.33,0.03,0.45); 'pangtong'=@(0.41,0.00,0.44); 'zhugeliang'=@(0.23,0.005,0.47);

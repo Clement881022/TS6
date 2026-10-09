@@ -3,7 +3,6 @@ using System.Collections.Generic;
 
 namespace SanGuo.Core.Meta
 {
-    /// <summary>關卡獎勵與消耗（資料驅動，之後由 JSON 載入）。</summary>
     public sealed class StageReward
     {
         public string StageId = "";
@@ -12,15 +11,10 @@ namespace SanGuo.Core.Meta
         public int Exp;
         public int Gold;
         public int FirstClearYuanbao;
-        /// <summary>首通贈送的武將 id（空字串 = 不送）；已擁有就轉成重複份（滿突後轉將魂）。</summary>
         public string FirstClearHero = "";
-        /// <summary>首通贈送的重複份（劇情武將的突破材料，每個 id 一份）；未擁有則直接獲得該武將。</summary>
         public string[] FirstClearDuplicates = Array.Empty<string>();
-        /// <summary>第三星的限定回合數（0 = 不設限）。</summary>
         public int StarTurnPar;
-        /// <summary>每次通關（含掃蕩）額外獲得的素材（困難主線的將魂）。</summary>
         public Dictionary<string, int> Materials = new Dictionary<string, int>();
-        /// <summary>首通額外獲得的素材。</summary>
         public Dictionary<string, int> FirstClearMaterials = new Dictionary<string, int>();
     }
 
@@ -45,13 +39,10 @@ namespace SanGuo.Core.Meta
         public int GoldGained;
         public int YuanbaoGained;
         public int LevelsGained;
-        /// <summary>首通獲得的武將 id（沒有則空字串；已擁有的重複武將仍會回報，實際轉成碎片）。</summary>
         public string HeroGained = "";
-        /// <summary>首通獲得的重複份（武將 id，每個一份）。</summary>
         public List<string> DuplicatesGained = new List<string>();
     }
 
-    /// <summary>玩家存檔的純資料與規則（不含 I/O）：帳號等級、貨幣、體力、關卡進度。</summary>
     public sealed class PlayerProfile
     {
         public int Level = 1;
@@ -61,49 +52,34 @@ namespace SanGuo.Core.Meta
         public StaminaClock Stamina = new StaminaClock();
         public HashSet<string> ClearedStages = new HashSet<string>();
         public Dictionary<string, HeroState> Heroes = new Dictionary<string, HeroState>();
-        /// <summary>素材 / 碎片（例：「shard:guanyu」= 關羽突破素材）。</summary>
         public Dictionary<string, int> Materials = new Dictionary<string, int>();
         public Dictionary<string, PoolState> PoolStates = new Dictionary<string, PoolState>();
-        /// <summary>關卡最高星數（1–3）。</summary>
         public Dictionary<string, int> StageStars = new Dictionary<string, int>();
 
-        /// <summary>進行中的關卡（已扣體力、伺服器發了種子，等待戰鬥重播驗證）；沒有則為空字串。</summary>
         public string PendingStageId = "";
         public long PendingSeed;
-        /// <summary>進行中的關卡若開放編隊，這裡記下玩家送來的編隊（結算時用同一份重建戰鬥）。</summary>
         public List<FormationEntry> PendingFormation = new List<FormationEntry>();
 
-        /// <summary>本季通行證進度。</summary>
         public PassState Pass = new PassState();
-        /// <summary>已購買首儲禮包（每帳號限一次）。</summary>
         public bool FirstPackBought;
 
-        /// <summary>世界 Boss 的賽季成績與每日次數。</summary>
         public WorldBossState WorldBoss = new WorldBossState();
 
-        /// <summary>建立帳號的遊戲日（<see cref="DailyClock.DayIndex"/>），七日目標從這天起算。</summary>
         public long CreatedDay;
-        /// <summary>每日資料所屬的遊戲日；換日時由 <see cref="EnsureDaily"/> 清空。</summary>
         public long DailyDay = long.MinValue;
         public Dictionary<string, int> DailyTaskProgress = new Dictionary<string, int>();
         public HashSet<string> DailyTaskClaimed = new HashSet<string>();
         public Dictionary<string, int> SevenDayProgress = new Dictionary<string, int>();
-        /// <summary>已領取的七日任務與里程碑（里程碑 id 為 "milestone:點數"）。</summary>
         public HashSet<string> SevenDayClaimed = new HashSet<string>();
-        /// <summary>每週任務所屬的遊戲週（<see cref="DailyClock.WeekIndex"/>）與進度；換週時由 <see cref="EnsureDaily"/> 清空。</summary>
         public long WeeklyWeek = long.MinValue;
         public Dictionary<string, int> WeeklyProgress = new Dictionary<string, int>();
         public HashSet<string> WeeklyClaimed = new HashSet<string>();
-        /// <summary>已買過的儲值檔位（首次雙倍用）。</summary>
         public HashSet<string> RechargeBought = new HashSet<string>();
 
-        /// <summary>月卡到期的遊戲日（<see cref="DailyClock.DayIndex"/>，不含該日）與最近一次領取每日獎勵的遊戲日。</summary>
         public Dictionary<string, long> MonthCardExpiry = new Dictionary<string, long>();
         public Dictionary<string, long> MonthCardClaimedDay = new Dictionary<string, long>();
-        /// <summary>將魂商店本月的購買紀錄（商品 id → 次數）與所屬月份（yyyy-MM）。</summary>
         public Dictionary<string, int> SoulShopBought = new Dictionary<string, int>();
         public string SoulShopMonth = "";
-        /// <summary>訂單（訂單 id → "pending:商品" 或 "paid:商品"），用來讓付款回呼冪等。</summary>
         public Dictionary<string, string> Orders = new Dictionary<string, string>();
 
         public int GetMaterial(string key) => Materials.TryGetValue(key, out int n) ? n : 0;
@@ -116,7 +92,6 @@ namespace SanGuo.Core.Meta
             CreatedDay = DailyClock.DayIndex(now),
         };
 
-        /// <summary>換日就清空每日資料（資源副本次數、每日任務）。每個會讀寫每日資料的動作都先呼叫它。</summary>
         public void EnsureDaily(long now)
         {
             long week = DailyClock.WeekIndex(now);
@@ -133,23 +108,20 @@ namespace SanGuo.Core.Meta
             DailyTaskClaimed.Clear();
         }
 
-        /// <summary>登入：換日重置每日資料並回報登入事件。</summary>
         public void OnLogin(long now)
         {
             EnsureDaily(now);
-            // 每天第一次登入另外回報「登入天數」（每週任務：登入 5 天）
             if (!DailyTaskProgress.ContainsKey("d_login")) Quests.Report(this, Quests.Events.LoginDay, 1, now);
             Quests.Report(this, Quests.Events.Login, 1, now);
         }
 
-        /// <summary>發放獎勵。贈送的武將若已擁有，當作重複份處理（滿突後轉將魂）。</summary>
         public void Grant(Reward reward, long now)
         {
             Yuanbao += reward.Yuanbao;
             Gold += reward.Gold;
             if (reward.Stamina > 0) Stamina.Add(reward.Stamina, now);
             foreach (var m in reward.Materials) AddMaterial(m.Key, m.Value);
-            Equipment.AutoForge(this); // 裝備碎片集滿就合成
+            Equipment.AutoForge(this);
             foreach (var id in reward.Heroes)
             {
                 if (Heroes.ContainsKey(id)) HeroGrowth.AddDuplicate(this, id);
@@ -157,7 +129,6 @@ namespace SanGuo.Core.Meta
             }
         }
 
-        /// <summary>開打前檢查體力（主線不設玩家等級門檻）；成功才扣體力。</summary>
         public StageEntryResult TryEnterStage(StageReward stage, long now)
         {
             if (!Stamina.TrySpend(stage.StaminaCost, now))
@@ -166,7 +137,6 @@ namespace SanGuo.Core.Meta
             return StageEntryResult.Ok;
         }
 
-        /// <summary>戰鬥勝利結算：經驗、金幣、首通元寶，並記錄星數（只會往上更新）。</summary>
         public ClearResult ClaimClear(StageReward stage, long now, int stars = 1)
         {
             stars = Math.Max(1, Math.Min(3, stars));
@@ -203,10 +173,6 @@ namespace SanGuo.Core.Meta
 
         public const int MaxSweepCount = 10;
 
-        /// <summary>
-        /// 掃蕩：三星通關的關卡直接領獎勵，不用開戰。每次花一般體力；沒有首通元寶。
-        /// 檢查全數通過才一次扣完體力。
-        /// </summary>
         public SweepResult TrySweep(StageReward stage, int count, long now, out ClearResult? result)
         {
             result = null;
@@ -224,7 +190,6 @@ namespace SanGuo.Core.Meta
             return SweepResult.Ok;
         }
 
-        /// <summary>加經驗；升級時提高體力上限並補滿體力（企劃 2026-10-09：每級升級回滿，常見設計）。回傳升了幾級。</summary>
         public int AddExp(int amount, long now)
         {
             int gained = 0;

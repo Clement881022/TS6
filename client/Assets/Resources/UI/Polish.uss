@@ -1,11 +1,4 @@
-/* 商業化整理：統一按鈕 / 分頁 / 卡片尺寸與間距，修正對齊。最後載入，覆寫 Pages / Theme / Pages2。
-   規格（參考解析度 1920x1080）：
-   - 版心左右 24px；區塊間距 12~16px
-   - 字級：標題 50、卡片標題 34、內文 26、輔助 22（不再用更小的字）
-   - 按鈕：標準 240x84（字 30）、小 168x64（字 26）、大 320x100（字 36）；一律 margin 0，間距由容器決定
-   - 分頁：橫向 76 高、直向側欄 84 高、右側功能分頁（seg）72 高等分 */
 
-/* ---- 按鈕：標準尺寸（連 hover / active 變體一起覆寫，才不會被 Theme.uss 的 hover 規則蓋回去）---- */
 .meta-page .btn, .meta-page .btn-primary, .meta-page .btn-on, .meta-page .btn-done,
 .meta-page .btn:hover, .meta-page .btn-primary:hover, .meta-page .btn-on:hover, .meta-page .btn-done:hover {
     min-width: 240px;
@@ -21,7 +14,6 @@
 .meta-page .btn.btn-wide, .meta-page .btn.btn-wide:hover { min-width: 320px; min-height: 100px; padding: 8px 30px; font-size: 36px; }
 .meta-page .btn.btn-block, .meta-page .btn.btn-block:hover { min-width: 0; align-self: stretch; }
 
-/* ---- 分頁 ---- */
 .meta-page .tab, .meta-page .tab:hover, .meta-page .tab-on, .meta-page .tab-on:hover {
     min-width: 200px;
     min-height: 76px;
@@ -31,7 +23,6 @@
     white-space: nowrap;
     -unity-text-align: middle-center;
 }
-/* 右側功能分頁：三等分一排 */
 .meta-page .tab.seg-tab, .meta-page .tab.seg-tab:hover {
     flex-grow: 1; flex-basis: 0;
     min-width: 0;
@@ -40,7 +31,6 @@
     padding: 0 4px;
     font-size: 27px;
 }
-/* 左側直向分頁：同寬同高、單行 */
 .meta-page .tab.side-tab, .meta-page .tab.side-tab:hover {
     min-width: 0;
     min-height: 84px;
@@ -50,7 +40,6 @@
 }
 .seg { flex-direction: row; margin: 0 -4px 12px -4px; }
 
-/* ---- 紅點 ---- */
 .reddot {
     position: absolute; right: -4px; top: -4px;
     width: 28px; height: 28px;
@@ -58,20 +47,17 @@
     background-color: rgb(228, 52, 42);
 }
 
-/* ---- 文字 ---- */
 .line-title { font-size: 28px; }
 .line-sub { font-size: 24px; }
 .meta-page .txt-dim { font-size: 24px; }
 .foot-note { font-size: 22px; color: rgb(150, 172, 216); -unity-text-align: middle-center; margin: 6px 0 10px 0; }
 
-/* ---- 費用 ---- */
 .cost-line { flex-direction: row; align-items: center; margin: 6px 0; }
 .cost-chip .item-tile { width: 48px; height: 48px; }
 .cost-chip-text { font-size: 30px; margin-right: 0; }
 .cost-chip-have { font-size: 24px; color: rgb(176, 196, 232); margin: 0 22px 0 4px; }
 .cost-chip-bad .cost-chip-have { color: rgb(255, 150, 130); }
 
-/* ---- 武將卡 ---- */
 .htile-stars { padding: 2px 6px; border-radius: 9px; background-color: rgba(150, 170, 215, 0.62); }
 .htile-stars .star { width: 16px; height: 16px; }
 .htile-rarity {
@@ -95,7 +81,6 @@
 .htile-sm .htile-name { font-size: 21px; padding-right: 8px; }
 .htile-md .htile-level { bottom: 44px; font-size: 22px; }
 
-/* ---- 武將頁 ---- */
 .hero-left { width: 470px; }
 .hero-right { width: 470px; padding: 14px 24px 18px 8px; }
 .side-panel { flex-grow: 0; padding: 20px 22px 22px 22px; }
@@ -122,7 +107,6 @@
 .card-row-name { font-size: 28px; flex-grow: 1; white-space: nowrap; }
 .card-row-desc { font-size: 23px; margin: 4px 0 6px 0; }
 
-/* ---- 副本 / 商店：三張等高直立卡，內容撐開、按鈕貼底 ---- */
 .page-centered { flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; padding-bottom: 20px; }
 .dun-row { flex-grow: 0; align-items: stretch; margin: 0 24px; }
 .dun-card, .shop-card { width: 480px; margin: 0 14px; padding: 0 0 18px 0; justify-content: flex-start; }
@@ -142,7 +126,6 @@
 .shop-tier-btn { min-width: 0; }
 .meta-page .btn.shop-tier-btn { min-width: 0; flex-grow: 1; flex-basis: 40%; margin: 4px 6px; }
 
-/* ---- 任務 ---- */
 .quest-side { width: 260px; padding: 20px 0 0 24px; }
 .quest-main { padding: 16px 28px 8px 18px; }
 .quest-ms { margin-bottom: 12px; padding: 12px 16px 14px 16px; }
@@ -167,7 +150,6 @@
 .quest-more { font-size: 22px; color: rgb(150, 172, 216); width: 100%; -unity-text-align: middle-center; margin: 4px 0 16px 0; }
 .quest-day { font-size: 26px; color: rgb(255, 232, 170); margin-bottom: 8px; }
 
-/* ---- 編隊 ---- */
 .form-strip { margin: 12px 24px 0 24px; padding: 10px 22px; }
 .form-strip-label { font-size: 26px; margin-right: 18px; }
 .form-main { margin: 12px 24px 0 24px; }
@@ -179,12 +161,10 @@
 .form-count { font-size: 28px; color: rgb(255, 232, 170); }
 .formation-label { font-size: 26px; }
 
-/* ---- 地圖：底部進度膠囊 ---- */
 .map-info { flex-direction: row; align-items: center; align-self: center; width: 760px; margin: 0 0 16px 0; padding: 8px 26px; border-radius: 30px; }
 .map-info .txt-gold { margin: 0 20px 0 0; font-size: 26px; flex-shrink: 0; }
 .map-info .bar-bg { flex-grow: 1; margin: 0; }
 
-/* ---- 關卡面板 ---- */
 .meta-page .overlay { align-items: center; justify-content: center; }
 .stage-panel { width: 960px; padding: 24px 32px 28px 32px; }
 .popup-close {
@@ -206,7 +186,6 @@
 .stage-sweeps { flex-direction: row; }
 .stage-sweeps .btn { margin-right: 12px; }
 
-/* ---- 招募 ---- */
 .gacha-tabs { margin: 16px 0 6px 0; }
 .meta-page .gacha-actions .btn, .meta-page .gacha-actions .btn:hover { min-width: 320px; min-height: 100px; margin: 0 16px; font-size: 34px; }
 .meta-page .pull-buttons .btn, .meta-page .pull-buttons .btn:hover { min-width: 280px; min-height: 96px; margin: 0 16px; font-size: 32px; }
@@ -215,13 +194,11 @@
 .rate-chip { margin-right: 26px; }
 .pull-tag { font-size: 22px; }
 
-/* ---- 主城 ---- */
 .home-bubble { width: 400px; }
 .home-res { right: 34px; top: 22px; }
 .home-chapter { padding: 8px 20px; }
 .home-chapter-sub { font-size: 24px; }
 
-/* ---- 補充：按鈕內容置中、角標、招募陳列、編隊大卡 ---- */
 .meta-page .btn, .meta-page .btn:hover { align-items: center; justify-content: center; }
 .btn-tag {
     position: absolute; right: -6px; top: -14px;
@@ -242,7 +219,6 @@
 .slot-md { width: 190px; height: 250px; margin: 6px; }
 .form-board { align-self: flex-start; }
 
-/* ---- 商用品質視覺收斂：墨色底、朱砂主操作、暖金焦點 ---- */
 .page-host {
     background-color: rgb(19, 17, 19);
 }
@@ -342,7 +318,6 @@
     background-color: rgb(18, 16, 17);
 }
 
-/* 主城浮層沿用場景金色，降低飽和藍色 UI 與整體美術的衝突。 */
 .home-player, .home-chapter, .home-spot, .home-bubble {
     border-color: rgb(218, 178, 101);
     background-color: rgba(35, 27, 27, 0.92);

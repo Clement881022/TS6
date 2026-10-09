@@ -1,5 +1,3 @@
-/* 戰鬥畫面樣式（橫式為主）。參考解析度 1920x1080。
-   戰場本身是 3D（45 度俯視），畫在 UI 後面；.root / .field 必須透明才看得到。 */
 
 .root {
     flex-grow: 1;
@@ -39,13 +37,11 @@
 .btn-on { background-color: rgb(60, 140, 90); }
 .btn-disabled { opacity: 0.45; }
 
-/* ---- 戰場區：透明，3D 畫在後面；點擊用來選地磚 ---- */
 .field {
     flex-grow: 1;
     flex-shrink: 1;
 }
 
-/* ---- 角色頭上的資訊 ---- */
 .tag-layer {
     position: absolute;
     left: 0; right: 0; top: 0; bottom: 0;
@@ -74,10 +70,8 @@
 .tag-name-row { flex-direction: row; align-items: center; justify-content: center; }
 .tag-role { margin-right: 3px; }
 
-/* ---- 右下角：上＝費用與按鈕（一列），下＝手牌；左下角：紀錄 ---- */
 .field {
-    margin-bottom: 0;   /* 戰場區延伸到整個畫面；UI 蓋在棋盤空著的右下角 */
-}
+    margin-bottom: 0;}
 
 .bottom {
     position: absolute;
@@ -111,7 +105,6 @@
 }
 .log-line { font-size: 18px; color: rgb(190, 194, 210); white-space: normal; }
 
-/* ---- 手牌 ---- */
 .card {
     width: 158px;
     height: 232px;
@@ -159,7 +152,6 @@
 .card-desc { flex-direction: row; flex-wrap: wrap; margin-top: 4px; }
 .card-kw { flex-direction: row; margin-top: auto; }
 
-/* ---- 結果 / 提示 ---- */
 .overlay {
     position: absolute;
     left: 0; right: 0; top: 0; bottom: 0;
@@ -169,7 +161,6 @@
 }
 .overlay-text { font-size: 96px; -unity-font-style: bold; margin-bottom: 40px; }
 
-/* ---- 戰前編隊 ---- */
 .formation-overlay { background-color: rgba(16, 18, 26, 0.97); }
 .formation-title { font-size: 52px; -unity-font-style: bold; margin-bottom: 8px; }
 .formation-hint { font-size: 24px; color: rgb(200, 200, 215); margin-bottom: 6px; }
@@ -205,7 +196,6 @@
 }
 .formation-chip:hover { background-color: rgb(78, 86, 116); }
 
-/* ---- 大地圖 ---- */
 .map-field { position: relative; width: 1700px; height: 520px; margin-top: 10px; }
 .map-dot {
     position: absolute;
@@ -249,7 +239,6 @@
     color: rgb(255, 214, 80);
 }
 
-/* ---- 演出 ---- */
 .fx-float {
     position: absolute;
     -unity-text-align: middle-center;
@@ -260,7 +249,6 @@
     transition: translate 1500ms ease-out, opacity 1500ms ease-in;
 }
 
-/* ---- 養成 / 商店畫面（MetaScreens） ---- */
 .meta-panel .formation-hint { white-space: normal; max-width: 1500px; -unity-text-align: middle-center; }
 .meta-sub { font-size: 30px; -unity-font-style: bold; color: white; margin-top: 10px; margin-bottom: 4px; white-space: normal; max-width: 1500px; -unity-text-align: middle-center; }
 .meta-row { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; max-width: 1500px; }
@@ -268,7 +256,6 @@
 .formation-chip.btn-on { background-color: rgb(60, 140, 90); }
 .formation-chip.btn-primary { background-color: rgb(196, 120, 40); }
 
-/* ---- 圖示 ---- */
 .icon { width: 24px; height: 24px; background-size: 100% 100%; }
 .icon-sm { width: 20px; height: 20px; background-size: 100% 100%; }
 .chip { flex-direction: row; align-items: center; margin: 1px 3px; }

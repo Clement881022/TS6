@@ -9,7 +9,6 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>招募：卡池分頁、卡池主打武將展示、機率與保底、單抽 / 十連；結果以全螢幕卡片依序彈出。</summary>
     public sealed class GachaPage : PageBase
     {
         private readonly List<GachaPool> _pools = DemoMeta.Pools();
@@ -20,7 +19,6 @@ namespace SanGuo.Client
         protected override Page Id => Page.Gacha;
         protected override string Title => "招募";
 
-        /// <summary>截圖 / 除錯用：直接抽一次十連。</summary>
         public Task DebugTenPull() => Pull(10);
 
         private HeroDef? DefOf(string heroId) => GameSession.DefOf(heroId);

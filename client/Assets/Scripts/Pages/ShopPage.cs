@@ -6,10 +6,6 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 商店：「儲值」是首儲禮包與月卡（測試付款）；「通行證」每月一季，消耗體力升級，免費線與付費線各自領取；
-    /// 「將魂商店」用滿突後溢出的重複武將轉成的將魂兌換重複份、武將經驗、金幣與裝備，各項每月限購。
-    /// </summary>
     public sealed class ShopPage : PageBase
     {
         private enum Tab { Pay, Soul, Pass, Recharge }
@@ -42,15 +38,13 @@ namespace SanGuo.Client
 
         public void DebugSetTab(int tab) { _tab = (Tab)tab; Rebuild(); }
 
-        /// <summary>元寶儲值分頁（企劃 2026-10-09）。</summary>
         private void BuildRecharge(VisualElement body)
         {
             var v = GameSession.View;
             var p = v.Raw;
-            // 元寶儲值（企劃 2026-10-09）：6 檔，每檔第一次購買雙倍。版面沿用現有卡片樣式，視覺待美術調整。
             var recharge = new VisualElement();
             recharge.AddToClassList("dun-row");
-            recharge.style.flexWrap = Wrap.Wrap; // 6 檔排成兩列
+            recharge.style.flexWrap = Wrap.Wrap;
             recharge.style.justifyContent = Justify.Center;
             body.Add(recharge);
             foreach (var product in Shop.Products())
@@ -79,8 +73,6 @@ namespace SanGuo.Client
                 card.Add(btns);
                 recharge.Add(card);
             }
-
-            // 不放「測試環境」說明：兩列卡片已佔滿高度，說明文字會壓到按鈕（視覺尺寸待美術調整）
         }
 
         private void BuildPay(VisualElement body)
@@ -92,7 +84,6 @@ namespace SanGuo.Client
             row.AddToClassList("dun-row");
             body.Add(row);
 
-            // 首儲禮包（買過就不再顯示）
             if (!p.FirstPackBought && Shop.Find(Shop.FirstPack) is ProductDef first)
             {
                 var card = new VisualElement();
@@ -164,7 +155,6 @@ namespace SanGuo.Client
         {
             var v = GameSession.View;
             var p = v.Raw;
-            // 顯示用：存檔停在上一季時視為新的一季（實際重置以後端為準）。
             bool stale = p.Pass.Season != BattlePass.SeasonOf(v.Now);
             int points = stale ? 0 : p.Pass.Points;
             string tier = stale ? "" : p.Pass.Tier;
@@ -221,7 +211,6 @@ namespace SanGuo.Client
             body.Add(UiKit.Text("測試環境：購買不會實際扣款", "foot-note"));
         }
 
-        /// <summary>通行證一格：獎勵圖示 + 領取按鈕（未達成 / 未購買 / 已領取時停用）。</summary>
         private static VisualElement PassCell(VisualElement tiles, string label, bool reached, bool claimed, bool owned, System.Action claim)
         {
             var cell = new VisualElement();
@@ -260,7 +249,6 @@ namespace SanGuo.Client
             foreach (var item in SoulShop.Items())
             {
                 var it = item;
-                // 重複份只列出已擁有且尚未滿突的武將，避免清單過長。
                 if (it.Kind == SoulItemKind.HeroShard)
                 {
                     if (!v.Heroes.TryGetValue(it.HeroId, out var hero)) continue;

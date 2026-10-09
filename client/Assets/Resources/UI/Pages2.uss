@@ -1,12 +1,9 @@
-/* 非戰鬥頁面第二版：版型參考 TS6Client 設計稿（左上返回 + 金字標題、右上資源與關閉、藍色漸層底、直立武將卡）。
-   在 Theme.uss 之後載入；沿用其按鈕 / 分頁貼圖，這裡定義新框架與新元件。 */
 
 .page-host { background-color: rgb(30, 78, 168); -unity-background-scale-mode: scale-and-crop; }
 .page-host.bg-heroes, .page-host.bg-quests, .page-host.bg-formation, .page-host.bg-dungeons {
     -unity-background-image-tint-color: rgb(222, 232, 255);
 }
 
-/* ---- 標題列 ---- */
 .hdr {
     flex-direction: row;
     align-items: center;
@@ -52,7 +49,6 @@
 
 .page-content { flex-grow: 1; flex-direction: row; position: relative; }
 
-/* ---- 物品 / 星星 ---- */
 .item-tile {
     width: 92px; height: 92px; margin: 5px;
     border-radius: 12px; border-width: 3px; border-color: rgb(214, 186, 120);
@@ -64,7 +60,6 @@
 .star { width: 26px; height: 26px; -unity-background-scale-mode: scale-to-fit; }
 .stars-lg .star { width: 52px; height: 52px; margin: 0 3px; }
 
-/* ---- 直立武將卡 ---- */
 .htile {
     width: 138px; height: 184px;
     margin: 6px;
@@ -87,7 +82,6 @@
 .htile-level { position: absolute; right: 6px; bottom: 2px; font-size: 34px; -unity-font-style: bold; color: white; -unity-text-outline-width: 3px; -unity-text-outline-color: rgb(10, 20, 50); }
 .htile-name { position: absolute; left: 0; right: 0; bottom: 0; padding: 2px 52px 2px 6px; font-size: 21px; -unity-font-style: bold; color: white; background-color: rgba(8, 18, 50, 0.72); -unity-text-align: middle-left; white-space: nowrap; }
 
-/* ---- 藍色面板 ---- */
 .bpanel {
     padding: 16px 18px;
     border-radius: 12px;
@@ -97,7 +91,6 @@
 }
 .bpanel-title { font-size: 30px; -unity-font-style: bold; color: rgb(255, 232, 170); -unity-text-align: middle-center; margin-bottom: 6px; }
 
-/* ---- 武將頁 ---- */
 .hero-left { width: 480px; flex-shrink: 0; padding: 14px 8px 8px 18px; }
 .hero-grid { flex-direction: row; flex-wrap: wrap; align-content: flex-start; padding-bottom: 20px; }
 .hero-center { flex-grow: 1; align-items: center; justify-content: flex-end; position: relative; }
@@ -142,7 +135,6 @@
 
 .hdr-back-icon { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background-image: url("../UiSkin/back.png"); -unity-background-scale-mode: scale-to-fit; margin: 14px; }
 
-/* ---- 招募 ---- */
 .gacha-page { flex-direction: column; align-items: center; }
 .gacha-tabs { flex-direction: row; justify-content: center; margin: 14px 0 6px 0; }
 .gacha-stage { flex-direction: row; align-items: center; justify-content: center; flex-grow: 1; padding: 0 30px; }
@@ -161,7 +153,6 @@
 .gacha-cost { flex-direction: row; align-items: center; justify-content: center; }
 .gacha-cost .item-tile { width: 44px; height: 44px; margin: 0 6px 0 0; border-width: 0; background-color: rgba(0, 0, 0, 0); }
 
-/* 結果展示（全螢幕） */
 .pull-overlay {
     position: absolute; left: 0; right: 0; top: 0; bottom: 0;
     align-items: center; justify-content: center;
@@ -182,7 +173,6 @@
 .pull-buttons { flex-direction: row; justify-content: center; margin-top: 18px; }
 .pull-buttons .btn { min-width: 260px; min-height: 92px; font-size: 32px; margin: 0 14px; }
 
-/* ---- 地圖 ---- */
 .map-area { flex-grow: 1; position: relative; margin: 8px 24px 0 24px; }
 .mnode-dot { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 7px; background-color: rgba(255, 244, 214, 0.75); border-width: 2px; border-color: rgba(90, 60, 20, 0.6); }
 .mnode-holder { position: absolute; width: 150px; margin-left: -75px; margin-top: -45px; align-items: center; }
@@ -207,7 +197,6 @@
 .mnode-plate-dim { color: rgb(170, 184, 214); background-color: rgba(30, 40, 66, 0.82); }
 .map-info { margin: 0 24px 12px 24px; padding: 8px 20px; border-radius: 10px; background-color: rgba(12, 30, 80, 0.85); }
 
-/* 關卡面板 */
 .stage-panel { width: 920px; padding: 20px 28px 22px 28px; }
 .stage-head { flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 4px; }
 .stage-title { font-size: 44px; -unity-font-style: bold; color: rgb(255, 238, 190); }
@@ -219,7 +208,6 @@
 .stage-buttons { flex-direction: row; justify-content: center; margin-top: 12px; }
 .stage-buttons .btn { min-width: 190px; min-height: 84px; font-size: 30px; margin: 0 8px; }
 
-/* ---- 編隊 ---- */
 .form-strip { flex-direction: row; align-items: center; margin: 10px 24px 0 24px; padding: 6px 20px; border-radius: 10px; background-color: rgba(12, 30, 80, 0.88); }
 .form-strip-label { font-size: 26px; color: rgb(184, 204, 244); margin-right: 16px; }
 .form-hint { margin: 8px 24px 0 24px; width: auto; max-width: none; }
@@ -234,7 +222,6 @@
 .slot-plus { font-size: 60px; color: rgba(190, 214, 255, 0.7); }
 .form-buttons { flex-direction: row; justify-content: center; margin: 8px 0 12px 0; }
 
-/* ---- 副本 / 商店：直立大卡 ---- */
 .dun-row { flex-direction: row; justify-content: center; align-items: flex-start; flex-grow: 1; margin: 6px 24px 14px 24px; }
 .dun-card, .shop-card {
     width: 470px; margin: 8px 12px; padding: 0 0 14px 0;
@@ -261,7 +248,6 @@
 .shop-tier-btn { min-width: 190px; }
 .reward-tiles { flex-direction: row; flex-wrap: wrap; }
 
-/* ---- 任務 ---- */
 .quest-side { width: 250px; flex-shrink: 0; padding: 18px 0 0 22px; }
 .quest-main { flex-grow: 1; padding: 14px 24px 8px 14px; }
 .quest-ms { margin-bottom: 8px; padding: 10px 16px; }

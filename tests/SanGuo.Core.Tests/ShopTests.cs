@@ -33,7 +33,7 @@ namespace SanGuo.Core.Tests
             var p = Player();
             Buy(p, Shop.MonthSmall, "o1", T0);
             Assert.Equal(300, p.Yuanbao);
-            Assert.Equal(ShopResult.Ok, Shop.Fulfill(p, "o1", T0)); // 支付平台重複通知
+            Assert.Equal(ShopResult.Ok, Shop.Fulfill(p, "o1", T0));
             Assert.Equal(300, p.Yuanbao);
             Assert.Equal(30, Shop.MonthCardDaysLeft(p, Shop.MonthSmall, T0));
         }
@@ -56,7 +56,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(880, p.Yuanbao);
             Assert.Equal(ShopResult.AlreadyClaimedToday, Shop.ClaimMonthCardDaily(p, Shop.MonthBig, T0));
             Assert.Equal(ShopResult.Ok, Shop.ClaimMonthCardDaily(p, Shop.MonthBig, T0 + Day));
-            // 含購買當天共 30 日：第 30 天還能領，第 31 天到期。
             Assert.Equal(ShopResult.Ok, Shop.ClaimMonthCardDaily(p, Shop.MonthBig, T0 + 29 * Day));
             Assert.Equal(ShopResult.NotActive, Shop.ClaimMonthCardDaily(p, Shop.MonthBig, T0 + 30 * Day));
         }
@@ -85,7 +84,7 @@ namespace SanGuo.Core.Tests
             var p = Player();
             Buy(p, Shop.MonthSmall, "o1", T0);
             Buy(p, Shop.MonthSmall, "o2", T0 + 10 * Day);
-            Assert.Equal(50, Shop.MonthCardDaysLeft(p, Shop.MonthSmall, T0 + 10 * Day)); // 剩 20 + 新 30
+            Assert.Equal(50, Shop.MonthCardDaysLeft(p, Shop.MonthSmall, T0 + 10 * Day));
         }
 
         [Fact]
@@ -98,7 +97,7 @@ namespace SanGuo.Core.Tests
             Assert.Equal(p.MonthCardExpiry, back.MonthCardExpiry);
             Assert.Equal(p.MonthCardClaimedDay, back.MonthCardClaimedDay);
             Assert.Equal(p.Orders, back.Orders);
-            Assert.Equal(ShopResult.Ok, Shop.Fulfill(back, "o1", T0)); // 還原後仍冪等
+            Assert.Equal(ShopResult.Ok, Shop.Fulfill(back, "o1", T0));
             Assert.Equal(p.Yuanbao, back.Yuanbao);
         }
     }

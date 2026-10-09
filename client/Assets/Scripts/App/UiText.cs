@@ -5,7 +5,6 @@ using SanGuo.Core.Meta;
 
 namespace SanGuo.Client
 {
-    /// <summary>各頁共用的文字轉換（失敗原因、素材名、獎勵描述、星數）。</summary>
     public static class UiText
     {
         public static string Stars(int n) => new string('★', n) + new string('☆', 3 - n);
@@ -25,17 +24,6 @@ namespace SanGuo.Client
                 return (hero?.Name ?? "武將") + "重複份";
             }
             return key;
-        }
-
-        public static string RewardText(Reward r)
-        {
-            var parts = new List<string>();
-            if (r.Yuanbao > 0) parts.Add($"元寶 {r.Yuanbao}");
-            if (r.Gold > 0) parts.Add($"金幣 {r.Gold}");
-            if (r.Stamina > 0) parts.Add($"體力 {r.Stamina}");
-            foreach (var m in r.Materials) parts.Add($"{MaterialName(m.Key)} {m.Value}");
-            foreach (var h in r.Heroes) parts.Add($"武將 {h}");
-            return string.Join("、", parts);
         }
 
         public static string ExplainBackend(string code)

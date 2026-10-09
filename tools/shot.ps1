@@ -1,8 +1,3 @@
-# 打包 Windows 測試版並自動操作截圖，輸出到 build/shots。
-# 用法：powershell -File tools/shot.ps1   （-SkipBuild 可略過打包；-Width/-Height 指定視窗大小；-Level 指定關卡）
-#
-# 為了讓你開著 Unity 編輯器時也能驗證（同一個專案不能被兩個 Unity 同時開啟），
-# 這裡會把專案複製到 build/client-copy 再打包；該副本的 Library 會保留，之後只做增量編譯。
 param([switch]$SkipBuild, [int]$Width = 1600, [int]$Height = 900, [int]$Level = 1)
 $root = Split-Path -Parent $PSScriptRoot
 $unity = "C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Unity.exe"

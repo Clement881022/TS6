@@ -4,18 +4,10 @@ using Microsoft.Data.Sqlite;
 
 namespace SanGuo.Server;
 
-/// <summary>登入成功的結果：給客戶端的 token 與帳號資訊。</summary>
 public sealed record Session(string Token, string AccountId, string Nickname, string? Username, long ExpiresAt);
 
-/// <summary>帳號資訊（不含任何憑證）。</summary>
 public sealed record AccountInfo(string AccountId, string Nickname, string? Username);
 
-/// <summary>
-/// 帳號與登入（SQLite）：
-/// 遊客 = 客戶端自己產生的隨機金鑰（存在裝置上，不是硬體識別碼），刪掉遊戲就找不回，所以提供「綁定帳號密碼」。
-/// 密碼以 PBKDF2-SHA256 加鹽雜湊；登入後發隨機 token，資料庫只存 token 的 SHA-256。
-/// 帳號 id（u_ 開頭）只在伺服器內部使用，對外顯示一律用暱稱。
-/// </summary>
 public sealed class SqliteAccountStore
 {
     public const int SessionDays = 30;
@@ -58,9 +50,6 @@ public sealed class SqliteAccountStore
         return conn;
     }
 
-    // ---- 規則 ----
-
-    /// <summary>帳號：4–20 字元，英數與底線，不分大小寫（一律存小寫）。</summary>
     public static string? NormalizeUsername(string? username)
     {
         if (username == null) return null;
@@ -71,10 +60,8 @@ public sealed class SqliteAccountStore
         return u;
     }
 
-    /// <summary>密碼：8–64 字元。</summary>
     public static bool ValidPassword(string? password) => password != null && password.Length >= 8 && password.Length <= 64;
 
-    /// <summary>暱稱：去頭尾空白後 2–12 字，不可含控制字元。</summary>
     public static string? NormalizeNickname(string? nickname)
     {
         if (nickname == null) return null;
@@ -85,12 +72,8 @@ public sealed class SqliteAccountStore
         return n;
     }
 
-    /// <summary>遊客金鑰：客戶端產生的隨機字串，至少 16 字元。</summary>
     public static bool ValidGuestKey(string? key) => key != null && key.Length >= 16 && key.Length <= 128;
 
-    // ---- 登入 ----
-
-    /// <summary>遊客登入：這把金鑰第一次出現就建立新帳號。</summary>
     public Session Guest(string guestKey)
     {
         using var conn = Open();
@@ -105,7 +88,6 @@ public sealed class SqliteAccountStore
         return IssueSession(conn, id);
     }
 
-    /// <summary>註冊帳號密碼（新帳號）。帳號已被使用回傳 null。</summary>
     public Session? Register(string username, string password)
     {
         using var conn = Open();
@@ -116,7 +98,6 @@ public sealed class SqliteAccountStore
         return IssueSession(conn, id);
     }
 
-    /// <summary>帳號密碼登入；帳號不存在或密碼錯誤都回傳 null（不透露是哪一個錯）。</summary>
     public Session? Login(string username, string password)
     {
         using var conn = Open();
@@ -128,14 +109,12 @@ public sealed class SqliteAccountStore
             if (r.Read()) { id = r.GetString(0); hash = r.IsDBNull(1) ? null : r.GetString(1); }
         if (id == null || hash == null)
         {
-            // 帳號不存在時也做一次雜湊，回應時間不洩漏帳號是否存在。
             VerifyPassword(password, DummyHash);
             return null;
         }
         return VerifyPassword(password, hash) ? IssueSession(conn, id) : null;
     }
 
-    /// <summary>把帳號密碼綁到既有帳號（遊客升級）。已綁過回傳 "already_bound"，帳號被用走回傳 "username_taken"。</summary>
     public string? Bind(string accountId, string username, string password)
     {
         using var conn = Open();
@@ -146,14 +125,13 @@ public sealed class SqliteAccountStore
             Exec(conn, "UPDATE accounts SET username = $u, password_hash = $p WHERE account_id = $id AND username IS NULL",
                 ("$u", username), ("$p", HashPassword(password)), ("$id", accountId));
         }
-        catch (SqliteException e) when (e.SqliteErrorCode == 19) // UNIQUE：同時有人搶註
+        catch (SqliteException e) when (e.SqliteErrorCode == 19)
         {
             return "username_taken";
         }
         return null;
     }
 
-    /// <summary>以 token 找帳號；過期或不存在回傳 null。</summary>
     public string? Resolve(string token)
     {
         using var conn = Open();
@@ -177,7 +155,6 @@ public sealed class SqliteAccountStore
         return r.Read() ? new AccountInfo(accountId, r.GetString(0), r.IsDBNull(1) ? null : r.GetString(1)) : null;
     }
 
-    /// <summary>暱稱（排行榜等公開場合用）；沒有這個帳號回傳 null。</summary>
     public string? Nickname(string accountId)
     {
         using var conn = Open();
@@ -190,12 +167,9 @@ public sealed class SqliteAccountStore
         return Exec(conn, "UPDATE accounts SET nickname = $n WHERE account_id = $id", ("$n", nickname), ("$id", accountId)) > 0;
     }
 
-    // ---- 內部 ----
-
     private Session IssueSession(SqliteConnection conn, string accountId)
     {
         long now = Now;
-        // 順手清掉這個帳號已過期的 session，避免資料表無限長大。
         Exec(conn, "DELETE FROM sessions WHERE account_id = $id AND expires_at <= $now", ("$id", accountId), ("$now", now));
         string token = Base64Url(RandomNumberGenerator.GetBytes(32));
         long expires = now + SessionDays * 86400L;

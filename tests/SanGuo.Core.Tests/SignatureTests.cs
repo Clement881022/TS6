@@ -4,13 +4,10 @@ using Xunit;
 
 namespace SanGuo.Core.Tests
 {
-    /// <summary>專屬牌與被動（docs/signature-cards-batch1.md）：牌的新效果與被動的觸發點。</summary>
     public class SignatureTests
     {
-        /// <summary>我方 1 名武將（指定星級）對指定敵人；無隨機，方便驗證數值。</summary>
         private static Battle Fight(string heroId, int stars, params (EnemyDef Def, Position Pos)[] enemies) => Fight(heroId, stars, false, enemies);
 
-        /// <param name="fillers">true = 另外帶 2 名 R 武將（牌庫夠大，才看得出抽牌差異）。</param>
         private static Battle Fight(string heroId, int stars, bool fillers, params (EnemyDef Def, Position Pos)[] enemies)
         {
             var def = HeroRoster.Find(heroId)!;
@@ -27,7 +24,6 @@ namespace SanGuo.Core.Tests
 
         private static CardInstance Take(Battle b, string cardId)
         {
-            // 2★ 起第 1 張專屬牌已升級為「＋」版（id 加 _plus）
             var card = b.Hand.Concat(b.DrawPile).Concat(b.DiscardPile).First(c => c.Def.Id == cardId || c.Def.Id == cardId + "_plus");
             b.DrawPile.Remove(card);
             b.DiscardPile.Remove(card);
@@ -52,7 +48,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(PassiveKind.RenZhongLvBu, lvbu.Passive);
             Assert.Equal(HeroFocus.Boss, lvbu.Focus);
             Assert.Contains(HeroRoster.Find("r_shield")!.Deck, c => c.Name == "嘲諷");
-            // 教學關的劉關張仍用職業標竿卡（教學牌序依賴這組 id）
             Assert.Contains(HeroRoster.TutorialZhangFei().Deck, c => c.Id == "zf_taunt");
             Assert.Contains(DemoContent.Level(2).Heroes.Single(h => h.Def.Id == "zhangfei").Def.Deck, c => c.Id == "zf_taunt");
         }
@@ -65,7 +60,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(PassiveKind.JuZhong, HeroGrowth.BuildDef(def, new HeroState { HeroId = "xunyu", Stars = 5 }).ActivePassive);
             var fifth = Breakthroughs.For(def).Single(e => e.Stars == 5);
             Assert.Equal(BreakthroughKind.UnlockPassive, fifth.Kind);
-            // 沒有被動的 SR：5★ 仍是第 2 張特殊卡升級
             Assert.Equal(BreakthroughKind.UpgradeCard, Breakthroughs.For(HeroRoster.Find("handang")!).Single(e => e.Stars == 5).Kind);
         }
 
@@ -129,7 +123,7 @@ namespace SanGuo.Core.Tests
                 tough.Base.Hp = 100000;
                 tough.Base.Atk = 0;
                 var b = Fight("xunyu", stars, true, (tough, new Position(0, 0)));
-                int pile = b.DrawPile.Count; // 用牌庫減少的張數判斷（手牌上限 10，超出的會直接棄掉）
+                int pile = b.DrawPile.Count;
                 b.EndTurn();
                 return pile - b.DrawPile.Count;
             }
@@ -142,9 +136,9 @@ namespace SanGuo.Core.Tests
             var b = Fight("gongsunzan", 5, (Weak(), new Position(2, 1)), (Weak(), new Position(3, 2)), (DemoContent.BanditGrunt(), new Position(0, 0)));
             int cost = b.Cost;
             b.PlayCard(Take(b, "gsz_attack"), new Position(2, 1));
-            Assert.Equal(cost - 1 + 1, b.Cost); // 第一次擊敗回 1 費
+            Assert.Equal(cost - 1 + 1, b.Cost);
             b.PlayCard(Take(b, "gsz_attack"), new Position(3, 2));
-            Assert.Equal(cost - 1 + 1 - 1, b.Cost); // 同回合第二次不回
+            Assert.Equal(cost - 1 + 1 - 1, b.Cost);
         }
 
         [Fact]
@@ -156,7 +150,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(PlayResult.Ok, b.PlayCard(Take(b, "xhd_ganglie"), enemy.Pos));
             int defBefore = tank.BuffTotal(StatusType.DefUp);
             tank.Hp = tank.MaxHp / 2 + 1;
-            // 讓敵人打一下（被嘲諷，一定打坦克）
             for (int i = 0; i < 6 && tank.Hp * 2 >= tank.MaxHp && b.Result == BattleResult.Ongoing; i++) b.EndTurn();
             Assert.True(tank.PassiveFired);
             Assert.Contains(b.Events, e => e.Type == EventType.PassiveTriggered && e.Text == "剛烈不屈");
@@ -181,7 +174,6 @@ namespace SanGuo.Core.Tests
             [Fact]
         public void ArmorBreakOnTheSameCard_AppliesBeforeTheDamage()
         {
-            // 韓當「穿甲箭」：破甲 40% 先生效，這一擊就吃到破甲（企劃 2026-10-09：狀態先於傷害結算）。
             var tough = DemoContent.BanditIronBrute();
             tough.Base.Hp = 100000;
             var b = Fight("handang", 0, (tough, new Position(2, 1)));
@@ -220,7 +212,6 @@ namespace SanGuo.Core.Tests
                 Assert.Equal(2, h.Deck.Count(c => !c.Basic));
                 Assert.Equal(h.Rarity == Rarity.UR || HeroRoster.StoryHeroIds.Contains(h.Id), h.Passive != PassiveKind.None);
             }
-            // 每個職業的可抽 SR：刷圖型、Boss 型各一
             foreach (var g in HeroRoster.All().Where(h => h.Rarity == Rarity.SR && !HeroRoster.StoryHeroIds.Contains(h.Id)).GroupBy(h => h.Role))
             {
                 Assert.Contains(g, h => h.Focus == HeroFocus.Farming);

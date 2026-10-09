@@ -5,12 +5,8 @@ using Xunit;
 
 namespace SanGuo.Core.Tests
 {
-    /// <summary>戰鬥規則測試（依據 docs/GDD/01_戰鬥系統.md、02_卡牌系統.md）。</summary>
     public class BattleRulesTests
     {
-        // ---- 測試用的最小武將 / 敵人 ----
-
-        // 棋盤 5x5：我方站下兩列（列 3–4）、敵方站上兩列（列 0–1）。
         private static Position PH(int lane, int row = 3) => new Position(lane, row);
         private static Position PE(int lane, int row = 1) => new Position(lane, row);
 
@@ -44,9 +40,6 @@ namespace SanGuo.Core.Tests
                 Base = new Stats { Hp = hp, Atk = atk, Int = intel, Def = def, Move = move, Range = range },
             };
 
-        /// <summary>等級 1 的敵人倍率是 0.6，測試要用「指定數值」所以直接把敵人設成能還原 1.0 的等級（31 級 = 1.8）不方便；改以 Level 倍率反推。</summary>
-        private static EnemySlot Slot(EnemyDef def, Position pos) => new EnemySlot(def, pos, 16); // 0.6 + 0.04 × 15 = 1.2 → 以 1.2 倍計
-
         private static Battle Fight(HeroDef hero, EnemyDef enemy, Position? heroPos = null, Position? enemyPos = null, ulong seed = 1)
         {
             var setup = new BattleSetup { Seed = seed, NoRandomness = true };
@@ -55,14 +48,11 @@ namespace SanGuo.Core.Tests
             return new Battle(setup);
         }
 
-        /// <summary>敵人等級 = 16 時屬性倍率為 1.2；為了讓測試能直接以「基礎值」計算，這裡取倍率恰為 1.0 的等級（11 級 = 0.6 + 0.04 × 10 = 1.0）。</summary>
         private const int EnemyLevelForUnitScale = 11;
 
         private static Unit EnemyUnit(Battle b, string name) => b.Units.First(u => u.Side == Side.Enemy && u.Name == name);
         private static Unit HeroUnit(Battle b, string name) => b.Units.First(u => u.Side == Side.Player && u.Name == name);
         private static CardInstance Find(Battle b, string cardId) => b.Hand.First(c => c.Def.Id == cardId);
-
-        // ---- 傷害公式 ----
 
         [Fact]
         public void Physical_UsesMultiplicativeDefense()
@@ -90,7 +80,7 @@ namespace SanGuo.Core.Tests
             setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 10000, def: 100), PE(2), EnemyLevelForUnitScale));
             var b = new Battle(setup);
             b.PlayCard(Find(b, "atk"));
-            Assert.Equal(10000 - 75, EnemyUnit(b, "e").Hp); // 100 × 100/200 × 1.5
+            Assert.Equal(10000 - 75, EnemyUnit(b, "e").Hp);
         }
 
         [Fact]
@@ -103,7 +93,6 @@ namespace SanGuo.Core.Tests
             e.Buffs.Add(new Buff { Type = StatusType.DodgeUp, Power = 30, Turns = 2 });
             Assert.Equal(DamageCalc.DodgeCap, e.EffectiveDodge);
 
-            // 100% 閃避的單位（超過上限）仍會被擊中一部分：上限 50%，多次出手必有命中也必有閃避。
             var setup = new BattleSetup { Seed = 7 };
             setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack("a", cost: 0), Attack("m", cost: 0, kind: DamageKind.Magical) }, hp: 99999), PH(2)));
             var enemy = Enemy("d", hp: 999999);
@@ -126,12 +115,9 @@ namespace SanGuo.Core.Tests
             Assert.Equal(100, HeroUnit(b, "H").EffectiveCrit);
         }
 
-        // ---- 破甲 ----
-
         [Fact]
         public void ArmorBreak_SameName_TakesHighestAndExpiresIndependently()
         {
-            // GDD 範例：A 破甲 25% 2 回合、B 破甲 50% 1 回合並存：第 1 回合生效 50%，第 2 回合 B 結束後生效 25%。
             CardDef Breaker(string id, double pct, int turns) => Card(id, 0, TargetRule.Enemy, Shape.Single, Status(StatusType.ArmorBreak, pct, turns));
             var b = Fight(Hero("H", new[] { Breaker("a25", 0.25, 2), Breaker("b50", 0.5, 1), Attack() }, hp: 99999),
                 Enemy("e", hp: 99999, atk: 1, def: 100));
@@ -142,9 +128,9 @@ namespace SanGuo.Core.Tests
             Assert.Equal(75.0, enemy.EffectiveDef, 6);
             b.PlayCard(Find(b, "b50"));
             Assert.Equal(2, enemy.DefBreaks.Count);
-            Assert.Equal(50.0, enemy.EffectiveDef, 6); // 取最高值，不疊加
+            Assert.Equal(50.0, enemy.EffectiveDef, 6);
 
-            b.EndTurn(); // B（1 回合）到期，A 還剩 1 回合
+            b.EndTurn();
             Assert.Single(enemy.DefBreaks);
             Assert.Equal(75.0, enemy.EffectiveDef, 6);
 
@@ -153,19 +139,16 @@ namespace SanGuo.Core.Tests
             Assert.Equal(100.0, enemy.EffectiveDef, 6);
         }
 
-        // ---- 燃燒 ----
-
         [Fact]
         public void Burn_DealsStacksAtEndOfFactionTurn_ThenDecaysByHalfRoundedDown()
         {
-            // 施放 8 層：各次回合結束依序受 8、4、2、1 點，共 15。
             var fire = Card("fire", 1, TargetRule.Enemy, Shape.Single, Status(StatusType.Burn, 0.08, 0));
             var b = Fight(Hero("H", new[] { fire }, intel: 100, hp: 99999), Enemy("e", hp: 1000, atk: 1));
             var e = EnemyUnit(b, "e");
 
             b.PlayCard(Find(b, "fire"));
             Assert.Equal(8, e.BurnStacks);
-            Assert.Equal(1000, e.Hp); // 尚未到敵方回合結束
+            Assert.Equal(1000, e.Hp);
 
             var taken = new List<int>();
             for (int i = 0; i < 5; i++)
@@ -190,11 +173,9 @@ namespace SanGuo.Core.Tests
             Assert.Equal(20, e.BurnStacks);
             b.EndTurn();
             Assert.Equal(0, e.Shield);
-            Assert.Equal(1000 - 15, e.Hp); // 20 點中 5 點被護盾吸收
+            Assert.Equal(1000 - 15, e.Hp);
             Assert.Equal(10, e.BurnStacks);
         }
-
-        // ---- 護盾 ----
 
         [Fact]
         public void Shield_AbsorbsPhysicalAndMagicalBeforeHp_AndHasNoDuration()
@@ -208,10 +189,10 @@ namespace SanGuo.Core.Tests
             b.PlayCard(Find(b, "sh"));
             Assert.Equal(100, h.Shield);
 
-            b.EndTurn(); // 60 點物理傷害全被吸收
+            b.EndTurn();
             Assert.Equal(40, h.Shield);
             Assert.Equal(1000, h.Hp);
-            b.EndTurn(); // 還剩 40：吸收 40，餘 20 扣血
+            b.EndTurn();
             Assert.Equal(0, h.Shield);
             Assert.Equal(980, h.Hp);
         }
@@ -225,8 +206,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(100, HeroUnit(b, "H").Shield);
         }
 
-        // ---- 增益 ----
-
         [Fact]
         public void DefUp_IsFixedValue_StacksAndExpiresIndependently()
         {
@@ -234,9 +213,9 @@ namespace SanGuo.Core.Tests
             var b = Fight(Hero("H", new[] { Up("a", 1), Up("b", 2), Up("c", 2) }, def: 10), Enemy("e", atk: 1));
             var h = HeroUnit(b, "H");
             foreach (var c in b.Hand.Where(c => c.Def.Cost == 0).ToList()) b.PlayCard(c);
-            Assert.Equal(160.0, h.EffectiveDef); // 10 + 50 × 3
+            Assert.Equal(160.0, h.EffectiveDef);
             b.EndTurn();
-            Assert.Equal(110.0, h.EffectiveDef); // 1 回合那筆到期
+            Assert.Equal(110.0, h.EffectiveDef);
             b.EndTurn();
             Assert.Equal(10.0, h.EffectiveDef);
         }
@@ -251,8 +230,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(125, h.EffectiveAtk);
             Assert.Equal(100, h.EffectiveInt);
         }
-
-        // ---- 嘲諷 ----
 
         [Fact]
         public void Taunt_ForcesAllEnemiesToTargetTaunter_EvenRanged()
@@ -286,8 +263,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(900, HeroUnit(b, "T2").Hp);
         }
 
-        // ---- 蓄力 ----
-
         private static EnemyDef Charger(int chargeTurns = 1, int interval = 1, double power = 2.0)
         {
             var e = Enemy("boss", hp: 99999, atk: 100, range: 10);
@@ -309,17 +284,17 @@ namespace SanGuo.Core.Tests
             int Total() => HeroUnit(b, "A").Hp + HeroUnit(b, "B").Hp;
 
             Assert.Equal(Intent.Kind.Attack, b.GetIntent(boss).Type);
-            b.EndTurn(); // 普通攻擊 1 次
+            b.EndTurn();
             Assert.Equal(20000 - 100, Total());
             Assert.Equal(Intent.Kind.Charging == b.GetIntent(boss).Type, boss.Charging);
 
             Assert.Equal(Intent.Kind.Charge, b.GetIntent(boss).Type);
-            b.EndTurn(); // 開始蓄力
+            b.EndTurn();
             Assert.True(boss.Charging);
             Assert.Equal(Intent.Kind.Charging, b.GetIntent(boss).Type);
             Assert.Equal(20000 - 100, Total());
 
-            b.EndTurn(); // 蓄力 1 回合完成，這次行動釋放：全體各 200
+            b.EndTurn();
             Assert.False(boss.Charging);
             Assert.Equal(20000 - 100 - 400, Total());
         }
@@ -334,12 +309,12 @@ namespace SanGuo.Core.Tests
             var boss = EnemyUnit(b, "boss");
             var a = HeroUnit(b, "A");
 
-            b.EndTurn(); // 開始蓄力
+            b.EndTurn();
             Assert.True(boss.Charging);
-            b.EndTurn(); // 蓄力中
+            b.EndTurn();
             Assert.True(boss.Charging);
             Assert.Equal(10000, a.Hp);
-            b.EndTurn(); // 釋放
+            b.EndTurn();
             Assert.False(boss.Charging);
             Assert.Equal(10000 - 200, a.Hp);
         }
@@ -355,13 +330,13 @@ namespace SanGuo.Core.Tests
             var boss = EnemyUnit(b, "boss");
             var t = HeroUnit(b, "T");
 
-            b.EndTurn(); // 開始蓄力
+            b.EndTurn();
             Assert.True(boss.Charging);
             b.PlayCard(Find(b, "taunt"));
             Assert.False(boss.Charging);
             Assert.Contains(b.Events, e => e.Type == EventType.EnemyChargeBreak);
 
-            b.EndTurn(); // 被打斷後重新開始蓄力，沒有釋放大招
+            b.EndTurn();
             Assert.True(boss.Charging);
             Assert.Equal(10000, t.Hp);
         }
@@ -383,8 +358,6 @@ namespace SanGuo.Core.Tests
             Assert.False(boss.Charging);
             Assert.Equal(BattleResult.Won, b.Result);
         }
-
-        // ---- 範圍與目標 ----
 
         [Fact]
         public void Shapes_Row3Column3AndCross()
@@ -412,10 +385,10 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void SingleTarget_RangeIsHeroAttackRange()
         {
-            var b = Fight(Hero("H", new[] { Attack() }, range: 2), Enemy("e"), heroPos: PH(2, 3), enemyPos: PE(2, 1)); // 距離 2
+            var b = Fight(Hero("H", new[] { Attack() }, range: 2), Enemy("e"), heroPos: PH(2, 3), enemyPos: PE(2, 1));
             Assert.Equal(PlayResult.Ok, b.CanPlay(Find(b, "atk")));
             var far = Fight(Hero("H", new[] { Attack() }, range: 1), Enemy("e"), heroPos: PH(2, 3), enemyPos: PE(2, 1));
-            Assert.Equal(PlayResult.NoTarget, far.CanPlay(Find(far, "atk")));   // 射程內沒有敵人：不可施放
+            Assert.Equal(PlayResult.NoTarget, far.CanPlay(Find(far, "atk")));
             Assert.Equal(PlayResult.NoTarget, far.PlayCard(Find(far, "atk"), PE(2, 1)));
             Assert.Equal(PlayResult.NoTarget, far.PlayCard(Find(far, "atk")));
         }
@@ -425,8 +398,8 @@ namespace SanGuo.Core.Tests
         {
             var b = Fight(Hero("H", new[] { Attack() }, range: 5), Enemy("e", hp: 500), enemyPos: PE(2, 1));
             int cost = b.Cost;
-            Assert.Equal(PlayResult.OutOfRange, b.PlayCard(Find(b, "atk"), PE(0, 0)));   // 空格：拒絕
-            Assert.Equal(cost, b.Cost);                                                    // 不扣費、不出牌
+            Assert.Equal(PlayResult.OutOfRange, b.PlayCard(Find(b, "atk"), PE(0, 0)));
+            Assert.Equal(cost, b.Cost);
             Assert.Contains(b.Hand, c => c.Def.Id == "atk");
             Assert.Equal(PlayResult.Ok, b.PlayCard(Find(b, "atk"), PE(2, 1)));
         }
@@ -438,8 +411,8 @@ namespace SanGuo.Core.Tests
             setup.Heroes.Add(new HeroSlot(Hero("H", new[] { Attack(shape: Shape.Row3) }, range: 5), PH(2)));
             setup.Enemies.Add(new EnemySlot(Enemy("e", hp: 500), PE(2, 1), EnemyLevelForUnitScale));
             var b = new Battle(setup);
-            Assert.Equal(PlayResult.OutOfRange, b.PlayCard(Find(b, "atk"), PE(0, 1)));  // 橫向 3 格 (0..1) 不含敵人
-            Assert.Equal(PlayResult.Ok, b.PlayCard(Find(b, "atk"), PE(1, 1)));          // 中心是空格，但範圍擦到敵人
+            Assert.Equal(PlayResult.OutOfRange, b.PlayCard(Find(b, "atk"), PE(0, 1)));
+            Assert.Equal(PlayResult.Ok, b.PlayCard(Find(b, "atk"), PE(1, 1)));
         }
 
         [Fact]
@@ -467,13 +440,11 @@ namespace SanGuo.Core.Tests
             setup.Enemies.Add(new EnemySlot(Enemy("e"), PE(2), EnemyLevelForUnitScale));
             var b = new Battle(setup);
             var cards = b.Hand.Where(c => c.Def.Id == "heal").ToList();
-            b.PlayCard(cards[0]); // 自動：血量比例最低的 B
+            b.PlayCard(cards[0]);
             Assert.Equal(200, HeroUnit(b, "B").Hp);
-            b.PlayCard(cards[1], PH(1, 3)); // 指定 A
+            b.PlayCard(cards[1], PH(1, 3));
             Assert.Equal(600, HeroUnit(b, "A").Hp);
         }
-
-        // ---- 牌庫、費用、手牌 ----
 
         private static Battle StandardTeam(ulong seed = 1)
         {
@@ -508,8 +479,8 @@ namespace SanGuo.Core.Tests
                 Assert.True(b.Hand.Count(c => c.Owner == null) >= 2);
                 Assert.Equal(3, b.Cost);
                 b.EndTurn();
-                Assert.Equal(10, b.Hand.Count); // 手牌不棄，再抽 3 張
-                Assert.Equal(6, b.Cost);        // 費用保留，再 +3
+                Assert.Equal(10, b.Hand.Count);
+                Assert.Equal(6, b.Cost);
             }
         }
 
@@ -531,7 +502,7 @@ namespace SanGuo.Core.Tests
             b.EndTurn();
             Assert.Equal(10, b.Hand.Count);
             int discard = b.DiscardPile.Count;
-            b.EndTurn(); // 手牌已滿：抽到的牌直接棄置
+            b.EndTurn();
             Assert.Equal(10, b.Hand.Count);
             Assert.Equal(discard + 3, b.DiscardPile.Count);
         }
@@ -540,7 +511,6 @@ namespace SanGuo.Core.Tests
         public void DrawPile_ReshufflesDiscardWhenEmpty()
         {
             var b = StandardTeam();
-            // 打光手牌讓牌庫耗盡後仍能繼續抽（棄牌堆洗回）。
             for (int turn = 0; turn < 8; turn++)
             {
                 foreach (var c in b.Hand.Where(c => c.Def.Cost == 0).ToList())
@@ -566,8 +536,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(3, all.Count(c => c.Owner == null));
         }
 
-        // ---- 移動 ----
-
         [Fact]
         public void Move_StepsEqualMoveStat_CannotPassThroughUnits()
         {
@@ -578,8 +546,8 @@ namespace SanGuo.Core.Tests
             var b = new Battle(setup);
             var h = HeroUnit(b, "H");
             var reach = b.ReachableTiles(h);
-            Assert.DoesNotContain(new Position(2, 1), reach.Keys);   // 被友軍擋住，無法穿越
-            Assert.Contains(new Position(1, 2), reach.Keys);          // 繞過去 2 步
+            Assert.DoesNotContain(new Position(2, 1), reach.Keys);
+            Assert.Contains(new Position(1, 2), reach.Keys);
             Assert.DoesNotContain(new Position(2, 2), reach.Keys);
             var move = b.Hand.First(c => c.Def.Id == "move");
             Assert.Equal(PlayResult.OutOfRange, b.PlayCard(move, new Position(2, 1), h));
@@ -587,13 +555,10 @@ namespace SanGuo.Core.Tests
             Assert.Equal(new Position(1, 2), h.Pos);
         }
 
-        // ---- 成長與敵人倍率 ----
-
         [Fact]
         public void HeroLevelGrowth_IsLinear1Point5Percent()
         {
             Assert.Equal(1.585, Battle.HeroLevelFactor(40), 3);
-            // GDD 03 §4.1 標示 60 級為 ×2.325，與「每級 +1.5% 線性」（60 級 ×1.885）不一致，待確認；先以線性規則為準。
             Assert.Equal(1.885, Battle.HeroLevelFactor(60), 3);
             var s = Battle.ScaleHero(new Stats { Hp = 1000, Atk = 100, Int = 100, Def = 100, Crit = 20, Dodge = 10, Move = 2, Range = 2, CritDmg = 150 }, 40);
             Assert.Equal(1585, s.Hp);
@@ -612,7 +577,7 @@ namespace SanGuo.Core.Tests
 
             var baseStats = new Stats { Hp = 1000, Atk = 100, Int = 100, Def = 100 };
             EnemyDef Make(EnemyTier tier) => new EnemyDef { Id = "x", Name = "x", Tier = tier, Base = baseStats };
-            var normal = Battle.ScaleEnemy(Make(EnemyTier.Normal), 11); // 1.0
+            var normal = Battle.ScaleEnemy(Make(EnemyTier.Normal), 11);
             var elite = Battle.ScaleEnemy(Make(EnemyTier.Elite), 11);
             var boss = Battle.ScaleEnemy(Make(EnemyTier.Boss), 11);
             Assert.Equal((1000, 100, 100), (normal.Hp, normal.Atk, normal.Def));
@@ -620,8 +585,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal((3000, 140, 100), (boss.Hp, boss.Atk, boss.Def));
             Assert.Equal(140, elite.Int);
         }
-
-        // ---- 勝負 ----
 
         [Fact]
         public void Escort_WinsAfterSurvivingTurns_LosesWhenTargetDies()
@@ -668,8 +631,6 @@ namespace SanGuo.Core.Tests
             b.EndTurn();
             Assert.Equal(BattleResult.Lost, b.Result);
         }
-
-        // ---- 確定性 ----
 
         [Fact]
         public void SameSeed_ProducesIdenticalBattle()

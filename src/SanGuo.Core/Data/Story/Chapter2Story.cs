@@ -3,7 +3,6 @@ using static SanGuo.Core.Data.Cast;
 
 namespace SanGuo.Core.Data
 {
-    /// <summary>第二章　黃巾烽火（下）：盧植被誣、救董卓、破張寶妖術、宛城、斬張梁，章末在廣宗擊敗張角。</summary>
     public static class Chapter2Story
     {
         private static StoryLine LuZhi(string text) => S("盧植", "luzhi", text);

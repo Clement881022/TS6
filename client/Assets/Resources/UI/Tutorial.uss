@@ -1,11 +1,9 @@
-/* ---- 新手引導：視覺小說式對話（Tutorial.cs；版型參考 TS6Client 對話介面設計稿） ---- */
 .tut-overlay {
     background-color: rgba(4, 8, 24, 0.5);
     justify-content: flex-end;
     align-items: stretch;
 }
 
-/* 底部對話帶：淺色半透明、頂緣一條藍線 */
 .tut-band {
     height: 300px;
     padding: 34px 420px 26px 240px;
@@ -19,7 +17,6 @@
 .tut-step { font-size: 22px; color: rgb(110, 128, 168); }
 .tut-action { flex-direction: row; }
 
-/* ▽ 繼續提示（閃爍） */
 .tut-next {
     position: absolute;
     right: 460px; bottom: 30px;
@@ -31,7 +28,6 @@
 }
 .tut-next-dim { opacity: 0.2; }
 
-/* 名牌：菱形 + 說話者，浮在對話帶上緣 */
 .tut-nameplate {
     position: absolute;
     left: 240px; bottom: 306px;
@@ -49,7 +45,6 @@
     -unity-background-scale-mode: scale-to-fit;
 }
 
-/* 右側角色立繪（全身圖帶底色，所以做成圓角卡片） */
 .tut-hero {
     position: absolute;
     right: 70px; bottom: 308px;
@@ -62,7 +57,6 @@
 
 .tut-skip { position: absolute; right: 30px; top: 24px; margin: 0; }
 
-/* 3D 角色（RenderTexture，背景透明）：站在對話帶上緣 */
 .tut-model {
     position: absolute;
     right: 40px; bottom: 236px;
@@ -70,7 +64,6 @@
     -unity-background-scale-mode: scale-to-fit;
 }
 
-/* 劇情半身像（StoryPlayer）：3D 角色上半身，底緣貼著對話帶上緣 */
 .story-bust {
     position: absolute;
     right: 80px; bottom: 296px;

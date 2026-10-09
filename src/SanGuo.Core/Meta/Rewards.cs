@@ -3,14 +3,12 @@ using System.Collections.Generic;
 
 namespace SanGuo.Core.Meta
 {
-    /// <summary>一份獎勵（任務、副本、七日大獎共用）。</summary>
     public sealed class Reward
     {
         public int Yuanbao;
         public int Gold;
         public int Stamina;
         public Dictionary<string, int> Materials = new Dictionary<string, int>();
-        /// <summary>直接贈送的武將；已擁有就轉成突破碎片（與抽到重複武將相同）。</summary>
         public List<string> Heroes = new List<string>();
 
         public Reward() { }
@@ -34,7 +32,6 @@ namespace SanGuo.Core.Meta
             return this;
         }
 
-        /// <summary>乘上倍數（掃蕩多次用）；武將不乘。</summary>
         public Reward Times(int count)
         {
             if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));

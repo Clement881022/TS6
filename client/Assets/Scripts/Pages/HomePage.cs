@@ -7,12 +7,8 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 策略國風主城：城景、左側功能列、右側章節卡與出征，文字與資源由即時資料呈現。
-    /// </summary>
     public sealed class HomePage : PageBase
     {
-        // Q 版場景圖以 16:9 填滿畫面；互動 HUD 獨立於城景裁切。
         private const float SceneAspect = 16f / 9f;
 
         private VisualElement? _scene;
@@ -25,12 +21,10 @@ namespace SanGuo.Client
         protected override void OnReady()
         {
             if (GameSession.View.ClearedStages.Count > 0) return;
-            // 先看序章（劇情）；再由巴豆妖講系統性教學（主城功能），最後進大地圖。
             StoryPlayer.ShowIntro(Host, ShowSystemTutorial);
             if (GameSession.View.ClearedStages.Count == 0 && Tutorial.Seen("story_intro")) ShowSystemTutorial();
         }
 
-        /// <summary>巴豆妖負責系統性教學，不參與劇情。</summary>
         private void ShowSystemTutorial()
         {
             Tutorial.Show(Host, "home", "主城功能", new[]
@@ -44,14 +38,12 @@ namespace SanGuo.Client
         protected override void BuildBody(VisualElement root)
         {
             var v = GameSession.View;
-            // 首頁的主線面板顯示目前該打的那一章。
             var (chapter, _) = GameSession.Frontier();
             int total = Campaign.LevelsPerChapter;
             int cleared = 0;
             for (int i = 1; i <= total; i++)
                 if (v.ClearedStages.Contains(GameSession.StageIdOf(chapter, i))) cleared++;
 
-            // ---- 新城景與全螢幕 HUD ----
             _scene = new VisualElement();
             _scene.AddToClassList("home-scene");
             var tex = Resources.Load<Texture2D>("ChibiSkin/home");
@@ -66,10 +58,8 @@ namespace SanGuo.Client
 
             root.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("strategy-home-shade"));
             var topBar = new VisualElement().WithClass("strategy-home-top");
-            // ---- 左上：玩家卡 + 章節進度 ----
             topBar.Add(BuildPlayerCard(v));
 
-            // ---- 右上：資源 ----
             var res = new VisualElement { pickingMode = PickingMode.Ignore };
             res.AddToClassList("home-res");
             res.Add(UiKit.ResPill("item_stamina", $"{v.Stamina}/{v.StaminaCap}"));
@@ -79,12 +69,9 @@ namespace SanGuo.Client
             topBar.Add(UiHelp.Button(root, Page.Home));
             root.Add(topBar);
 
-            // 主線進度、下一關與主操作放在同一個面板，直接引導當前目標。
             root.Add(BuildFunctionBar());
             root.Add(BuildCampaign(v, chapter, cleared, total));
         }
-
-        // ------------------------------------------------------------ 版面
 
         private void FitScene(VisualElement root)
         {
@@ -101,7 +88,6 @@ namespace SanGuo.Client
 
         private VisualElement BuildPlayerCard(ProfileView v)
         {
-            // 點玩家卡進帳號頁（暱稱、綁定、登出）。
             var card = new VisualElement();
             card.AddToClassList("home-player");
             card.tooltip = "帳號";
@@ -128,7 +114,6 @@ namespace SanGuo.Client
             var plate = new VisualElement().WithClass("home-campaign");
             var heading = new VisualElement().WithClass("home-campaign-heading");
             heading.Add(UiKit.Text("主線征戰", "home-campaign-kicker"));
-            // Campaign.Title 為「第一章　黃巾烽火（上）」：章號與標題分兩行。
             var title = Campaign.Title(chapter).Split('　');
             heading.Add(UiKit.Text(title[0], "home-campaign-chapter"));
             plate.Add(heading);

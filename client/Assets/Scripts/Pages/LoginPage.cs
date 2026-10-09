@@ -6,10 +6,6 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 登入頁（只在連伺服器時出現）：遊客進入，或用帳號密碼登入 / 註冊。
-    /// 畫面為程式佔位（純色底 + 文字），正式美術待美術組提供。
-    /// </summary>
     public sealed class LoginPage : PageBase
     {
         private TextField? _username;
@@ -86,7 +82,6 @@ namespace SanGuo.Client
         }
     }
 
-    /// <summary>登入頁與帳號頁共用的佔位元件（行內樣式，不依賴美術資源）。</summary>
     internal static class AccountUi
     {
         public static VisualElement Panel(float width)
@@ -141,7 +136,6 @@ namespace SanGuo.Client
             return el;
         }
 
-        /// <summary>輸入框：專案的主題樣式表是空的，輸入框外觀在這裡直接設定。</summary>
         public static TextField Field(string label, bool password = false)
         {
             var f = new TextField(label) { isPasswordField = password, maxLength = 64 };

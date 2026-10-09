@@ -20,11 +20,10 @@ namespace SanGuo.Core.Tests
             var p = PlayerProfile.CreateNew(now);
             p.Level = level;
             p.Stamina.Add(200, now);
-            p.ClearedStages.Add("0-4");   // 解鎖第 1 階素材副本
+            p.ClearedStages.Add("0-4");
             return p;
         }
 
-        /// <summary>發四名武將給玩家並回傳站好位的編隊。</summary>
         private static List<FormationEntry> Team(PlayerProfile p)
         {
             var ids = new[] { "zhangfei", "guanyu", "r_archer", "liubei" };
@@ -63,9 +62,8 @@ namespace SanGuo.Core.Tests
             Assert.Equal(goldBefore + 2000, p.Gold);
             Assert.Contains("res_1", p.ClearedStages);
             Assert.Equal("", p.PendingStageId);
-            Assert.Contains(done.Materials, m => m.Key.StartsWith("eq:"));   // 裝備掉落
+            Assert.Contains(done.Materials, m => m.Key.StartsWith("eq:"));
 
-            // 通關後可掃蕩（沒有每日次數限制）。
             var d = DemoMeta.FindDungeon("res_1")!;
             Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TrySweep(p, d, 3, now, out _));
             Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TrySweep(p, d, 3, now, out _));
@@ -135,13 +133,13 @@ namespace SanGuo.Core.Tests
             {
                 null,
                 new List<FormationEntry>(),
-                new List<FormationEntry> { new FormationEntry("zhugeliang", 1, 3) },                    // 沒有這名武將
-                new List<FormationEntry> { team[0], new FormationEntry("guanyu", 1, 3) },                // 站位重疊
-                new List<FormationEntry> { team[0], new FormationEntry("zhangfei", 3, 3) },              // 同一武將上兩次
-                new List<FormationEntry> { new FormationEntry("zhangfei", 9, 3) },                      // 站位在場外
-                new List<FormationEntry> { new FormationEntry("zhangfei", 0, 3) },                      // 在棋盤內但不在 3x2 列陣區
-                new List<FormationEntry> { new FormationEntry("zhangfei", 2, 2) },                      // 敵我之間的中線列
-                team.Concat(new[] { new FormationEntry("zhaoyun", 3, 3) }).ToList(),                    // 超過 4 人（且沒有趙雲）
+                new List<FormationEntry> { new FormationEntry("zhugeliang", 1, 3) },
+                new List<FormationEntry> { team[0], new FormationEntry("guanyu", 1, 3) },
+                new List<FormationEntry> { team[0], new FormationEntry("zhangfei", 3, 3) },
+                new List<FormationEntry> { new FormationEntry("zhangfei", 9, 3) },
+                new List<FormationEntry> { new FormationEntry("zhangfei", 0, 3) },
+                new List<FormationEntry> { new FormationEntry("zhangfei", 2, 2) },
+                team.Concat(new[] { new FormationEntry("zhaoyun", 3, 3) }).ToList(),
             };
             foreach (var bad in cases)
             {
@@ -160,10 +158,10 @@ namespace SanGuo.Core.Tests
         {
             long now = Sunday();
             var p = Player(now, level: 9);
-            Assert.True(StageFlow.Start(p, "0-1", now, 3).Ok); // 教學關不用編隊
+            Assert.True(StageFlow.Start(p, "0-1", now, 3).Ok);
             Assert.True(DemoMeta.BuildSetup("0-1", 3)!.FormationLocked);
 
-            Assert.Null(DemoMeta.BuildSetup("0-9", 3));        // 開放編隊的關卡沒給編隊就建不出來
+            Assert.Null(DemoMeta.BuildSetup("0-9", 3));
             Assert.Equal("invalid_formation", StageFlow.Start(p, "0-9", now, 3).Code);
 
             var team = Team(p);
@@ -172,7 +170,7 @@ namespace SanGuo.Core.Tests
             Assert.True(setup.AutoAllowed);
             Assert.Empty(setup.ScriptedDraw);
             Assert.Equal(new[] { "zhangfei", "guanyu", "r_archer", "liubei" }, setup.Heroes.Select(h => h.Def.Id).ToArray());
-            Assert.Equal(3, setup.Enemies.Count); // 敵人沿用第 9 關配置
+            Assert.Equal(3, setup.Enemies.Count);
         }
 
         [Fact]
@@ -187,7 +185,6 @@ namespace SanGuo.Core.Tests
             var grown = DemoMeta.BuildSetup("res_1", 1, p, team)!.Heroes[0].Def.Base.Atk;
             Assert.True(grown > baseAtk);
 
-            // 進行中的編隊要存得下來（伺服器重啟後仍能結算）。
             Assert.True(StageFlow.Start(p, "res_1", now, 7, team).Ok);
             var loaded = ProfileSerializer.FromJson(ProfileSerializer.ToJson(p));
             Assert.Equal(team.Select(e => (e.HeroId, e.Lane, e.Row)), loaded.PendingFormation.Select(e => (e.HeroId, e.Lane, e.Row)));

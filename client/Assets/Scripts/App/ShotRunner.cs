@@ -7,10 +7,6 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 自動截圖（-sanguoShot）：跨場景存活，依序造訪每個頁面並截圖，打完一場戰鬥後離開。
-    /// 供自動驗證畫面用，不影響正常遊戲。
-    /// </summary>
     public sealed class ShotRunner : MonoBehaviour
     {
         public static ShotRunner? Instance { get; private set; }
@@ -66,10 +62,6 @@ namespace SanGuo.Client
             Debug.Log("[model-review] "+path);
         }
 
-        /// <summary>
-        /// 主線章節驗證（-sanguoCampaignShot，搭配 -sanguoClearTo 與 -sanguoLevel 指定章-關）：
-        /// 首頁 → 地圖（該章）→ 關卡面板 → 戰前劇情 → 開戰 → 出牌 → 自動打完 → 首通劇情。
-        /// </summary>
         private IEnumerator RunCampaign(string dir)
         {
             Directory.CreateDirectory(dir);
@@ -106,7 +98,6 @@ namespace SanGuo.Client
             Shot(dir, "battle-result");
             yield return Wait(0.6f);
 
-            // 世界 Boss：面板 → 開戰 → 自動打完 → 結算（-sanguoClearTo 需在第 2 章之後才會開放）。
             yield return Go(Page.WorldBoss);
             yield return Wait(1.5f);
             Shot(dir, "worldboss");
@@ -129,7 +120,6 @@ namespace SanGuo.Client
             Shot(dir, "worldboss-after");
             yield return Wait(0.4f);
 
-            // 商店：首儲禮包與月卡、測試付款買豪華通行證後的通行證分頁。
             yield return Go(Page.Shop);
             yield return Wait(0.8f);
             Shot(dir, "shop-pay");
@@ -160,7 +150,6 @@ namespace SanGuo.Client
             yield return Wait(.4f); Shot(dir, "home-help"); yield return Wait(.3f);
             Submit(helpRoot.Q<Button>(className: "ui-help-close"));
 
-            // Send actual UI navigation-submit events to verify the new home controls.
             var homeRoot = PageHost.Current!.GetComponent<UIDocument>().rootVisualElement;
             Submit(homeRoot.Q<Button>(className: "home-primary"));
             yield return Wait(1.0f);
@@ -197,7 +186,6 @@ namespace SanGuo.Client
                 Shot(dir, page.ToString().ToLowerInvariant());
                 yield return Wait(0.4f);
 
-                // 各頁的次要畫面：關卡面板、武將的突破 / 裝備分頁、七日目標。
                 var active = PageHost.Current?.ActivePage;
                 DebugCheckMetaLayout(homeRoot);
                 if (page == Page.Heroes && homeRoot.Query<Button>().ToList().Exists(b => b.text == "升級" || b.text == "突破" || b.text == "卸下" || b.text.StartsWith("穿 ")))
@@ -205,7 +193,7 @@ namespace SanGuo.Client
                 if (active is MapPage map) { map.DebugOpenStage(1); yield return Wait(0.4f); Shot(dir, "map-stage"); }
                 else if (active is HeroesPage heroes)
                 {
-                    heroes.DebugSetTab(1); yield return Wait(0.5f); Shot(dir, page == Page.HeroGrowth ? "growth-break" : "heroes-deck"); yield return Wait(0.3f); // 截圖在幀尾才擷取，下一步要等一下
+                    heroes.DebugSetTab(1); yield return Wait(0.5f); Shot(dir, page == Page.HeroGrowth ? "growth-break" : "heroes-deck"); yield return Wait(0.3f);
                     heroes.DebugSetTab(2); yield return Wait(0.5f); Shot(dir, page == Page.HeroGrowth ? "growth-equip" : "heroes-equip");
                     yield return Wait(0.3f);
                     heroes.DebugScrollRosterEnd(); yield return Wait(0.3f); Shot(dir, "heroes-roster-end");
@@ -239,12 +227,11 @@ namespace SanGuo.Client
             }
 
             GameSession.Select(0, Mathf.Max(2, GameSession.SelectedLevel));
-            GameSession.FormationStageId = GameSession.StageIdOf(0, DemoMeta.FirstOpenFormationLevel); // 編隊頁只用於教學關之後的關卡
+            GameSession.FormationStageId = GameSession.StageIdOf(0, DemoMeta.FirstOpenFormationLevel);
             yield return Go(Page.Formation);
             Shot(dir, "formation");
             yield return Wait(0.4f);
 
-            // 實際開一場戰鬥：經過後端開始關卡 → 戰鬥場景 → 預覽 / 出牌 / 打完結算。
             var task = GameSession.BeginStage(GameSession.StageIdOf(GameSession.SelectedChapter, GameSession.SelectedLevel));
             while (!task.IsCompleted) yield return null;
             yield return Go(Page.Battle);
@@ -288,7 +275,6 @@ namespace SanGuo.Client
             yield return Go(Page.Home);
             Shot(dir, "home-progress");
             yield return Wait(0.5f);
-            // 截圖流程使用不持久化的 LocalBackend；以既有測試付款與掃蕩 API 準備養成所需資源。
             if (GameSession.Backend is LocalBackend)
             {
                 var month = GameSession.Backend.BuyWithTestPayment(SanGuo.Core.Meta.Shop.MonthSmall);
@@ -302,7 +288,6 @@ namespace SanGuo.Client
                 if (!month.Result.Ok || !stamina.Result.Ok || !pack.Result.Ok || !sweep.Result.Ok) throw new System.InvalidOperationException("Growth review fixture preparation failed: " + sweep.Result.Code);
                 var profile = GameSession.Refresh(); while (!profile.IsCompleted) yield return null;
             }
-            // 同一份後端資料：由獨立養成頁實際操作，再到唯讀頁確認等級與卡組。
             string growthHero = GameSession.OwnedHeroes().Find(d => GameSession.View.Heroes[d.Id].Level < GameSession.View.Level)?.Id ?? "";
             if (growthHero.Length > 0)
             {
@@ -368,16 +353,11 @@ namespace SanGuo.Client
             Application.Quit();
         }
 
-        /// <summary>
-        /// 帳號流程驗證（-sanguoAccountShot，需搭配 -sanguoServer 且裝置上沒有登入 token）：
-        /// 登入頁 → 錯誤密碼 → 遊客進入 → 帳號頁 → 綁定帳號密碼 → 登出 → 以帳號密碼重新登入。每一步都檢查結果，不符就拋例外。
-        /// </summary>
         private IEnumerator RunAccount(string dir)
         {
             Directory.CreateDirectory(dir);
             string username = "shot_" + System.DateTime.UtcNow.ToString("MMddHHmmss");
             const string password = "shotpass123";
-            // 每次都從全新的遊客開始：清掉這台機器上次留下的遊客金鑰與 token。
             PlayerPrefs.DeleteKey("sanguo.guestKey");
             yield return Wait(1.5f);
             if (!(PageHost.Current?.ActivePage is LoginPage))

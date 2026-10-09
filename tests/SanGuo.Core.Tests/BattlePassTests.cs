@@ -6,7 +6,6 @@ namespace SanGuo.Core.Tests
 {
     public class BattlePassTests
     {
-        // 2026-10-15 12:00 與 2026-11-02 12:00（北京時間）。
         private const long Oct = 1792036800, Nov = 1793592000;
 
         private static PlayerProfile Fresh()

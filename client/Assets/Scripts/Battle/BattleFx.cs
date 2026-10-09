@@ -8,13 +8,9 @@ using EventType = SanGuo.Core.EventType;
 
 namespace SanGuo.Client
 {
-    /// <summary>
-    /// 戰鬥演出：把核心產生的事件轉成畫面特效（飄字）與角色模型動作（攻擊 / 施法 / 受擊 / 倒下）。
-    /// 核心的狀態是瞬間算完的，這裡把事件排成時間序列依序播放，讓玩家看得懂發生了什麼。
-    /// </summary>
     public sealed class BattleFx
     {
-        private const float StepSeconds = 0.62f;   // 每個演出步驟的間隔（原 0.26，一閃而過）
+        private const float StepSeconds = 0.62f;
 
         private readonly VisualElement _layer;
         private readonly Func<Side, Position, Vector2> _headPoint;
@@ -28,7 +24,6 @@ namespace SanGuo.Client
             _viewOf = viewOf;
         }
 
-        /// <summary>目前排隊中的演出大約還要多久（秒）；自動戰鬥用來等演出播完。</summary>
         public float PendingSeconds => Mathf.Max(0f, _nextFreeTime - Time.realtimeSinceStartup);
 
         public void Reset() => _nextFreeTime = 0f;
@@ -72,10 +67,10 @@ namespace SanGuo.Client
                         Float(e.TargetSide, e.TargetPos, "倒下", new Color(0.8f, 0.8f, 0.85f), 40);
                     }, 0.25f, advance: true);
                     break;
-                case EventType.PassiveTriggered: // 武將被動發動：在施放者頭上浮出被動名稱
+                case EventType.PassiveTriggered:
                     Enqueue(() => Float(e.SourceSide, e.SourcePos, $"【{e.Text}】", new Color(0.75f, 0.6f, 1f), 34), 0f, advance: true);
                     break;
-                case EventType.EnemyPhase: // Boss 生命跌破門檻，蓄力變快
+                case EventType.EnemyPhase:
                     Enqueue(() => { AudioManager.PlaySfx(Sfx.Crit); Float(e.TargetSide, e.TargetPos, "怒氣爆發！", new Color(1f, 0.3f, 0.25f), 46); }, 0f, advance: true);
                     break;
                 case EventType.BattleEnd:
@@ -89,7 +84,6 @@ namespace SanGuo.Client
             return Enum.TryParse<StatusType>(statusName, out var type) ? CardText.StatusName(type) : statusName;
         }
 
-        /// <summary>排進時間序列：action 在 (前一個演出結束 + offset) 時執行。</summary>
         private void Enqueue(Action action, float offset, bool advance = false)
         {
             float now = Time.realtimeSinceStartup;

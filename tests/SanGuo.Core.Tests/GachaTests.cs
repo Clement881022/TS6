@@ -21,7 +21,7 @@ namespace SanGuo.Core.Tests
         public void Rates_MatchDisclosed_OverManySingles()
         {
             var pool = Pool();
-            pool.HardPityUr = 0; // 看基礎機率
+            pool.HardPityUr = 0;
             var state = new PoolState();
             var rng = new Rng(1);
             int n = 200_000;
@@ -73,7 +73,7 @@ namespace SanGuo.Core.Tests
         public void NewbiePool_FirstTenHasUr_SecondDoesNotForce()
         {
             var pool = Pool(newbie: true);
-            pool.UrRateBp = 0; // 排除自然出 UR，只看保底
+            pool.UrRateBp = 0;
             var state = new PoolState();
             var first = Gacha.Roll(pool, state, 10, new Rng(3));
             Assert.Contains(first, r => r.Rarity == Rarity.UR && r.FromPity);
@@ -86,7 +86,7 @@ namespace SanGuo.Core.Tests
         {
             var pool = Pool(up: "ur1");
             pool.UpGuarantee = false;
-            pool.UrRateBp = 10000; // 每抽都是 UR，方便統計 UP 比例
+            pool.UrRateBp = 10000;
             var state = new PoolState();
             var rng = new Rng(11);
             int up = 0, n = 20_000;
@@ -104,7 +104,6 @@ namespace SanGuo.Core.Tests
                 prevMiss = !r.IsUp;
             }
             Assert.InRange(up / (double)n, 0.48, 0.52);
-            // 未中不保底：上一抽沒中 UP，下一抽仍是 50%。
             Assert.InRange(afterMissUp / (double)afterMiss, 0.47, 0.53);
         }
 
@@ -191,7 +190,7 @@ namespace SanGuo.Core.Tests
                 gap++;
                 if (r.Rarity == Rarity.UR) { ur++; maxGap = System.Math.Max(maxGap, gap); gap = 0; }
             }
-            Assert.InRange(n / (double)ur, 29.5, 31.3); // 理論 30.4
+            Assert.InRange(n / (double)ur, 29.5, 31.3);
             Assert.True(maxGap <= 80);
         }
 
@@ -255,7 +254,7 @@ namespace SanGuo.Core.Tests
             var b = Gacha.Pull(p, pool, 1, new Rng(2));
             Assert.True(a.Results[0].IsNew);
             Assert.False(b.Results[0].IsNew);
-            Assert.Equal(1, b.Results[0].Shards);   // 每份重複武將 = 1 份突破材料
+            Assert.Equal(1, b.Results[0].Shards);
             Assert.Equal(1, p.Materials["shard:r1"]);
         }
 
@@ -278,9 +277,9 @@ namespace SanGuo.Core.Tests
             var p = PlayerProfile.CreateNew(0);
             var pool = new GachaPool { Id = "one", UrRateBp = 0, SrRateBp = 0, RHeroes = { "r_shield" }, SrHeroes = { "zhoucang" } };
             p.Yuanbao = 100_000;
-            for (int i = 0; i < 8; i++) Gacha.Pull(p, pool, 1, new Rng((ulong)i));   // 1 本體 + 5 重複份 + 2 溢出
+            for (int i = 0; i < 8; i++) Gacha.Pull(p, pool, 1, new Rng((ulong)i));
             Assert.Equal(5, p.GetMaterial("shard:r_shield"));
-            Assert.Equal(2 * 5, p.GetMaterial(HeroGrowth.Soul));                       // R 溢出每份 5 將魂
+            Assert.Equal(2 * 5, p.GetMaterial(HeroGrowth.Soul));
         }
 
         [Fact]
@@ -297,7 +296,7 @@ namespace SanGuo.Core.Tests
             {
                 var r = Gacha.Roll(pool, state, 1, rng)[0];
                 if (r.Rarity != Rarity.UR) continue;
-                if (previousMissedUp) Assert.True(r.IsUp);           // 大小保底：上一隻沒中，下一隻必為 UP
+                if (previousMissedUp) Assert.True(r.IsUp);
                 previousMissedUp = !r.IsUp;
                 if (r.IsUp) got.Add(r.HeroId);
             }
@@ -318,7 +317,7 @@ namespace SanGuo.Core.Tests
                 Assert.Equal(200, pool.SingleCost);
                 Assert.Equal(2000, pool.TenCost);
                 Assert.Equal(80, pool.HardPityUr);
-                Assert.DoesNotContain(HeroRoster.StoryHeroIds, id => pool.SrHeroes.Contains(id)); // 劉關張不可抽取
+                Assert.DoesNotContain(HeroRoster.StoryHeroIds, id => pool.SrHeroes.Contains(id));
             }
             Assert.True(pools.First(x => x.Id == DemoMeta.NewbiePoolId).FirstTenGuaranteesUr);
         }

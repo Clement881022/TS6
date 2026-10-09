@@ -8,7 +8,6 @@ namespace SanGuo.Core.Tests
 {
     public class ProgressionSystemsTests
     {
-        // 2026-10-05 是星期一。以北京時間 06:00（已過 5 點重置）為基準。
         private static long At(int day, int hour = 6) =>
             new DateTimeOffset(2026, 10, day, hour, 0, 0, TimeSpan.FromHours(8)).ToUnixTimeSeconds();
 
@@ -17,28 +16,24 @@ namespace SanGuo.Core.Tests
             StageId = "1-1", Chapter = 1, StaminaCost = 8, Exp = 30, Gold = 100, FirstClearYuanbao = 50,
         };
 
-        // ---- 日界線 ----
-
         [Fact]
         public void DailyClock_ResetsAtFiveAm_Beijing()
         {
             Assert.Equal(0, DailyClock.Weekday(At(5)));
-            Assert.Equal(0, DailyClock.Weekday(At(6, 4)));     // 週二凌晨 4 點仍算週一
-            Assert.Equal(1, DailyClock.Weekday(At(6, 5)));     // 5 點換日
+            Assert.Equal(0, DailyClock.Weekday(At(6, 4)));
+            Assert.Equal(1, DailyClock.Weekday(At(6, 5)));
             Assert.Equal(DailyClock.DayIndex(At(5)), DailyClock.DayIndex(At(6, 4)));
             Assert.Equal(DailyClock.DayIndex(At(5)) + 1, DailyClock.DayIndex(At(6, 5)));
-            Assert.Equal(6, DailyClock.Weekday(At(11)));       // 週日
+            Assert.Equal(6, DailyClock.Weekday(At(11)));
         }
-
-        // ---- 星級與掃蕩 ----
 
         [Fact]
         public void StarRating_Rules()
         {
             Assert.Equal(0, StarRating.Rate(false, 0, 1, 0));
-            Assert.Equal(2, StarRating.Rate(true, 1, 3, 5));   // 通關 + 限定回合內（有人陣亡）
+            Assert.Equal(2, StarRating.Rate(true, 1, 3, 5));
             Assert.Equal(1, StarRating.Rate(true, 1, 9, 5));
-            Assert.Equal(2, StarRating.Rate(true, 0, 9, 5));   // 通關 + 全員存活（超過回合）
+            Assert.Equal(2, StarRating.Rate(true, 0, 9, 5));
             Assert.Equal(3, StarRating.Rate(true, 0, 5, 5));
             Assert.Equal(3, StarRating.Rate(true, 0, 99, 0));
         }
@@ -58,7 +53,7 @@ namespace SanGuo.Core.Tests
         {
             long now = At(5);
             var p = PlayerProfile.CreateNew(now);
-            p.Level = 30; // 避免掃蕩中途升級補滿體力，干擾扣體力的驗證
+            p.Level = 30;
             p.ClaimClear(Stage, now, stars: 2);
             Assert.Equal(SweepResult.NotThreeStars, p.TrySweep(Stage, 1, now, out _));
 
@@ -97,8 +92,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(3, p.StageStars["1-1"]);
         }
 
-        // ---- 資源副本 ----
-
         private static ResourceDungeonDef Tier(int tier) => DemoResourceDungeons.Create().First(d => d.Tier == tier);
 
         private static PlayerProfile Unlocked(long now)
@@ -127,7 +120,7 @@ namespace SanGuo.Core.Tests
             p.ClearedStages.Add("0-4");
             Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TryEnter(p, Tier(1), At(5)));
             Assert.Equal(DungeonEntryResult.Locked, ResourceDungeons.TryEnter(p, Tier(2), At(5)));
-            ResourceDungeons.ClaimWin(p, Tier(1), At(5), 1); // 打贏第 1 階
+            ResourceDungeons.ClaimWin(p, Tier(1), At(5), 1);
             Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TryEnter(p, Tier(2), At(5)));
             Assert.Equal(DungeonEntryResult.Locked, ResourceDungeons.TryEnter(p, Tier(3), At(5)));
         }
@@ -135,7 +128,6 @@ namespace SanGuo.Core.Tests
         [Fact]
         public void HigherTierDrops_AreRarer()
         {
-            // 1–3 階直接掉裝備，掉率逐階降低；4–5 階每次掉 1 個碎片，合成所需碎片逐階增加
             for (int tier = 2; tier <= 3; tier++)
             {
                 var drops = Equipment.RollDrops(tier, 2000, new Rng(7));
@@ -150,7 +142,6 @@ namespace SanGuo.Core.Tests
                 Assert.Equal(300, drops.Where(kv => kv.Key.StartsWith("eqs:") && kv.Key.EndsWith(":" + tier)).Sum(kv => kv.Value));
                 Assert.DoesNotContain(drops.Keys, k => k.StartsWith("eq:"));
             }
-            // 武器掉落與碎片都是某個職業專屬的（例如「神品法杖碎片」）：六個職業都會出現，沒有無職業的武器
             var weaponDrops = Equipment.RollDrops(5, 600, new Rng(11)).Where(kv => kv.Key.StartsWith("eqs:weapon:")).ToList();
             Assert.All(weaponDrops, kv => Assert.True(Equipment.TryParseShardKey(kv.Key, out _, out _, out var r) && r.HasValue));
             Assert.Equal(6, weaponDrops.Count);
@@ -169,7 +160,6 @@ namespace SanGuo.Core.Tests
             p.Stamina.Add(500, At(5));
             Assert.Equal(DungeonEntryResult.Locked, ResourceDungeons.TryEnter(p, Tier(1), At(5)));
             p.ClearedStages.Add(Tier(1).UnlockStageId);
-            // 沒有星期輪替與每日次數限制：任何一天都能一直打。
             for (int i = 0; i < 5; i++)
                 Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TryEnter(p, Tier(1), At(5 + i % 3)));
         }
@@ -185,7 +175,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(6000, p.Gold);
             Assert.Equal(2400, p.GetMaterial(HeroGrowth.HeroExp));
             Assert.Equal(15, p.Yuanbao);
-            // 每次最多 1 件本階裝備（機率 Equipment.DropChance），沒掉到就沒有
             int items = Equipment.Slots.Sum(s => Equipment.Count(p, s, 3));
             Assert.InRange(items, 0, 1);
             Assert.Equal(0, Equipment.Slots.Sum(s => Equipment.Count(p, s, 2) + Equipment.Count(p, s, 1)));
@@ -197,13 +186,13 @@ namespace SanGuo.Core.Tests
         {
             long now = At(5);
             var p = Unlocked(now);
-            var d = Tier(5); // Unlocked() 已打贏第 1–4 階，第 5 階已開放但尚未通關
+            var d = Tier(5);
             Assert.Equal(DungeonEntryResult.NotCleared, ResourceDungeons.TrySweep(p, d, 1, now, out _));
             ResourceDungeons.ClaimWin(p, d, now, 1);
             int stamina = p.Stamina.Get(now);
             Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TrySweep(p, d, 4, now, out var reward));
             Assert.Equal(stamina - 40 * 4, p.Stamina.Get(now));
-            Assert.Equal(4, reward!.Materials.Where(m => m.Key.StartsWith("eqs:")).Sum(m => m.Value)); // 第 5 階每場掉 1 個碎片
+            Assert.Equal(4, reward!.Materials.Where(m => m.Key.StartsWith("eqs:")).Sum(m => m.Value));
             Assert.Equal(DungeonEntryResult.InvalidCount, ResourceDungeons.TrySweep(p, d, 0, now, out _));
             Assert.Equal(DungeonEntryResult.InvalidCount, ResourceDungeons.TrySweep(p, d, ResourceDungeons.MaxSweepCount + 1, now, out _));
         }
@@ -217,8 +206,6 @@ namespace SanGuo.Core.Tests
             Assert.Equal(DungeonEntryResult.NotEnoughStamina, ResourceDungeons.TryEnter(p, Tier(1), now));
             Assert.Equal(10, p.Stamina.Get(now));
         }
-
-        // ---- 將魂商店 ----
 
         [Fact]
         public void SoulShop_BuysWithinMonthlyLimit_AndResetsNextMonth()
@@ -250,7 +237,7 @@ namespace SanGuo.Core.Tests
             Assert.Equal(2000 - 100 - 300, p.GetMaterial(HeroGrowth.Soul));
             Assert.Equal(SoulShopResult.LimitReached, SoulShop.Buy(p, "shard:xiahoudun", now));
 
-            p.Heroes["zhoucang"].Stars = 5;                    // 已滿突：不再賣重複份
+            p.Heroes["zhoucang"].Stars = 5;
             p.Materials.Remove(HeroGrowth.ShardKey("zhoucang"));
             Assert.Equal(SoulShopResult.HeroMaxed, SoulShop.Buy(p, "shard:zhoucang", now));
         }
@@ -279,12 +266,10 @@ namespace SanGuo.Core.Tests
         public void MonthKey_UsesGameDay()
         {
             Assert.Equal("2026-10", DailyClock.MonthKey(At(5)));
-            long lateNight = new DateTimeOffset(2026, 11, 1, 3, 0, 0, TimeSpan.FromHours(8)).ToUnixTimeSeconds(); // 5 點前仍算 10 月
+            long lateNight = new DateTimeOffset(2026, 11, 1, 3, 0, 0, TimeSpan.FromHours(8)).ToUnixTimeSeconds();
             Assert.Equal("2026-10", DailyClock.MonthKey(lateNight));
             Assert.Equal("2026-11", DailyClock.MonthKey(lateNight + 3 * 3600));
         }
-
-        // ---- 任務 ----
 
         [Fact]
         public void DailyQuest_ProgressClaimAndReset()
@@ -298,7 +283,7 @@ namespace SanGuo.Core.Tests
             Assert.Equal(QuestClaimResult.AlreadyClaimed, Quests.Claim(p, "d_stage", d1));
             int yuanbaoAfterQuest = p.Yuanbao;
 
-            long d2 = At(6);                                    // 隔天：進度與領取狀態重置
+            long d2 = At(6);
             p.OnLogin(d2);
             Assert.Equal(QuestClaimResult.NotComplete, Quests.Claim(p, "d_stage", d2));
             Assert.Equal(QuestClaimResult.Ok, Quests.Claim(p, "d_login", d2));
@@ -310,7 +295,7 @@ namespace SanGuo.Core.Tests
         {
             long d1 = At(5);
             var p = PlayerProfile.CreateNew(d1);
-            Quests.Report(p, Quests.Events.Sweep, 3, d1);       // 第 4 天的任務，第 1 天還沒開放，不計進度
+            Quests.Report(p, Quests.Events.Sweep, 3, d1);
             Assert.Equal(0, p.SevenDayProgress.GetValueOrDefault("s4_sweep"));
 
             long d4 = At(8);
@@ -324,7 +309,7 @@ namespace SanGuo.Core.Tests
         public void SevenDay_NotCountedAfterDay7()
         {
             var p = PlayerProfile.CreateNew(At(5));
-            Quests.Report(p, Quests.Events.StageClear, 1, At(5 + 8));   // 第 9 天
+            Quests.Report(p, Quests.Events.StageClear, 1, At(5 + 8));
             Assert.False(p.SevenDayProgress.ContainsKey("s1_stage"));
         }
 
@@ -335,7 +320,6 @@ namespace SanGuo.Core.Tests
             var p = PlayerProfile.CreateNew(d1);
             Assert.Equal(QuestClaimResult.NotComplete, Quests.ClaimMilestone(p, 60, d1));
 
-            // 直接塞滿進度並領取全部七日任務（逐日推進到第 7 天）。
             long d7 = At(11);
             foreach (var q in DemoQuests.Book.Quests.Where(q => q.Kind == QuestKind.SevenDay))
                 p.SevenDayProgress[q.Id] = q.Target;
@@ -348,7 +332,7 @@ namespace SanGuo.Core.Tests
             Assert.Equal(QuestClaimResult.AlreadyClaimed, Quests.ClaimMilestone(p, 200, d7));
             Assert.Equal(QuestClaimResult.Unknown, Quests.ClaimMilestone(p, 7, d7));
 
-            p.Grant(new Reward().WithHero("zhangfei"), d7);     // 已擁有 → 1 份重複份
+            p.Grant(new Reward().WithHero("zhangfei"), d7);
             Assert.Equal(1, p.GetMaterial(HeroGrowth.ShardKey("zhangfei")));
         }
 

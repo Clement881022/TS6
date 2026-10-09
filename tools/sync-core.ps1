@@ -1,5 +1,3 @@
-# 建置 SanGuo.Core 並複製 DLL 到 Unity 專案（Assets/Plugins/SanGuo）。
-# 修改 src/SanGuo.Core 後執行此腳本，再回到 Unity 等待重新編譯。
 $root = Split-Path -Parent $PSScriptRoot
 dotnet build "$root\src\SanGuo.Core\SanGuo.Core.csproj" -c Release --nologo -v quiet
 if ($LASTEXITCODE -ne 0) { throw "Core 建置失敗" }

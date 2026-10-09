@@ -2,7 +2,6 @@ using System.Collections.Generic;
 
 namespace SanGuo.Core
 {
-    /// <summary>被動的顯示名稱、說明與數值（規則在 <see cref="Battle"/> 的觸發點）。</summary>
     public static class Passives
     {
         public const int WanRenDiDef = 30;
@@ -55,10 +54,6 @@ namespace SanGuo.Core
         }
     }
 
-    /// <summary>
-    /// SR／UR 專屬牌與被動（企劃 2026-10-09 定案：SR／UR 的 2 張特殊牌全部換成專屬牌，UR 與劉關張 5★ 解鎖被動）。
-    /// 第一批：UR 8 名與劉關張（docs/signature-cards-batch1.md）；第二批：可抽 SR 12 名（docs/signature-cards-batch2.md，SR 沒有被動）。
-    /// </summary>
     public static class Signatures
     {
         private static EffectDef Dmg(double mult, DamageKind kind = DamageKind.Physical) =>
@@ -214,7 +209,6 @@ namespace SanGuo.Core
 
         static Signatures()
         {
-            // ---- 第二批：可抽 SR（每職業刷圖型、Boss 型各 1） ----
             Sr("zhoucang", HeroFocus.Farming, p => new List<CardDef>
             {
                 Card(p + "_kangdao", "扛刀護主", 1, TargetRule.AllEnemies, Shape.All, Status(StatusType.Taunt, 0, 1), Self(Status(StatusType.DefUp, 50, 2))),
@@ -282,7 +276,6 @@ namespace SanGuo.Core
 
         public static bool Has(string heroId) => Table.ContainsKey(heroId);
 
-        /// <summary>把專屬牌、被動與定位套到武將定義上（沒有專屬設計的武將維持職業標竿卡）。</summary>
         public static void Apply(HeroDef def, string prefix)
         {
             if (!Table.TryGetValue(def.Id, out var e)) return;

@@ -3,14 +3,8 @@ using System.Collections.Generic;
 
 namespace SanGuo.Core.Data
 {
-    /// <summary>
-    /// 遊戲內容（武將、敵人、卡牌、關卡）&lt;-&gt; JSON。內容資料可以脫離程式碼，由編輯器匯出的 JSON 載入。
-    /// 列舉一律用名稱字串（不是數字），改列舉順序不會弄壞資料；缺少的欄位使用定義類別的預設值。
-    /// </summary>
     public static class ContentSerializer
     {
-        // ---- 寫出 ----
-
         public static string HeroesToJson(IEnumerable<HeroDef> heroes, bool indent = true)
         {
             var list = new List<object?>();
@@ -109,8 +103,6 @@ namespace SanGuo.Core.Data
                 ["heroes"] = heroes, ["enemies"] = enemies,
             };
         }
-
-        // ---- 讀入 ----
 
         public static List<HeroDef> HeroesFromJson(string json)
         {
@@ -217,8 +209,6 @@ namespace SanGuo.Core.Data
             }
             return s;
         }
-
-        // ---- 小工具 ----
 
         private static Dictionary<string, object?> Obj(object? v, string what) =>
             v as Dictionary<string, object?> ?? throw new FormatException(what + " 必須是物件");

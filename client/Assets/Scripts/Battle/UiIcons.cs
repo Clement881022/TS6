@@ -6,7 +6,6 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>戰鬥 UI 用的圖示（Resources/Icons/*.png，取自公司資源的 Buff 圖示）。文字能換成圖示的地方都用這裡的 helper。</summary>
     public static class UiIcons
     {
         private static readonly Dictionary<string, Texture2D?> Cache = new Dictionary<string, Texture2D?>();
@@ -23,7 +22,6 @@ namespace SanGuo.Client
 
         public static string Status(StatusType type)
         {
-            // 謀略 / 閃避增益暫用攻擊 / 防禦增益的圖示。
             switch (type)
             {
                 case StatusType.IntUp: return "status_atkup";
@@ -54,7 +52,6 @@ namespace SanGuo.Client
             return el;
         }
 
-        /// <summary>圖示 + 數字／短字的小單元；text 為空時只顯示圖示。</summary>
         public static VisualElement Chip(string icon, string text = "", string cls = "chip")
         {
             var chip = new VisualElement { pickingMode = PickingMode.Ignore };

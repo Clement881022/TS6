@@ -4,13 +4,8 @@ using SanGuo.Core.Meta;
 
 namespace SanGuo.Core.Data
 {
-    /// <summary>
-    /// 玩家存檔 &lt;-&gt; JSON。客戶端本機快取與伺服器儲存共用同一格式。
-    /// 格式帶版本號：讀到比自己新的版本會拒絕（避免舊客戶端誤覆寫新資料）；缺少的欄位用預設值，方便日後加欄位。
-    /// </summary>
     public static class ProfileSerializer
     {
-        /// <summary>3：第零章關卡 id 由 "1-N" 改為 "0-N"（第 1–6 章使用 "1-N"…"6-N"）。</summary>
         public const int CurrentVersion = 3;
 
         public static string ToJson(PlayerProfile p, bool indent = false) => MiniJson.Write(ToObject(p), indent);
@@ -233,7 +228,6 @@ namespace SanGuo.Core.Data
             return p;
         }
 
-        /// <summary>版本 3 以前，第零章關卡 id 是 "1-N"；改為 "0-N"，通關紀錄、星數與進行中的關卡一併轉換。</summary>
         private static void MigrateChapterZeroIds(PlayerProfile p)
         {
             static string Fix(string id) => id.StartsWith("1-", StringComparison.Ordinal) ? "0-" + id.Substring(2) : id;
