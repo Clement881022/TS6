@@ -49,6 +49,7 @@ namespace SanGuo.Client
             AddSheet(_root, "UI/Commercial");
             AddSheet(_root, "BattleArt/HandCompact");
             AddSheet(_root, "UI/BattleHud");
+            AddSheet(_root, "UI/HomeLayout");
             ApplyCjkFont(_root);
 
             Show(GameSession.Accounts is { HasSession: false } ? Page.Login : startPage);

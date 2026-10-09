@@ -1,5 +1,7 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using SanGuo.Core;
 using SanGuo.Core.Meta;
 using UnityEngine;
@@ -11,7 +13,10 @@ namespace SanGuo.Client
     {
         private const float SceneAspect = 16f / 9f;
 
+        private const string HomeHeroKey = "home_hero";
+
         private VisualElement? _scene;
+        private VisualElement? _heroArt;
         private bool _geometryHooked;
 
         protected override Page Id => Page.Home;
@@ -29,7 +34,7 @@ namespace SanGuo.Client
         {
             Tutorial.Show(Host, "home", "主城功能", new[]
             {
-                "嗨嗨，主公！我是巴豆妖，負責教你遊戲怎麼玩。左側功能列可以管理你的隊伍。",
+                "嗨嗨，主公！我是巴豆妖，負責教你遊戲怎麼玩。下方功能列可以管理你的隊伍。",
                 "「征戰」推進主線關卡；「招募」抽取新武將；「武將」查看狀態與牌組；「養成」升級、突破與換裝；「副本」和「任務」能取得養成素材。",
                 "先從第一關開始，戰鬥裡我會再教你出牌。",
             }, "前往征戰", () => Nav.Go(Page.Map), speaker: "巴豆妖", model: "badou");
@@ -57,6 +62,7 @@ namespace SanGuo.Client
             root.schedule.Execute(() => FitScene(root)).ExecuteLater(0);
 
             root.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("strategy-home-shade"));
+            root.Add(BuildHero());
             var topBar = new VisualElement().WithClass("strategy-home-top");
             topBar.Add(BuildPlayerCard(v));
 
@@ -66,11 +72,65 @@ namespace SanGuo.Client
             res.Add(UiKit.ResPill("item_gold", v.Gold.ToString("N0")));
             res.Add(UiKit.ResPill("item_yuanbao", v.Yuanbao.ToString("N0")));
             topBar.Add(res);
-            topBar.Add(UiHelp.Button(root, Page.Home));
-            root.Add(topBar);
 
-            root.Add(BuildFunctionBar());
+            root.Add(topBar);
+            root.Add(BuildFeatured());
             root.Add(BuildCampaign(v, chapter, cleared, total));
+            root.Add(BuildFunctionBar());
+        }
+
+        private static string CurrentHomeHero()
+        {
+            var owned = GameSession.OwnedHeroes();
+            string saved = PlayerPrefs.GetString(HomeHeroKey, "liubei");
+            if (owned.Any(d => d.Id == saved)) return saved;
+            return owned.Count > 0 ? owned[0].Id : saved;
+        }
+
+        private static void ApplyHeroArt(VisualElement art, string id)
+        {
+            var image = HeroArt.Full(id) ?? HeroArt.Bust(id) ?? HeroArt.Face(id);
+            art.style.backgroundImage = image != null ? new StyleBackground(image) : new StyleBackground();
+        }
+
+        private VisualElement BuildHero()
+        {
+            var layer = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-hero-layer");
+            _heroArt = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-hero");
+            ApplyHeroArt(_heroArt, CurrentHomeHero());
+            layer.Add(_heroArt);
+            var switchButton = UiKit.Btn("切換角色", SwitchHero).WithClass("home-hero-switch");
+            switchButton.name = "home-hero-switch";
+            layer.Add(switchButton);
+            return layer;
+        }
+
+        private void SwitchHero()
+        {
+            var owned = GameSession.OwnedHeroes();
+            if (owned.Count == 0 || _heroArt == null) return;
+            int index = owned.FindIndex(d => d.Id == CurrentHomeHero());
+            string next = owned[(index + 1) % owned.Count].Id;
+            PlayerPrefs.SetString(HomeHeroKey, next);
+            ApplyHeroArt(_heroArt, next);
+        }
+
+        private static VisualElement BuildFeatured()
+        {
+            var pools = DemoMeta.Pools();
+            var pool = pools.FirstOrDefault(p => p.UpUrs.Count > 0) ?? pools[0];
+            var box = new VisualElement().WithClass("home-featured");
+            box.name = "home-featured";
+            var texture = Resources.Load<Texture2D>("RecruitBanners/" + pool.Id);
+            if (texture != null) box.style.backgroundImage = new StyleBackground(texture);
+            string heroId = pool.UpUrs.Count > 0 ? pool.UpUrs[0] : pool.UrHeroes.FirstOrDefault() ?? "";
+            var art = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-featured-art");
+            ApplyHeroArt(art, heroId);
+            box.Add(art);
+            box.Add(UiKit.Text("當期主打", "home-featured-tag"));
+            box.Add(UiKit.Text(pool.Name, "home-featured-name"));
+            box.RegisterCallback<ClickEvent>(_ => Nav.Go(Page.Gacha));
+            return box;
         }
 
         private void FitScene(VisualElement root)
@@ -101,47 +161,20 @@ namespace SanGuo.Client
             top.Add(new Label(GameSession.DisplayName) { pickingMode = PickingMode.Ignore }.WithClass("home-player-name"));
             top.Add(new Label($"Lv.{v.Level}") { pickingMode = PickingMode.Ignore }.WithClass("home-player-level"));
             info.Add(top);
-            var bar = UiKit.Bar(v.ExpToNext <= 0 ? 0 : 100f * v.Exp / v.ExpToNext, "bar-gold bar-slim");
-            bar.pickingMode = PickingMode.Ignore;
-            info.Add(bar);
-            info.Add(new Label($"經驗 {v.Exp}/{v.ExpToNext}") { pickingMode = PickingMode.Ignore }.WithClass("home-player-exp"));
             card.Add(info);
             return card;
         }
 
         private static VisualElement BuildCampaign(ProfileView v, int chapter, int cleared, int total)
         {
-            var plate = new VisualElement().WithClass("home-campaign");
-            var heading = new VisualElement().WithClass("home-campaign-heading");
-            heading.Add(UiKit.Text("主線征戰", "home-campaign-kicker"));
-            var title = Campaign.Title(chapter).Split('　');
-            heading.Add(UiKit.Text(title[0], "home-campaign-chapter"));
-            plate.Add(heading);
-            plate.Add(UiKit.Text(title.Length > 1 ? title[1] : "", "home-campaign-title"));
+            var plate = new VisualElement().WithClass("home-departure");
             var (_, nextLevel) = GameSession.Frontier();
-            plate.Add(UiKit.Text(cleared >= total ? "主線已全數通關 · 可重返關卡" : $"{chapter}-{nextLevel} · {Campaign.LevelName(chapter, nextLevel)}", "home-campaign-next"));
-            var status = new VisualElement().WithClass("home-campaign-status");
-            status.Add(UiKit.Text("章節進度", "home-campaign-progress-label"));
-            status.Add(UiKit.Text($"{cleared} / {total}", "home-campaign-progress-value"));
-            plate.Add(status);
-            var progress = UiKit.Bar(total <= 0 ? 0 : 100f * cleared / total, "bar-gold bar-slim");
-            progress.AddToClassList("home-campaign-progress");
-            plate.Add(progress);
-
             var expedition = UiKit.Btn("", () => { GameSession.Select(chapter, nextLevel); GameSession.OpenSelectedStageOnMap = true; Nav.Go(Page.Map); }, primary: true).WithClass("home-primary");
-            expedition.tooltip = $"前往 {chapter}-{nextLevel}，查看敵軍與出戰條件";
-            bool fresh = v.ClearedStages.Count == 0;
-            expedition.Add(UiKit.Text(fresh ? "開始出征" : cleared >= total ? "重返戰場" : "繼續出征", "home-primary-title"));
-            expedition.Add(UiKit.Text("›", "home-primary-arrow"));
+            var flag = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-sortie-art");
+            flag.style.backgroundImage = new StyleBackground(Resources.Load<Texture2D>("HomeArt/Sortie"));
+            expedition.Add(flag);
+            expedition.Add(UiKit.Text("出征", "home-primary-title"));
             plate.Add(expedition);
-            bool formationUnlocked = GameSession.IsUnlocked(0, DemoMeta.FirstOpenFormationLevel);
-            var formation = UiKit.Btn("排兵布陣", () => { GameSession.FormationStageId = GameSession.StageIdOf(0, DemoMeta.FirstOpenFormationLevel); Nav.Go(Page.Formation); }).WithClass("home-formation");
-            formation.SetEnabled(formationUnlocked);
-            formation.tooltip = formationUnlocked ? "編輯主線出戰陣容" : $"通關第 {DemoMeta.FirstOpenFormationLevel - 1} 關後開放";
-            var preparation = new VisualElement().WithClass("home-preparation");
-            preparation.Add(formation);
-            if (!formationUnlocked) preparation.Add(UiKit.Text($"第 {DemoMeta.FirstOpenFormationLevel} 關開放", "home-preparation-note"));
-            plate.Add(preparation);
             return plate;
         }
 
@@ -154,8 +187,7 @@ namespace SanGuo.Client
             bar.Add(FunctionButton("養成", "升級、突破與裝備", "shop", Page.HeroGrowth));
             bar.Add(FunctionButton("招募", "招募新將", "gacha", Page.Gacha));
 
-            bar.Add(FunctionButton("副本", "取得養成素材", "dungeons", Page.Dungeons));
-            bar.Add(FunctionButton("世界 Boss", "群雄榜排名", "map", Page.WorldBoss));
+            bar.Add(FunctionButton("挑戰", "素材副本與世界 Boss", "dungeons", Page.Dungeons));
             bar.Add(FunctionButton("任務", "領取目標獎勵", "quests", Page.Quests));
             bar.Add(FunctionButton("商店", "補給與將魂", "shop", Page.Shop));
             return bar;
@@ -166,12 +198,9 @@ namespace SanGuo.Client
             var b = new Button(() => Nav.Go(target));
             b.AddToClassList("home-fn");
             b.name = "home-" + target.ToString().ToLowerInvariant();
-            var circle = new VisualElement { pickingMode = PickingMode.Ignore };
-            circle.AddToClassList("home-fn-circle");
-            var art = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-fn-icon").WithClass("tile-ico-" + icon);
-            if (target == Page.HeroGrowth) art.style.backgroundImage = new StyleBackground(UiKit.SkinTex("item_expbook"));
-            circle.Add(art);
-            b.Add(circle);
+            int index = target == Page.Heroes ? 0 : target == Page.HeroGrowth ? 1 : target == Page.Gacha ? 2 : target == Page.Dungeons ? 3 : target == Page.Quests ? 4 : 5;
+            b.Add(HomeArtwork.Icon(index));
+            if (target != Page.Heroes) b.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-divider"));
             var text = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-nav-text");
             text.Add(UiKit.Text(label, "home-fn-label"));
 
