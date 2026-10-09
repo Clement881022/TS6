@@ -634,6 +634,11 @@ namespace SanGuo.Client
             AddStat(grid, "閃避", st.Dodge, unit.EffectiveDodge, "%");
             AddStat(grid, "暴擊", st.Crit, unit.EffectiveCrit, "%");
             AddStat(grid, "暴傷", st.CritDmg, st.CritDmg, "%");
+            if (unit.BurnResist > 0)
+            {
+                int resist = (int)Math.Round(unit.BurnResist * 100);
+                AddStat(grid, "燃燒抗性", resist, resist, "%");
+            }
             _unitInfo.Add(grid);
 
             _unitInfo.Add(new Label("增減益") { pickingMode = PickingMode.Ignore }.WithClass("ui-sec"));

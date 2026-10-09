@@ -178,5 +178,54 @@ namespace SanGuo.Core.Tests
             Assert.True(healer.Hp > hp);
             Assert.Contains(b.Events, e => e.Type == EventType.PassiveTriggered && e.Text == "五禽戲");
         }
+            [Fact]
+        public void ArmorBreakOnTheSameCard_AppliesBeforeTheDamage()
+        {
+            // 韓當「穿甲箭」：破甲 40% 先生效，這一擊就吃到破甲（企劃 2026-10-09：狀態先於傷害結算）。
+            var tough = DemoContent.BanditIronBrute();
+            tough.Base.Hp = 100000;
+            var b = Fight("handang", 0, (tough, new Position(2, 1)));
+            var hero = b.Units.First(u => u.Side == Side.Player);
+            var enemy = b.Units.First(u => u.Side == Side.Enemy);
+            double defBroken = enemy.Stats.Def * (1 - 0.4);
+            int expected = DamageCalc.Physical(hero.EffectiveAtk, 2.0, defBroken, false, hero.Stats.CritDmg);
+            int hp = enemy.Hp;
+            Assert.Equal(PlayResult.Ok, b.PlayCard(Take(b, "hd_chuanjia"), enemy.Pos));
+            Assert.Equal(expected, hp - enemy.Hp);
+        }
+
+        [Fact]
+        public void BurnResist_ReducesAppliedStacks()
+        {
+            int Stacks(double resist)
+            {
+                var e = DemoContent.BanditGrunt();
+                e.Base.Hp = 100000;
+                e.BurnResist = resist;
+                var b = Fight("yuji", 0, (e, new Position(2, 1)));
+                var enemy = b.Units.First(u => u.Side == Side.Enemy);
+                b.PlayCard(Take(b, "yj_fushui"), enemy.Pos);
+                return enemy.BurnStacks;
+            }
+            int full = Stacks(0);
+            Assert.InRange(Stacks(0.5), full / 2 - 1, full / 2 + 1);
+        }
+
+        [Fact]
+        public void EveryDrawableSrAndUr_HasSignatureCardsAndAFocus()
+        {
+            foreach (var h in HeroRoster.All().Where(h => h.Rarity != Rarity.R))
+            {
+                Assert.True(Signatures.Has(h.Id), h.Id);
+                Assert.Equal(2, h.Deck.Count(c => !c.Basic));
+                Assert.Equal(h.Rarity == Rarity.UR || HeroRoster.StoryHeroIds.Contains(h.Id), h.Passive != PassiveKind.None);
+            }
+            // 每個職業的可抽 SR：刷圖型、Boss 型各一
+            foreach (var g in HeroRoster.All().Where(h => h.Rarity == Rarity.SR && !HeroRoster.StoryHeroIds.Contains(h.Id)).GroupBy(h => h.Role))
+            {
+                Assert.Contains(g, h => h.Focus == HeroFocus.Farming);
+                Assert.Contains(g, h => h.Focus == HeroFocus.Boss);
+            }
+        }
     }
 }

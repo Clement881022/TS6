@@ -52,6 +52,11 @@ namespace SanGuo.Core.Meta
         /// 每日固定種子（2026-10-09）：同一天所有玩家打的 Boss 牌序與亂數都相同，比的是隊伍與打法而不是運氣；
         /// 伺服器開打時用它取代隨機種子。
         /// </summary>
+        /// <summary>
+        /// 世界 Boss 的燃燒抗性（企劃 2026-10-09：燃燒打 Boss 強是好的，先不壓；機制先做好，之後用它限制燃燒效率）。
+        /// </summary>
+        public const double BurnResist = 0.0;
+
         public static ulong DailySeed(long now)
         {
             ulong x = (ulong)DailyClock.DayIndex(now) * 0x9E3779B97F4A7C15UL + 0x5EED_B055UL;
@@ -78,6 +83,7 @@ namespace SanGuo.Core.Meta
                 index = (y * 12 + m - 1) % Rotation.Length;
             var def = Rotation[index]();
             def.Base.Hp *= HpMultiplier;
+            def.BurnResist = BurnResist;
             return def;
         }
 

@@ -352,7 +352,8 @@ namespace SanGuo.Core
             Emit(EventType.CardPlayed, owner.Id, -1, card.Def.Cost, card.Def.Name);
 
             var aliveBefore = targets.Where(t => t.Side != owner.Side && t.Alive).ToList();
-            foreach (var effect in card.Def.Effects)
+            // 結算順序（企劃 2026-10-09）：同一張牌先套用狀態、增益等其他效果，最後才結算傷害（破甲、攻擊提升、爆擊率提升對這一擊就生效）。
+            foreach (var effect in card.Def.Effects.Where(e => e.Type != EffectType.Damage).Concat(card.Def.Effects.Where(e => e.Type == EffectType.Damage)))
             {
                 var affected = effect.OnSelf ? new List<Unit> { owner } : effect.OnAllies ? AliveUnits(owner.Side) : targets;
                 ResolveEffect(owner, effect, affected);
@@ -570,8 +571,8 @@ namespace SanGuo.Core
             {
                 case StatusType.Burn:
                 {
-                    // 燃燒：層數 = 施放者謀略 × 倍率，與既有層數相加，無上限。
-                    value = DamageCalc.Scale(owner.EffectiveInt, effect.Multiplier);
+                    // 燃燒：層數 = 施放者謀略 × 倍率 × (1 − 目標燃燒抗性)，與既有層數相加，無上限。
+                    value = DamageCalc.Scale(owner.EffectiveInt, effect.Multiplier * (1.0 - Math.Min(1.0, Math.Max(0.0, target.BurnResist))));
                     if (value <= 0) return;
                     if (target.Statuses.TryGetValue(StatusType.Burn, out var burn)) burn.Power += value;
                     else target.Statuses[StatusType.Burn] = new StatusState { Power = value };
@@ -854,6 +855,7 @@ namespace SanGuo.Core
             unit.ChargeInterval = def.ChargeInterval;
             unit.ChargePower = def.ChargePower;
             unit.IsObjective = slot.IsObjective;
+            unit.BurnResist = def.BurnResist;
             unit.DefId = def.Id;
             unit.Enemy = def;
             unit.ArtId = def.Art != "" ? def.Art : def.Id;

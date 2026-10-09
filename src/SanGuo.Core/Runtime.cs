@@ -63,6 +63,8 @@ namespace SanGuo.Core
         /// <summary>距離上次蓄力 / 開場以來的普通行動次數。</summary>
         public int IdleActions;
         public bool IsObjective;
+        /// <summary>燃燒抗性（0–1，見 <see cref="EnemyDef.BurnResist"/>）。</summary>
+        public double BurnResist;
         /// <summary>目前階段（1 起算）；Boss 跌破 <see cref="EnemyDef.PhaseHpPercent"/> 後變為 2。</summary>
         public int Phase = 1;
         /// <summary>敵人的資料定義（階段切換用）；武將為 null。</summary>

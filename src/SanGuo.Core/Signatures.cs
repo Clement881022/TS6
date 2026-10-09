@@ -57,7 +57,7 @@ namespace SanGuo.Core
 
     /// <summary>
     /// SR／UR 專屬牌與被動（企劃 2026-10-09 定案：SR／UR 的 2 張特殊牌全部換成專屬牌，UR 與劉關張 5★ 解鎖被動）。
-    /// 第一批：UR 8 名與劉關張，數值與效價驗算見 docs/signature-cards-batch1.md；第二批（可抽 SR）尚未設計，暫用職業標竿卡。
+    /// 第一批：UR 8 名與劉關張（docs/signature-cards-batch1.md）；第二批：可抽 SR 12 名（docs/signature-cards-batch2.md，SR 沒有被動）。
     /// </summary>
     public static class Signatures
     {
@@ -74,6 +74,9 @@ namespace SanGuo.Core
 
         private static CardDef Card(string id, string name, int cost, TargetRule target, Shape shape, params EffectDef[] effects) =>
             new CardDef { Id = id, Name = name, Cost = cost, Target = target, Shape = shape, Effects = new List<EffectDef>(effects) };
+        private static CardDef Refund(CardDef c) { c.KillRefund = 1; return c; }
+        private static CardDef Far(CardDef c) { c.Unlimited = true; return c; }
+        private static EffectDef Bonus(EffectDef e, double perDebuff) { e.BonusPerDebuff = perDebuff; return e; }
 
         private sealed class Entry
         {
@@ -208,6 +211,74 @@ namespace SanGuo.Core
                 },
             },
         };
+
+        static Signatures()
+        {
+            // ---- 第二批：可抽 SR（每職業刷圖型、Boss 型各 1） ----
+            Sr("zhoucang", HeroFocus.Farming, p => new List<CardDef>
+            {
+                Card(p + "_kangdao", "扛刀護主", 1, TargetRule.AllEnemies, Shape.All, Status(StatusType.Taunt, 0, 1), Self(Status(StatusType.DefUp, 50, 2))),
+                Card(p + "_likang", "力扛千斤", 1, TargetRule.AllAllies, Shape.All, Status(StatusType.DefUp, 50, 1), Self(Status(StatusType.DefUp, 25, 2)), Draw(1)),
+            });
+            Sr("huangfusong", HeroFocus.Boss, p => new List<CardDef>
+            {
+                Far(Card(p + "_jianbi", "堅壁", 1, TargetRule.Enemy, Shape.Single, Status(StatusType.Taunt, 0, 2), Self(Status(StatusType.DefUp, 75, 2)))),
+                Card(p + "_chizhong", "持重", 2, TargetRule.AllAllies, Shape.All, Status(StatusType.DefUp, 50, 2), Self(Status(StatusType.DefUp, 25, 2))),
+            });
+            Sr("huaxiong", HeroFocus.Farming, p => new List<CardDef>
+            {
+                Card(p + "_sishui", "汜水橫刀", 2, TargetRule.Enemy, Shape.Row3, Dmg(1.56)),
+                Refund(Card(p + "_xiaoqi", "驍騎突陣", 1, TargetRule.Enemy, Shape.Column3, Dmg(0.89))),
+            });
+            Sr("zhujun", HeroFocus.Boss, p => new List<CardDef>
+            {
+                Card(p + "_pozhen", "破陣重擊", 2, TargetRule.Enemy, Shape.Single, Dmg(2.17), Status(StatusType.ArmorBreak, 0.25, 2)),
+                Card(p + "_fenyong", "奮勇", 1, TargetRule.Enemy, Shape.Single, Dmg(1.0), Self(Status(StatusType.CritUp, 50, 2))),
+            });
+            Sr("zoujing", HeroFocus.Farming, p => new List<CardDef>
+            {
+                Card(p + "_lianzhu", "連珠箭雨", 2, TargetRule.Enemy, Shape.Cross, Dmg(1.17)),
+                Refund(Card(p + "_youji", "游擊", 1, TargetRule.Enemy, Shape.Single, Dmg(1.33))),
+            });
+            Sr("handang", HeroFocus.Boss, p => new List<CardDef>
+            {
+                Card(p + "_chuanjia", "穿甲箭", 2, TargetRule.Enemy, Shape.Single, Dmg(2.0), Status(StatusType.ArmorBreak, 0.4, 2)),
+                Card(p + "_yingyan", "鷹眼", 1, TargetRule.Enemy, Shape.Single, Dmg(1.0), Self(Status(StatusType.CritUp, 50, 2))),
+            });
+            Sr("zhangbao", HeroFocus.Farming, p => new List<CardDef>
+            {
+                Card(p + "_digong", "地公妖術", 3, TargetRule.AllEnemies, Shape.All, Dmg(1.0, DamageKind.Magical)),
+                Card(p + "_huolong", "火龍陣", 2, TargetRule.Enemy, Shape.Row3, Status(StatusType.Burn, 1.56, 0)),
+            });
+            Sr("yuji", HeroFocus.Boss, p => new List<CardDef>
+            {
+                Card(p + "_fushui", "符水咒", 2, TargetRule.Enemy, Shape.Single, Status(StatusType.Burn, 2.33, 0)),
+                Card(p + "_taiping", "太平青領", 1, TargetRule.Enemy, Shape.Single, Bonus(Dmg(1.33, DamageKind.Magical), 0.3)),
+            });
+            Sr("jianyong", HeroFocus.Farming, p => new List<CardDef>
+            {
+                Card(p + "_tanxiao", "談笑風生", 1, TargetRule.Self, Shape.Single, Draw(3), Gain(1)),
+                Card(p + "_shuoxiang", "說降", 1, TargetRule.AllAllies, Shape.All, Status(StatusType.AtkUp, 0.25, 2), Draw(2)),
+            });
+            Sr("luzhi", HeroFocus.Boss, p => new List<CardDef>
+            {
+                Card(p + "_bingfa", "兵法傳授", 1, TargetRule.AllAllies, Shape.All, Status(StatusType.AtkUp, 0.2, 2), Status(StatusType.IntUp, 0.2, 2)),
+                Card(p + "_duzhan", "督戰", 2, TargetRule.AllAllies, Shape.All, Status(StatusType.AtkUp, 0.5, 2), Draw(1)),
+            });
+            Sr("ganfuren", HeroFocus.Farming, p => new List<CardDef>
+            {
+                Card(p + "_cixin", "慈心", 1, TargetRule.AllAllies, Shape.All, Heal(0.56)),
+                Card(p + "_anfu", "安撫", 1, TargetRule.AllAllies, Shape.All, Shield(0.37)),
+            });
+            Sr("zhangzhongjing", HeroFocus.Boss, p => new List<CardDef>
+            {
+                Card(p + "_shanghan", "傷寒雜病論", 1, TargetRule.Ally, Shape.Single, Heal(1.67)),
+                Card(p + "_zuotang", "坐堂行醫", 2, TargetRule.Ally, Shape.Single, Shield(1.0), Heal(0.83)),
+            });
+        }
+
+        private static void Sr(string id, HeroFocus focus, System.Func<string, List<CardDef>> cards) =>
+            Table[id] = new Entry { Focus = focus, Passive = PassiveKind.None, Cards = cards };
 
         public static bool Has(string heroId) => Table.ContainsKey(heroId);
 

@@ -17,7 +17,7 @@ namespace SanGuo.Core
         /// 2026-10-09 稀有度改為影響基礎屬性（SR 115%）並加入專屬牌後，玩家隊伍變強，依 CampaignBalanceTests 的戰力門檻重新校準為下列數值
         /// （以 tools/playsim 的 calib 模式量測）。P4 節奏調整時會再一起重調。
         /// </summary>
-        public static readonly int[] ChapterEndLevel = { 12, 22, 28, 32, 36, 41, 47 };
+        public static readonly int[] ChapterEndLevel = { 12, 22, 28, 32, 36, 41, 48 };
 
         private static readonly string[] Titles =
         {

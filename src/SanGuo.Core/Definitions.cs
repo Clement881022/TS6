@@ -139,6 +139,8 @@ namespace SanGuo.Core
         public int ChargeInterval = 1;
         /// <summary>蓄力大招的倍率；大招攻擊我方全體存活武將。</summary>
         public double ChargePower = 2.0;
+        /// <summary>燃燒抗性（0–1）：施加在這名敵人身上的燃燒層數減少的比例（0.3 = 少 30%）。用來調整難度、限制燃燒效率。</summary>
+        public double BurnResist;
 
         // ---- Boss 第二階段（GDD 04 §2.2：切換條件與效果由各 Boss 決定；1.0 只調整蓄力參數）----
 

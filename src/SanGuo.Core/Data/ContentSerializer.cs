@@ -73,6 +73,7 @@ namespace SanGuo.Core.Data
             ["attackType"] = e.AttackType.ToString(), ["magical"] = e.Magical,
             ["base"] = StatsToObject(e.Base), ["attackMultiplier"] = e.AttackMultiplier,
             ["chargeTurns"] = (long)e.ChargeTurns, ["chargeInterval"] = (long)e.ChargeInterval, ["chargePower"] = e.ChargePower,
+            ["burnResist"] = e.BurnResist,
         };
 
         private static Dictionary<string, object?> PosToObject(Position p) =>
@@ -174,6 +175,7 @@ namespace SanGuo.Core.Data
                 AttackType = E(d, "attackType", AttackType.Melee), Magical = B(d, "magical", false),
                 AttackMultiplier = Dbl(d, "attackMultiplier", 1.0),
                 ChargeTurns = I(d, "chargeTurns", 0), ChargeInterval = I(d, "chargeInterval", 1), ChargePower = Dbl(d, "chargePower", 2.0),
+                BurnResist = Dbl(d, "burnResist", 0),
             };
             if (d.TryGetValue("base", out var b) && b is Dictionary<string, object?> bd) e.Base = StatsFromObject(bd);
             return e;
