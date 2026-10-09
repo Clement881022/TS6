@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using SanGuo.Core;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -95,7 +96,7 @@ namespace SanGuo.Client
                 light.color = new Color(1f, 0.97f, 0.92f);
                 lightGo.transform.rotation = Quaternion.Euler(52f, -25f, 0f);
             }
-            CreateBackdrop();
+
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.64f, 0.62f, 0.56f);
         }
@@ -151,6 +152,7 @@ namespace SanGuo.Client
             _tileRoot = new GameObject("Tiles");
             _tileRoot.transform.SetParent(transform, false);
             BuildFloor(_tileRoot.transform);
+            BuildArrowObject(_tileRoot.transform);
             for (int lane = 0; lane < _battle!.Setup.Lanes; lane++)
             {
                 for (int row = 0; row < _battle.Setup.Rows; row++)
@@ -168,49 +170,78 @@ namespace SanGuo.Client
                     tag.Renderer = tile.GetComponent<Renderer>();
                     if (TileShader != null) tag.Renderer.sharedMaterial = new Material(TileShader);
                     tag.BaseColor = new Color(0.82f, 0.78f, 0.60f, 0f);
-                    tag.Renderer.material.SetFloat("_Border", 0.024f);
+                    tag.Renderer.material.SetFloat("_Border", 0.04f);
+                    tag.Renderer.material.SetColor("_BorderColor", new Color(0.42f, 1f, 0.5f, 0.9f));
                     tag.Renderer.material.color = tag.BaseColor;
                     _tiles[(lane, row)] = tag;
                 }
             }
         }
 
+        private Mesh? _arrowMesh;
+
+        private void BuildArrowObject(Transform parent)
+        {
+            var go = new GameObject("Enemy move arrows");
+            go.transform.SetParent(parent, false);
+            _arrowMesh = new Mesh { name = "Enemy move arrows" };
+            go.AddComponent<MeshFilter>().sharedMesh = _arrowMesh;
+            var material = new Material(TileShader!) { color = new Color(1f, 0.25f, 0.18f, 0.85f) };
+            go.AddComponent<MeshRenderer>().sharedMaterial = material;
+            _boardResources.Add(_arrowMesh);
+            _boardResources.Add(material);
+        }
+
+        public void SetMoveArrows(List<List<Position>> paths)
+        {
+            if (_arrowMesh == null) return;
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+            {
+                int n = vertices.Count;
+                vertices.AddRange(new[] { a, b, c, d });
+                triangles.AddRange(new[] { n, n + 1, n + 2, n, n + 2, n + 3 });
+            }
+            const float shaft = 0.11f, headHalf = 0.3f, headLength = 0.55f, lift = 0.03f;
+            foreach (var path in paths)
+            {
+                if (path.Count < 2) continue;
+                var points = path.Select(p => TileWorld(p) + Vector3.up * lift).ToList();
+                for (int i = 0; i + 1 < points.Count; i++)
+                {
+                    var direction = (points[i + 1] - points[i]).normalized;
+                    var side = Vector3.Cross(Vector3.up, direction) * shaft;
+                    var from = points[i] - direction * (i == 0 ? -0.3f : shaft);
+                    var to = points[i + 1] + direction * (i + 2 == points.Count ? -headLength : shaft);
+                    Quad(from - side, from + side, to + side, to - side);
+                }
+                var last = points[points.Count - 1];
+                var lastDirection = (last - points[points.Count - 2]).normalized;
+                var headSide = Vector3.Cross(Vector3.up, lastDirection) * headHalf;
+                var baseCenter = last - lastDirection * headLength;
+                var tip = last + lastDirection * 0.3f;
+                Quad(baseCenter - headSide, baseCenter + headSide, tip, tip);
+            }
+            _arrowMesh.Clear();
+            _arrowMesh.SetVertices(vertices);
+            _arrowMesh.SetTriangles(triangles, 0);
+            _arrowMesh.SetUVs(0, vertices.Select(_ => new Vector2(0.5f, 0.5f)).ToList());
+        }
+
         private void BuildFloor(Transform parent)
         {
-            int lanes = _battle!.Setup.Lanes, rows = _battle.Setup.Rows;
-            if(lanes==5 && rows==5)
-            {
-                var craftedBoard=Resources.Load<GameObject>("ProductionBoard/CourtyardBoard_5x5");
-                if(craftedBoard!=null)
-                {
-                    Instantiate(craftedBoard,parent,false);
-                    return;
-                }
-            }
-            float w = rows * TilePitchX, d = lanes * TilePitch;
-            var jade = new Color(.17f, .28f, .27f);
-            var bronze = new Color(.72f, .51f, .23f);
-            Solid(parent, "Jade foundation", Vector3.down * .24f, new Vector3(w + .64f, .30f, d + .64f), jade, .08f);
-            Solid(parent, "Bronze reveal", Vector3.down * .09f, new Vector3(w + .42f, .06f, d + .42f), bronze, .025f);
-            Solid(parent, "Recessed grout", Vector3.down * .045f, new Vector3(w + .28f, .04f, d + .28f), jade, .025f);
-            for (int lane = 0; lane < lanes; lane++)
-            for (int row = 0; row < rows; row++)
-            {
-                var stone = (lane + row) % 2 == 0 ? new Color(.89f, .86f, .75f) : new Color(.78f, .83f, .77f);
-                Solid(parent, $"Carved stone {lane}-{row}", TileWorld(new Position(lane, row)) + Vector3.down * .045f,
-                    new Vector3(TilePitchX * .97f, .10f, TilePitch * .97f), stone, .035f);
-            }
-            foreach (int sign in new[] { -1, 1 })
-            {
-                Solid(parent, "Bronze edge", new Vector3(sign * (w / 2f + .20f), -.015f, 0), new Vector3(.08f, .08f, d + .46f), bronze, .018f);
-                Solid(parent, "Bronze edge", new Vector3(0, -.015f, sign * (d / 2f + .20f)), new Vector3(w + .46f, .08f, .08f), bronze, .018f);
-                foreach (int other in new[] { -1, 1 })
-                {
-                    var corner = new Vector3(sign * (w / 2f + .17f), .005f, other * (d / 2f + .17f));
-                    Solid(parent, "Corner seal", corner, new Vector3(.34f, .10f, .34f), bronze, .045f);
-                    Solid(parent, "Jade seal", corner + Vector3.up * .055f, new Vector3(.17f, .025f, .17f), jade, .025f);
-                }
-            }
+            float w = _battle!.Setup.Rows * TilePitchX + 60f, d = _battle.Setup.Lanes * TilePitch + 60f;
+            var floor = new GameObject("Natural battlefield");
+            floor.transform.SetParent(parent, false);
+            var mesh = new Mesh { name = "Continuous grass dirt ground" };
+            mesh.vertices = new[] { new Vector3(-w/2,-.02f,-d/2), new Vector3(-w/2,-.02f,d/2), new Vector3(w/2,-.02f,d/2), new Vector3(w/2,-.02f,-d/2) };
+            mesh.triangles = new[] { 0, 1, 2, 0, 2, 3 };
+            mesh.uv = new[] { new Vector2(0,0), new Vector2(0,d/14), new Vector2(w/14,d/14), new Vector2(w/14,0) };
+            mesh.RecalculateNormals();
+            floor.AddComponent<MeshFilter>().sharedMesh = mesh;
+            floor.AddComponent<MeshRenderer>().sharedMaterial = Resources.Load<Material>("BattleArt/NaturalGround");
+            _boardResources.Add(mesh);
         }
 
         private void Solid(Transform parent, string name, Vector3 center, Vector3 size, Color color, float bevel)

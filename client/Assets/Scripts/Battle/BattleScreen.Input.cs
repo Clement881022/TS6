@@ -21,14 +21,9 @@ namespace SanGuo.Client
             if (_pendingCard == card) { CancelTargeting(); return; }
             CancelTargeting();
             if (!_battle.Hand.Contains(card)) return;
+            var rule = card.Def.Target;
+            if (rule != TargetRule.Enemy && rule != TargetRule.Ally && rule != TargetRule.MoveDest) { PlayCardAt(card, null, null); return; }
             BeginPending(card);
-        }
-
-        private void UseSelected()
-        {
-            var card = _pendingCard;
-            if (card == null || card.Def.Target == TargetRule.MoveDest || card.Def.Target == TargetRule.Enemy) return;
-            PlayCardAt(card, null, null);
         }
 
         private void BeginPending(CardInstance card)
@@ -98,8 +93,6 @@ namespace SanGuo.Client
             _pendingMover = hero;
             ShowCardRange(card);
             RefreshDetail();
-            RefreshHeroBar();
-            Toast("再點選綠色格子移動");
         }
 
         private bool _dragging, _dragged;
@@ -118,15 +111,13 @@ namespace SanGuo.Client
         {
             if (_dragging)
             {
-                if (!_dragged && ((Vector2)evt.position - _dragStart).magnitude > 8f) { _dragged = true; HideUnitInfo(); }
+                if (!_dragged && ((Vector2)evt.position - _dragStart).magnitude > 8f) _dragged = true;
                 if (_dragged)
                 {
                     _stage.PanBy((Vector2)evt.position - _dragLast);
                     _dragLast = evt.position;
-                    return;
                 }
             }
-            OnFieldHover(evt);
         }
 
         private void OnFieldUp(PointerUpEvent evt)
@@ -142,53 +133,27 @@ namespace SanGuo.Client
             evt.StopPropagation();
         }
 
-        private void OnFieldHover(PointerMoveEvent evt)
+        private void ToggleUnitInfo(Unit unit, VisualElement row)
         {
-            ShowUnitInfoAt(evt.position);
-        }
-
-        private void ShowUnitInfoAt(Vector2 panelPoint)
-        {
-            var unit = PickUnit(panelPoint);
-            if (unit == null) { HideUnitInfo(); return; }
-            if (_hoverUnit != unit)
-            {
-                _hoverUnit = unit;
-                RenderUnitInfo(unit);
-            }
-            var local = _field.WorldToLocal(panelPoint);
-            float w = _field.layout.width, h = _field.layout.height;
-            const float panelW = 330f, panelH = 400f;
-            float left = local.x + 28f;
-            if (left + panelW > w - 8f) left = local.x - 28f - panelW;
-            float top = Mathf.Clamp(local.y - 40f, 8f, Mathf.Max(8f, h - panelH - 8f));
-            _unitInfo.style.left = Mathf.Clamp(left, 8f, Mathf.Max(8f, w - panelW - 8f));
+            if (_infoUnit == unit) { HideUnitInfo(); return; }
+            if (!unit.Alive) return;
+            _infoUnit = unit;
+            RenderUnitInfo(unit);
+            var local = _content.WorldToLocal(row.worldBound.position);
+            float top = Mathf.Clamp(local.y, 8f, Mathf.Max(8f, _content.layout.height - 440f));
+            _unitInfo.style.left = _unitList.layout.xMax + 10f;
             _unitInfo.style.top = top;
             _unitInfo.style.display = DisplayStyle.Flex;
+            _unitInfo.BringToFront();
+            RefreshUnitList();
         }
 
         private void HideUnitInfo()
         {
-            _hoverUnit = null;
+            if (_infoUnit == null) return;
+            _infoUnit = null;
             _unitInfo.style.display = DisplayStyle.None;
-        }
-
-        private Unit? PickUnit(Vector2 panelPoint)
-        {
-            Unit? best = null;
-            float bestDx = float.MaxValue;
-            foreach (var unit in _battle.Units)
-            {
-                if (!unit.Alive) continue;
-                var foot = _stage.UnitFootPanel(unit);
-                var head = _stage.UnitHeadPanel(unit);
-                if (foot == null || head == null) continue;
-                float dx = Mathf.Abs(panelPoint.x - foot.Value.x);
-                if (dx > 46f || panelPoint.y < head.Value.y - 6f || panelPoint.y > foot.Value.y + 14f) continue;
-                if (dx < bestDx) { bestDx = dx; best = unit; }
-            }
-            if (best != null) return best;
-            return _stage.TryPick(panelPoint, out var pos) ? _battle.UnitAt(pos) : null;
+            RefreshUnitList();
         }
 
         private void RenderUnitInfo(Unit unit)

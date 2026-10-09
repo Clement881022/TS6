@@ -29,8 +29,8 @@ namespace SanGuo.Client
             public float LastLeft = float.NaN, LastTop = float.NaN;
         }
 
-        private const float TagWidth = 112f;
-        private const float HeroTagWidth = 72f;
+        private const float TagWidth = 200f;
+        private const float HeroTagWidth = 200f;
 
         private readonly VisualElement _root;
         private readonly BattleStage _stage;
@@ -53,8 +53,13 @@ namespace SanGuo.Client
         private readonly HashSet<Position> _previewReach = new HashSet<Position>();
         private CardInstance? _pendingCard;
         private Unit? _pendingMover;
-        private Unit? _hoverUnit;
+        private Unit? _infoUnit;
         private VisualElement _unitInfo = null!;
+        private VisualElement _unitList = null!;
+        private Side _listSide = Side.Player;
+        private Label _hint = null!;
+        private Button _objectiveButton = null!;
+        private bool _objectiveHint;
 
         private VisualElement _content = null!;
         private VisualElement _field = null!;
@@ -64,11 +69,9 @@ namespace SanGuo.Client
         private readonly List<VisualElement> _handCards = new List<VisualElement>();
         private VisualElement? _hoverCard;
         private VisualElement _detail = null!;
-        private VisualElement _heroBar = null!;
         private Button _endButton = null!;
         private Label _title = null!;
         private VisualElement _cost = null!;
-        private VisualElement _piles = null!;
         private Button _drawButton = null!, _discardButton = null!;
         private Label _drawCount = null!, _discardCount = null!;
         private VisualElement? _pileView;
@@ -97,7 +100,7 @@ namespace SanGuo.Client
                 _ = BeginStageId(GameSession.StageIdOf(_chapter, _level));
             }
             _root.schedule.Execute(AutoStep).Every(650);
-            _root.schedule.Execute(UpdateTagPositions).Every(16);
+            _root.schedule.Execute(() => { UpdateTagPositions(); _aimLayer?.MarkDirtyRepaint(); }).Every(16);
         }
 
         private void BuildStatic()
@@ -114,61 +117,68 @@ namespace SanGuo.Client
             _title.AddToClassList("header-title");
             UiKit.ApplyDisplayFont(_title);
             header.Add(_title);
-            var buttons = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+            var buttons = new VisualElement();
+            var menuPanel = new VisualElement().WithClass("battle-menu-panel");
+            menuPanel.style.display = DisplayStyle.None;
+            var menu = MakeButton("選單", () => { menuPanel.style.display = menuPanel.resolvedStyle.display == DisplayStyle.None ? DisplayStyle.Flex : DisplayStyle.None; menuPanel.BringToFront(); });
+            menu.AddToClassList("battle-menu");
+            buttons.Add(menu);
             _autoButton = MakeButton("自動", ToggleAuto);
-            buttons.Add(_autoButton);
-            buttons.Add(MakeButton("重置視角", () => _stage.ResetView()));
-            if (Debug.isDebugBuild) buttons.Add(MakeButton("直接勝利", DebugWin));
-            buttons.Add(MakeButton("撤退", Leave));
-            buttons.Add(MakeButton("重來", () => { _ = BeginStageId(_stageId); }));
-            buttons.Add(UiHelp.Button(_root, Page.Battle));
+            menuPanel.Add(_autoButton);
+            menuPanel.Add(MakeButton("重置視角", () => _stage.ResetView()));
+            _objectiveButton = MakeButton("勝利目標", () => { menuPanel.style.display = DisplayStyle.None; ShowObjective(); });
+            menuPanel.Add(_objectiveButton);
+            menuPanel.Add(MakeButton("撤退", Leave));
+            menuPanel.Add(MakeButton("重來", () => { _ = BeginStageId(_stageId); }));
+            _content.Add(menuPanel);
             header.Add(buttons);
             _content.Add(header);
 
             _field = new VisualElement();
             _field.AddToClassList("field");
-            _field.style.marginLeft = 374f;
+            _field.style.marginLeft = 24f;
             _field.style.marginRight = 18f;
-            _field.style.marginBottom = 356f;
+            _field.style.marginTop = 108f;
+            _field.style.marginBottom = 316f;
             _field.RegisterCallback<ClickEvent>(OnFieldClicked);
             _field.RegisterCallback<PointerDownEvent>(OnFieldDown);
             _field.RegisterCallback<PointerMoveEvent>(OnFieldMove);
             _field.RegisterCallback<PointerUpEvent>(OnFieldUp);
             _field.RegisterCallback<WheelEvent>(OnFieldWheel);
-            _field.RegisterCallback<PointerLeaveEvent>(_ => HideUnitInfo());
             _content.Add(_field);
+            _root.RegisterCallback<PointerDownEvent>(OnRootPointerDown, TrickleDown.TrickleDown);
 
-            var left = new VisualElement { pickingMode = PickingMode.Ignore };
-            left.AddToClassList("bl-left");
-            var top = new VisualElement { pickingMode = PickingMode.Ignore };
-            top.AddToClassList("bl-top");
-            _endButton = new Button(EndTurn) { text = "結束回合" };
-            _endButton.AddToClassList("bl-end");
-            top.Add(_endButton);
+            _hint = new Label { pickingMode = PickingMode.Ignore }.WithClass("bl-hint");
+            _hint.style.display = DisplayStyle.None;
+            _content.Add(_hint);
+
+            var leftDock = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("bl-dock-left");
             _cost = new VisualElement { pickingMode = PickingMode.Ignore };
             _cost.AddToClassList("bl-cost");
-            top.Add(_cost);
-            left.Add(top);
-            _piles = new VisualElement();
-            _piles.AddToClassList("bl-piles");
+            leftDock.Add(_cost);
             _drawButton = PileButton("pile_draw", PileKind.Draw, out _drawCount);
+            leftDock.Add(_drawButton);
+            _content.Add(leftDock);
+
+            var rightDock = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("bl-dock-right");
+            _endButton = new Button(EndTurn) { text = "結束回合" };
+            _endButton.AddToClassList("bl-end");
+            rightDock.Add(_endButton);
             _discardButton = PileButton("pile_discard", PileKind.Discard, out _discardCount);
-            _piles.Add(_drawButton);
-            _piles.Add(_discardButton);
-            left.Add(_piles);
+            rightDock.Add(_discardButton);
+            _content.Add(rightDock);
+
             _hand = new VisualElement();
             _hand.AddToClassList("sts-hand");
             _hand.RegisterCallback<GeometryChangedEvent>(_ => LayoutHand());
-            _content.Add(left);
 
             _detail = new VisualElement();
             _detail.AddToClassList("bl-detail");
             _detail.style.display = DisplayStyle.None;
             _content.Add(_detail);
 
-            _heroBar = new VisualElement();
-            _heroBar.AddToClassList("bl-bar");
-            _content.Add(_heroBar);
+            _unitList = new VisualElement().WithClass("ul-panel");
+            _content.Add(_unitList);
             _content.Add(_hand);
 
             var log = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -186,7 +196,7 @@ namespace SanGuo.Client
             _unitInfo = new VisualElement { pickingMode = PickingMode.Ignore };
             _unitInfo.AddToClassList("unit-info");
             _unitInfo.style.display = DisplayStyle.None;
-            _field.Add(_unitInfo);
+            _content.Add(_unitInfo);
         }
 
         private static Button MakeButton(string text, Action onClick, bool primary = false)
@@ -200,6 +210,7 @@ namespace SanGuo.Client
         private void BuildTags()
         {
             _tagLayer.Clear();
+            BuildAimLayer();
             _tags.Clear();
             foreach (var unit in _battle.Units) AddTag(unit);
         }
@@ -235,20 +246,11 @@ namespace SanGuo.Client
                 mainRow.AddToClassList("tag-main");
                 mainRow.Add(tag.Face);
                 mainRow.Add(column);
-                if(unit.Side==Side.Player)
-                {
-                    hpBg.Remove(tag.HpText);
-                    tag.Root.Add(hpBg);
-                }
-                else
-                {
-                    tag.AnchorLine=new VisualElement {pickingMode=PickingMode.Ignore};
-                    tag.AnchorLine.AddToClassList("tag-anchor-line");
-                    _tagLayer.Add(tag.AnchorLine);
-                    tag.Root.Add(mainRow);
-                    tag.Root.Add(tag.Extra);
-                    tag.Root.Add(tag.Intent);
-                }
+                if (unit.Side == Side.Enemy) tag.Root.Add(tag.Intent);
+                tag.Root.Add(mainRow);
+                hpBg.Remove(tag.HpText);
+                tag.Root.Add(tag.HpText);
+                tag.Root.Add(tag.Extra);
                 _tagLayer.Add(tag.Root);
                 _tags[unit.Id] = tag;
             }
@@ -313,6 +315,7 @@ namespace SanGuo.Client
             _pendingMover = null;
             HideUnitInfo();
             if (_overlay != null) { _overlay.RemoveFromHierarchy(); _overlay = null; }
+            _objectiveHint = false;
             _stage.Bind(_battle, _root, _field);
             BuildTags();
             PumpEvents();

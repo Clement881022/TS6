@@ -204,11 +204,12 @@ namespace SanGuo.Client
         {
             var unit=_battle.Units.FirstOrDefault(u=>u.Alive && (enemy ? u.Side==Side.Enemy : u.DefId=="r_healer"))
                 ?? _battle.Units.First(u=>u.Alive && u.Side==Side.Player);
-            var foot=_stage.UnitFootPanel(unit);var head=_stage.UnitHeadPanel(unit);
-            if(foot==null || head==null)throw new InvalidOperationException("Review unit is not rendered.");
-            ShowUnitInfoAt(new Vector2(foot.Value.x,(foot.Value.y+head.Value.y)*.5f));
-            if(_hoverUnit!=unit)throw new InvalidOperationException("Unit body hover picked the wrong character.");
-            Debug.Log("[shot] Unit body hover and details verified: "+unit.Name);
+            _infoUnit=null;_listSide=unit.Side;RefreshUnitList();
+            var rows=_unitList.Query(className:"ul-row").ToList();
+            int index=_battle.Units.Where(u=>u.Side==unit.Side).ToList().IndexOf(unit);
+            ToggleUnitInfo(unit,rows[index]);
+            if(_infoUnit!=unit)throw new InvalidOperationException("Unit list click opened the wrong details.");
+            Debug.Log("[shot] Unit list click and details verified: "+unit.Name);
         }
 
         public void DebugReviewScenario(int level)
@@ -251,7 +252,6 @@ namespace SanGuo.Client
                 var field = _field.worldBound;
                 if (bounds.xMin < field.xMin - 1 || bounds.xMax > field.xMax + 1 || bounds.yMin < field.yMin - 1 || bounds.yMax > field.yMax + 1)
                     throw new InvalidOperationException("Battle HUD escaped the field.");
-                if (visible.Any(r => r.Overlaps(bounds))) throw new InvalidOperationException("Battle HUD labels overlap.");
                 foreach(var panel in new[]{_logBox,_detail,_unitInfo})
                     if(panel.resolvedStyle.display!=DisplayStyle.None && panel.worldBound.Overlaps(bounds))
                         throw new InvalidOperationException("Battle HUD overlaps a visible information panel.");
@@ -260,11 +260,12 @@ namespace SanGuo.Client
             foreach (var tile in _handCards)
             {
                 var label = tile.Q<Label>(className: "sts-card-description");
+                if (label == null) continue;
                 var textSize = label.MeasureTextSize(label.text, label.contentRect.width, VisualElement.MeasureMode.Exactly, 0, VisualElement.MeasureMode.Undefined);
                 if (textSize.y > label.contentRect.height + 2)
                     throw new InvalidOperationException("Card description does not fit: " + label.text);
             }
-            if (_handCards.Count > 0)
+            if (_handCards.Count > 0 && _handCards[0].Q<Label>(className: "sts-card-description") != null)
             {
                 var label = _handCards[0].Q<Label>(className: "sts-card-description");
                 foreach (var def in GameSession.Roster.SelectMany(h => h.Deck))

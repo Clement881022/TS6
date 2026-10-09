@@ -30,12 +30,12 @@ namespace SanGuo.Client
             RefreshTiles();
             RefreshCards();
             RefreshDetail();
-            RefreshHeroBar();
+            RefreshUnitList();
             RefreshHud();
             RefreshOverlay();
-            if (_hoverUnit != null)
+            if (_infoUnit != null)
             {
-                if (_hoverUnit.Alive) RenderUnitInfo(_hoverUnit);
+                if (_infoUnit.Alive) RenderUnitInfo(_infoUnit);
                 else HideUnitInfo();
             }
         }
@@ -49,6 +49,7 @@ namespace SanGuo.Client
             var actor = _pendingMover ?? _pendingCard?.Owner;
             if (actor != null) states.Add((actor.Pos, TileState.Owner));
             _stage.SetTileStates(states);
+            _stage.SetMoveArrows(EnemyMovePaths());
         }
 
         private void RefreshTags()
@@ -61,7 +62,7 @@ namespace SanGuo.Client
                 tag.Root.style.display = unit.Alive ? DisplayStyle.Flex : DisplayStyle.None;
                 if (!unit.Alive) continue;
 
-                tag.Name.text = unit.Protected ? $"{unit.Name} 保護目標" : unit.Name;
+                tag.Name.text = unit.Name;
                 tag.Role.Clear();
                 string roleIcon = unit.Hero != null ? UiIcons.RoleIcon(unit.Hero.Role) : unit.AttackType == AttackType.Ranged ? "role_archer" : "role_warrior";
                 tag.Role.Add(UiIcons.Icon(roleIcon, "icon-sm"));
@@ -106,10 +107,10 @@ namespace SanGuo.Client
                 silhouettes.Add(Rect.MinMaxRect(Mathf.Min(head.x,foot.x)-halfWidth,
                     Mathf.Min(head.y,foot.y),Mathf.Max(head.x,foot.x)+halfWidth,Mathf.Max(head.y,foot.y)));
             }
-            foreach (var unit in _battle.Units.OrderBy(u => u.Side == Side.Enemy ? 0 : 1))
+            foreach (var unit in _battle.Units.OrderBy(u => _stage.UnitHeadPanel(u)?.y ?? float.MaxValue))
             {
                 if (!_tags.TryGetValue(unit.Id, out var tag)) continue;
-                bool below = unit.Side == Side.Player;
+                bool below = false;
                 var point = unit.Alive ? (below ? _stage.UnitFootPanel(unit) : _stage.UnitHeadPanel(unit)) : null;
                 if (point == null)
                 {
@@ -130,15 +131,16 @@ namespace SanGuo.Client
                 var desired = new Vector2(anchor.x - tagWidth * 0.5f, below ? anchor.y + 5f : anchor.y - tagHeight - 4f);
                 Rect placement = default;
                 bool found = false;
-                for (int ring = 0; ring < (below ? 2 : 3) && !found; ring++)
-                    for (int direction = 0; direction < (ring == 0 ? 1 : 4) && !found; direction++)
-                    {
-                        float dx = below ? 0 : direction == 2 ? -ring * (tagWidth + 6) : direction == 3 ? ring * (tagWidth + 6) : 0;
-                        float dy = direction == 0 ? -ring * (tagHeight + 6) : direction == 1 ? ring * (tagHeight + 6) : 0;
-                        placement = new Rect(Mathf.Clamp(desired.x + dx, 4, Mathf.Max(4, width - tagWidth - 4)),
-                            Mathf.Clamp(desired.y + dy, 4, Mathf.Max(4, height - tagHeight - 4)), tagWidth, tagHeight);
-                        found = !occupied.Any(r => r.Overlaps(placement)) && !silhouettes.Any(r=>r.Overlaps(placement));
-                    }
+                Rect Place(float dx, float dy) => new Rect(Mathf.Clamp(desired.x + dx, 4, Mathf.Max(4, width - tagWidth - 4)),
+                    Mathf.Clamp(desired.y + dy, 4, Mathf.Max(4, height - tagHeight - 4)), tagWidth, tagHeight);
+                var home = Place(0, 0);
+                foreach (var (dx, dy) in new[] { (0f, 0f), (0f, -20f), (-30f, -10f), (30f, -10f), (0f, -44f), (-40f, -30f), (40f, -30f), (0f, -70f) })
+                {
+                    placement = Place(dx, dy);
+                    found = !occupied.Any(r => r.Overlaps(placement));
+                    if (found) break;
+                }
+                if (!found) { placement = home; found = true; }
                 tag.Root.style.visibility = found ? Visibility.Visible : Visibility.Hidden;
                 if(tag.AnchorLine!=null)
                 {
@@ -166,12 +168,11 @@ namespace SanGuo.Client
             switch (intent.Type)
             {
                 case Intent.Kind.Attack:
-                    if (intent.MoveTo != null) host.Add(UiIcons.Chip("draw", "→"));
-                    host.Add(UiIcons.Chip("damage", intent.Target!.Name));
+                    host.Add(UiIcons.Chip("damage", "攻擊"));
                     break;
                 case Intent.Kind.Charge:
                 case Intent.Kind.Charging: host.Add(UiIcons.Chip("charge", "蓄力中")); break;
-                case Intent.Kind.Move: host.Add(UiIcons.Chip("draw", "逼近")); break;
+                case Intent.Kind.Move: host.Add(UiIcons.Chip("draw", "逼近中")); break;
             }
         }
 
@@ -216,12 +217,10 @@ namespace SanGuo.Client
                 row.Add(name);
                 var art = Face(card.Owner, "sts-card-art");
 
-                art.Add(UiIcons.Icon(KindIcon(card.Def), "sts-card-kind"));
+                row.Add(UiIcons.Icon(CardPresentation.TypeIcon(card.Def), "sts-card-category"));
                 row.Add(art);
 
                 var description = CardText.Description(card.Def);
-                var summary = card.Def.Target == TargetRule.MoveDest ? "" : CardText.Summary(card.Def);
-                row.Add(new Label(card.Def.Target == TargetRule.MoveDest ? "" : summary.Length > 0 ? summary : CardText.Target(card.Def, card.Owner?.AttackRange ?? 1)) { pickingMode = PickingMode.Ignore }.WithClass("sts-card-description"));
 
                 row.tooltip = card.Def.Name + "\n" + CardText.Target(card.Def, card.Owner?.AttackRange ?? 1) + "\n" + description + (ok != PlayResult.Ok ? "\n" + Explain(ok) : "");
 
@@ -259,54 +258,13 @@ namespace SanGuo.Client
 
         private void RefreshDetail()
         {
+            RefreshHint();
             var card = _pendingCard;
             _detail.Clear();
             if (card == null || !_battle.Hand.Contains(card)) { _detail.style.display = DisplayStyle.None; _field.style.marginRight = 18f; return; }
             _detail.style.display = DisplayStyle.Flex;
             _field.style.marginRight = 354f;
-            var def = card.Def;
-
-            var head = new VisualElement { pickingMode = PickingMode.Ignore };
-            head.AddToClassList("bl-d-head");
-            head.Add(Face(card.Owner, "bl-d-face"));
-            var titles = new VisualElement { pickingMode = PickingMode.Ignore };
-            titles.AddToClassList("bl-d-titles");
-            titles.Add(new Label(def.Name) { pickingMode = PickingMode.Ignore }.WithClass("bl-d-name"));
-            titles.Add(new Label(card.Owner == null ? "全隊通用" : card.Owner.Name + (card.Owner.Alive ? "" : "（陣亡）")) { pickingMode = PickingMode.Ignore }.WithClass("bl-d-owner"));
-            head.Add(titles);
-            var cost = new Label(def.Cost.ToString()) { pickingMode = PickingMode.Ignore };
-            cost.AddToClassList("bl-row-cost");
-            var costIcon = UiIcons.Get("cost");
-            if (costIcon != null) cost.style.backgroundImage = new StyleBackground(costIcon);
-            head.Add(cost);
-            _detail.Add(head);
-
-            int attackRange = card.Owner != null ? SanGuo.Core.Battle.CardRange(card.Owner, def) : 1;
-            _detail.Add(RangeIcon.Build(def, attackRange));
-            _detail.Add(new Label(CardText.Target(def, attackRange)) { pickingMode = PickingMode.Ignore }.WithClass("bl-d-target"));
-            var desc = CardText.Description(def);
-            if (desc.Length > 0) _detail.Add(new Label(desc) { pickingMode = PickingMode.Ignore }.WithClass("bl-d-desc"));
-
-            var check = _battle.CanPlay(card);
-            string hint;
-            if (check != PlayResult.Ok) hint = Explain(check);
-            else if (def.Target == TargetRule.MoveDest)
-                hint = _pendingMover == null ? "先點選要移動的武將（棋盤或底部武將列），再點綠色格子" : $"移動 {_pendingMover.Name}：點選綠色格子";
-            else if (def.Target == TargetRule.Enemy) hint = "點選棋盤上射程內的敵人施放（範圍內沒有敵人不可施放）";
-            else if (def.Target == TargetRule.Ally) hint = "點選射程內的隊友，或直接按「使用」（自動選血量比例最低者）";
-            else hint = "";
-            if (hint.Length > 0) _detail.Add(new Label(hint) { pickingMode = PickingMode.Ignore }.WithClass(check == PlayResult.Ok ? "bl-d-hint" : "bl-d-warn"));
-
-            if (def.Target != TargetRule.MoveDest && def.Target != TargetRule.Enemy)
-            {
-                var use = new Button(UseSelected) { text = "使用" };
-                use.AddToClassList("bl-d-use");
-                use.SetEnabled(check == PlayResult.Ok);
-                _detail.Add(use);
-            }
-            var cancel = new Button(CancelTargeting) { text = "取消" };
-            cancel.AddToClassList("bl-d-cancel");
-            _detail.Add(cancel);
+            BuildSkillDetail(card);
         }
 
         private static VisualElement StatChip(string icon, int effective, int baseValue, bool main = false)
@@ -412,60 +370,48 @@ namespace SanGuo.Client
             }
         }
 
-        private void RefreshHeroBar()
+        private void RefreshUnitList()
         {
-            _heroBar.Clear();
-            foreach (var unit in _battle.Units.Where(u => u.Side == Side.Player))
+            _unitList.Clear();
+            var tabs = new VisualElement().WithClass("ul-tabs");
+            foreach (var (label, side) in new[] { ("我方", Side.Player), ("敵人", Side.Enemy) })
+            {
+                var captured = side;
+                var tab = new Button(() => { _listSide = captured; HideUnitInfo(); RefreshUnitList(); }) { text = label };
+                tab.AddToClassList("ul-tab");
+                tab.AddToClassList(side == Side.Player ? "ul-tab-ally" : "ul-tab-enemy");
+                tab.EnableInClassList("ul-tab-on", side == _listSide);
+                tabs.Add(tab);
+            }
+            _unitList.Add(tabs);
+            foreach (var unit in _battle.Units.Where(u => u.Side == _listSide))
             {
                 var captured = unit;
-                var box = new VisualElement();
-                box.AddToClassList("bl-hero");
-                if (!unit.Alive) box.AddToClassList("bl-hero-dead");
-                if (unit == _pendingMover || (_pendingCard?.Owner == unit)) box.AddToClassList("bl-hero-active");
-                else if (_pendingCard?.Def.Target == TargetRule.MoveDest && _pendingMover == null && _battle.CanMoveUnit(unit)) box.AddToClassList("bl-hero-pick");
-
-                box.Add(Face(unit, "bl-hero-face"));
-                var col = new VisualElement { pickingMode = PickingMode.Ignore };
-                col.AddToClassList("bl-hero-col");
-
-                var title = new VisualElement { pickingMode = PickingMode.Ignore };
-                title.AddToClassList("bl-hero-title");
-                string roleIcon = unit.Hero != null ? UiIcons.RoleIcon(unit.Hero.Role) : "role_warrior";
-                title.Add(UiIcons.Icon(roleIcon, "icon-sm"));
-                title.Add(new Label(unit.Name) { pickingMode = PickingMode.Ignore }.WithClass("bl-hero-name"));
-                if (unit.Hero != null) title.Add(new Label(CardText.RoleName(unit.Hero.Role)) { pickingMode = PickingMode.Ignore }.WithClass("bl-hero-role"));
-                col.Add(title);
-
-                var hpBg = new VisualElement { pickingMode = PickingMode.Ignore };
-                hpBg.AddToClassList("bl-hp-bg");
-                var fill = new VisualElement { pickingMode = PickingMode.Ignore };
-                fill.AddToClassList("bl-hp-fill");
-                fill.style.width = Length.Percent(unit.MaxHp <= 0 ? 0f : Mathf.Clamp01(unit.Hp / (float)unit.MaxHp) * 100f);
-                hpBg.Add(fill);
-                hpBg.Add(new Label($"{unit.Hp}/{unit.MaxHp}" + (unit.Shield > 0 ? $"  盾 {unit.Shield}" : "")) { pickingMode = PickingMode.Ignore }.WithClass("bl-hp-text"));
-                col.Add(hpBg);
-
-                var stats = new VisualElement { pickingMode = PickingMode.Ignore };
-                stats.AddToClassList("bl-stats");
-                stats.Add(StatChip("stat_atk", unit.EffectiveAtk, unit.Stats.Atk, main: !IsCaster(unit)));
-                stats.Add(StatChip("stat_int", unit.EffectiveInt, unit.Stats.Int, main: IsCaster(unit)));
-                stats.Add(StatChip("stat_def", (int)Math.Round(unit.EffectiveDef), unit.Stats.Def));
-                stats.Add(StatChip("stat_move", unit.Stats.Move, unit.Stats.Move));
-                col.Add(stats);
-
-                var chips = new VisualElement { pickingMode = PickingMode.Ignore };
-                chips.AddToClassList("bl-chips");
-                foreach (var st in unit.Statuses) chips.Add(UiIcons.Chip(UiIcons.Status(st.Key), ChipText(st.Key, st.Value)));
-                foreach (var b in unit.Buffs) chips.Add(UiIcons.Chip(UiIcons.Status(b.Type), $"{b.Power}·{b.Turns}"));
-                foreach (var br in unit.DefBreaks) chips.Add(UiIcons.Chip("status_armorbreak", $"{br.Percent * 100:0}%·{br.Turns}"));
-                col.Add(chips);
-
-                box.Add(col);
-                box.RegisterCallback<ClickEvent>(_ =>
+                var row = new VisualElement().WithClass("ul-row");
+                row.EnableInClassList("ul-row-dead", !unit.Alive);
+                row.EnableInClassList("ul-row-on", unit == _infoUnit);
+                var face = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("ul-face");
+                var portrait = HeroArt.Face(unit.DefId);
+                if (portrait != null) face.style.backgroundImage = new StyleBackground(portrait);
+                else
                 {
-                    if (_pendingCard != null && _pendingCard.Def.Target == TargetRule.MoveDest && captured.Alive) PickMover(_pendingCard, captured);
-                });
-                _heroBar.Add(box);
+                    string roleIcon = unit.Hero != null ? UiIcons.RoleIcon(unit.Hero.Role) : unit.AttackType == AttackType.Ranged ? "role_archer" : "role_warrior";
+                    var icon = UiIcons.Get(roleIcon);
+                    if (icon != null) face.style.backgroundImage = new StyleBackground(icon);
+                }
+                row.Add(face);
+                var column = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("ul-col");
+                column.Add(new Label(unit.Name) { pickingMode = PickingMode.Ignore }.WithClass("ul-name"));
+                column.Add(new Label($"{unit.Hp}/{unit.MaxHp}") { pickingMode = PickingMode.Ignore }.WithClass("ul-hp-text"));
+                var bar = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("ul-hp-bg");
+                var fill = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("ul-hp-fill");
+                if (unit.Side == Side.Enemy) fill.AddToClassList("ul-hp-fill-enemy");
+                fill.style.width = Length.Percent(unit.MaxHp <= 0 ? 0f : Mathf.Clamp01(unit.Hp / (float)unit.MaxHp) * 100f);
+                bar.Add(fill);
+                column.Add(bar);
+                row.Add(column);
+                row.RegisterCallback<ClickEvent>(_ => ToggleUnitInfo(captured, row));
+                _unitList.Add(row);
             }
         }
 
@@ -488,7 +434,7 @@ namespace SanGuo.Client
             _drawCount.text = _battle.DrawPile.Count.ToString();
             _discardCount.text = _battle.DiscardPile.Count.ToString();
             _logLabel.text = string.Join("\n", _log.Skip(Math.Max(0, _log.Count - 4)));
-            _logBox.style.display = _log.Count == 0 ? DisplayStyle.None : DisplayStyle.Flex;
+            _logBox.style.display = DisplayStyle.None;
         }
 
         private void RefreshOverlay()

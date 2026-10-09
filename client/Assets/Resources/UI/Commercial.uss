@@ -1,0 +1,90 @@
+.meta-page.bg-home .strategy-home-shade { background-color: rgba(0,0,0,0); }
+.meta-page.bg-home .strategy-home-top { position: absolute; left: 58px; right: 58px; top: 26px; height: 116px; flex-direction: row; align-items: center; justify-content: space-between; background-color: rgba(0,0,0,0); border-width: 0; }
+.meta-page.bg-home .home-player { position: relative; left: auto; top: auto; width: 430px; height: 116px; padding: 10px 16px; flex-direction: row; align-items: center; background-image: none; background-color: rgba(35,35,39,.94); border-width: 2px; border-color: rgb(145,122,83); border-radius: 58px; }
+.meta-page.bg-home .home-player .avatar { width: 94px; height: 94px; min-width: 94px; margin-right: 16px; }
+.meta-page.bg-home .home-player-info { flex-grow: 1; }
+.meta-page.bg-home .home-player-top { flex-direction: row; align-items: center; }
+.meta-page.bg-home .home-player-name { font-size: 38px; color: rgb(245,235,217); }
+.meta-page.bg-home .home-player-level { font-size: 28px; color: rgb(224,192,134); margin-left: 16px; }
+.meta-page.bg-home .home-res { position: relative; top: auto; right: auto; flex-direction: row; align-items: center; }
+.meta-page.bg-home .res-pill { height: 116px; min-width: 230px; margin-left: 16px; padding: 8px 20px; background-image: none; background-color: rgba(35,35,39,.94); border-width: 2px; border-color: rgb(145,122,83); border-radius: 58px; }
+.meta-page.bg-home .res-pill-icon { width: 58px; height: 58px; }
+.meta-page.bg-home .res-pill-text { font-size: 36px; color: rgb(245,235,217); }
+.meta-page.bg-home .home-fn-bar { position: absolute; left: 0; right: 0; top: auto; bottom: 0; width: auto; height: 220px; padding: 0 58px 32px; flex-direction: row; align-items: center; background-image: none; background-color: rgba(29,29,33,.94); border-width: 0; border-radius: 0; }
+.meta-page.bg-home .home-fn { flex-grow: 1; flex-basis: 0; height: 180px; width: auto; min-width: 130px; margin: 0; padding: 8px 0; border-width: 0; border-radius: 0; background-image: none; background-color: rgba(0,0,0,0); flex-direction: column; align-items: center; justify-content: center; }
+.meta-page.bg-home .home-fn:hover { background-color: rgba(215,184,123,.1); }
+.meta-page.bg-home .home-fn-icon { width: 102px; height: 102px; margin: 0; -unity-background-scale-mode: scale-to-fit; }
+.meta-page.bg-home .home-nav-text { width: 100%; }
+.meta-page.bg-home .home-fn-label { font-size: 38px; height: 48px; color: rgb(243,235,215); -unity-text-align: middle-center; }
+.meta-page.bg-home .home-divider { position: absolute; left: 0; top: 46px; width: 2px; height: 86px; background-color: rgba(184,169,145,.34); }
+.meta-page.bg-home .home-departure { position: relative; width: 375px; height: 180px; margin-left: 0; padding: 20px 12px 20px 30px; flex-shrink: 0; justify-content: center; }
+.meta-page.bg-home .home-next-stage { position: absolute; right: 10px; bottom: 204px; height: 70px; width: 360px; padding: 0; font-size: 30px; color: rgb(246,235,213); -unity-text-align: middle-center; border-width: 0; background-image: none; background-color: rgba(26,26,29,.5); }
+.meta-page.bg-home .home-primary { width: 100%; height: 134px; min-height: 134px; margin: 0; padding: 0; flex-direction: row; align-items: center; justify-content: center; background-image: url("../ChibiSkin/gold.png"); -unity-slice-left: 100; -unity-slice-right: 100; -unity-slice-top: 60; -unity-slice-bottom: 60; -unity-slice-scale: 0.2px; background-color: rgb(205,165,78); border-width: 0; border-radius: 14px; }
+.meta-page.bg-home .home-sortie-art { width: 94px; height: 104px; margin-right: 14px; -unity-background-scale-mode: scale-to-fit; }
+.meta-page.bg-home .home-primary-title { font-size: 52px; color: rgb(48,32,16); -unity-text-align: middle-center; }
+.challenge-tabs { flex-direction: row; height: 72px; margin-bottom: 20px; flex-shrink: 0; }
+.challenge-tabs-floating { position: absolute; top: 0; left: 0; right: 0; }
+.challenge-tab { width: 240px; height: 68px; margin-right: 16px; font-size: 30px; border-width: 1px; border-color: rgb(137,116,80); border-radius: 12px; background-color: rgb(40,40,44); color: rgb(205,195,176); }
+.challenge-tab.active { color: rgb(248,220,163); background-color: rgb(72,62,47); }
+.root .header { height: 90px; padding: 8px 36px; background-color: rgba(26,26,30,.88); }
+.root .header-title { font-size: 36px; }
+.root .battle-menu { height: 72px; min-width: 120px; font-size: 32px; }
+.root .battle-menu-panel { position: absolute; top: 90px; right: 24px; width: 320px; padding: 12px; background-color: rgb(35,35,39); border-width: 1px; border-color: rgb(142,120,81); }
+.root .battle-menu-panel .btn { height: 72px; font-size: 30px; }
+.root .bl-bar { display: none; }
+.root .sts-hand { left: 36px; right: 256px; bottom: 16px; height: 284px; }
+.root .bl-detail { top: 170px; bottom: 344px; max-height: none; right: 24px; width: 350px; padding: 20px; border-radius: 24px; background-image: none; background-color: rgba(35,35,40,.96); border-width: 1px; border-color: rgb(137,116,81); }
+.root .skill-scroll { flex-grow: 1; flex-shrink: 1; min-height: 0; }
+.root .skill-scroll .unity-scroll-view__content-and-vertical-scroll-container { flex-direction: row; flex-grow: 1; flex-shrink: 1; min-height: 0; overflow: hidden; }
+.root .skill-scroll .unity-scroll-view__content-viewport { flex-grow: 1; flex-shrink: 1; min-width: 0; min-height: 0; overflow: hidden; }
+.root .skill-scroll .unity-scroll-view__content-container { flex-direction: column; flex-shrink: 0; }
+.root .skill-scroll .unity-scroller--vertical { width: 16px; min-width: 16px; flex-shrink: 0; flex-direction: column; background-color: rgb(27,27,31); }
+.root .skill-scroll .unity-scroller .unity-slider { flex-grow: 1; }
+.root .skill-scroll .unity-base-slider__drag-container { flex-grow: 1; }
+.root .skill-scroll .unity-base-slider__dragger { min-width: 12px; min-height: 28px; background-color: rgb(155,128,76); border-radius: 3px; }
+.root .skill-scroll .unity-scroll-view__content-container > * { flex-shrink: 0; }
+.root .skill-head { flex-shrink: 0; }
+.root .skill-effect { min-height: 94px; }
+.root .skill-effect-value { font-size: 38px; white-space: nowrap; }
+.root .skill-target .range-icon { height: 126px; min-height: 126px; max-height: none; background-color: rgba(0,0,0,0); }
+.root .bl-d-use, .root .bl-d-cancel, .root .bl-d-warn { flex-shrink: 0; }
+.root .tag-hero .tag-name-row { display: flex; }
+.root .skill-head { flex-direction: row; align-items: center; height: 54px; }
+.root .skill-title { flex-grow: 1; font-size: 38px; color: rgb(245,235,216); -unity-text-align: middle-center; }
+.root .skill-cost { width: 42px; height: 42px; border-width: 1px; border-color: rgb(204,171,110); border-radius: 24px; -unity-text-align: middle-center; font-size: 30px; }
+.root .skill-type { width: 48px; height: 48px; }
+.root .skill-portrait { height: 150px; margin: 8px 0; -unity-background-scale-mode: scale-and-crop; }
+.root .skill-owner { font-size: 24px; -unity-text-align: middle-center; color: rgb(212,197,171); }
+.root .skill-effect { flex-direction: row; align-items: center; justify-content: center; margin: 10px 0; }
+.root .skill-effect-icon { width: 58px; height: 58px; margin-right: 16px; }
+.root .skill-effect-value { font-size: 38px; color: rgb(245,203,126); white-space: nowrap; }
+.root .skill-effect-label { font-size: 23px; color: rgb(205,189,160); }
+.root .skill-target { flex-direction: row; justify-content: center; }
+.root .skill-target-text { font-size: 25px; color: rgb(214,202,180); -unity-text-align: middle-center; white-space: normal; }
+.root .skill-extra { font-size: 24px; color: rgb(215,195,158); white-space: normal; }
+.root .bl-d-use, .root .bl-d-cancel { height: 64px; font-size: 30px; margin-top: 8px; }
+.root .bl-d-warn { font-size: 26px; white-space: normal; }
+.root .tag { padding: 0; background-color: rgba(0,0,0,0); border-width: 0; }
+.root .tag-hero, .root .tag-enemy { height: auto; min-height: 0; }
+.root .tag-main { flex-direction: column; }
+.root .tag-column { width: 100%; }
+.root .tag-face, .root .tag-role, .root .tag-anchor-line { display: none; }
+.root .tag-name-row { justify-content: center; height: 40px; }
+.root .tag-name { font-size: 29px; color: white; -unity-text-outline-width: 1px; -unity-text-outline-color: rgba(0,0,0,.9); -unity-text-align: middle-center; }
+.root .tag-enemy .tag-name { font-size: 29px; }
+.root .tag-enemy .tag-intent .chip-text { display: flex; font-size: 24px; }
+.root .tag-enemy .tag-intent .icon { width: 32px; height: 32px; }
+.root .tag-hp-bg { height: 10px; margin: 2px 0; border-radius: 6px; overflow: hidden; }
+.root .tag-hp-text { position: relative; font-size: 24px; height: 30px; color: white; -unity-text-align: middle-center; }
+.root .tag-hero .tag-hp-text, .root .tag-enemy .tag-hp-text { position: relative; top: auto; bottom: auto; height: 30px; font-size: 24px; }
+.root .tag-hero .tag-hp-bg { width: 100%; height: 10px; min-height: 10px; margin: 2px 0; }
+.root .tag-hero .tag-hp-fill { height: 10px; min-height: 10px; }
+.root .tag-intent { min-height: 40px; margin: 0 0 4px; justify-content: center; background-color: rgba(30,28,30,.86); border-radius: 6px; }
+.root .tag-intent .chip-text { font-size: 24px; }
+.root .tag-intent .icon { width: 32px; height: 32px; }
+.root .tag-extra { justify-content: center; }
+.root .bl-log { display: none; }
+.root .bl-left { right: 24px; bottom: 20px; width: 210px; }
+.root .bl-end { height: 78px; font-size: 32px; }
+.root .bl-cost { margin-bottom: 12px; }
+.root .bl-pile-btn { height: 64px; }

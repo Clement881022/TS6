@@ -46,11 +46,17 @@ namespace SanGuo.Client
             AddSheet(_root, "UI/Home");
             AddSheet(_root, "UI/BattlePolish");
             AddSheet(_root, "UI/Revision");
+            AddSheet(_root, "UI/Commercial");
+            AddSheet(_root, "BattleArt/HandCompact");
+            AddSheet(_root, "UI/BattleHud");
             ApplyCjkFont(_root);
 
             Show(GameSession.Accounts is { HasSession: false } ? Page.Login : startPage);
             if (GameSession.ShotDir != null && ShotRunner.Instance == null)
-                ShotRunner.Begin(GameSession.ShotDir);
+            {
+                if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sanguoCommercialShot") >= 0) CommercialUiCapture.Begin(GameSession.ShotDir);
+                else ShotRunner.Begin(GameSession.ShotDir);
+            }
         }
 
         private void OnDestroy()

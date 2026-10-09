@@ -217,7 +217,7 @@ namespace SanGuo.Client
             Host.Add(overlay);
         }
 
-        private static string? ObjectiveText(BattleSetup setup)
+        internal static string? ObjectiveText(BattleSetup setup)
         {
             string? text = setup.Objective switch
             {

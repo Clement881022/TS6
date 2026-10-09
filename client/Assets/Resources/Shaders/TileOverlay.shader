@@ -5,6 +5,7 @@ Shader "SanGuo/TileOverlay"
     {
         _Color ("Color", Color) = (1, 1, 1, 0.16)
         _Border ("Border Width", Range(0.01, 0.2)) = 0.055
+        _BorderColor ("Border Color", Color) = (0, 0, 0, 0)
     }
     SubShader
     {
@@ -21,6 +22,7 @@ Shader "SanGuo/TileOverlay"
 
             fixed4 _Color;
             float _Border;
+            fixed4 _BorderColor;
 
             struct appdata { float4 vertex : POSITION; float2 uv : TEXCOORD0; };
             struct v2f { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; };
@@ -40,6 +42,8 @@ Shader "SanGuo/TileOverlay"
                 float edge = 1.0 - smoothstep(_Border * 0.55, _Border, e);
                 fixed4 c = _Color;
                 c.a = lerp(_Color.a, saturate(_Color.a * 1.8), edge);
+                c.rgb = lerp(_Color.rgb, _BorderColor.rgb, edge * _BorderColor.a);
+                c.a = max(c.a, edge * _BorderColor.a);
                 return c;
             }
             ENDCG
