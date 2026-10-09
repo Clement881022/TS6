@@ -24,7 +24,7 @@ namespace SanGuo.Client.Editor
                     var mesh=new Mesh{name=name};
                     mesh.CombineMeshes(group.Select(r=>new CombineInstance{mesh=r.GetComponent<MeshFilter>().sharedMesh,transform=anchor.worldToLocalMatrix*r.transform.localToWorldMatrix}).ToArray(),true,true);
                     string path=output+"/Meshes/"+name+".asset";var saved=AssetDatabase.LoadAssetAtPath<Mesh>(path);
-                    if(saved==null){AssetDatabase.CreateAsset(mesh,path);saved=mesh;}else{EditorUtility.CopySerialized(mesh,saved);UnityEngine.Object.DestroyImmediate(mesh);EditorUtility.SetDirty(saved);}
+                    if(saved==null){AssetDatabase.CreateAsset(mesh,path);saved=mesh;}else{saved.Clear(false);EditorUtility.CopySerialized(mesh,saved);UnityEngine.Object.DestroyImmediate(mesh);EditorUtility.SetDirty(saved);}
                     var go=new GameObject(name);go.transform.SetParent(anchor,false);go.AddComponent<MeshFilter>().sharedMesh=saved;
                     go.AddComponent<MeshRenderer>().sharedMaterial=group.First().sharedMaterial;
                 }

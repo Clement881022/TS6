@@ -15,7 +15,7 @@ namespace SanGuo.Client.Editor
         public static bool IsBandit(string id)=>id=="bandit_grunt" || id=="bandit_archer" || id=="bandit_ironbrute" || id=="bandit_marksman";
         public static void PrepareParts(GameObject root,string id)
         {
-            if(id == "r_shield" || id == "r_archer" || id == "r_sword" || IsBandit(id))
+            if(id == "r_shield" || id == "r_archer" || id == "r_sword" || id=="zhangfei" || IsBandit(id))
             {
                 CopyPart(root,"FaceRenderer","r_militia");
                 var hair=root.GetComponentsInChildren<SkinnedMeshRenderer>(true).First(r=>r.name=="HairRenderer");
@@ -26,13 +26,14 @@ namespace SanGuo.Client.Editor
 
         public static void AddDesign(GameObject root,string id,string output)
         {
-            _prefix=IsBandit(id)?id+"_":"";
+            _prefix=IsBandit(id) || id=="zhangfei"?id+"_":"";
             try
             {
             if(id == "r_shield") { ShortHair(root,id,output);Helmet(root,output);ShortSpear(root,output); }
             if(id == "r_archer") { ClearWeapons(root);ShortHair(root,id,output);Headscarf(root,output);Quiver(root,output); }
             if(id == "r_healer") { HealerCrown(root,output);MedicineGourd(root,output); }
             if(id == "r_sword") { ShortHair(root,id,output);SwordHeadband(root,id,output);Sword(root,id,output); }
+            if(id == "zhangfei") { ClearWeapons(root);ShortHair(root,id,output);SwordHeadband(root,id,output);ZhangfeiDesign(root,output); }
             if(IsBandit(id))
             {
                 ClearWeapons(root);ShortHair(root,id,output);
@@ -42,6 +43,78 @@ namespace SanGuo.Client.Editor
             }
             }
             finally{_prefix="";}
+        }
+
+        private static void ZhangfeiDesign(GameObject root,string output)
+        {
+            const string id="zhangfei";
+            var face=SkinBounds(root,"FaceRenderer");
+            var head=Anchor(root,"Bip001 Head","Design_ZhangfeiHair");
+            var crown=new Vector3(face.center.x,face.max.y-.035f,face.center.z);
+            for(int i=-3;i<=3;i++)
+            {
+                float x=i*.026f;
+                Add(head,"HeroHairLock"+i,SmoothSweep(new[]{crown+new Vector3(x,-.025f,.042f),crown+new Vector3(x*.95f,.050f-Mathf.Abs(i)*.008f,-.025f),crown+new Vector3(x*.8f+.055f,.110f-Mathf.Abs(i)*.018f,-.092f)},.045f,.85f),Color.black,output);
+            }
+            BanditBeard(root,id,output);
+            var beard=Anchor(root,"Bip001 Head","Design_ZhangfeiMoustache");
+            for(int sign=-1;sign<=1;sign+=2)
+            {
+                var lip=new Vector3(face.center.x+sign*.011f,face.min.y+face.size.y*.17f,face.max.z+.018f);
+                Add(beard,"MoustacheHairLock"+sign,SmoothSweep(new[]{lip,lip+new Vector3(sign*.041f,.006f,.007f),lip+new Vector3(sign*.078f,-.024f,-.003f),lip+new Vector3(sign*.090f,-.047f,-.020f)},.024f,.9f),Color.black,output);
+                for(int i=0;i<3;i++)
+                {
+                    var cheek=new Vector3(face.center.x+sign*(face.size.x*.41f),face.min.y+.070f+i*.027f,face.max.z-.047f);
+                    Add(beard,"SideburnHairLock"+sign+"_"+i,SmoothSweep(new[]{cheek,cheek+new Vector3(sign*.008f,-.04f,.016f),cheek+new Vector3(-sign*.038f,-.094f,.026f)},.029f,.9f),Color.black,output);
+                }
+            }
+            var spear=Anchor(root,"Bip001 R Hand","Design_SnakeSpear");
+            spear.localPosition=Vector3.zero;
+            spear.rotation=Quaternion.LookRotation((root.transform.up+root.transform.right*.32f).normalized,root.transform.forward);
+            Add(spear,"SnakeSpearShaft",Tube(new[]{new Vector3(0,0,-.30f),new Vector3(0,0,.59f)},.020f,24),Red,output);
+            foreach(float z in new[]{-.28f,-.13f,.13f,.31f,.50f,.58f})
+                Add(spear,"SnakeSpearGoldCollar"+z,Tube(new[]{new Vector3(0,0,z-.009f),new Vector3(0,0,z+.009f)},.027f,24),Gold,output);
+            var blade=SnakeBlade();
+            Add(spear,"SnakeSpearBlade",blade,new Color(.81f,.86f,.88f),output);
+            var edgePath=new List<Vector3>();
+            for(int i=0;i<=24;i++){float t=i/24f;edgePath.Add(new Vector3(Mathf.Sin(t*Mathf.PI*3)*.035f,0,.58f+t*.46f));}
+            Add(spear,"SnakeSpearBladeGoldRidge",Tube(edgePath,.007f,8),Gold,output);
+            for(int i=0;i<4;i++)
+            {
+                var path=new[]{new Vector3(0,0,.55f),new Vector3(.055f+i*.012f,.012f,.44f),new Vector3(.085f+i*.018f,-.012f,.29f)};
+                var tassel=Ribbon(path,.023f);var points=tassel.vertices;
+                for(int j=0;j<points.Length;j++){var p=path[(j%(path.Length*2))/2];var d=points[j]-p;points[j]=p+new Vector3(d.y,d.x,d.z);}
+                tassel.vertices=points;tassel.RecalculateNormals();
+                Add(spear,"SnakeSpearScarf"+i,tassel,Red,output);
+            }
+            var cape=Anchor(root,"Bip001 Spine","Design_ZhangfeiCape");
+            var body=SkinBounds(root,"BodyRenderer");
+            var v=new List<Vector3>();var uv=new List<Vector2>();var tris=new List<int>();
+            for(int row=0;row<=20;row++)for(int col=0;col<=16;col++)
+            {
+                float t=row/20f,u=col/16f,s=(u-.5f)*2;
+                v.Add(new Vector3(body.center.x+s*Mathf.Lerp(.17f,.26f,t),face.min.y-.045f-t*.43f,body.min.z-.022f-.13f*t+.021f*Mathf.Sin(u*Mathf.PI*8)*t));
+                uv.Add(new Vector2(.16f+u*.26f,.44f+t*.26f));
+                if(row<20 && col<16){int k=row*17+col;tris.AddRange(new[]{k,k+17,k+1,k+1,k+17,k+18,k+1,k+17,k,k+18,k+17,k+1});}
+            }
+            var capeMesh=new Mesh{name="ZhangfeiCape"};capeMesh.SetVertices(v);capeMesh.SetUVs(0,uv);capeMesh.SetTriangles(tris,0);capeMesh.RecalculateNormals();capeMesh.RecalculateBounds();
+            var capePart=Add(cape,"HeroCape",capeMesh,Red,output);
+            var mat=capePart.GetComponent<MeshRenderer>().sharedMaterial;
+            mat.SetTexture("_BaseMap",AssetDatabase.LoadAssetAtPath<Texture2D>(output+"/Textures/zhangfei_body.png"));mat.SetColor("_BaseColor",Color.white);mat.SetFloat("_MetalStrength",.04f);EditorUtility.SetDirty(mat);
+        }
+
+        private static Mesh SnakeBlade()
+        {
+            const int segments=24;var vertices=new List<Vector3>();var uv=new List<Vector2>();var triangles=new List<int>();
+            for(int i=0;i<=segments;i++)
+            {
+                float t=i/(float)segments,x=Mathf.Sin(t*Mathf.PI*3)*.035f,z=.58f+t*.46f;
+                float width=.042f*Mathf.Pow(1-t,.55f)+.002f;
+                vertices.AddRange(new[]{new Vector3(x-width,0,z),new Vector3(x,.012f*(1-t),z),new Vector3(x+width,0,z),new Vector3(x,-.012f*(1-t),z)});
+                uv.AddRange(new[]{new Vector2(0,t),new Vector2(.5f,t),new Vector2(1,t),new Vector2(.5f,t)});
+                if(i<segments){int k=i*4;triangles.AddRange(new[]{k,k+4,k+1,k+1,k+4,k+5,k+1,k+5,k+2,k+2,k+5,k+6,k+2,k+6,k+3,k+3,k+6,k+7,k+3,k+7,k,k,k+7,k+4});}
+            }
+            var mesh=new Mesh{name="SnakeSpearBlade"};mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);mesh.RecalculateNormals();mesh.RecalculateTangents();return mesh;
         }
 
         private static void HunterTopknot(GameObject root,string id,string output)
@@ -89,7 +162,8 @@ namespace SanGuo.Client.Editor
             for(int i=-4;i<=4;i++)
             {
                 float x=i*.017f;var p=new Vector3(face.center.x+x,face.min.y+.010f,face.max.z+.035f);
-                Add(anchor,"BeardHairLock"+i,Sweep(new[]{p,p+new Vector3(x*.04f,-.032f,.014f),p+new Vector3(-x*.16f,-.077f+.008f*Mathf.Abs(i),-.001f)},.010f,.8f),new Color(.05f,.045f,.04f),output);
+                var path=new[]{p,p+new Vector3(x*.04f,-.032f,.014f),p+new Vector3(-x*.16f,-.077f+.008f*Mathf.Abs(i),-.001f)};
+                Add(anchor,"BeardHairLock"+i,id=="zhangfei"?SmoothSweep(path,.015f,.85f):Sweep(path,.010f,.8f),new Color(.05f,.045f,.04f),output);
             }
         }
 
@@ -217,11 +291,11 @@ namespace SanGuo.Client.Editor
             {
                 var uv=mesh.uv;for(int i=0;i<uv.Length;i++)uv[i]=new Vector2(.16f+uv[i].x*.26f,.44f+uv[i].y*.26f);mesh.uv=uv;
             }
-            if(_prefix!="" && (name.Contains("Plume") && !name.Contains("Mount") || name.Contains("Scarf")))color=new Color(.90f,.53f,.045f);
+            if(_prefix.StartsWith("bandit_") && (name.Contains("Plume") && !name.Contains("Mount") || name.Contains("Scarf")))color=new Color(.90f,.53f,.045f);
             var part=ProductionCharacterProps.Piece(parent,_prefix+name,mesh,color,output);
             if(fabric)
             {
-                var mat=part.GetComponent<MeshRenderer>().sharedMaterial;mat.SetTexture("_BaseMap",AssetDatabase.LoadAssetAtPath<Texture2D>(output+"/Textures/bandit_body.png"));mat.SetColor("_BaseColor",Color.white);mat.SetFloat("_MetalStrength",.06f);EditorUtility.SetDirty(mat);
+                var mat=part.GetComponent<MeshRenderer>().sharedMaterial;mat.SetTexture("_BaseMap",AssetDatabase.LoadAssetAtPath<Texture2D>(output+"/Textures/"+(_prefix.StartsWith("zhangfei_")?"zhangfei_body":"bandit_body")+".png"));mat.SetColor("_BaseColor",Color.white);mat.SetFloat("_MetalStrength",.06f);EditorUtility.SetDirty(mat);
             }
             if(_prefix!="" && name.Contains("Hair"))
             {
@@ -435,6 +509,17 @@ namespace SanGuo.Client.Editor
                 normals[i]=normal;normals[i+sides]=normal;
             }
             mesh.normals=normals;
+        }
+
+        private static Mesh SmoothSweep(IReadOnlyList<Vector3> points,float radius,float flatten)
+        {
+            var dense=new List<Vector3>();
+            for(int i=0;i<points.Count-1;i++)for(int j=0;j<12;j++)
+            {
+                float t=j/12f;var a=points[Mathf.Max(0,i-1)];var b=points[i];var c=points[i+1];var d=points[Mathf.Min(points.Count-1,i+2)];
+                dense.Add(.5f*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t));
+            }
+            dense.Add(points[^1]);return Sweep(dense,radius,flatten);
         }
 
         private static Mesh Sweep(IReadOnlyList<Vector3> points,float radius,float flatten)

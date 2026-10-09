@@ -12,7 +12,7 @@ namespace SanGuo.Client.Editor
     {
         public static void Apply(GameObject root,string id,string output)
         {
-            if(id!="r_shield" && id!="r_archer" && id!="r_sword" && !ProductionInfantryDesign.IsBandit(id))return;
+            if(id!="r_shield" && id!="r_archer" && id!="r_sword" && id!="zhangfei" && !ProductionInfantryDesign.IsBandit(id))return;
             var r=root.GetComponentsInChildren<SkinnedMeshRenderer>().First(x=>x.name=="BodyRenderer");
             var mesh=UnityEngine.Object.Instantiate(r.sharedMesh);var vertices=mesh.vertices;var weights=mesh.boneWeights;var uv=mesh.uv;
             var matrices=r.bones.Select((b,i)=>b.localToWorldMatrix*mesh.bindposes[i]).ToArray();

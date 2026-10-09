@@ -59,7 +59,13 @@ namespace SanGuo.Client.Editor
             Prepare();Bake("bandit_grunt","sword");Bake("bandit_archer","archer");Bake("bandit_ironbrute","guard");Bake("bandit_marksman","archer");Finish();
         }
 
-        [MenuItem("SanGuo/統一實際角色骨架尺寸")]
+        [MenuItem("SanGuo/重製張飛造型")]
+        public static void BakeZhangfeiArt()
+        {
+            Prepare();Bake("zhangfei","polearm");Finish();
+        }
+
+        [MenuItem("SanGuo/統一骨架尺寸")]
         public static void NormalizeWorldSizes()
         {
             Prepare();
@@ -94,7 +100,7 @@ namespace SanGuo.Client.Editor
 
         private static void Bake(string id,string role)
         {
-            string sourceId=id=="r_sword" || ProductionInfantryDesign.IsBandit(id)?"r_shield":id;
+            string sourceId=id=="r_sword" || id=="zhangfei" || ProductionInfantryDesign.IsBandit(id)?"r_shield":id;
             var source = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Characters/"+sourceId+".prefab");
             if (source == null) throw new InvalidOperationException("Missing textured character source: "+id);
             var root = UnityEngine.Object.Instantiate(source);
@@ -107,7 +113,7 @@ namespace SanGuo.Client.Editor
                 {
                     if (renderer.sharedMesh == null) continue;
                     string meshPath = Output + "/Meshes/"+id+"_" + renderer.name + ".asset";
-                    var refined = Refine(renderer.sharedMesh, 1);
+                    var refined = Refine(renderer.sharedMesh, id=="zhangfei"?2:1);
                     if(renderer.name == "FaceRenderer") SculptFace(refined);
                     refined.name = id+"_" + renderer.name + "_Refined";
                     triangles += refined.triangles.Length / 3;
@@ -135,13 +141,13 @@ namespace SanGuo.Client.Editor
                 // 待機檔名不含 FightStandby 時，替換會原樣回傳待機檔，攻擊就被換成待機動作。
                 var attack=!clipPath.Contains("FightStandby") ? null : AssetDatabase.LoadAllAssetsAtPath(clipPath.Replace("FightStandby",motion)).OfType<AnimationClip>().FirstOrDefault(c=>!c.name.StartsWith("__preview__"));
                 if(attack != null) clips.Attack=attack;
-                if(id == "r_shield" || id == "r_archer" || id == "r_healer" || id == "r_sword" || ProductionInfantryDesign.IsBandit(id)) clips.Idle.SampleAnimation(root,0);
+                if(id == "r_shield" || id == "r_archer" || id == "r_healer" || id == "r_sword" || id=="zhangfei" || ProductionInfantryDesign.IsBandit(id)) clips.Idle.SampleAnimation(root,0);
                 ProductionInfantryCostume.Apply(root,id,Output);
                 if(role == "archer") { ProductionCharacterProps.Bow(root,Output);root.AddComponent<ArcherPoseRig>(); }
                 if(role == "guard") ProductionCharacterProps.Shield(root,Output);
                 ProductionInfantryDesign.AddDesign(root,id,Output);
                 ProductionArcherAnimation.Apply(root,id,Output);
-                if(id == "r_shield" || id == "r_archer" || id == "r_healer" || id == "r_sword" || ProductionInfantryDesign.IsBandit(id)) ProductionCharacterAssembly.Consolidate(root,id,Output);
+                if(id == "r_shield" || id == "r_archer" || id == "r_healer" || id == "r_sword" || id=="zhangfei" || ProductionInfantryDesign.IsBandit(id)) ProductionCharacterAssembly.Consolidate(root,id,Output);
                 if(id == "guanyu")
                     foreach(var t in root.GetComponentsInChildren<Transform>())
                         if(t.name == "Weapon_00029") t.localRotation = Quaternion.Euler(0,180,0);

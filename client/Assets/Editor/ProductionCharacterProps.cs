@@ -74,7 +74,7 @@ namespace SanGuo.Client.Editor
             string meshPath=output+"/Meshes/"+name+".asset";
             var existing=AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
             if(existing==null){AssetDatabase.CreateAsset(mesh,meshPath);existing=mesh;}
-            else{EditorUtility.CopySerialized(mesh,existing);UnityEngine.Object.DestroyImmediate(mesh);}
+            else{existing.Clear(false);EditorUtility.CopySerialized(mesh,existing);EditorUtility.SetDirty(existing);UnityEngine.Object.DestroyImmediate(mesh);}
             string materialPath=output+"/Materials/"+name+".mat";
             var material=AssetDatabase.LoadAssetAtPath<Material>(materialPath);
             if(material==null)
