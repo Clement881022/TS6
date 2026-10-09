@@ -210,17 +210,18 @@ public static class Kpi
         sb.AppendLine($"| 挫折 | 單關挑戰次數 95 百分位 | {Percentile(attempts, 0.95)}（最多 {(attempts.Count > 0 ? attempts.Max() : 0)}） | ≤ 5 |");
         sb.AppendLine($"| 經濟 | 第 1 個月抽數：無課／小課／大課 | {Pulls("f2p_player01", 0, 30)}／{Pulls("light_spender01", 0, 30)}／{Pulls("heavy_spender01", 0, 30)} | 約 100／120–135／500+ |");
         sb.AppendLine($"| 經濟 | 第 2 個月抽數（第 31–60 天）：無課／小課／大課 | {Pulls("f2p_player01", 30, 60)}／{Pulls("light_spender01", 30, 60)}／{Pulls("heavy_spender01", 30, 60)} | 約 70／90+／500+ |");
-        sb.AppendLine($"| 課金 | 同養成 UR 隊 ÷ SR 隊 Boss 傷害（坦補戰戰／坦補弓法） | {exp.UrSrA:0.00}／{exp.UrSrB:0.00} | ≥ 1.25 |");
-        sb.AppendLine($"| 課金 | UR 0★ ÷ SR 5★（Lv60／5 階） | {exp.Ur0Sr5:0.00} | ≥ 1.0 |");
+        sb.AppendLine($"| 課金 | 最佳 Boss 隊：可用 UR ÷ 只有 SR（滿養成；SR 最佳隊同職業全換 UR） | {exp.UrSrA:0.00}／{exp.UrSrB:0.00} | ≥ 1.25 |");
+        sb.AppendLine($"| 課金 | SR 最佳隊換上剛抽到的 0★ UR（取最好的一次替換）÷ 原本 | {exp.Ur0Sr5:0.00} | ≥ 1.0 |");
         sb.AppendLine($"| 課金 | 10 月結算名次「大課 > 小課 > 無課」的比例 | {orderOk}/{orderN} | ≥ 8 成 |");
         sb.AppendLine($"| 課金 | 10 月結算百分位（越小越前）：無課／小課／大課 | {Pct("f2p_player01")}／{Pct("light_spender01")}／{Pct("heavy_spender01")} | 依序變好 |");
-        sb.AppendLine($"| 技術 | 最佳配隊 SR ÷ 一般配隊 UR 的 Boss 傷害 | {exp.SkillVsMoney:0.00} | > 1（保留技術空間），但不宜 > 1.5 |");
+        sb.AppendLine($"| 技術 | SR 最佳 Boss 隊 ÷ UR 坦補戰戰（不懂配隊）的 Boss 傷害 | {exp.SkillVsMoney:0.00} | > 1（保留技術空間），但不宜 > 1.5 |");
         sb.AppendLine($"| 隨機 | 同隊 Boss 傷害變異係數（不同種子） | {exp.BossCv:0}% | ≤ 3%（P3 每日固定種子後同日為 0） |");
         sb.AppendLine($"| 深度 | 章末關勝率：專家／啟發式／自動（4-10、5-10、6-10 平均） | {exp.Expert:0}%／{exp.Smart:0}%／{exp.Auto:0}% | 專家 − 自動 ≥ 15 |");
         sb.AppendLine($"| 深度 | 出現過的不同卡牌數 | {Fmt(metas.Select(m => double.Parse(m.GetValueOrDefault("distinctCards") ?? "0")))} | ≥ 40 |");
         sb.AppendLine($"| 深度 | 主線最佳組合／Boss 最佳組合 | {exp.BestStory}／{exp.BestBoss} | 兩者不同 |");
         sb.AppendLine();
         sb.AppendLine("## 補充");
+        sb.AppendLine($"- 世界 Boss 最佳隊：只有 SR = {exp.BestSrBoss}；可用 UR = {exp.BestUrBoss}");
         sb.AppendLine($"- 輸過後再贏的場次中，戰力沒變、靠換種子贏的比例：{Fmt(metas.Select(m => 100.0 * double.Parse(m.GetValueOrDefault("winsSamePower") ?? "0") / Math.Max(1, double.Parse(m.GetValueOrDefault("winsAfterLoss") ?? "1"))))}%");
         sb.AppendLine($"- 每次重打前的平均戰力提升：{Fmt(metas.Select(m => double.Parse(m.GetValueOrDefault("retryGain") ?? "0")), "0.0")}%");
         foreach (var (user, label) in Personas)
@@ -239,7 +240,47 @@ public static class Kpi
     sealed class ExpResult
     {
         public double UrSrA, UrSrB, Ur0Sr5, SkillVsMoney, BossCv, Expert, Smart, Auto;
-        public string BestStory = "", BestBoss = "";
+        public string BestStory = "", BestBoss = "", BestSrBoss = "", BestUrBoss = "";
+    }
+
+    static string UrOfSameRole(string id)
+    {
+        var role = HeroRoster.Find(id)!.Role;
+        return HeroRoster.All().Where(h => h.Rarity == Rarity.UR && h.Role == role).Select(h => h.Id).FirstOrDefault();
+    }
+
+    /// <summary>指定武將（依職業自動站位）、Lv60、5 階裝，星級由 stars 決定；回傳世界 Boss 平均傷害。</summary>
+    static double TeamBoss(List<string> ids, Func<string, int> stars, int seeds)
+    {
+        var p = SanGuo.Core.Meta.PlayerProfile.CreateNew(0);
+        p.Level = 60;
+        foreach (var id in ids)
+        {
+            var h = new SanGuo.Core.Meta.HeroState { HeroId = id, Level = 60, Stars = stars(id) };
+            foreach (var s in SanGuo.Core.Meta.Equipment.Slots) h.Equipment[s.ToString()] = 5;
+            p.Heroes[id] = h;
+        }
+        return Experiments.Boss(p, PlayerSim.Place(ids), true, seeds).Avg;
+    }
+
+    /// <summary>在可用武將中找世界 Boss 傷害最高的「坦 + 補 + 兩名輸出」（滿養成）。</summary>
+    static (double Damage, List<string> Team) BestBossTeam(bool urAllowed)
+    {
+        var pool = HeroRoster.All().Where(h => h.Rarity == Rarity.SR || (urAllowed && h.Rarity == Rarity.UR)).ToList();
+        var tanks = pool.Where(h => h.Role == Role.Tank).Select(h => h.Id).ToList();
+        var healers = pool.Where(h => h.Role == Role.Healer).Select(h => h.Id).ToList();
+        var dps = pool.Where(h => h.Role != Role.Tank && h.Role != Role.Healer).Select(h => h.Id).ToList();
+        double best = -1; List<string> bestTeam = null;
+        foreach (var t in tanks)
+            foreach (var hl in healers)
+                for (int a = 0; a < dps.Count; a++)
+                    for (int b = a + 1; b < dps.Count; b++)
+                    {
+                        var ids = new List<string> { t, hl, dps[a], dps[b] };
+                        double d = TeamBoss(ids, _ => 5, 4);
+                        if (d > best) { best = d; bestTeam = ids; }
+                    }
+        return (TeamBoss(bestTeam!, _ => 5, 20), bestTeam!);
     }
 
     static ExpResult ExperimentKpis()
@@ -252,10 +293,29 @@ public static class Kpi
             var (p, t) = Experiments.Team(roles, ur, lv, st, gear);
             return Experiments.Boss(p, t, true, 30).Avg;
         }
-        r.UrSrA = B(tw, true, 60, 5, 5) / B(tw, false, 60, 5, 5);
-        r.UrSrB = B(tb, true, 60, 5, 5) / B(tb, false, 60, 5, 5);
-        r.Ur0Sr5 = B(tw, true, 60, 0, 5) / B(tw, false, 60, 5, 5);
-        r.SkillVsMoney = B(tb, false, 60, 5, 5) / B(tw, true, 60, 5, 5);
+        // 課金上限：能用 UR 時的最佳 Boss 隊 ÷ 只有 SR 時的最佳 Boss 隊（同為 Lv60／5★／5 階）。
+        // UR 有刷圖型與 Boss 型之分，不能拿同職業硬比，所以各自在可用武將中找最佳組合。
+        var (srBest, srTeam) = BestBossTeam(urAllowed: false);
+        var (urBest, urTeam) = BestBossTeam(urAllowed: true);
+        r.UrSrA = urBest / srBest;
+        r.BestSrBoss = string.Join("+", srTeam.Select(id => HeroRoster.Find(id)!.Name));
+        r.BestUrBoss = string.Join("+", urTeam.Select(id => HeroRoster.Find(id)!.Name));
+        // 剛抽到 UR：在 SR 最佳隊裡，把同職業的 5★ SR 換成 0★ UR（取各職業中最好的那次替換）
+        double bestSwap = 0;
+        foreach (var urId in HeroRoster.All().Where(h => h.Rarity == Rarity.UR).Select(h => h.Id))
+        {
+            var role = HeroRoster.Find(urId)!.Role;
+            int i = srTeam.FindIndex(id => HeroRoster.Find(id)!.Role == role);
+            if (i < 0) continue;
+            var swapped = new List<string>(srTeam) { [i] = urId };
+            double dmg = TeamBoss(swapped, id => id == urId ? 0 : 5, 10);
+            bestSwap = Math.Max(bestSwap, dmg / srBest);
+        }
+        r.Ur0Sr5 = bestSwap;
+        var used = new HashSet<string>();
+        var allUr = srTeam.Select(id => { var u = UrOfSameRole(id); return u != null && used.Add(u) ? u : id; }).ToList();
+        r.UrSrB = TeamBoss(allUr, _ => 5, 10) / srBest; // SR 最佳隊同職業換 UR（同一隻 UR 只換一次）
+        r.SkillVsMoney = srBest / B(tw, true, 60, 5, 5);
         {
             var (p, t) = Experiments.Team(tw, false, 60, 5, 5);
             var bo = Experiments.Boss(p, t, true, 30);

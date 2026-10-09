@@ -496,7 +496,7 @@ namespace SanGuo.Client
             if (card.Def.Target != TargetRule.Enemy && card.Def.Target != TargetRule.Ally) return;   // 其餘牌用右側詳情的「使用」按鈕
             var owner = card.Owner!;
             bool selfOk = card.Def.Target == TargetRule.Ally;
-            if (!_battle.InBounds(pos) || (pos == owner.Pos && !selfOk) || Position.Distance(owner.Pos, pos) > owner.AttackRange)
+            if (!_battle.InBounds(pos) || (pos == owner.Pos && !selfOk) || Position.Distance(owner.Pos, pos) > SanGuo.Core.Battle.CardRange(owner, card.Def))
             {
                 Toast("請點選射程內有敵人的格子");
                 return;
@@ -751,7 +751,7 @@ namespace SanGuo.Client
                         for (int row = 0; row < _battle.Setup.Rows; row++)
                         {
                             var p = new Position(lane, row);
-                            if (p != owner.Pos && Position.Distance(owner.Pos, p) <= owner.AttackRange) _previewRange.Add(p);
+                            if (p != owner.Pos && Position.Distance(owner.Pos, p) <= SanGuo.Core.Battle.CardRange(owner, def)) _previewRange.Add(p);
                         }
                 }
                 // 自動選目標的牌（最低血量、全體）直接標出會中招的單位；單體敵人牌由玩家點格，只標射程。
@@ -764,7 +764,7 @@ namespace SanGuo.Client
                 else
                 {
                     foreach (var u in _battle.AliveUnits(Side.Enemy))
-                        if (Position.Distance(owner.Pos, u.Pos) <= owner.AttackRange) _previewTargets.Add(u.Pos);
+                        if (Position.Distance(owner.Pos, u.Pos) <= SanGuo.Core.Battle.CardRange(owner, def)) _previewTargets.Add(u.Pos);
                 }
             }
             RefreshTiles();
@@ -1032,7 +1032,7 @@ namespace SanGuo.Client
             head.Add(cost);
             _detail.Add(head);
 
-            int attackRange = card.Owner != null ? card.Owner.AttackRange : 1;
+            int attackRange = card.Owner != null ? SanGuo.Core.Battle.CardRange(card.Owner, def) : 1;
             _detail.Add(RangeIcon.Build(def, attackRange));
             _detail.Add(new Label(CardText.Target(def, attackRange)) { pickingMode = PickingMode.Ignore }.WithClass("bl-d-target"));
             var desc = CardText.Description(def);
@@ -1409,7 +1409,8 @@ namespace SanGuo.Client
                 case EventType.Shield: return $"{NameOf(e.Target)} 獲得護盾 {e.Value}";
                 case EventType.StatusApplied: return $"{NameOf(e.Target)} 受到 {StatusFromText(e.Text)}";
                 case EventType.Draw: return $"抽了 {e.Value} 張牌";
-                case EventType.GainCost: return $"獲得 {e.Value} 費";
+                case EventType.GainCost: return e.Text == "kill" ? $"擊敗目標，回 {e.Value} 費" : $"獲得 {e.Value} 費";
+                case EventType.PassiveTriggered: return $"{NameOf(e.Source)} 被動「{e.Text}」發動";
                 case EventType.Move: return $"{NameOf(e.Source)} 移動 {e.Text}";
                 case EventType.EnemyMove: return $"{NameOf(e.Source)} 移動 {e.Text}";
                 case EventType.EnemyCharge: return $"{NameOf(e.Source)} 開始蓄力！";

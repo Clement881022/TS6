@@ -29,6 +29,23 @@ namespace SanGuo.Core
             }
         }
 
+        /// <summary>
+        /// 稀有度的基礎屬性倍率（企劃 2026-10-09 定案，取代「同職業同屬性」）：R 100%／SR 115%／UR 135%，
+        /// 套用於生命、攻擊、謀略、防禦；爆擊、閃避、移動、射程不變。
+        /// </summary>
+        public static double RarityStatFactor(Rarity rarity) => rarity == Rarity.UR ? 1.35 : rarity == Rarity.SR ? 1.15 : 1.0;
+
+        public static Stats RarityStats(Role role, Rarity rarity)
+        {
+            var s = RoleStats(role);
+            double f = RarityStatFactor(rarity);
+            s.Hp = (int)Math.Round(s.Hp * f, MidpointRounding.AwayFromZero);
+            s.Atk = (int)Math.Round(s.Atk * f, MidpointRounding.AwayFromZero);
+            s.Int = (int)Math.Round(s.Int * f, MidpointRounding.AwayFromZero);
+            s.Def = (int)Math.Round(s.Def * f, MidpointRounding.AwayFromZero);
+            return s;
+        }
+
         public static AttackType AttackTypeOf(Role role) => RoleStats(role).Range > 1 ? AttackType.Ranged : AttackType.Melee;
 
         /// <summary>職業的基本攻擊是否為法術（謀略 ×1.0）。</summary>
@@ -128,8 +145,10 @@ namespace SanGuo.Core
             up.Name = card.Name + "＋";
             double areaFactor = card.Shape == Shape.Row3 || card.Shape == Shape.Column3 ? Area3Factor
                 : card.Shape == Shape.Cross ? SingleFactor * 2 : card.Shape == Shape.All ? SingleFactor * 3 : SingleFactor;
+            // 只升級第一個可升級的效果（多段效果的專屬牌不重複加成）。
             foreach (var e in up.Effects)
             {
+                bool done = true;
                 switch (e.Type)
                 {
                     case EffectType.Damage:
@@ -144,8 +163,19 @@ namespace SanGuo.Core
                         else if (e.Status == StatusType.Taunt) e.Amount += 1;
                         else if (e.Status == StatusType.AtkUp || e.Status == StatusType.IntUp)
                             e.Multiplier = Math.Round(e.Multiplier * (1.5 + gain) / 1.5, 2); // 鼓舞基準：+25% 值 1.5 費
+                        else if (e.Status == StatusType.DefUp || e.Status == StatusType.CritUp || e.Status == StatusType.DodgeUp)
+                            e.Multiplier += 25; // 自身防禦 +50（2 回合）值 1.0 費，+25 約 0.5 費
+                        else done = false;
+                        break;
+                    case EffectType.GainCost:
+                    case EffectType.Draw:
+                        e.Amount += 1; // 回 1 費 1.0／抽 1 張 0.5，取整數只能 +1
+                        break;
+                    default:
+                        done = false;
                         break;
                 }
+                if (done) break;
             }
             return up;
         }
@@ -154,6 +184,7 @@ namespace SanGuo.Core
             new CardDef
             {
                 Id = id, Name = c.Name, Cost = c.Cost, Target = c.Target, Shape = c.Shape, Basic = c.Basic,
+                Unlimited = c.Unlimited, KillRefund = c.KillRefund,
                 Effects = c.Effects.ConvertAll(e => e.Clone()),
             };
 

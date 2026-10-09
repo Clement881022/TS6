@@ -63,6 +63,12 @@ namespace SanGuo.Core
         public int Amount;
         /// <summary>true 時作用於施放者自己，而非卡牌的目標。</summary>
         public bool OnSelf;
+        /// <summary>true 時作用於我方全體存活武將（例：嘲諷牌附帶全隊防禦）。</summary>
+        public bool OnAllies;
+        /// <summary>Damage：目標身上每有 1 種減益（燃燒、破甲、嘲諷），傷害額外提高的比例（0.3 = +30%）。</summary>
+        public double BonusPerDebuff;
+        /// <summary>Damage：目標是精英或 Boss 時的傷害倍率（0 = 不適用；1.5 = ×1.5）。</summary>
+        public double EliteBossMultiplier;
 
         public EffectDef Clone() => (EffectDef)MemberwiseClone();
     }
@@ -77,6 +83,10 @@ namespace SanGuo.Core
         public TargetRule Target = TargetRule.Enemy;
         public Shape Shape = Shape.Single;
         public List<EffectDef> Effects = new List<EffectDef>();
+        /// <summary>單體敵人牌不受施放者攻擊範圍限制（例：拉住 Boss 的單體嘲諷）。</summary>
+        public bool Unlimited;
+        /// <summary>這張牌擊敗任一目標時回復的費用（每張牌最多觸發一次）。</summary>
+        public int KillRefund;
 
         /// <summary>通用移動牌（0 費、不屬於任何武將）：每名武將在開局時洗入一張；打出時指定一名武將與目的地，格數 = 該武將移動力。</summary>
         public static CardDef CreateMove() => new CardDef
@@ -94,9 +104,18 @@ namespace SanGuo.Core
         public Rarity Rarity = Rarity.R;
         public AttackType AttackType = AttackType.Melee;
         public Stats Base = new Stats();
-        /// <summary>固定套牌：3 張基本攻擊 + 2 張職業特殊卡（同一張卡可重複出現）。</summary>
+        /// <summary>固定套牌：3 張基本攻擊 + 2 張特殊卡（R 為職業標竿卡；SR／UR 為專屬牌）。</summary>
         public List<CardDef> Deck = new List<CardDef>();
+        /// <summary>這名武將的被動（定義上就有，<see cref="Meta.HeroGrowth.BuildDef"/> 依突破決定是否帶入戰鬥）。</summary>
+        public PassiveKind Passive;
+        /// <summary>入戰時已解鎖的被動（BuildDef 在 5★ 時設為 <see cref="Passive"/>；未解鎖為 None）。</summary>
+        public PassiveKind ActivePassive;
+        /// <summary>刷圖型／Boss 型／泛用定位（顯示與配隊提示用，不影響規則）。</summary>
+        public HeroFocus Focus;
     }
+
+    /// <summary>武將定位（企劃 2026-10-09）：刷圖型擅長清小怪與素材副本，Boss 型擅長單體長期戰，泛用兩邊中等。</summary>
+    public enum HeroFocus { General, Farming, Boss }
 
     public sealed class EnemyDef
     {

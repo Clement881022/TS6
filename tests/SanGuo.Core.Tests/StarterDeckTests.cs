@@ -60,21 +60,20 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void SameRoleDifferentRarity_ShareBaseStatsAndBasicAttack()
+        public void SameRoleDifferentRarity_StatsScaleByRarity()
         {
-            foreach (var g in HeroRoster.All().GroupBy(h => h.Role))
+            // 企劃 2026-10-09：稀有度影響基礎屬性 R 100%／SR 115%／UR 135%（生命、攻擊、謀略、防禦）；射程與移動力只看職業。
+            foreach (var h in HeroRoster.All())
             {
-                var first = g.First();
-                foreach (var h in g)
-                {
-                    Assert.Equal(first.Base.Hp, h.Base.Hp);
-                    Assert.Equal(first.Base.Atk, h.Base.Atk);
-                    Assert.Equal(first.Base.Int, h.Base.Int);
-                    Assert.Equal(first.Base.Def, h.Base.Def);
-                    Assert.Equal(first.Base.Range, h.Base.Range);
-                    Assert.Equal(first.Base.Move, h.Base.Move);
-                }
+                var role = CardLibrary.RoleStats(h.Role);
+                double f = CardLibrary.RarityStatFactor(h.Rarity);
+                Assert.Equal((int)System.Math.Round(role.Hp * f, System.MidpointRounding.AwayFromZero), h.Base.Hp);
+                Assert.Equal((int)System.Math.Round(role.Atk * f, System.MidpointRounding.AwayFromZero), h.Base.Atk);
+                Assert.Equal(role.Range, h.Base.Range);
+                Assert.Equal(role.Move, h.Base.Move);
             }
+            Assert.True(HeroRoster.Find("lvbu")!.Base.Atk > HeroRoster.Find("huaxiong")!.Base.Atk);
+            Assert.True(HeroRoster.Find("huaxiong")!.Base.Atk > HeroRoster.Find("r_sword")!.Base.Atk);
         }
 
         // ---- 屬性基準（08 §5）與預設範圍（03 §2.1）----

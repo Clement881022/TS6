@@ -42,7 +42,22 @@ namespace SanGuo.Core.Meta
         public const int TurnLimit = 10;
         public const string UnlockStage = "2-10";
         public const int BossLevel = 40;
-        public const int HpMultiplier = 6;
+        /// <summary>
+        /// Boss 生命倍率。2026-10-09 由 ×6 提高到 ×30：模擬發現月底的術士隊能直接打死 ×6 的 Boss，頂端分數封頂同分，
+        /// 課金與配隊差距都量不出來；改成實際上打不死，10 回合內打越多越高分。
+        /// </summary>
+        public const int HpMultiplier = 30;
+
+        /// <summary>
+        /// 每日固定種子（2026-10-09）：同一天所有玩家打的 Boss 牌序與亂數都相同，比的是隊伍與打法而不是運氣；
+        /// 伺服器開打時用它取代隨機種子。
+        /// </summary>
+        public static ulong DailySeed(long now)
+        {
+            ulong x = (ulong)DailyClock.DayIndex(now) * 0x9E3779B97F4A7C15UL + 0x5EED_B055UL;
+            x ^= x >> 31; x *= 0xBF58476D1CE4E5B9UL; x ^= x >> 29;
+            return x & 0x7FFFFFFFFFFFFFFF;
+        }
 
         /// <summary>Boss 輪替（依賽季月份循環）：章末 Boss 的強化版。</summary>
         private static readonly Func<EnemyDef>[] Rotation =

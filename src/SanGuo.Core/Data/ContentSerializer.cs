@@ -41,12 +41,16 @@ namespace SanGuo.Core.Data
                     ["status"] = e.Status.ToString(),
                     ["amount"] = (long)e.Amount,
                     ["onSelf"] = e.OnSelf,
+                    ["onAllies"] = e.OnAllies,
+                    ["bonusPerDebuff"] = e.BonusPerDebuff,
+                    ["eliteBossMultiplier"] = e.EliteBossMultiplier,
                 });
             }
             return new Dictionary<string, object?>
             {
                 ["id"] = c.Id, ["name"] = c.Name, ["basic"] = c.Basic, ["cost"] = (long)c.Cost,
                 ["target"] = c.Target.ToString(), ["shape"] = c.Shape.ToString(),
+                ["unlimited"] = c.Unlimited, ["killRefund"] = (long)c.KillRefund,
                 ["effects"] = effects,
             };
         }
@@ -59,6 +63,7 @@ namespace SanGuo.Core.Data
             {
                 ["id"] = h.Id, ["name"] = h.Name, ["role"] = h.Role.ToString(), ["rarity"] = h.Rarity.ToString(),
                 ["attackType"] = h.AttackType.ToString(), ["base"] = StatsToObject(h.Base), ["deck"] = deck,
+                ["passive"] = h.Passive.ToString(), ["focus"] = h.Focus.ToString(),
             };
         }
 
@@ -132,6 +137,7 @@ namespace SanGuo.Core.Data
                 Id = S(d, "id", ""), Name = S(d, "name", ""), Basic = B(d, "basic", false), Cost = I(d, "cost", 0),
                 Target = E(d, "target", TargetRule.Enemy),
                 Shape = E(d, "shape", Shape.Single),
+                Unlimited = B(d, "unlimited", false), KillRefund = I(d, "killRefund", 0),
             };
             foreach (var eo in List(d, "effects"))
             {
@@ -140,6 +146,8 @@ namespace SanGuo.Core.Data
                 {
                     Type = E(ed, "type", EffectType.Damage), Multiplier = Dbl(ed, "multiplier", 0), Kind = E(ed, "kind", DamageKind.Physical),
                     Status = E(ed, "status", StatusType.Burn), Amount = I(ed, "amount", 0), OnSelf = B(ed, "onSelf", false),
+                    OnAllies = B(ed, "onAllies", false), BonusPerDebuff = Dbl(ed, "bonusPerDebuff", 0),
+                    EliteBossMultiplier = Dbl(ed, "eliteBossMultiplier", 0),
                 });
             }
             return c;
@@ -151,6 +159,7 @@ namespace SanGuo.Core.Data
             {
                 Id = S(d, "id", ""), Name = S(d, "name", ""), Role = E(d, "role", Role.Warrior),
                 Rarity = E(d, "rarity", Rarity.R), AttackType = E(d, "attackType", AttackType.Melee),
+                Passive = E(d, "passive", PassiveKind.None), Focus = E(d, "focus", HeroFocus.General),
             };
             if (d.TryGetValue("base", out var b) && b is Dictionary<string, object?> bd) h.Base = StatsFromObject(bd);
             foreach (var c in List(d, "deck")) h.Deck.Add(CardFromObject(Obj(c, "deck[]")));

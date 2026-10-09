@@ -173,6 +173,7 @@ namespace SanGuo.Client
             heading.Add(UiKit.Text(def.Name, "strategy-summary-name"));
             heading.Add(UiKit.Text($"Lv.{hero.Level}", "hero-namebar-level"));
             heading.Add(UiKit.Badge(CardText.RoleName(def.Role), "badge-role"));
+            if (def.Rarity != Rarity.R) heading.Add(UiKit.Badge(CardText.FocusName(def.Focus), "badge-role"));
             summary.Add(heading);
 
             // 屬性：目前 → 升級後（只有隨等級成長的四項會顯示預覽）

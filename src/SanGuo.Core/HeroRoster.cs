@@ -9,13 +9,35 @@ namespace SanGuo.Core
         /// <summary>劇情固定武將（SR，不在卡池內）。</summary>
         public static readonly string[] StoryHeroIds = { "liubei", "guanyu", "zhangfei" };
 
-        private static HeroDef Make(string id, string name, string prefix, Role role, Rarity rarity) => new HeroDef
+        /// <summary>建立武將：基礎屬性依稀有度縮放（R 100／SR 115／UR 135%），SR／UR 有專屬牌時取代職業特殊卡（<see cref="Signatures"/>）。</summary>
+        private static HeroDef Make(string id, string name, string prefix, Role role, Rarity rarity)
         {
-            Id = id, Name = name, Role = role, Rarity = rarity,
+            var def = new HeroDef
+            {
+                Id = id, Name = name, Role = role, Rarity = rarity,
+                AttackType = CardLibrary.AttackTypeOf(role),
+                Base = CardLibrary.RarityStats(role, rarity),
+                Deck = CardLibrary.BuildDeck(prefix, role, rarity),
+            };
+            Signatures.Apply(def, prefix);
+            return def;
+        }
+
+        /// <summary>
+        /// 教學關（第零章 1–8 關）專用的劉關張：職業標竿卡與職業基礎屬性（教學內容與 TutorialBalanceTests 依賴這組牌與牌序 id），
+        /// 正式編隊（0-9 起）才用專屬牌與 SR 屬性。
+        /// </summary>
+        private static HeroDef Tutorial(string id, string name, string prefix, Role role) => new HeroDef
+        {
+            Id = id, Name = name, Role = role, Rarity = Rarity.SR,
             AttackType = CardLibrary.AttackTypeOf(role),
             Base = CardLibrary.RoleStats(role),
-            Deck = CardLibrary.BuildDeck(prefix, role, rarity),
+            Deck = CardLibrary.BuildDeck(prefix, role, Rarity.SR),
         };
+
+        public static HeroDef TutorialLiuBei() => Tutorial("liubei", "劉備", "lb", Role.Healer);
+        public static HeroDef TutorialGuanYu() => Tutorial("guanyu", "關羽", "gy", Role.Warrior);
+        public static HeroDef TutorialZhangFei() => Tutorial("zhangfei", "張飛", "zf", Role.Tank);
 
         // ---- R：義勇系列 ----
 

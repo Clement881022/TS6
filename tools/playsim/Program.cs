@@ -19,6 +19,7 @@ Console.OutputEncoding = Encoding.UTF8;
 if (args.Length > 0 && args[0] == "exp") { var t = Experiments.Run(); File.WriteAllText(args.Length > 1 ? args[1] : "experiments.md", t); Console.WriteLine(t); return; }
 if (args.Length > 0 && args[0] == "multi") { await Kpi.Multi(int.Parse(args[1]), int.Parse(args[2]), args[3]); return; }
 if (args.Length > 0 && args[0] == "kpi") { Kpi.Write(args[1]); return; }
+if (args.Length > 0 && args[0] == "calib") { foreach (var o in args.Skip(1)) Console.WriteLine(Calibrate.Run(o.Split(',').Select(int.Parse).ToArray())); return; }
 int days = args.Length > 0 ? int.Parse(args[0]) : 60;
 string outDir = args.Length > 1 ? args[1] : ".";
 int popIndex = Array.IndexOf(args, "--pop");
@@ -260,7 +261,8 @@ public sealed class PlayerSim
         var st = p.Heroes[id];
         var probe = new HeroState { HeroId = id, Level = potential ? Math.Max(st.Level, p.Level) : st.Level, Stars = st.Stars, Equipment = st.Equipment };
         var s = HeroGrowth.ScaleStats(def, probe);
-        double rw = def.Rarity == Rarity.UR ? 1.35 : def.Rarity == Rarity.SR ? 1.15 : 1.0; // 稀有度只提高卡牌倍率，玩家會優先上高稀有度
+        // 稀有度已反映在基礎屬性（R100／SR115／UR135%）；另給專屬牌一點加權，玩家會優先上高稀有度
+        double rw = def.Rarity == Rarity.UR ? 1.1 : def.Rarity == Rarity.SR ? 1.05 : 1.0;
         return Math.Sqrt(s.Hp * (double)Math.Max(Math.Max(s.Atk, s.Int), 1) + s.Def * 50.0) * rw;
     }
 
@@ -792,7 +794,7 @@ public sealed class SmartBot
             }
             if (c.Def.Target == TargetRule.Enemy)
             {
-                var inRange = b.AliveUnits(Side.Enemy).Where(e => Position.Distance(owner.Pos, e.Pos) <= owner.AttackRange).ToList();
+                var inRange = b.AliveUnits(Side.Enemy).Where(e => Position.Distance(owner.Pos, e.Pos) <= Battle.CardRange(owner, c.Def)).ToList();
                 if (inRange.Count == 0) continue;
                 Unit pick;
                 bool debuff = c.Def.Effects.Any(e => e.Status == StatusType.ArmorBreak || e.Status == StatusType.Burn);

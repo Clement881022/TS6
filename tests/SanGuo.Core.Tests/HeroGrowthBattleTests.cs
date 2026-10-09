@@ -34,12 +34,12 @@ namespace SanGuo.Core.Tests
         {
             var zf = HeroRoster.ZhangFei();
             var battle = Fight(zf, new HeroState { HeroId = "zhangfei", Stars = 2 });
-            var plus = battle.Hand.Concat(battle.DrawPile).First(c => c.Def.Id == "zf_taunt_plus");
+            var plus = battle.Hand.Concat(battle.DrawPile).First(c => c.Def.Id == "zf_yanren_plus");
             battle.Hand.Add(plus);
             battle.DrawPile.Remove(plus);
             Assert.Equal(PlayResult.Ok, battle.PlayCard(plus));
             var enemy = battle.Units.First(u => u.Side == Side.Enemy);
-            Assert.Equal(3, enemy.Statuses[StatusType.Taunt].Turns); // SR 嘲諷基礎 2 回合，升級後 +1
+            Assert.Equal(2, enemy.Statuses[StatusType.Taunt].Turns); // 張飛「燕人怒吼」嘲諷 1 回合，2★ 升級後 +1
         }
 
         [Fact]

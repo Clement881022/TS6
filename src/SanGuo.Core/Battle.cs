@@ -176,7 +176,7 @@ namespace SanGuo.Core
         {
             Side own = owner.Side;
             Side foe = own == Side.Player ? Side.Enemy : Side.Player;
-            int range = owner.AttackRange;
+            int range = CardRange(owner, def);
             switch (def.Target)
             {
                 case TargetRule.Self:
@@ -228,6 +228,9 @@ namespace SanGuo.Core
                     return null;
             }
         }
+
+        /// <summary>單體牌的射程：施放者的攻擊範圍；<see cref="CardDef.Unlimited"/> 的牌不受限制。</summary>
+        public static int CardRange(Unit owner, CardDef def) => def.Unlimited ? 99 : owner.AttackRange;
 
         /// <summary>預覽敵方本回合會做什麼（行動預告用）。蓄力中的敵人只回報 <see cref="Intent.Kind.Charging"/>。</summary>
         public Intent GetIntent(Unit enemy)
@@ -348,12 +351,19 @@ namespace SanGuo.Core
             Hand.Remove(card);
             Emit(EventType.CardPlayed, owner.Id, -1, card.Def.Cost, card.Def.Name);
 
+            var aliveBefore = targets.Where(t => t.Side != owner.Side && t.Alive).ToList();
             foreach (var effect in card.Def.Effects)
             {
-                var affected = effect.OnSelf ? new List<Unit> { owner } : targets;
+                var affected = effect.OnSelf ? new List<Unit> { owner } : effect.OnAllies ? AliveUnits(owner.Side) : targets;
                 ResolveEffect(owner, effect, affected);
             }
             _moveDest = null;
+            // 擊敗退費：這張牌打死任一目標時回復費用（每張牌一次）。
+            if (card.Def.KillRefund > 0 && aliveBefore.Any(t => !t.Alive))
+            {
+                Cost = Math.Min(Setup.CostCap, Cost + card.Def.KillRefund);
+                Emit(EventType.GainCost, owner.Id, -1, card.Def.KillRefund, "kill");
+            }
 
             DiscardPile.Add(card);
             CheckEnd();
@@ -365,7 +375,14 @@ namespace SanGuo.Core
         {
             if (Result != BattleResult.Ongoing) return;
 
-            // 我方回合結束：我方單位的燃燒結算。
+            // 我方回合結束：被動「五禽戲」，再結算我方單位的燃燒。
+            foreach (var healer in AliveUnits(Side.Player).Where(u => u.Passive == PassiveKind.WuQin))
+            {
+                var low = AliveUnits(Side.Player).Where(u => u.Hp < u.MaxHp).OrderBy(u => (double)u.Hp / u.MaxHp).FirstOrDefault();
+                if (low == null) continue;
+                HealUnit(healer, low, Passives.WuQinHeal);
+                Emit(EventType.PassiveTriggered, healer.Id, low.Id, 0, Passives.Name(PassiveKind.WuQin));
+            }
             TickBurn(Side.Player);
             if (CheckEnd()) return;
 
@@ -403,7 +420,16 @@ namespace SanGuo.Core
 
             // 手牌與費用不會在回合結束時清空；第 1 回合抽 5 張隨機 + 2 張移動牌，之後每回合抽 DrawPerTurn 張。
             int draw = Turn == 1 ? _firstTurnDraw : Setup.DrawPerTurn;
+            foreach (var u in AliveUnits(Side.Player).Where(u => u.Passive == PassiveKind.JuZhong))
+                if (Turn >= 2) { draw++; Emit(EventType.PassiveTriggered, u.Id, -1, 1, Passives.Name(u.Passive)); }
             for (int i = 0; i < draw && DrawOne(); i++) { }
+
+            if (AliveUnits(Side.Enemy).Any(e => e.Statuses.ContainsKey(StatusType.Taunt)))
+                foreach (var u in AliveUnits(Side.Player).Where(u => u.Passive == PassiveKind.WanRenDi))
+                {
+                    u.Buffs.Add(new Buff { Type = StatusType.DefUp, Power = Passives.WanRenDiDef, Turns = 1 });
+                    Emit(EventType.PassiveTriggered, u.Id, u.Id, Passives.WanRenDiDef, Passives.Name(u.Passive));
+                }
         }
 
         private void RunEnemyPhase()
@@ -492,17 +518,11 @@ namespace SanGuo.Core
             {
                 case EffectType.Damage:
                     foreach (var t in affected.ToList())
-                        if (t.Alive) DealAttackDamage(owner, t, effect.Kind, effect.Multiplier);
+                        if (t.Alive) DealAttackDamage(owner, t, effect.Kind, effect.Multiplier * ConditionalMultiplier(effect, t));
                     break;
                 case EffectType.Heal:
                     foreach (var t in affected)
-                    {
-                        if (!t.Alive) continue;
-                        int amount = DamageCalc.Scale(owner.EffectiveInt, effect.Multiplier);
-                        int healed = Math.Min(amount, t.MaxHp - t.Hp);
-                        t.Hp += healed;
-                        Emit(EventType.Heal, owner.Id, t.Id, healed, "");
-                    }
+                        if (t.Alive) HealUnit(owner, t, effect.Multiplier);
                     break;
                 case EffectType.Shield:
                     foreach (var t in affected)
@@ -584,11 +604,35 @@ namespace SanGuo.Core
                     break;
                 case StatusType.DefUp:
                 case StatusType.DodgeUp:
+                case StatusType.CritUp:
                     value = (int)Math.Round(effect.Multiplier, MidpointRounding.AwayFromZero);
                     target.Buffs.Add(new Buff { Type = effect.Status, Power = value, Turns = effect.Amount });
                     break;
             }
             Emit(EventType.StatusApplied, owner.Id, target.Id, effect.Status == StatusType.Burn ? value : effect.Amount, effect.Status.ToString());
+        }
+
+        /// <summary>條件加傷：目標每有 1 種減益（燃燒、破甲、嘲諷）+X%；目標為精英／Boss 時另乘倍率。</summary>
+        private static double ConditionalMultiplier(EffectDef effect, Unit target)
+        {
+            double m = 1.0;
+            if (effect.BonusPerDebuff > 0)
+            {
+                int debuffs = (target.BurnStacks > 0 ? 1 : 0) + (target.DefBreaks.Count > 0 ? 1 : 0) + (target.Statuses.ContainsKey(StatusType.Taunt) ? 1 : 0);
+                m *= 1.0 + effect.BonusPerDebuff * debuffs;
+            }
+            if (effect.EliteBossMultiplier > 0 && target.Tier != EnemyTier.Normal) m *= effect.EliteBossMultiplier;
+            return m;
+        }
+
+        /// <summary>治療：施放者謀略 × 倍率；我方有存活的「仁君」時 +15%。不超過生命上限。</summary>
+        private void HealUnit(Unit healer, Unit target, double multiplier)
+        {
+            double bonus = AliveUnits(target.Side).Any(u => u.Passive == PassiveKind.RenJun) ? 1.0 + Passives.RenJunHeal : 1.0;
+            int amount = DamageCalc.Scale(healer.EffectiveInt, multiplier * bonus);
+            int healed = Math.Min(amount, target.MaxHp - target.Hp);
+            target.Hp += healed;
+            Emit(EventType.Heal, healer.Id, target.Id, healed, "");
         }
 
         private void DealAttackDamage(Unit attacker, Unit target, DamageKind kind, double multiplier)
@@ -608,7 +652,9 @@ namespace SanGuo.Core
             else
             {
                 crit = !Setup.NoRandomness && Rng.Roll(attacker.EffectiveCrit);
-                dmg = DamageCalc.Physical(attacker.EffectiveAtk, multiplier, target.EffectiveDef, crit, attacker.Stats.CritDmg);
+                double def = target.EffectiveDef;
+                if (crit && attacker.Passive == PassiveKind.MeiRan) def *= 1.0 - Passives.MeiRanIgnoreDef;
+                dmg = DamageCalc.Physical(attacker.EffectiveAtk, multiplier, def, crit, attacker.Stats.CritDmg);
             }
             ApplyDamage(attacker, target, dmg, crit ? "crit" : "");
         }
@@ -616,12 +662,83 @@ namespace SanGuo.Core
         /// <summary>傷害先由護盾吸收（物理與法術一體適用），其餘扣生命值。</summary>
         private void ApplyDamage(Unit? source, Unit target, int dmg, string text)
         {
+            // 「長坂斷後」：自己的嘲諷還在任一敵人身上時減傷。
+            if (target.Passive == PassiveKind.ChangBan && TauntingSomeone(target))
+                dmg = Math.Max(1, (int)Math.Round(dmg * (1.0 - Passives.ChangBanReduce), MidpointRounding.AwayFromZero));
             int absorbed = Math.Min(target.Shield, dmg);
             target.Shield -= absorbed;
             target.Hp -= dmg - absorbed;
             Emit(EventType.Damage, source?.Id ?? -1, target.Id, dmg, text);
-            if (target.Hp <= 0) Kill(target);
-            else CheckPhase(target);
+            if (target.Hp <= 0)
+            {
+                Kill(target);
+                OnKilled(source, target, dmg, text);
+                return;
+            }
+            CheckPhase(target);
+            // 「剛烈不屈」：生命首次低於 50%。
+            if (target.Passive == PassiveKind.GangLie && !target.PassiveFired && target.Hp * 2 < target.MaxHp)
+            {
+                target.PassiveFired = true;
+                target.Buffs.Add(new Buff { Type = StatusType.DefUp, Power = Passives.GangLieDef, Turns = Passives.GangLieTurns });
+                Emit(EventType.PassiveTriggered, target.Id, target.Id, Passives.GangLieDef, Passives.Name(target.Passive));
+            }
+        }
+
+        private bool TauntingSomeone(Unit unit)
+        {
+            foreach (var u in Units)
+                if (u.Alive && u.Side != unit.Side && u.Statuses.TryGetValue(StatusType.Taunt, out var t) && t.SourceId == unit.Id) return true;
+            return false;
+        }
+
+        /// <summary>擊敗觸發的被動：人中呂布（爆擊率）、白馬將軍（回費）、威震華夏（濺射）、太平道（燃燒轉移）。</summary>
+        private void OnKilled(Unit? source, Unit victim, int dmg, string text)
+        {
+            if (victim.Side == Side.Enemy)
+            {
+                // 太平道：被擊敗的燃燒敵人把剩餘層數的一半轉給每名相鄰敵人（有張角在場即生效，燒死的也算）。
+                int burn = victim.BurnStacks;
+                var taiping = AliveUnits(Side.Player).FirstOrDefault(u => u.Passive == PassiveKind.TaiPing);
+                if (burn > 0 && taiping != null)
+                {
+                    int share = (int)Math.Floor(burn * Passives.TaiPingShare);
+                    var adjacent = AliveUnits(Side.Enemy).Where(e => Position.Distance(e.Pos, victim.Pos) == 1).ToList();
+                    if (share > 0 && adjacent.Count > 0)
+                    {
+                        foreach (var adj in adjacent)
+                        {
+                            if (adj.Statuses.TryGetValue(StatusType.Burn, out var b)) b.Power += share;
+                            else adj.Statuses[StatusType.Burn] = new StatusState { Power = share };
+                            Emit(EventType.StatusApplied, taiping.Id, adj.Id, share, StatusType.Burn.ToString());
+                        }
+                        Emit(EventType.PassiveTriggered, taiping.Id, victim.Id, share, Passives.Name(PassiveKind.TaiPing));
+                    }
+                }
+            }
+            if (source == null || source.Side != Side.Player || source == victim) return;
+            switch (source.Passive)
+            {
+                case PassiveKind.RenZhongLvBu:
+                    source.Buffs.Add(new Buff { Type = StatusType.CritUp, Power = Passives.LvBuCrit, Turns = Passives.LvBuTurns });
+                    Emit(EventType.PassiveTriggered, source.Id, source.Id, Passives.LvBuCrit, Passives.Name(source.Passive));
+                    break;
+                case PassiveKind.BaiMa:
+                    if (source.PassiveTurn == Turn) break;
+                    source.PassiveTurn = Turn;
+                    Cost = Math.Min(Setup.CostCap, Cost + 1);
+                    Emit(EventType.GainCost, source.Id, -1, 1, "kill");
+                    Emit(EventType.PassiveTriggered, source.Id, -1, 1, Passives.Name(source.Passive));
+                    break;
+                case PassiveKind.WeiZhen:
+                    if (text == "splash" || text == "Burn") break; // 濺射不再連鎖
+                    int splash = (int)Math.Round(dmg * Passives.WeiZhenSplash, MidpointRounding.AwayFromZero);
+                    var near = AliveUnits(victim.Side).Where(e => Position.Distance(e.Pos, victim.Pos) == 1).ToList();
+                    if (splash <= 0 || near.Count == 0) break;
+                    Emit(EventType.PassiveTriggered, source.Id, victim.Id, splash, Passives.Name(source.Passive));
+                    foreach (var adj in near) if (adj.Alive) ApplyDamage(source, adj, splash, "splash");
+                    break;
+            }
         }
 
         /// <summary>Boss 生命跌破門檻時進入第二階段：換上第二階段的蓄力參數（正在蓄力的不中斷）。</summary>

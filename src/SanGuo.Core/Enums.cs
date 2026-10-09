@@ -52,7 +52,38 @@ namespace SanGuo.Core
     /// <summary>
     /// 狀態種類。Burn（燃燒層數）、ArmorBreak（破甲）、Taunt（嘲諷）為敵方減益；DefUp / AtkUp / IntUp / DodgeUp 為增益，可疊加。
     /// </summary>
-    public enum StatusType { Burn, ArmorBreak, Taunt, DefUp, AtkUp, IntUp, DodgeUp }
+    public enum StatusType { Burn, ArmorBreak, Taunt, DefUp, AtkUp, IntUp, DodgeUp, CritUp }
+
+    /// <summary>
+    /// 武將被動（5★ 解鎖，UR 與劇情劉關張各一個；見 docs/signature-cards-batch1.md）。
+    /// 規則寫在 <see cref="Battle"/> 的觸發點（回合開始／結束、擊敗、受傷、治療、爆擊），名稱與說明見 <see cref="Passives"/>。
+    /// </summary>
+    public enum PassiveKind
+    {
+        None,
+        /// <summary>燕人．張飛「萬人敵」：我方回合開始時，若有敵人處於嘲諷狀態，自身防禦 +30（1 回合）。</summary>
+        WanRenDi,
+        /// <summary>夏侯惇「剛烈不屈」：生命首次低於 50% 時，自身防禦 +80（3 回合）。</summary>
+        GangLie,
+        /// <summary>呂布「人中呂布」：擊敗敵人後，自身爆擊率 +30%（2 回合）。</summary>
+        RenZhongLvBu,
+        /// <summary>荀彧「居中持重」：從第 2 回合起，每回合多抽 1 張。</summary>
+        JuZhong,
+        /// <summary>公孫瓚「白馬將軍」：每回合第一次擊敗敵人時回 1 費。</summary>
+        BaiMa,
+        /// <summary>張角「太平道」：燃燒中的敵人被擊敗時，剩餘燃燒層數的一半轉移給每名相鄰的敵人。</summary>
+        TaiPing,
+        /// <summary>武聖．關羽「威震華夏」：攻擊擊敗敵人時，對其相鄰的敵人造成該次傷害 50% 的濺射。</summary>
+        WeiZhen,
+        /// <summary>華佗「五禽戲」：我方回合結束時，治療生命比例最低的友軍（謀略 ×0.3）。</summary>
+        WuQin,
+        /// <summary>劉備「仁君」：劉備存活時，我方受到的治療 +15%。</summary>
+        RenJun,
+        /// <summary>關羽「美髯公」：爆擊率 +15%；爆擊時無視目標 30% 防禦。</summary>
+        MeiRan,
+        /// <summary>張飛「長坂斷後」：自身施放的嘲諷仍在任一敵人身上時，受到的傷害 −15%。</summary>
+        ChangBan,
+    }
 
     public enum BattleResult { Ongoing, Won, Lost }
 
@@ -105,5 +136,7 @@ namespace SanGuo.Core
         /// <summary>Boss 進入第二階段（Value = 新階段）。</summary>
         EnemyPhase,
         BattleEnd,
+        /// <summary>被動觸發（Text = 被動名稱），供表現層顯示。</summary>
+        PassiveTriggered,
     }
 }

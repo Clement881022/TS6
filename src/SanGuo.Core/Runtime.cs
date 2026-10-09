@@ -85,6 +85,7 @@ namespace SanGuo.Core
                 case StatusType.AtkUp:
                 case StatusType.IntUp:
                 case StatusType.DodgeUp:
+                case StatusType.CritUp:
                     return Buffs.Any(b => b.Type == type);
                 default: return Statuses.ContainsKey(type);
             }
@@ -113,8 +114,16 @@ namespace SanGuo.Core
         /// <summary>有效謀略：基礎謀略 × (1 + 謀略增益加總)。</summary>
         public int EffectiveInt => (int)System.Math.Round(Stats.Int * (1.0 + BuffTotal(StatusType.IntUp) / 100.0), System.MidpointRounding.AwayFromZero);
 
-        /// <summary>有效爆擊率（上限 100）。</summary>
-        public int EffectiveCrit => System.Math.Min(DamageCalc.CritCap, Stats.Crit);
+        /// <summary>有效爆擊率（含爆擊率增益與「美髯公」+15，上限 100）。</summary>
+        public int EffectiveCrit => System.Math.Min(DamageCalc.CritCap,
+            Stats.Crit + BuffTotal(StatusType.CritUp) + (Passive == PassiveKind.MeiRan ? Passives.MeiRanCrit : 0));
+
+        /// <summary>入戰時已解鎖的被動（敵人與未滿突的武將為 None）。</summary>
+        public PassiveKind Passive => Hero?.ActivePassive ?? PassiveKind.None;
+        /// <summary>只觸發一次的被動是否已觸發（剛烈不屈）。</summary>
+        public bool PassiveFired;
+        /// <summary>「白馬將軍」上次觸發的回合。</summary>
+        public int PassiveTurn;
 
         /// <summary>有效閃避（含閃避增益，上限 <see cref="DamageCalc.DodgeCap"/>）。</summary>
         public int EffectiveDodge => System.Math.Min(DamageCalc.DodgeCap, Stats.Dodge + BuffTotal(StatusType.DodgeUp));

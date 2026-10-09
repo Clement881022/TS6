@@ -46,9 +46,14 @@ namespace SanGuo.Core.Tests
             Assert.Equal(DemoContent.Roster().Count, heroes.Count);
             Assert.Equal(json, ContentSerializer.HeroesToJson(heroes));
             var zf = heroes.First(h => h.Id == "zhangfei");
-            var taunt = zf.Deck.First(c => c.Id == "zf_taunt");
+            var taunt = zf.Deck.First(c => c.Id == "zf_yanren");
             Assert.Equal(TargetRule.AllEnemies, taunt.Target);
             Assert.Equal(StatusType.Taunt, taunt.Effects[0].Status);
+            Assert.Equal(PassiveKind.ChangBan, zf.Passive);
+            // 專屬牌的新欄位也要能來回轉換
+            var xhd = heroes.First(h => h.Id == "xiahoudun");
+            Assert.True(xhd.Deck.First(c => c.Id == "xhd_ganglie").Unlimited);
+            Assert.Equal(1, heroes.First(h => h.Id == "gongsunzan").Deck.First(c => c.Id == "gsz_youqi").KillRefund);
         }
 
         [Fact]

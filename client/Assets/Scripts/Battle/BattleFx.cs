@@ -72,6 +72,9 @@ namespace SanGuo.Client
                         Float(e.TargetSide, e.TargetPos, "倒下", new Color(0.8f, 0.8f, 0.85f), 40);
                     }, 0.25f, advance: true);
                     break;
+                case EventType.PassiveTriggered: // 武將被動發動：在施放者頭上浮出被動名稱
+                    Enqueue(() => Float(e.SourceSide, e.SourcePos, $"【{e.Text}】", new Color(0.75f, 0.6f, 1f), 34), 0f, advance: true);
+                    break;
                 case EventType.EnemyPhase: // Boss 生命跌破門檻，蓄力變快
                     Enqueue(() => { AudioManager.PlaySfx(Sfx.Crit); Float(e.TargetSide, e.TargetPos, "怒氣爆發！", new Color(1f, 0.3f, 0.25f), 46); }, 0f, advance: true);
                     break;

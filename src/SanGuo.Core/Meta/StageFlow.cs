@@ -54,6 +54,7 @@ namespace SanGuo.Core.Meta
                 if (bad != null) return new StageStartOutcome { Code = bad };
             }
             seed &= 0x7FFFFFFFFFFFFFFF; // 存成有號數字，不要溢位
+            if (stageId == WorldBoss.StageId) seed = WorldBoss.DailySeed(now); // 世界 Boss：同一天所有人同一個種子
             string code;
             var dungeon = DemoMeta.FindDungeon(stageId);
             if (stageId == WorldBoss.StageId)

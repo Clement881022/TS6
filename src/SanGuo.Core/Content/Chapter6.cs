@@ -37,7 +37,7 @@ namespace SanGuo.Core.Content
                     break;
                 case 6: // 護送：中伏負傷的曹操
                     k.Protect(HeroRoster.Npc("npc_caocao", "曹操", 700), 4, 4, 7, startHpPercent: 60)
-                     .Front(Cavalry(), 3).Front(Cavalry(), 4).Near(XlCaptain(), 4).Back(HorseArcher(), 2).Back(HorseArcher(), 3);
+                     .Front(Cavalry(), 3, -6).Front(Cavalry(), 4, -6).Near(XlCaptain(), 4, -6).Back(HorseArcher(), 2, -6).Back(HorseArcher(), 3, -6); // 護送目標成長慢於敵人，敵人等級另降 6 級
                     break;
                 case 7: // 五名甲士：防禦牆
                     k.Front(Guard(), 1).Front(Guard(), 2).Front(Guard(), 3).Back(HorseArcher(), 0);

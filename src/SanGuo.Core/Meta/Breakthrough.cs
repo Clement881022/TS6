@@ -9,6 +9,8 @@ namespace SanGuo.Core.Meta
         StatBonus,
         /// <summary>把套牌中的某張特殊卡升級為強化版（逐張生效，同名其餘複本不變）。</summary>
         UpgradeCard,
+        /// <summary>解鎖武將被動（UR 與劇情劉關張的 5★，見 <see cref="HeroDef.Passive"/>）。</summary>
+        UnlockPassive,
     }
 
     public enum StatKind { Hp, Atk, Int, Def, Crit }
@@ -24,6 +26,8 @@ namespace SanGuo.Core.Meta
         public int Value;
         /// <summary>UpgradeCard：被替換的卡牌 id。</summary>
         public string TargetCardId = "";
+        /// <summary>UnlockPassive：解鎖的被動。</summary>
+        public PassiveKind Passive;
         public CardDef? NewCard;
         /// <summary>顯示給玩家的說明。</summary>
         public string Description = "";
@@ -86,9 +90,17 @@ namespace SanGuo.Core.Meta
             var specials = hero.Deck.Where(c => !c.Basic).Select(c => c).GroupBy(c => c.Id).Select(g => g.First()).ToList();
             var primary = PrimaryStat(hero.Role);
             var secondary = SecondaryStat(hero.Role);
+            // 有被動的武將（UR、劇情劉關張）：5★ 改為解鎖被動（企劃 2026-10-09），其餘維持第 2 張特殊卡升級。
+            var fifth = hero.Passive != PassiveKind.None
+                ? new BreakthroughEffect
+                {
+                    Stars = 5, Kind = BreakthroughKind.UnlockPassive, Passive = hero.Passive,
+                    Description = $"被動「{Passives.Name(hero.Passive)}」：{Passives.Description(hero.Passive)}",
+                }
+                : Upgrade(5, specials, 1, hero.Rarity);
             var list = new List<BreakthroughEffect>
             {
-                Stat(1, primary), Upgrade(2, specials, 0, hero.Rarity), Stat(3, secondary), Stat(4, primary), Upgrade(5, specials, 1, hero.Rarity),
+                Stat(1, primary), Upgrade(2, specials, 0, hero.Rarity), Stat(3, secondary), Stat(4, primary), fifth,
             };
             return list;
         }

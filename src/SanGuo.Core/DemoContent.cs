@@ -137,13 +137,13 @@ namespace SanGuo.Core
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaShield(), 0, 0));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaSword(), 1, 0));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaArcher(), 1, 1));
-                    setup.Heroes.Add(Hero(HeroRoster.LiuBei(), 2, 1));
+                    setup.Heroes.Add(Hero(HeroRoster.TutorialLiuBei(), 2, 1));
                     setup.Enemies.Add(Enemy(BanditGrunt(), 1, 0));
                     setup.Enemies.Add(Enemy(BanditGrunt(), 2, 0));
                     setup.Enemies.Add(Enemy(BanditGrunt(), 3, 0));
                     break;
                 case 2: // 山賊探子：神射手專打後排；要靠張飛的嘲諷把火力拉到前排
-                    setup.Heroes.Add(Hero(HeroRoster.ZhangFei(), 0, 0));
+                    setup.Heroes.Add(Hero(HeroRoster.TutorialZhangFei(), 0, 0));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaSword(), 1, 0));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaArcher(), 1, 1));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaHealer(), 2, 1));
@@ -153,7 +153,7 @@ namespace SanGuo.Core
                     break;
                 case 3: // 披甲悍匪：防禦極高，要靠弓兵的破甲箭才打得動
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaShield(), 0, 0));
-                    setup.Heroes.Add(Hero(HeroRoster.GuanYu(), 1, 0));
+                    setup.Heroes.Add(Hero(HeroRoster.TutorialGuanYu(), 1, 0));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaArcher(), 1, 1));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaHealer(), 2, 1));
                     setup.Enemies.Add(Enemy(BanditIronBrute(), 2, 0));
@@ -172,7 +172,7 @@ namespace SanGuo.Core
                     break;
                 case 5: // 二當家：蓄力 → 全體大招；嘲諷可打斷蓄力
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaShield(), 0, 0));
-                    setup.Heroes.Add(Hero(HeroRoster.ZhangFei(), 1, 0));
+                    setup.Heroes.Add(Hero(HeroRoster.TutorialZhangFei(), 1, 0));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaArcher(), 1, 1));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaHealer(), 2, 1));
                     setup.Enemies.Add(Enemy(BanditSecondChief(), 1, 0));
@@ -182,7 +182,7 @@ namespace SanGuo.Core
                 case 6: // 護送馬商：弓手專打後排的馬商，用屏障保護他撐過數回合
                     setup.Heroes.Add(new HeroSlot(HeroRoster.Villager(), HeroPos(0, 1), heroLv) { IsProtected = true, StartHpPercent = 60 });
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaShield(), 0, 0));
-                    setup.Heroes.Add(Hero(HeroRoster.LiuBei(), 1, 0));
+                    setup.Heroes.Add(Hero(HeroRoster.TutorialLiuBei(), 1, 0));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaArcher(), 2, 0));
                     setup.Enemies.Add(Enemy(BanditGrunt(), 4, 0));
                     setup.Enemies.Add(Enemy(BanditArcher(), 1, 1));
@@ -199,14 +199,14 @@ namespace SanGuo.Core
                     break;
                 case 8: // 橫掃千軍：五名山賊擠成一排，關羽的橫斬一刀三人
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaShield(), 0, 0));
-                    setup.Heroes.Add(Hero(HeroRoster.GuanYu(), 1, 0));
+                    setup.Heroes.Add(Hero(HeroRoster.TutorialGuanYu(), 1, 0));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaSword(), 2, 0));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaHealer(), 1, 1));
                     for (int lane = 0; lane < 5; lane++) setup.Enemies.Add(Enemy(BanditGrunt(), lane, 0));
                     break;
                 case 9: // 綜合：兩名蓄力的將領
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaShield(), 0, 0));
-                    setup.Heroes.Add(Hero(HeroRoster.ZhangFei(), 1, 0));
+                    setup.Heroes.Add(Hero(HeroRoster.TutorialZhangFei(), 1, 0));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaArcher(), 1, 1));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaHealer(), 2, 1));
                     setup.Enemies.Add(Enemy(BanditSecondChief(), 1, 0));
@@ -214,10 +214,10 @@ namespace SanGuo.Core
                     setup.Enemies.Add(Enemy(BanditShaman(), 2, 1));
                     break;
                 case 10: // BOSS：山大王蓄力兩回合放全體大招，兩側各一名嘍囉
-                    setup.Heroes.Add(Hero(HeroRoster.ZhangFei(), 0, 0));
-                    setup.Heroes.Add(Hero(HeroRoster.GuanYu(), 1, 0));
+                    setup.Heroes.Add(Hero(HeroRoster.TutorialZhangFei(), 0, 0));
+                    setup.Heroes.Add(Hero(HeroRoster.TutorialGuanYu(), 1, 0));
                     setup.Heroes.Add(Hero(HeroRoster.MilitiaArcher(), 1, 1));
-                    setup.Heroes.Add(Hero(HeroRoster.LiuBei(), 2, 1));
+                    setup.Heroes.Add(Hero(HeroRoster.TutorialLiuBei(), 2, 1));
                     setup.Enemies.Add(Enemy(BanditKing(), 1, 0));
                     setup.Enemies.Add(Enemy(BanditGrunt(), 0, 0));
                     setup.Enemies.Add(Enemy(BanditGrunt(), 3, 0));

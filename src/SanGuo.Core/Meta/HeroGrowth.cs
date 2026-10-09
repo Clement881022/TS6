@@ -116,6 +116,9 @@ namespace SanGuo.Core.Meta
             AttackType = def.AttackType,
             Base = ScaleStats(def, hero),
             Deck = Breakthroughs.ResolveDeck(def, hero.Stars),
+            Passive = def.Passive,
+            Focus = def.Focus,
+            ActivePassive = Breakthroughs.Unlocked(def, hero.Stars).Any(e => e.Kind == BreakthroughKind.UnlockPassive) ? def.Passive : PassiveKind.None,
         };
 
         /// <summary>產生入戰用的武將格。屬性已在 <see cref="BuildDef"/> 縮放完，所以戰鬥內的等級固定為 1，避免重複成長。</summary>

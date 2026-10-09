@@ -89,6 +89,18 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
+        public void WorldBoss_UsesTheSameSeedForEveryoneOnTheSameDay()
+        {
+            var a = Unlocked(out var team);
+            var b = Unlocked(out _);
+            var sa = StageFlow.Start(a, WorldBoss.StageId, Oct, 111, team);
+            var sb = StageFlow.Start(b, WorldBoss.StageId, Oct + 3600, 999, team);
+            Assert.True(sa.Ok && sb.Ok);
+            Assert.Equal(sa.Seed, sb.Seed);
+            Assert.NotEqual(WorldBoss.DailySeed(Oct), WorldBoss.DailySeed(Oct + 86400));
+        }
+
+        [Fact]
         public void BossRotatesBySeason()
         {
             Assert.NotEqual(WorldBoss.BossOf("2026-10").Id, WorldBoss.BossOf("2026-11").Id);
