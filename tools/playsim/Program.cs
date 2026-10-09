@@ -105,6 +105,8 @@ public sealed class DayStat
     public int StaminaSpent, StaminaWasted;
     public int Level;
     public string Frontier = "";
+    /// <summary>困難主線已通關數（0–60）。</summary>
+    public int HardCleared;
     public string Team = "";
     public double Power;
     public int Yuanbao, PullsTotal, UrOwned;
@@ -165,6 +167,7 @@ public sealed class PlayerSim
 
         await Growth();
         await PushStory();
+        await PushHard();
         await WorldBossFights();
         await DailyStageQuest();
         await Dungeons();
@@ -189,6 +192,7 @@ public sealed class PlayerSim
         var (c, l) = Campaign.Frontier(p.ClearedStages);
         bool all = p.ClearedStages.Contains("6-10");
         _today.Frontier = all ? "全通" : $"{c}-{l}";
+        _today.HardCleared = p.ClearedStages.Count(HardStages.IsHard);
         var team = ChooseTeam(p);
         _today.Team = string.Join("/", team.Select(t => $"{Short(t.HeroId)}{p.Heroes[t.HeroId].Level}★{p.Heroes[t.HeroId].Stars}g{GearStr(p.Heroes[t.HeroId])}"));
         _today.Power = TeamPower(p, team);
@@ -301,7 +305,52 @@ public sealed class PlayerSim
     private List<FormationEntry> StoryTeam(PlayerProfile p, string stageId)
     {
         if (_stageTeam.TryGetValue(stageId, out var ids) && ids.All(p.Heroes.ContainsKey)) return Place(ids);
-        return ChooseTeam(p);
+        var team = ChooseTeam(p);
+        // 困難關禁用職業：換掉被禁的隊員（用其他職業潛力最高的武將補上）
+        if (HardStages.TryParse(stageId, out int hc, out int hl) && HardStages.BannedRole(hc, hl) is Role banned)
+        {
+            var keep = team.Select(e => e.HeroId).Where(id => HeroRoster.Find(id)!.Role != banned).ToList();
+            foreach (var id in p.Heroes.Keys.Where(k => HeroRoster.Find(k) is { } h && h.Role != banned && !keep.Contains(k))
+                         .OrderByDescending(k => Score(p, k, true)))
+            {
+                if (keep.Count >= 4) break;
+                keep.Add(id);
+            }
+            team = Place(keep);
+        }
+        return team;
+    }
+
+    /// <summary>困難主線：主線之後推進（同樣「打不贏先養成再回來」，每天每關最多重試一次）。</summary>
+    private async Task PushHard()
+    {
+        for (int guard = 0; guard < 40; guard++)
+        {
+            var p = await P();
+            if (p.Stamina.Get(Now) < HardStages.StaminaCost) return;
+            string sid = null;
+            for (int c = HardStages.FirstChapter; c <= Campaign.LastChapter && sid == null; c++)
+                for (int l = 1; l <= Campaign.LevelsPerChapter && sid == null; l++)
+                    if (!p.ClearedStages.Contains(HardStages.StageId(c, l)))
+                        sid = HardStages.IsUnlocked(p.ClearedStages, c, l) ? HardStages.StageId(c, l) : "";
+            if (string.IsNullOrEmpty(sid)) return;
+            _attemptsPerStage.TryGetValue(sid, out int tries);
+            if (_lostAt.TryGetValue(sid, out var lost))
+            {
+                double powNow = TeamPower(p, ChooseTeam(p));
+                bool stronger = powNow >= lost.Pow * (1 + RetryPowerGain) || p.Level > lost.Level;
+                if (!stronger && _today.Day <= lost.Day) return;
+            }
+            double powBefore = TeamPower(p, ChooseTeam(p));
+            var (ok, won, _, _, _) = await Fight(sid, true, "hard");
+            if (!ok) return;
+            _attemptsPerStage[sid] = tries + 1;
+            if (won) { _lostAt.Remove(sid); _today.NewClears++; await Growth(); continue; }
+            _lostAt[sid] = (powBefore, p.Level, _today.Day);
+            if ((tries + 1) % 2 == 0) TryOtherTeams(await P(), sid);
+            await Growth();
+            return;
+        }
     }
 
     /// <summary>同一關輸了好幾次：離線試打候選組合（坦補＋兩輸出、雙坦、雙補、三輸出…），各 4 場，取勝率最高者。</summary>
@@ -483,7 +532,7 @@ public sealed class PlayerSim
     private async Task<(bool Ok, bool Won, int Turns, ApiResult R, Battle B)> Fight(string stageId, bool manual, string kind)
     {
         var p = await P();
-        var team = kind == "boss" ? BossTeam(p) : kind == "story" ? StoryTeam(p, stageId) : ChooseTeam(p);
+        var team = kind == "boss" ? BossTeam(p) : kind == "story" || kind == "hard" ? StoryTeam(p, stageId) : ChooseTeam(p);
         var start = await _g.StartStage(Id, stageId, team);
         if (!start.Ok) return (false, false, 0, start, null);
         ulong seed = (ulong)(long)start.Data!.GetType().GetProperty("seed")!.GetValue(start.Data)!;
@@ -680,9 +729,9 @@ public sealed class PlayerSim
 
     public string DailyCsv()
     {
-        var sb = new StringBuilder("day,minutes,battleMin,storyMin,bossMin,menuMin,battles,losses,storyLosses,newClears,sweeps,staminaSpent,staminaWasted,level,frontier,power,yuanbao,pulls,ur,bossBest,spend,bossToday,team\n");
+        var sb = new StringBuilder("day,minutes,battleMin,storyMin,bossMin,menuMin,battles,losses,storyLosses,newClears,sweeps,staminaSpent,staminaWasted,level,frontier,hardCleared,power,yuanbao,pulls,ur,bossBest,spend,bossToday,team\n");
         foreach (var d in _days)
-            sb.AppendLine($"{d.Day},{d.Seconds / 60:0.0},{d.BattleSeconds / 60:0.0},{d.StorySeconds / 60:0.0},{d.BossSeconds / 60:0.0},{d.MenuSeconds / 60:0.0},{d.Battles},{d.Losses},{d.StoryLosses},{d.NewClears},{d.Sweeps},{d.StaminaSpent},{d.StaminaWasted},{d.Level},{d.Frontier},{d.Power:0},{d.Yuanbao},{d.PullsTotal},{d.UrOwned},{d.BossBest},{d.SpendCny},{d.BossToday},{d.Team}");
+            sb.AppendLine($"{d.Day},{d.Seconds / 60:0.0},{d.BattleSeconds / 60:0.0},{d.StorySeconds / 60:0.0},{d.BossSeconds / 60:0.0},{d.MenuSeconds / 60:0.0},{d.Battles},{d.Losses},{d.StoryLosses},{d.NewClears},{d.Sweeps},{d.StaminaSpent},{d.StaminaWasted},{d.Level},{d.Frontier},{d.HardCleared},{d.Power:0},{d.Yuanbao},{d.PullsTotal},{d.UrOwned},{d.BossBest},{d.SpendCny},{d.BossToday},{d.Team}");
         return sb.ToString();
     }
 

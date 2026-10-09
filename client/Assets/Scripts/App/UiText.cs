@@ -77,6 +77,8 @@ namespace SanGuo.Client
                 case "NothingToClaim": return "目前沒有可領取的獎勵";
                 case "InvalidLevel": return "沒有這個等級";
                 case "no_attempts": return "今天的挑戰次數已用完，明天 5 點重置";
+                case "hard_locked": return "主線全部通關後開放困難主線，並需依序通關";
+                case "banned_role": return "這一關禁用部分職業，請調整編隊";
                 case "invalid_formation": return "編隊不合法：請至少派 1 名已擁有的武將上場（最多 4 人）";
                 case "no_pending_stage": return "沒有進行中的關卡";
                 case "invalid_replay": return "操作紀錄驗證失敗，本局無效";

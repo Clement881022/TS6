@@ -76,7 +76,8 @@ namespace SanGuo.Core.Meta
 
         /// <summary>這個關卡 / 副本是否由玩家編隊上場（資源副本與教學關以外的主線關卡）。</summary>
         public static bool UsesPlayerFormation(string stageId) =>
-            stageId == WorldBoss.StageId || FindDungeon(stageId) != null || (Campaign.TryParse(stageId, out int ch, out int lv) && !FormationLocked(ch, lv));
+            stageId == WorldBoss.StageId || FindDungeon(stageId) != null || HardStages.IsHard(stageId)
+            || (Campaign.TryParse(stageId, out int ch, out int lv) && !FormationLocked(ch, lv));
 
         /// <summary>
         /// 開放編隊的主線關卡（編隊前的樣子）：第零章第 9–10 關沿用教學版的敵人配置，但取消教學專用的限制；
@@ -153,6 +154,7 @@ namespace SanGuo.Core.Meta
                 var wb = profile.WorldBoss;
                 setup = WorldBoss.Setup(wb.FightSeason != "" ? wb.FightSeason : wb.Season, seed);
             }
+            else if (HardStages.TryParse(stageId, out int hc, out int hl)) setup = HardStages.Setup(hc, hl, seed);
             else
             {
                 if (!Campaign.TryParse(stageId, out int chapter, out int level)) return null;
@@ -166,6 +168,7 @@ namespace SanGuo.Core.Meta
         }
 
         public static StageReward? FindStage(string stageId) =>
-            Campaign.TryParse(stageId, out int chapter, out int level) ? Stage(chapter, level) : null;
+            HardStages.TryParse(stageId, out int hc, out int hl) ? HardStages.Stage(hc, hl)
+            : Campaign.TryParse(stageId, out int chapter, out int level) ? Stage(chapter, level) : null;
     }
 }

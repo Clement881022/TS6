@@ -206,6 +206,7 @@ public static class Kpi
         sb.AppendLine($"| 節奏 | 主線隊平均裝備階：第 14／30 天 | {AtDay(f2p, 14, Gear, "0.0")}／{AtDay(f2p, 30, Gear, "0.0")} | 第 30 天 3–4 階 |");
         sb.AppendLine($"| 時間 | 每日分鐘：第 1 天／2–3／4–7／8–30 | {Minutes(1, 1, x => x.D("minutes"))}／{Minutes(2, 3, x => x.D("minutes"))}／{Minutes(4, 7, x => x.D("minutes"))}／{Minutes(8, 30, x => x.D("minutes"))} | 約 180／60–120／60／30 |");
         sb.AppendLine($"| 時間 | 第 31 天後每日分鐘（不含世界 Boss） | {Minutes(31, 999, x => x.D("minutes") - x.D("bossMin"))} | ≥ 15 |");
+        sb.AppendLine($"| 終局 | 困難主線通關數（共 60）：第 30／45／60 天 | {AtDay(f2p, 30, r => r.I("hardCleared"))}／{AtDay(f2p, 45, r => r.I("hardCleared"))}／{AtDay(f2p, 60, r => r.I("hardCleared"))} | 第 2 個月持續有進度 |");
         sb.AppendLine($"| 挫折 | 主線敗場佔比 % | {Fmt(lossRatio)} | ≤ 30 |");
         sb.AppendLine($"| 挫折 | 單關挑戰次數 95 百分位 | {Percentile(attempts, 0.95)}（最多 {(attempts.Count > 0 ? attempts.Max() : 0)}） | ≤ 5 |");
         sb.AppendLine($"| 經濟 | 第 1 個月抽數：無課／小課／大課（鯨魚見補充） | {Pulls("f2p_player01", 0, 30)}／{Pulls("light_spender01", 0, 30)}／{Pulls("heavy_spender01", 0, 30)} | 約 100／120–135／500+ |");

@@ -18,6 +18,10 @@ namespace SanGuo.Core.Meta
         public string[] FirstClearDuplicates = Array.Empty<string>();
         /// <summary>第三星的限定回合數（0 = 不設限）。</summary>
         public int StarTurnPar;
+        /// <summary>每次通關（含掃蕩）額外獲得的素材（困難主線的將魂）。</summary>
+        public Dictionary<string, int> Materials = new Dictionary<string, int>();
+        /// <summary>首通額外獲得的素材。</summary>
+        public Dictionary<string, int> FirstClearMaterials = new Dictionary<string, int>();
     }
 
     public enum SweepResult
@@ -174,8 +178,10 @@ namespace SanGuo.Core.Meta
                 GoldGained = stage.Gold,
             };
             Gold += stage.Gold;
+            foreach (var m in stage.Materials) AddMaterial(m.Key, m.Value);
             if (result.FirstClear)
             {
+                foreach (var m in stage.FirstClearMaterials) AddMaterial(m.Key, m.Value);
                 Yuanbao += stage.FirstClearYuanbao;
                 result.YuanbaoGained = stage.FirstClearYuanbao;
                 if (stage.FirstClearHero != "")
@@ -210,6 +216,7 @@ namespace SanGuo.Core.Meta
 
             result = new ClearResult { ExpGained = stage.Exp * count, GoldGained = stage.Gold * count };
             Gold += result.GoldGained;
+            foreach (var m in stage.Materials) AddMaterial(m.Key, m.Value * count);
             result.LevelsGained = AddExp(result.ExpGained, now);
             Quests.Report(this, Quests.Events.StageClear, count, now);
             Quests.Report(this, Quests.Events.Sweep, count, now);

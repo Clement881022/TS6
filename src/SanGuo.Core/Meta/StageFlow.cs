@@ -50,9 +50,11 @@ namespace SanGuo.Core.Meta
             bool open = DemoMeta.UsesPlayerFormation(stageId);
             if (open)
             {
-                string? bad = FormationRules.Validate(p, formation);
+                string? bad = FormationRules.Validate(p, formation) ?? HardStages.CheckFormation(stageId, formation);
                 if (bad != null) return new StageStartOutcome { Code = bad };
             }
+            if (HardStages.TryParse(stageId, out int hc, out int hl) && !HardStages.IsUnlocked(p.ClearedStages, hc, hl))
+                return new StageStartOutcome { Code = "hard_locked" };
             seed &= 0x7FFFFFFFFFFFFFFF; // 存成有號數字，不要溢位
             if (stageId == WorldBoss.StageId) seed = WorldBoss.DailySeed(now); // 世界 Boss：同一天所有人同一個種子
             string code;

@@ -12,7 +12,7 @@ namespace SanGuo.Client
     public sealed class MapPage : PageBase
     {
         protected override Page Id => Page.Map;
-        protected override string Title => Campaign.Title(Chapter);
+        protected override string Title => (GameSession.HardMode ? "困難　" : "") + Campaign.Title(Chapter);
 
         private static int Chapter => GameSession.SelectedChapter;
 
@@ -94,7 +94,7 @@ namespace SanGuo.Client
             info.style.alignItems = Align.Center;
             int prev = Chapter - 1, next = Chapter + 1;
             var prevBtn = UiKit.Btn("◀ 上一章", () => SwitchChapter(prev)).WithClass("btn-sm");
-            prevBtn.SetEnabled(prev >= Campaign.FirstChapter);
+            prevBtn.SetEnabled(prev >= (GameSession.HardMode ? HardStages.FirstChapter : Campaign.FirstChapter));
             info.Add(prevBtn);
             var progress = new VisualElement { pickingMode = PickingMode.Ignore };
             progress.style.flexGrow = 1;
@@ -105,12 +105,39 @@ namespace SanGuo.Client
             var nextBtn = UiKit.Btn("下一章 ▶", () => SwitchChapter(next)).WithClass("btn-sm");
             nextBtn.SetEnabled(next <= Campaign.LastChapter && GameSession.IsUnlocked(next, 1));
             info.Add(nextBtn);
+            // 普通／困難切換（主線全通後開放；困難主線從第 1 章開始）
+            if (GameSession.HardModeOpen || GameSession.HardMode)
+            {
+                var mode = UiKit.Btn(GameSession.HardMode ? "切換：普通" : "切換：困難", ToggleHard).WithClass("btn-sm");
+                mode.style.marginLeft = 12;
+                info.Add(mode);
+            }
             body.Add(info);
+        }
+
+        private void ToggleHard()
+        {
+            GameSession.HardMode = !GameSession.HardMode;
+            if (GameSession.HardMode)
+            {
+                // 跳到第一個還沒打過的困難關
+                for (int c = HardStages.FirstChapter; c <= Campaign.LastChapter; c++)
+                    for (int l = 1; l <= Campaign.LevelsPerChapter; l++)
+                        if (!GameSession.View.ClearedStages.Contains(HardStages.StageId(c, l))) { GameSession.Select(c, l); Rebuild(); return; }
+                GameSession.Select(Campaign.LastChapter, Campaign.LevelsPerChapter);
+            }
+            else
+            {
+                var (fc, fl) = GameSession.Frontier();
+                GameSession.Select(fc, fl);
+            }
+            Rebuild();
         }
 
         private void SwitchChapter(int chapter)
         {
             if (chapter < Campaign.FirstChapter || chapter > Campaign.LastChapter || !GameSession.IsUnlocked(chapter, 1)) return;
+            if (GameSession.HardMode) { GameSession.Select(chapter, 1); Rebuild(); return; }
             // 切到目前該打的那一章時停在該關，其餘停在第 1 關。
             var (fc, fl) = GameSession.Frontier();
             GameSession.Select(chapter, chapter == fc ? fl : 1);
@@ -126,10 +153,10 @@ namespace SanGuo.Client
         {
             var v = GameSession.View;
             int chapter = Chapter;
-            var stage = DemoMeta.Stage(chapter, level);
+            var stage = DemoMeta.FindStage(GameSession.StageIdOf(chapter, level))!;
             int stars = v.StarsOf(stage.StageId);
             bool first = !v.ClearedStages.Contains(stage.StageId);
-            var setup = Campaign.Setup(chapter, level, 1);
+            var setup = GameSession.EnemyPreview(stage.StageId) ?? Campaign.Setup(chapter, level, 1);
 
             var overlay = new VisualElement();
             overlay.AddToClassList("overlay");
@@ -142,7 +169,7 @@ namespace SanGuo.Client
 
             var head = new VisualElement();
             head.AddToClassList("stage-head");
-            head.Add(UiKit.Text($"{chapter}-{level}　{Campaign.LevelName(chapter, level)}", "stage-title"));
+            head.Add(UiKit.Text($"{(GameSession.HardMode ? "困難 " : "")}{chapter}-{level}　{Campaign.LevelName(chapter, level)}", "stage-title"));
             head.Add(UiKit.StarsRow(stars, 3, "stars-lg"));
             panel.Add(head);
 
@@ -157,6 +184,11 @@ namespace SanGuo.Client
             tiles.Add(UiKit.ItemTile("item_expbook", stage.Exp.ToString()));
             tiles.Add(UiKit.ItemTile("item_gold", stage.Gold.ToString()));
             if (first && stage.FirstClearYuanbao > 0) tiles.Add(UiKit.ItemTile("item_yuanbao", stage.FirstClearYuanbao.ToString(), "item-first"));
+            foreach (var m in stage.Materials)
+            {
+                int n = m.Value + (first && stage.FirstClearMaterials.TryGetValue(m.Key, out int extra) ? extra : 0);
+                tiles.Add(UiKit.ItemTile(m.Key == HeroGrowth.HeroExp ? "item_expbook" : "item_shard", n.ToString())); // 與獎勵列一致：將魂用碎片圖示
+            }
             rewards.Add(tiles);
             rewards.Add(StarCondition(1, "通關", stars));
             rewards.Add(StarCondition(2, "無武將陣亡", stars));
@@ -168,6 +200,8 @@ namespace SanGuo.Client
             foes.Add(UiKit.Section("敵方"));
             var objective = ObjectiveText(setup);
             if (objective != null) foes.Add(UiKit.Text(objective, "txt-gold"));
+            if (GameSession.HardMode && HardStages.BannedRole(chapter, level) is Role banned)
+                foes.Add(UiKit.Text($"條件：禁用{CardText.RoleName(banned)}", "txt-gold"));
             var names = setup.Enemies.GroupBy(e => e.Def.Name).Select(g => g.Count() > 1 ? $"{g.Key} ×{g.Count()}" : g.Key);
             foreach (var n in names) foes.Add(UiKit.Text("● " + n, "line-title"));
             cols.Add(foes);

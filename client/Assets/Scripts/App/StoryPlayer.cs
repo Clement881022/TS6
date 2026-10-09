@@ -38,6 +38,7 @@ namespace SanGuo.Client
         /// <summary>主線關卡首通後劇情。</summary>
         public static void ShowAfter(VisualElement layer, int chapter, int level)
         {
+            if (GameSession.HardMode) return; // 困難主線不重播劇情
             if (SanGuo.Core.Campaign.IsValid(chapter, level))
                 Show(layer, StageTitle(chapter, level), CampaignStory.After(chapter, level));
         }

@@ -132,12 +132,20 @@ namespace SanGuo.Client
 
         public static HeroDef? DefOf(string id) => Roster.Find(h => h.Id == id);
 
-        public static string StageIdOf(int chapter, int level) => Campaign.StageId(chapter, level);
+        /// <summary>地圖目前顯示困難主線（主線 6-10 通關後可切換）。關卡 id、解鎖判斷都依這個開關切換。</summary>
+        public static bool HardMode;
 
-        public static bool IsUnlocked(int chapter, int level) => Campaign.IsUnlocked(View.ClearedStages, chapter, level);
+        /// <summary>困難主線是否已開放（主線全通）。</summary>
+        public static bool HardModeOpen => View.ClearedStages.Contains(HardStages.UnlockStage);
 
-        /// <summary>教學關：隊伍固定，不經過編隊畫面。</summary>
-        public static bool FormationLocked(int chapter, int level) => DemoMeta.FormationLocked(chapter, level);
+        public static string StageIdOf(int chapter, int level) =>
+            HardMode ? HardStages.StageId(chapter, level) : Campaign.StageId(chapter, level);
+
+        public static bool IsUnlocked(int chapter, int level) =>
+            HardMode ? HardStages.IsUnlocked(View.ClearedStages, chapter, level) : Campaign.IsUnlocked(View.ClearedStages, chapter, level);
+
+        /// <summary>教學關：隊伍固定，不經過編隊畫面（困難主線一律自己編隊）。</summary>
+        public static bool FormationLocked(int chapter, int level) => !HardMode && DemoMeta.FormationLocked(chapter, level);
 
         public static void Select(int chapter, int level)
         {
@@ -194,6 +202,7 @@ namespace SanGuo.Client
             var dungeon = DemoMeta.FindDungeon(stageId);
             if (dungeon != null) return DemoMeta.DungeonSetup(dungeon.Id, 1);
             if (stageId == WorldBoss.StageId) return WorldBoss.Setup(WorldBoss.SeasonOf(View.Now), 1);
+            if (HardStages.TryParse(stageId, out int hc, out int hl)) return HardStages.Setup(hc, hl, 1);
             return Campaign.TryParse(stageId, out int chapter, out int level)
                 ? DemoMeta.OpenLevel(chapter, level, 1) : null;
         }
@@ -214,7 +223,8 @@ namespace SanGuo.Client
                 var r = await Backend.StartStage(stageId, formation);
                 if (!r.Ok) return UiText.ExplainBackend(r.Code);
                 var dungeon = DemoMeta.FindDungeon(stageId);
-                if (dungeon == null && Campaign.TryParse(stageId, out int chapter, out int level)) Select(chapter, level);
+                if (dungeon == null && (Campaign.TryParse(stageId, out int chapter, out int level) || HardStages.TryParse(stageId, out chapter, out level)))
+                    Select(chapter, level);
                 Ticket = new BattleTicket { StageId = stageId, Seed = r.Seed, Chapter = SelectedChapter, Level = SelectedLevel, Dungeon = dungeon, Formation = formation };
                 return null;
             }
