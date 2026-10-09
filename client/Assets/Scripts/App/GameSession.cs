@@ -38,6 +38,14 @@ namespace SanGuo.Client
             get { EnsureInit(); return _backend!; }
         }
 
+        /// <summary>帳號功能；單機版為 null。</summary>
+        public static IAccountBackend? Accounts => Backend as IAccountBackend;
+        /// <summary>目前登入的帳號（登入後與帳號頁更新）；單機版或尚未取得時為 null。</summary>
+        public static AccountInfo? Account { get; set; }
+
+        /// <summary>顯示用的玩家名稱：帳號暱稱，單機版為「主公」。</summary>
+        public static string DisplayName => Account?.Nickname is { Length: > 0 } n ? n : "主公";
+
         public static ProfileView View { get; private set; } = new ProfileView();
         public static readonly List<HeroDef> Roster = DemoContent.Roster();
         /// <summary>玩家排好的隊伍與站位（武將 Id → 格子）。</summary>
@@ -57,6 +65,7 @@ namespace SanGuo.Client
         private static void ResetStatics()
         {
             _backend = null;
+            Account = null;
             View = new ProfileView();
             Formation.Clear();
             FormationStageId = "";
@@ -71,12 +80,19 @@ namespace SanGuo.Client
         public static void EnsureInit()
         {
             if (_backend != null) return;
-            // 有 -sanguoServer <網址> 就連伺服器（-sanguoAccount 指定帳號），否則用單機存檔。
+            // 有 -sanguoServer <網址> 就連伺服器（要先登入），否則用單機存檔。
+            // -sanguoAccount <帳號> 是開發用：略過登入、直接以 X-Account 指定帳號（伺服器需開啟開發模式）。
             string? server = CommandLineValue("-sanguoServer");
             ShotDir = CommandLineValue("-sanguoShot");
             _backend = server != null
-                ? new RemoteBackend(server, CommandLineValue("-sanguoAccount") ?? "dev-" + SystemInfo.deviceUniqueIdentifier)
+                ? new RemoteBackend(server, CommandLineValue("-sanguoAccount"))
                 : new LocalBackend(persist: ShotDir == null);
+            if (_backend is IAccountBackend accounts)
+                accounts.SessionLost += () =>
+                {
+                    Account = null;
+                    if (!(PageHost.Current?.ActivePage is LoginPage)) Nav.Go(Page.Login);
+                };
             string? levelArg = CommandLineValue("-sanguoLevel");
             // -sanguoLevel 接受 "章-關"（如 3-10）或只給關數（第零章）。
             if (levelArg != null && Campaign.TryParse(levelArg, out int argChapter, out int argLevel)) Select(argChapter, argLevel);
@@ -99,6 +115,12 @@ namespace SanGuo.Client
                 var v = await Backend.GetProfile();
                 if (v == null) return false;
                 View = v;
+                // 沿用上次 token 開遊戲時還沒有帳號資訊，順便抓一次（暱稱顯示用）。
+                if (Account == null && Accounts != null)
+                {
+                    var a = await Accounts.GetAccount();
+                    if (a.Ok) Account = a.Account;
+                }
                 return true;
             }
             catch (Exception e)

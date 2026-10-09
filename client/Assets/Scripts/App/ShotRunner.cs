@@ -23,8 +23,9 @@ namespace SanGuo.Client
             var args = System.Environment.GetCommandLineArgs();
             int review = System.Array.IndexOf(args, "-sanguoModelReview");
             bool campaign = System.Array.IndexOf(args, "-sanguoCampaignShot") >= 0;
+            bool account = System.Array.IndexOf(args, "-sanguoAccountShot") >= 0;
             Instance.StartCoroutine(review >= 0 ? Instance.ReviewModels(dir, review+1 < args.Length ? args[review+1] : "guanyu")
-                : campaign ? Instance.RunCampaign(dir) : Instance.Run(dir));
+                : account ? Instance.RunAccount(dir) : campaign ? Instance.RunCampaign(dir) : Instance.Run(dir));
         }
 
         private int _n = 1;
@@ -262,6 +263,96 @@ namespace SanGuo.Client
             battle.DebugReviewZoom(true);
             yield return Wait(.5f); Shot(dir, "battle-crowded-zoom"); yield return Wait(.4f);
             Application.Quit();
+        }
+
+        /// <summary>
+        /// 帳號流程驗證（-sanguoAccountShot，需搭配 -sanguoServer 且裝置上沒有登入 token）：
+        /// 登入頁 → 錯誤密碼 → 遊客進入 → 帳號頁 → 綁定帳號密碼 → 登出 → 以帳號密碼重新登入。每一步都檢查結果，不符就拋例外。
+        /// </summary>
+        private IEnumerator RunAccount(string dir)
+        {
+            Directory.CreateDirectory(dir);
+            string username = "shot_" + System.DateTime.UtcNow.ToString("MMddHHmmss");
+            const string password = "shotpass123";
+            // 每次都從全新的遊客開始：清掉這台機器上次留下的遊客金鑰與 token。
+            PlayerPrefs.DeleteKey("sanguo.guestKey");
+            yield return Wait(1.5f);
+            if (!(PageHost.Current?.ActivePage is LoginPage))
+            {
+                var logout = GameSession.Accounts!.Logout();
+                while (!logout.IsCompleted) yield return null;
+                Nav.Go(Page.Login);
+                yield return Wait(1f);
+            }
+            Expect<LoginPage>();
+            Shot(dir, "login");
+            yield return Wait(0.4f);
+
+            Fill(0, username); Fill(1, "wrongpass99");
+            Submit(ButtonText("登入"));
+            yield return Wait(1.5f);
+            Expect<LoginPage>();
+            Shot(dir, "login-wrong-password");
+            yield return Wait(0.4f);
+
+            Submit(ButtonText("遊客進入"));
+            yield return Wait(2.5f);
+            Expect<HomePage>();
+            if (GameSession.Account == null || GameSession.Account.Bound) throw new System.InvalidOperationException("遊客登入後沒有取得遊客帳號");
+            Shot(dir, "home-guest");
+            yield return Wait(0.4f);
+
+            var playerCard = PageHost.Current!.GetComponent<UIDocument>().rootVisualElement.Q(className: "home-player");
+            using (var click = ClickEvent.GetPooled())
+            {
+                click.target = playerCard;
+                playerCard.SendEvent(click);
+            }
+            yield return Wait(2f);
+            Expect<AccountPage>();
+            Shot(dir, "account-guest");
+            yield return Wait(0.4f);
+
+            Fill(0, "測試主公");
+            Submit(ButtonText("修改暱稱"));
+            yield return Wait(1.5f);
+            if (GameSession.Account?.Nickname != "測試主公") throw new System.InvalidOperationException("暱稱沒有更新");
+            Fill(1, username); Fill(2, password); Fill(3, password);
+            Submit(ButtonText("綁定帳號"));
+            yield return Wait(2f);
+            if (GameSession.Account?.Username != username) throw new System.InvalidOperationException("綁定後帳號不符");
+            Shot(dir, "account-bound");
+            yield return Wait(0.4f);
+
+            Submit(ButtonText("登出"));
+            yield return Wait(1.5f);
+            Expect<LoginPage>();
+            Fill(0, username); Fill(1, password);
+            Submit(ButtonText("登入"));
+            yield return Wait(2.5f);
+            Expect<HomePage>();
+            if (GameSession.Account?.Nickname != "測試主公") throw new System.InvalidOperationException("重新登入後不是同一個帳號");
+            Shot(dir, "home-relogin");
+            yield return Wait(0.6f);
+            Debug.Log("[shot] account flow verified");
+            Application.Quit();
+        }
+
+        private static void Expect<T>() where T : PageBase
+        {
+            if (!(PageHost.Current?.ActivePage is T))
+                throw new System.InvalidOperationException($"預期在 {typeof(T).Name}，實際是 {PageHost.Current?.ActivePage?.GetType().Name}");
+        }
+
+        private static Button ButtonText(string text) =>
+            PageHost.Current!.GetComponent<UIDocument>().rootVisualElement.Query<Button>().Where(b => b.text == text).First()
+            ?? throw new System.InvalidOperationException("找不到按鈕：" + text);
+
+        private static void Fill(int index, string value)
+        {
+            var fields = PageHost.Current!.GetComponent<UIDocument>().rootVisualElement.Query<TextField>().ToList();
+            if (index >= fields.Count) throw new System.InvalidOperationException($"找不到第 {index + 1} 個輸入框");
+            fields[index].value = value;
         }
 
         private IEnumerator Go(Page page)

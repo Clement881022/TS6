@@ -25,6 +25,8 @@ namespace SanGuo.Client
         protected virtual bool UseFrame => true;
         /// <summary>左上角返回鍵回到的頁面（關閉鍵一律回主城）。</summary>
         protected virtual Page BackPage => Page.Home;
+        /// <summary>false = 開頁時不向後端抓玩家資料（登入頁：還沒有帳號）。</summary>
+        protected virtual bool NeedsProfile => true;
         protected abstract void BuildBody(VisualElement body);
 
         /// <summary>頁面內容區（Rebuild 時會清空重畫）；彈出視窗請加在這裡，會跟著重畫消失。</summary>
@@ -41,7 +43,9 @@ namespace SanGuo.Client
             if (Id != Page.Battle) _host.AddToClassList("meta-page"); // Polish.uss 的統一尺寸只作用於非戰鬥頁面
             container.Add(_host);
             Rebuild();
+            if (!NeedsProfile) { OnReady(); return; }
             if (await GameSession.Refresh()) Rebuild();
+            else if (this == null || PageHost.Current?.ActivePage != this) return; // token 失效已轉去登入頁
             else Toast(UiText.ExplainBackend("network"));
             OnReady();
         }

@@ -81,6 +81,17 @@ namespace SanGuo.Client
                 case "no_pending_stage": return "沒有進行中的關卡";
                 case "invalid_replay": return "操作紀錄驗證失敗，本局無效";
                 case "network": return "連線失敗，請稍後再試";
+                case "unauthorized": return "登入已失效，請重新登入";
+                case "invalid_guest_key": return "遊客資料損毀，請改用帳號登入";
+                case "invalid_username": return "帳號需為 4–20 字的英文、數字或底線";
+                case "invalid_password": return "密碼需為 8–64 字";
+                case "password_mismatch": return "兩次輸入的密碼不一樣";
+                case "username_taken": return "這個帳號已經有人使用";
+                case "wrong_credentials": return "帳號或密碼錯誤";
+                case "already_bound": return "這個帳號已經綁定過了";
+                case "invalid_nickname": return "暱稱需為 2–12 字";
+                case "no_account": return "找不到帳號";
+                case "rate_limited": return "嘗試次數太多，請一分鐘後再試";
                 default: return "失敗：" + code;
             }
         }

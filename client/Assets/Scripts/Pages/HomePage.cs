@@ -104,15 +104,18 @@ namespace SanGuo.Client
 
         private VisualElement BuildPlayerCard(ProfileView v)
         {
-            var card = new VisualElement { pickingMode = PickingMode.Ignore };
+            // 點玩家卡進帳號頁（暱稱、綁定、登出）。
+            var card = new VisualElement();
             card.AddToClassList("home-player");
+            card.tooltip = "帳號";
+            card.RegisterCallback<ClickEvent>(_ => Nav.Go(Page.Account));
             var hero = GameSession.DefOf("liubei");
             card.Add(UiKit.Avatar(hero?.Name ?? "主", hero?.Rarity ?? Rarity.UR, true, "liubei"));
             var info = new VisualElement { pickingMode = PickingMode.Ignore };
             info.AddToClassList("home-player-info");
             var top = new VisualElement { pickingMode = PickingMode.Ignore };
             top.AddToClassList("home-player-top");
-            top.Add(new Label("主公") { pickingMode = PickingMode.Ignore }.WithClass("home-player-name"));
+            top.Add(new Label(GameSession.DisplayName) { pickingMode = PickingMode.Ignore }.WithClass("home-player-name"));
             top.Add(new Label($"Lv.{v.Level}") { pickingMode = PickingMode.Ignore }.WithClass("home-player-level"));
             info.Add(top);
             var bar = UiKit.Bar(v.ExpToNext <= 0 ? 0 : 100f * v.Exp / v.ExpToNext, "bar-gold bar-slim");

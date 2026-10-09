@@ -55,7 +55,8 @@ namespace SanGuo.Client
             AddSheet(_root, "UI/BattlePolish");
             ApplyCjkFont(_root);
 
-            Show(startPage);
+            // 連伺服器但裝置上沒有登入 token：先到登入頁。
+            Show(GameSession.Accounts is { HasSession: false } ? Page.Login : startPage);
             if (GameSession.ShotDir != null && ShotRunner.Instance == null)
                 ShotRunner.Begin(GameSession.ShotDir);
         }
