@@ -122,7 +122,7 @@ public sealed class PlayerSim
     public PlayerSim(Persona pe, GameService g, IProfileStore store, IWorldBossBoard board, SimClock clock)
     { _pe = pe; _g = g; _store = store; _board = board; _clock = clock; }
 
-    private string Id => _pe.AccountId;
+    private string Id { get { Meta._ctx = _pe.AccountId; return _pe.AccountId; } }
     private long Now => _clock.GetUtcNow().ToUnixTimeSeconds();
     private Task<PlayerProfile> P() => _store.LoadAsync(Id)!;
     private void Menu(double s) { _today.Seconds += s; _today.MenuSeconds += s; }
@@ -396,8 +396,10 @@ public sealed class PlayerSim
                 double s = StoryLines(sid, false) * 3;
                 _today.Seconds += s; _today.StorySeconds += s;
             }
+            double powBefore = TeamPower(p, ChooseTeam(p));
             var (ok, won, turns, _, _) = await Fight(sid, true, "story");
             if (!ok) return;
+            Meta.RecordAttempt(sid, powBefore, won);
             _attemptsPerStage[sid] = tries + 1;
             if (won)
             {
@@ -410,7 +412,10 @@ public sealed class PlayerSim
             }
             // 輸了：養成一下再試一次；再輸就這個時段不推主線
             await Growth();
+            var p2 = await P();
+            double pow2 = TeamPower(p2, ChooseTeam(p2));
             var (ok2, won2, _, _, _) = await Fight(sid, true, "story");
+            if (ok2) Meta.RecordAttempt(sid, pow2, won2);
             _attemptsPerStage[sid] = tries + 2;
             if (ok2 && won2) { _today.NewClears++; _events.Add($"D{_today.Day} {sid} 第 {tries + 2} 次才過"); await Growth(); continue; }
             return;
@@ -647,6 +652,26 @@ public static class Meta
     private static readonly Dictionary<string, int> DeathsByRole = new();
     private static readonly Dictionary<string, int> UnitsByRole = new();
 
+    private static readonly Dictionary<string, double> LastPow = new();
+    private static int _att, _attLoss, _lossSamePow, _lossUp, _winSamePow, _winAfterLossUp, _winsAfterLoss;
+    public static void RecordAttempt(string stage, double pow, bool won)
+    {
+        string k = stage + "#" + System.Threading.Thread.CurrentThread.ManagedThreadId + "#" + _ctx;
+        bool retry = LastPow.TryGetValue(k, out double last);
+        double gain = retry ? pow / last - 1 : 0;
+        _att++;
+        if (!won) { _attLoss++; if (retry && gain < 0.005) _lossSamePow++; else if (retry) _lossUp++; }
+        if (won && retry) { _winsAfterLoss++; if (gain < 0.005) _winSamePow++; else _winAfterLossUp++; }
+        if (won) LastPow.Remove(k); else LastPow[k] = pow;
+        if (retry) { _gainSum += gain; _gainN++; }
+    }
+    public static string _ctx = "";
+    private static double _gainSum; private static int _gainN;
+    public static string AttemptReport() =>
+        $"- 主線挑戰 {_att} 次，敗 {_attLoss} 次。重打 {_gainN} 次，平均每次重打前戰力提升 {100 * _gainSum / Math.Max(1, _gainN):0.0}%\n" +
+        $"- 重打時戰力幾乎沒變（<0.5%）而輸：{_lossSamePow}；戰力有提升仍輸：{_lossUp}\n" +
+        $"- 輸過後終於打贏的 {_winsAfterLoss} 次中：戰力沒變、純粹換種子贏 {_winSamePow}；戰力有提升才贏 {_winAfterLossUp}\n";
+
     public static void RecordCard(string kind, CardInstance c)
     {
         if (kind == "basic") return;
@@ -687,6 +712,8 @@ public static class Meta
     public static string Report()
     {
         var sb = new StringBuilder();
+        sb.AppendLine("## 重打分析");
+        sb.Append(AttemptReport());
         sb.AppendLine("## 戰鬥類型");
         foreach (var kv in ByKind) sb.AppendLine($"- {kv.Key}: {kv.Value.n} 場，勝率 {100.0 * kv.Value.won / kv.Value.n:0}% ，平均 {(double)kv.Value.turns / kv.Value.n:0.0} 回合");
         sb.AppendLine("## 主線目標類型（場次）");
