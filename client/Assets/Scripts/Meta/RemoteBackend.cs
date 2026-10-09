@@ -183,6 +183,11 @@ namespace SanGuo.Client
         public Task<BackendResult> ClaimMonthCard(string cardId) =>
             Simple("/shop/month-card/claim", new Dictionary<string, object?> { ["productId"] = cardId });
 
+        public Task<BackendResult> ClaimPass(int level, bool paid) =>
+            Simple("/pass/claim", new Dictionary<string, object?> { ["level"] = (long)level, ["paid"] = paid });
+
+        public Task<BackendResult> ClaimPassAll() => Simple("/pass/claim-all", new Dictionary<string, object?>());
+
         public Task<BackendResult> SweepDungeon(string dungeonId, int count) =>
             Simple("/dungeon/sweep", new Dictionary<string, object?> { ["id"] = dungeonId, ["count"] = (long)count });
 

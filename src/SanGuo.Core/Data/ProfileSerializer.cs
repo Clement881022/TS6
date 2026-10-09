@@ -74,6 +74,12 @@ namespace SanGuo.Core.Data
                 ["monthCardClaimedDay"] = LongMap(p.MonthCardClaimedDay),
                 ["soulShopBought"] = IntMap(p.SoulShopBought),
                 ["soulShopMonth"] = p.SoulShopMonth,
+                ["pass"] = new Dictionary<string, object?>
+                {
+                    ["season"] = p.Pass.Season, ["points"] = (long)p.Pass.Points, ["tier"] = p.Pass.Tier,
+                    ["claimedFree"] = SortedInts(p.Pass.ClaimedFree), ["claimedPaid"] = SortedInts(p.Pass.ClaimedPaid),
+                },
+                ["firstPackBought"] = p.FirstPackBought,
                 ["worldBoss"] = new Dictionary<string, object?>
                 {
                     ["season"] = p.WorldBoss.Season, ["best"] = p.WorldBoss.Best,
@@ -186,6 +192,18 @@ namespace SanGuo.Core.Data
             ReadLongMap(root, "monthCardClaimedDay", p.MonthCardClaimedDay);
             ReadIntMap(root, "soulShopBought", p.SoulShopBought);
             p.SoulShopMonth = root.TryGetValue("soulShopMonth", out var ssm) && ssm is string ssms ? ssms : "";
+            if (root.TryGetValue("pass", out var pso) && pso is Dictionary<string, object?> passD)
+            {
+                p.Pass = new PassState
+                {
+                    Season = passD.TryGetValue("season", out var pss) && pss is string pssv ? pssv : "",
+                    Points = (int)Int(passD, "points", 0),
+                    Tier = passD.TryGetValue("tier", out var pt) && pt is string ptv ? ptv : "",
+                };
+                ReadInts(passD, "claimedFree", p.Pass.ClaimedFree);
+                ReadInts(passD, "claimedPaid", p.Pass.ClaimedPaid);
+            }
+            p.FirstPackBought = root.TryGetValue("firstPackBought", out var fpb) && fpb is bool fpbv && fpbv;
             if (root.TryGetValue("worldBoss", out var wbo) && wbo is Dictionary<string, object?> wb)
             {
                 string Str(string key) => wb.TryGetValue(key, out var v) && v is string sv ? sv : "";
@@ -245,6 +263,20 @@ namespace SanGuo.Core.Data
         {
             if (root.TryGetValue(key, out var v) && v is Dictionary<string, object?> d)
                 foreach (var kv in d) target[kv.Key] = ToLong(kv.Value);
+        }
+
+        private static List<object?> SortedInts(HashSet<int> set)
+        {
+            var list = new List<int>(set);
+            list.Sort();
+            return list.ConvertAll<object?>(x => (long)x);
+        }
+
+        private static void ReadInts(Dictionary<string, object?> d, string key, HashSet<int> target)
+        {
+            if (d.TryGetValue(key, out var v) && v is List<object?> list)
+                foreach (var x in list)
+                    if (x != null) target.Add((int)ToLong(x));
         }
 
         private static List<object?> SortedList(HashSet<string> set)

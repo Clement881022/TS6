@@ -69,6 +69,11 @@ namespace SanGuo.Core.Meta
         /// <summary>進行中的關卡若開放編隊，這裡記下玩家送來的編隊（結算時用同一份重建戰鬥）。</summary>
         public List<FormationEntry> PendingFormation = new List<FormationEntry>();
 
+        /// <summary>本季通行證進度。</summary>
+        public PassState Pass = new PassState();
+        /// <summary>已購買首儲禮包（每帳號限一次）。</summary>
+        public bool FirstPackBought;
+
         /// <summary>世界 Boss 的賽季成績與每日次數。</summary>
         public WorldBossState WorldBoss = new WorldBossState();
 
@@ -137,6 +142,7 @@ namespace SanGuo.Core.Meta
         {
             if (!Stamina.TrySpend(stage.StaminaCost, now))
                 return StageEntryResult.NotEnoughStamina;
+            BattlePass.AddPoints(this, stage.StaminaCost, now);
             return StageEntryResult.Ok;
         }
 
@@ -185,6 +191,7 @@ namespace SanGuo.Core.Meta
             if (count < 1 || count > MaxSweepCount) return SweepResult.InvalidCount;
             if (!StageStars.TryGetValue(stage.StageId, out int stars) || stars < 3) return SweepResult.NotThreeStars;
             if (!Stamina.TrySpend(stage.StaminaCost * count, now)) return SweepResult.NotEnoughStamina;
+            BattlePass.AddPoints(this, stage.StaminaCost * count, now);
 
             result = new ClearResult { ExpGained = stage.Exp * count, GoldGained = stage.Gold * count };
             Gold += result.GoldGained;

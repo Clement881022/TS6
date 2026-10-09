@@ -83,6 +83,9 @@ app.MapPost("/shop/dev/pay", (HttpRequest req, GameService g, OrderRequest body)
 app.MapPost("/shop/month-card/claim", (HttpRequest req, GameService g, ProductRequest body) =>
     Handle(req, a => g.ClaimMonthCard(a, body.ProductId)));
 
+app.MapPost("/pass/claim", (HttpRequest req, GameService g, PassClaimRequest body) =>
+    Handle(req, a => g.ClaimPass(a, body.Level, body.Paid)));
+app.MapPost("/pass/claim-all", (HttpRequest req, GameService g) => Handle(req, g.ClaimPassAll));
 app.MapGet("/worldboss", (HttpRequest req, GameService g) => Handle(req, g.GetWorldBoss));
 app.MapPost("/dev/clear", (HttpRequest req, GameService g, DevClearRequest body) =>
     g.DevEndpointsEnabled ? Handle(req, a => g.DevClearStage(a, body.StageId, body.Stars)) : Task.FromResult(Results.NotFound()));
@@ -105,5 +108,6 @@ public sealed record MilestoneRequest(int Points);
 public sealed record ProductRequest(string ProductId);
 public sealed record OrderRequest(string OrderId);
 public sealed record DevClearRequest(string StageId, int Stars);
+public sealed record PassClaimRequest(int Level, bool Paid);
 
 public partial class Program { }

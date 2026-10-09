@@ -79,6 +79,7 @@ namespace SanGuo.Core.Meta
         {
             if (!IsUnlocked(p, d)) return DungeonEntryResult.Locked;
             if (!p.Stamina.TrySpend(d.StaminaCost * count, now)) return DungeonEntryResult.NotEnoughStamina;
+            BattlePass.AddPoints(p, d.StaminaCost * count, now);
             return DungeonEntryResult.Ok;
         }
     }

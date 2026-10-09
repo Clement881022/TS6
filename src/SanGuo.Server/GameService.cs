@@ -235,6 +235,20 @@ public sealed class GameService
         });
     });
 
+    /// <summary>領取通行證某一級的獎勵（paid = 付費線）。</summary>
+    public Task<ApiResult> ClaimPass(string accountId, int level, bool paid) => Run(accountId, (p, now) =>
+    {
+        var r = BattlePass.Claim(p, level, paid, now);
+        return r == PassClaimResult.Ok ? ApiResult.Success(View(p, now)) : ApiResult.Fail(r.ToString());
+    });
+
+    /// <summary>一鍵領取所有已達成的通行證獎勵。</summary>
+    public Task<ApiResult> ClaimPassAll(string accountId) => Run(accountId, (p, now) =>
+    {
+        int n = BattlePass.ClaimAll(p, now);
+        return n > 0 ? ApiResult.Success(new { claimed = n }) : ApiResult.Fail("NothingToClaim");
+    });
+
     /// <summary>世界 Boss 面板：本季 Boss、剩餘次數、本季最佳與排名、前 10 名、上一季結算結果。</summary>
     public Task<ApiResult> GetWorldBoss(string accountId) => Run(accountId, (p, now) =>
     {
@@ -271,7 +285,7 @@ public sealed class GameService
     public Task<ApiResult> CreateOrder(string accountId, string productId) => Run(accountId, (p, now) =>
     {
         string orderId = Guid.NewGuid().ToString("N");
-        var r = Shop.CreateOrder(p, productId, orderId);
+        var r = Shop.CreateOrder(p, productId, orderId, now);
         return r == ShopResult.Ok ? ApiResult.Success(new { orderId, productId }) : ApiResult.Fail(r.ToString());
     });
 

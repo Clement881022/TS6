@@ -123,6 +123,20 @@ namespace SanGuo.Client
             yield return Wait(1.5f);
             Shot(dir, "worldboss-after");
             yield return Wait(0.4f);
+
+            // 商店：首儲禮包與月卡、測試付款買豪華通行證後的通行證分頁。
+            yield return Go(Page.Shop);
+            yield return Wait(0.8f);
+            Shot(dir, "shop-pay");
+            yield return Wait(0.3f);
+            var buy = GameSession.Backend.BuyWithTestPayment(SanGuo.Core.Meta.Shop.PassLuxury);
+            while (!buy.IsCompleted) yield return null;
+            var refresh = GameSession.Refresh();
+            while (!refresh.IsCompleted) yield return null;
+            if (PageHost.Current?.ActivePage is ShopPage shopPage) shopPage.DebugShowPass();
+            yield return Wait(0.8f);
+            Shot(dir, "shop-pass-luxury");
+            yield return Wait(0.4f);
             Application.Quit();
         }
 
@@ -181,7 +195,11 @@ namespace SanGuo.Client
                 }
                 else if (active is DungeonsPage dungeons) { dungeons.DebugScrollEnd(); yield return Wait(0.4f); Shot(dir, "dungeons-end"); }
                 else if (active is QuestsPage quests) { quests.DebugShowSevenDay(); yield return Wait(0.5f); Shot(dir, "quests-seven"); }
-                else if (active is ShopPage shop) { shop.DebugSetTab(1); yield return Wait(0.5f); Shot(dir, "shop-souls"); }
+                else if (active is ShopPage shop)
+                {
+                    shop.DebugSetTab(1); yield return Wait(0.5f); Shot(dir, "shop-souls"); yield return Wait(0.3f);
+                    shop.DebugShowPass(); yield return Wait(0.5f); Shot(dir, "shop-pass");
+                }
                 yield return Wait(0.2f);
             }
 

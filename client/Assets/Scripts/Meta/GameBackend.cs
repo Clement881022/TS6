@@ -133,6 +133,8 @@ namespace SanGuo.Client
         /// <summary>測試付款購買：建立訂單並模擬付款成功（正式版改走支付渠道，付款完成由伺服器發貨）。</summary>
         Task<BackendResult> BuyWithTestPayment(string productId);
         Task<BackendResult> ClaimMonthCard(string cardId);
+        Task<BackendResult> ClaimPass(int level, bool paid);
+        Task<BackendResult> ClaimPassAll();
         Task<PullOutcomeResult> Pull(string poolId, int count);
         Task<BackendResult> LevelUp(string heroId);
         Task<BackendResult> Breakthrough(string heroId);

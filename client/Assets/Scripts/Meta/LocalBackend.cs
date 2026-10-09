@@ -201,12 +201,26 @@ namespace SanGuo.Client
         public Task<BackendResult> BuyWithTestPayment(string productId)
         {
             string orderId = Guid.NewGuid().ToString("N");
-            var r = Shop.CreateOrder(_profile, productId, orderId);
+            var r = Shop.CreateOrder(_profile, productId, orderId, Now);
             if (r == ShopResult.Ok) r = Shop.Fulfill(_profile, orderId, Now);
             return Claimed(r);
         }
 
         public Task<BackendResult> ClaimMonthCard(string cardId) => Claimed(Shop.ClaimMonthCardDaily(_profile, cardId, Now));
+
+        public Task<BackendResult> ClaimPass(int level, bool paid)
+        {
+            var r = BattlePass.Claim(_profile, level, paid, Now);
+            if (r == PassClaimResult.Ok) Save();
+            return Task.FromResult(new BackendResult { Ok = r == PassClaimResult.Ok, Code = r == PassClaimResult.Ok ? "ok" : r.ToString() });
+        }
+
+        public Task<BackendResult> ClaimPassAll()
+        {
+            int n = BattlePass.ClaimAll(_profile, Now);
+            if (n > 0) Save();
+            return Task.FromResult(new BackendResult { Ok = n > 0, Code = n > 0 ? "ok" : "NothingToClaim" });
+        }
 
         public Task<PullOutcomeResult> Pull(string poolId, int count)
         {

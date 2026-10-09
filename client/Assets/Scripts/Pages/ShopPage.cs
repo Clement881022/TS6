@@ -7,12 +7,12 @@ using UnityEngine.UIElements;
 namespace SanGuo.Client
 {
     /// <summary>
-    /// 商店：「儲值」是月卡（測試付款）；「將魂商店」用滿突後溢出的重複武將轉成的將魂兌換重複份、武將經驗、金幣與裝備，各項每月限購。
-    /// 通行證與首儲禮包的內容與定價尚未決定，暫不開放。
+    /// 商店：「儲值」是首儲禮包與月卡（測試付款）；「通行證」每月一季，消耗體力升級，免費線與付費線各自領取；
+    /// 「將魂商店」用滿突後溢出的重複武將轉成的將魂兌換重複份、武將經驗、金幣與裝備，各項每月限購。
     /// </summary>
     public sealed class ShopPage : PageBase
     {
-        private enum Tab { Pay, Soul }
+        private enum Tab { Pay, Soul, Pass }
 
         private Tab _tab = Tab.Pay;
 
@@ -29,10 +29,12 @@ namespace SanGuo.Client
             seg.AddToClassList("seg");
             seg.AddToClassList("shop-tabs");
             seg.Add(UiKit.Tab("儲值", () => { _tab = Tab.Pay; Rebuild(); }, _tab == Tab.Pay).WithClass("seg-tab"));
+            seg.Add(UiKit.Tab("通行證", () => { _tab = Tab.Pass; Rebuild(); }, _tab == Tab.Pass).WithClass("seg-tab"));
             seg.Add(UiKit.Tab("將魂商店", () => { _tab = Tab.Soul; Rebuild(); }, _tab == Tab.Soul).WithClass("seg-tab"));
             body.Add(seg);
 
             if (_tab == Tab.Pay) BuildPay(body);
+            else if (_tab == Tab.Pass) BuildPass(body);
             else BuildSoulShop(body);
         }
 
@@ -47,9 +49,35 @@ namespace SanGuo.Client
             row.AddToClassList("dun-row");
             body.Add(row);
 
+            // 首儲禮包（買過就不再顯示）
+            if (!p.FirstPackBought && Shop.Find(Shop.FirstPack) is ProductDef first)
+            {
+                var card = new VisualElement();
+                card.AddToClassList("shop-card");
+                card.AddToClassList("shop-card-gold");
+                var head = new VisualElement { pickingMode = PickingMode.Ignore };
+                head.AddToClassList("shop-head");
+                head.Add(UiKit.Text(first.Name, "shop-name"));
+                card.Add(head);
+                var art = new VisualElement { pickingMode = PickingMode.Ignore };
+                art.AddToClassList("shop-art");
+                art.Add(UiKit.RewardTiles(Shop.FirstPackReward()));
+                card.Add(art);
+                var text = new VisualElement { pickingMode = PickingMode.Ignore };
+                text.AddToClassList("card-body");
+                text.Add(UiKit.Text("每個帳號限購一次", "line-title").WithClass("dun-center"));
+                card.Add(text);
+                var btns = new VisualElement();
+                btns.AddToClassList("card-footer");
+                btns.Add(UiKit.Btn($"購買　¥{first.PriceCny}", () => _ = Act(() => GameSession.Backend.BuyWithTestPayment(Shop.FirstPack), "購買成功"), primary: true));
+                card.Add(btns);
+                row.Add(card);
+            }
+
             foreach (var product in Shop.Products())
             {
                 var pr = product;
+                if (pr.Kind != ProductKind.MonthCard) continue;
                 var card = new VisualElement();
                 card.AddToClassList("shop-card");
                 card.AddToClassList(pr.PriceCny >= 60 ? "shop-card-gold" : "shop-card-blue");
@@ -85,6 +113,95 @@ namespace SanGuo.Client
             }
 
             body.Add(UiKit.Text("測試環境：購買不會實際扣款", "foot-note"));
+        }
+
+        public void DebugShowPass() { _tab = Tab.Pass; Rebuild(); }
+
+        private void BuildPass(VisualElement body)
+        {
+            var v = GameSession.View;
+            var p = v.Raw;
+            // 顯示用：存檔停在上一季時視為新的一季（實際重置以後端為準）。
+            bool stale = p.Pass.Season != BattlePass.SeasonOf(v.Now);
+            int points = stale ? 0 : p.Pass.Points;
+            string tier = stale ? "" : p.Pass.Tier;
+            int level = System.Math.Min(BattlePass.MaxLevel, points / BattlePass.PointsPerLevel);
+
+            var top = UiKit.Panel();
+            top.style.flexDirection = FlexDirection.Row;
+            top.style.alignItems = Align.Center;
+            top.style.marginBottom = 8;
+            var info = new VisualElement();
+            info.style.flexGrow = 1;
+            info.Add(UiKit.Text($"{WorldBoss.SeasonName(BattlePass.SeasonOf(v.Now))}通行證　Lv.{level} / {BattlePass.MaxLevel}　" +
+                (tier == BattlePass.Luxury ? "（豪華）" : tier == BattlePass.Basic ? "（已購買）" : "（免費）"), "line-title"));
+            info.Add(UiKit.Bar(level >= BattlePass.MaxLevel ? 100f : 100f * (points % BattlePass.PointsPerLevel) / BattlePass.PointsPerLevel, "bar-gold bar-slim"));
+            info.Add(UiKit.Text(level >= BattlePass.MaxLevel ? "已滿級" : $"下一級 {points % BattlePass.PointsPerLevel} / {BattlePass.PointsPerLevel}　｜　消耗 1 點體力 = 1 點通行證經驗", "line-sub"));
+            top.Add(info);
+            top.Add(UiKit.Btn("一鍵領取", () => _ = Act(() => GameSession.Backend.ClaimPassAll(), "已領取"), primary: true).WithClass("btn-sm"));
+            if (tier == "")
+            {
+                foreach (var id in new[] { Shop.PassBasic, Shop.PassLuxury })
+                {
+                    var pr = Shop.Find(id)!;
+                    var buy = UiKit.Btn($"{pr.Name}　¥{pr.PriceCny}", () => _ = Act(() => GameSession.Backend.BuyWithTestPayment(pr.Id), "購買成功")).WithClass("btn-sm");
+                    buy.tooltip = id == Shop.PassLuxury ? $"解鎖付費獎勵，立即 +{BattlePass.LuxuryBonusLevels} 級並送 {pr.ImmediateYuanbao} 元寶" : "解鎖付費獎勵";
+                    buy.style.marginLeft = 8;
+                    top.Add(buy);
+                }
+            }
+            body.Add(top);
+
+            var scroll = new ScrollView(ScrollViewMode.Vertical);
+            scroll.AddToClassList("grow");
+            scroll.AddToClassList("shop-soul-scroll");
+            for (int lv = 1; lv <= BattlePass.MaxLevel; lv++)
+            {
+                int l = lv;
+                var row = new VisualElement();
+                row.AddToClassList("card-row");
+                var head = new VisualElement();
+                head.AddToClassList("card-row-head");
+                var lvText = UiKit.Text($"Lv.{l}", level >= l ? "txt-gold" : "card-row-name");
+                lvText.style.width = 80;
+                lvText.style.flexShrink = 0;
+                lvText.style.whiteSpace = WhiteSpace.NoWrap;
+                head.Add(lvText);
+                head.Add(PassCell(UiKit.RewardTiles(BattlePass.FreeReward(l)), "免費", level >= l, !stale && p.Pass.ClaimedFree.Contains(l), true,
+                    () => _ = Act(() => GameSession.Backend.ClaimPass(l, false), "已領取")));
+                head.Add(PassCell(UiKit.RewardTiles(BattlePass.PaidReward(l)), "付費", level >= l, !stale && p.Pass.ClaimedPaid.Contains(l), tier != "",
+                    () => _ = Act(() => GameSession.Backend.ClaimPass(l, true), "已領取")));
+                row.Add(head);
+                scroll.Add(row);
+            }
+            body.Add(scroll);
+            body.Add(UiKit.Text("測試環境：購買不會實際扣款", "foot-note"));
+        }
+
+        /// <summary>通行證一格：獎勵圖示 + 領取按鈕（未達成 / 未購買 / 已領取時停用）。</summary>
+        private static VisualElement PassCell(VisualElement tiles, string label, bool reached, bool claimed, bool owned, System.Action claim)
+        {
+            var cell = new VisualElement();
+            cell.style.flexDirection = FlexDirection.Row;
+            cell.style.alignItems = Align.Center;
+            cell.style.flexGrow = 1;
+            cell.style.marginLeft = 32;
+            var tag = UiKit.Text(label, "line-sub");
+            tag.style.flexShrink = 0;
+            tag.style.whiteSpace = WhiteSpace.NoWrap;
+            cell.Add(tag);
+            tiles.style.marginLeft = 8;
+            tiles.style.marginRight = 8;
+            tiles.style.flexDirection = FlexDirection.Row;
+            tiles.style.flexWrap = Wrap.NoWrap;
+            tiles.style.width = 240;
+            tiles.style.flexShrink = 0;
+            cell.Add(tiles);
+            Button btn = claimed ? UiKit.DoneBtn("已領取") : !owned ? UiKit.DoneBtn("未購買") : !reached ? UiKit.DoneBtn("未達成") : UiKit.Btn("領取", claim, primary: true);
+            btn.AddToClassList("btn-sm");
+            btn.style.flexShrink = 0;
+            cell.Add(btn);
+            return cell;
         }
 
         private void BuildSoulShop(VisualElement body)
