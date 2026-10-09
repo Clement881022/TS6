@@ -17,74 +17,143 @@ namespace SanGuo.Client.Editor
         [MenuItem("SanGuo/建立關羽品質樣板")]
         public static void BakeSample()
         {
+            Prepare();
+            Bake("guanyu", "polearm");
+            Finish();
+        }
+
+        [MenuItem("SanGuo/建立骨架戰鬥角色組")]
+        public static void BakeBattleSet()
+        {
+            Prepare();
+            foreach (string path in Directory.GetFiles("Assets/Resources/Characters", "*.prefab"))
+            {
+                string id=Path.GetFileNameWithoutExtension(path);
+                if(id == "badou") continue;
+                string role=id.Contains("archer") || id.Contains("marksman") || id.Contains("sharpshooter") || id == "huangzhong" ? "archer"
+                    : id.Contains("shaman") || id.Contains("warlock") || id.Contains("priest") || id == "r_healer" || id == "zhugeliang" || id == "pangtong" || id.Contains("zhangjiao") || id == "r_villager" ? "caster"
+                    : id.Contains("shield") || id.Contains("ironbrute") || id == "yt_brute" ? "guard"
+                    : id == "guanyu" || id == "zhangfei" || id == "zhaoyun" ? "polearm" : "sword";
+                Bake(id,role);
+            }
+            Finish();
+        }
+
+        private static void Prepare()
+        {
             Directory.CreateDirectory(Output + "/Meshes");
             Directory.CreateDirectory(Output + "/Materials");
             AssetDatabase.Refresh();
-            var source = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Characters/guanyu.prefab");
-            if (source == null) throw new InvalidOperationException("Missing textured Guanyu source.");
+        }
+
+        private static void Finish()
+        {
+            AssetDatabase.SaveAssets();
+            if (Application.isBatchMode) EditorApplication.Exit(0);
+        }
+
+        private static void Bake(string id,string role)
+        {
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Characters/"+id+".prefab");
+            if (source == null) throw new InvalidOperationException("Missing textured character source: "+id);
             var root = UnityEngine.Object.Instantiate(source);
             try
             {
-                root.name = "guanyu";
+                root.name = id;
                 int triangles = 0;
                 foreach (var renderer in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
                 {
                     if (renderer.sharedMesh == null) continue;
-                    string meshPath = Output + "/Meshes/guanyu_" + renderer.name + ".asset";
-                    var refined = Refine(renderer.sharedMesh, renderer.name == "FaceRenderer" ? 2 : 1);
-                    refined.name = "Guanyu_" + renderer.name + "_Refined";
+                    string meshPath = Output + "/Meshes/"+id+"_" + renderer.name + ".asset";
+                    var refined = Refine(renderer.sharedMesh, 1);
+                    if(renderer.name == "FaceRenderer") SculptFace(refined);
+                    refined.name = id+"_" + renderer.name + "_Refined";
                     triangles += refined.triangles.Length / 3;
                     SaveAsset(refined, meshPath);
                     renderer.sharedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
                     renderer.updateWhenOffscreen = true;
                     var mats = renderer.sharedMaterials;
                     for (int i = 0; i < mats.Length; i++)
-                        mats[i] = Surface(mats[i], "guanyu_" + renderer.name + "_" + i, renderer.name == "BodyRenderer");
+                        mats[i] = Surface(mats[i], id, renderer.name, i);
                     renderer.sharedMaterials = mats;
                 }
                 foreach (var renderer in root.GetComponentsInChildren<MeshRenderer>(true))
                 {
                     var mats = renderer.sharedMaterials;
-                    for (int i = 0; i < mats.Length; i++) mats[i] = Surface(mats[i], "guanyu_weapon_" + i, false);
+                    for (int i = 0; i < mats.Length; i++) mats[i] = Surface(mats[i], id, "weapon", i);
                     renderer.sharedMaterials = mats;
                 }
                 var clips = root.GetComponent<CharacterClipSet>();
                 if (clips == null || clips.Idle == null || clips.Attack == null)
                     throw new InvalidOperationException("Sample requires an actual skeleton and animation clips.");
-                clips.MotionProfile = "polearm";
-                clips.HeadScale = 1.22f;
-                // The source model is roughly 1.2m high; the board uses a consistent ~2.3 unit silhouette.
-                root.transform.localScale = Vector3.one * 1.90f;
-                PrefabUtility.SaveAsPrefabAsset(root, Output + "/guanyu.prefab");
+                clips.MotionProfile = role;
+                clips.HeadScale = role == "caster" ? 1.26f : 1.22f;
+                string clipPath=AssetDatabase.GetAssetPath(clips.Idle);
+                string motion=role == "archer" ? "Farfight1" : role == "caster" ? "Magic" : role == "guard" ? "Fight2" : role == "polearm" ? "Fight3" : "Fight1";
+                // 待機檔名不含 FightStandby 時，替換會原樣回傳待機檔，攻擊就被換成待機動作。
+                var attack=!clipPath.Contains("FightStandby") ? null : AssetDatabase.LoadAllAssetsAtPath(clipPath.Replace("FightStandby",motion)).OfType<AnimationClip>().FirstOrDefault(c=>!c.name.StartsWith("__preview__"));
+                if(attack != null) clips.Attack=attack;
+                if(role == "archer") { ProductionCharacterProps.Bow(root,Output);root.AddComponent<ArcherPoseRig>(); }
+                if(role == "guard") ProductionCharacterProps.Shield(root,Output);
+                if(id == "guanyu")
+                    foreach(var t in root.GetComponentsInChildren<Transform>())
+                        if(t.name == "Weapon_00029") t.localRotation = Quaternion.Euler(0,180,0);
+                var bodyBounds=new Bounds();bool first=true;
+                foreach(var r in root.GetComponentsInChildren<Renderer>())
+                {
+                    if(r.name.Contains("Weapon") || r.name.Contains("Prop")) continue;
+                    if(first){bodyBounds=r.bounds;first=false;}else bodyBounds.Encapsulate(r.bounds);
+                }
+                root.transform.localScale = Vector3.one * (2.30f/Mathf.Max(.5f,bodyBounds.size.y));
+                PrefabUtility.SaveAsPrefabAsset(root, Output + "/"+id+".prefab");
                 AssetDatabase.SaveAssets();
-                Debug.Log("PRODUCTION_SAMPLE guanyu triangles=" + triangles + " skinned=true textured=true");
+                Debug.Log("PRODUCTION_CHARACTER "+id+" triangles=" + triangles + " motion="+role+" skinned=true textured=true");
             }
             finally { UnityEngine.Object.DestroyImmediate(root); }
-            if (Application.isBatchMode) EditorApplication.Exit(0);
         }
 
-        private static Material Surface(Material? source, string name, bool body)
+        private static void SculptFace(Mesh mesh)
+        {
+            var vertices=mesh.vertices;var normals=mesh.normals;var uv=mesh.uv;
+            for(int i=0;i<vertices.Length;i++)
+            {
+                // Round the cheek volume in the main facial UV island; nose remains compact.
+                float cheek=0;
+                foreach(float x in new[]{.27f,.73f})
+                {
+                    float u=(uv[i].x-x)/.13f,v=(uv[i].y-.52f)/.11f;
+                    cheek+=Mathf.Exp(-(u*u+v*v)*2f);
+                }
+                var p=vertices[i];p.x*=1.06f;
+                vertices[i]=p+normals[i]*(cheek*.0013f);
+            }
+            mesh.vertices=vertices;mesh.RecalculateNormals();mesh.RecalculateTangents();mesh.RecalculateBounds();
+        }
+
+        private static Material Surface(Material? source, string id, string part, int index)
         {
             var shader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Resources/Shaders/CharacterSurface.shader");
             if (shader == null) throw new InvalidOperationException("Missing character surface shader.");
+            string name = id + "_" + part + "_" + index;
             var mat = new Material(shader) { name = name };
             Texture? texture = source != null && source.HasProperty("_BaseMap") ? source.GetTexture("_BaseMap") : null;
             if (texture == null && source != null && source.HasProperty("_MainTex")) texture = source.GetTexture("_MainTex");
-            if (body)
+            if (part == "BodyRenderer")
             {
-                var painted = AssetDatabase.LoadAssetAtPath<Texture2D>(Output + "/Textures/guanyu_body.png");
+                var painted = AssetDatabase.LoadAssetAtPath<Texture2D>(Output + "/Textures/"+id+"_body.png");
                 if (painted != null) texture = painted;
             }
-            foreach (string slot in new[] { "Hair", "Face" })
-                if (name.Contains(slot+"Renderer"))
+            foreach (string slot in new[] { "Hair", "Face", "Cosmetic", "Weapon" })
+                if (part == slot+"Renderer")
                 {
-                    var painted=AssetDatabase.LoadAssetAtPath<Texture2D>(Output+"/Textures/guanyu_"+slot.ToLowerInvariant()+".png");
+                    var painted=AssetDatabase.LoadAssetAtPath<Texture2D>(Output+"/Textures/"+id+"_"+slot.ToLowerInvariant()+".png");
                     if(painted!=null) texture=painted;
                 }
             mat.SetTexture("_BaseMap", texture);
-            mat.SetColor("_BaseColor", name.Contains("CosmeticRenderer") ? new Color(.23f,.23f,.25f) : Color.white);
-            mat.SetFloat("_Smoothness", name.Contains("Face") ? .22f : .42f);
-            mat.SetFloat("_MetalStrength", name.Contains("Face") ? .12f : .60f);
+            mat.SetColor("_BaseColor", Color.white);
+            mat.SetFloat("_Smoothness", part == "FaceRenderer" ? .22f : .42f);
+            mat.SetFloat("_MetalStrength", part == "FaceRenderer" ? .12f : .60f);
+            mat.SetFloat("_ReliefStrength", part == "BodyRenderer" || part == "WeaponRenderer" ? .65f : 0);
             string path = Output + "/Materials/" + name + ".mat";
             SaveAsset(mat, path);
             return AssetDatabase.LoadAssetAtPath<Material>(path);

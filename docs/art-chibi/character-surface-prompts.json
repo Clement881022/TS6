@@ -1,7 +1,7 @@
 {
   "date": "2026-10-09",
   "tool": "built-in imagegen",
-  "status": "sample-under-review",
+  "status": "candidate-not-commercially-approved",
   "records": [
     {
       "id": "guanyu_body",
@@ -20,6 +20,42 @@
       "source": "client/Assets/Arts/Models/Face/Face_00002/Face_00002_001_T.png",
       "output": "client/Assets/Resources/ProductionCharacters/Textures/guanyu_face.png",
       "prompt": "Edit this exact face UV albedo texture atlas for Guan Yu. Keep ALL UV island shapes, layout, boundaries, eye holes and ear positions exactly fixed. This is NOT an illustration or a full character. Upgrade face painting to rich warm red tan skin consistent with iconic Guan Yu, softly sculpted cheek and nose lighting, healthy warm complexion, crisp confident dark brow shapes in their original brow locations. Keep the eye slots in precisely their original positions and preserve their original empty light interior because a separate eyeball mesh supplies pupils. Preserve the face geometry landmarks and all small islands. Keep mouth in its original place. Hair/brow patches on lower islands should be deep charcoal black with subtle silky highlights instead of brown. Smooth clean premium stylized game facial shading, no pores, no grain, no realism, no new facial parts, no text. Square texture atlas, entirely opaque."
+    },
+    {
+      "source": "client/Assets/Arts/Models/Cosmetic/Cosmetic_00002/Cosmetic_00002_001_T.png",
+      "prompt": "Exact UV atlas edit, not a character image. Preserve the EXACT positions, shapes, orientation and boundaries of all hair/beard strand islands. Repaint Guan Yu's beard from outdated orange-brown into elegant deep raven-black sculpted flowing locks. Smooth cohesive charcoal strand masses with a few restrained cool gray broad highlights following each existing island's directional hair flow. Modern premium stylized Q-character material, no tiny noisy single hairs, no neon orange streaks, no new shapes or layout. All background padding dark charcoal; do not add lettering. Flat square fully opaque albedo texture atlas, not perspective.",
+      "output": "client/Assets/Resources/ProductionCharacters/Textures/guanyu_cosmetic.png",
+      "id": "guanyu_cosmetic"
+    },
+    {
+      "source": "client/Assets/Arts/Models/Weapon/Weapon_00029/Weapon_00029_001_T.png",
+      "prompt": "Edit this exact weapon UV albedo texture atlas. Preserve the exact relative layout, scale and shape of all existing islands, do not draw an assembled weapon. The large curved blade island across the upper half must become premium polished light silver steel with subtle cool blue-gray broad reflections and a crisp sharpened bright silver cutting edge. Replace its old white swirl with refined engraved gold dragon scroll ornament within that same island, no words. The dragon-head hilt island at lower left must become rich sculpted burnished gold with a small jade-green eye instead of red. The horizontal orange shaft stripe middle right must become deep emerald wrapped grip with thin elegant gold bands at its ends, same dimensions. Preserve all small islands, turn black parts into dark warm metal, pale padding neutral gray. Clean modern stylized premium game material, subtle painted depth, absolutely no noisy grain, no new arrangement, no perspective or complete weapon illustration. Fully opaque square UV texture atlas.",
+      "output": "client/Assets/Resources/ProductionCharacters/Textures/guanyu_weapon.png",
+      "id": "guanyu_weapon"
+    },
+    {
+      "source": "client/Assets/Arts/Models/Body/Body_00001/Body_00001_004_T.png",
+      "prompt": "Edit this EXACT production UV albedo atlas. Preserve the EXACT pixel-relative position, layout, shape, scale and boundary of every single UV island, including cuffs, collars, cloth and skin patches. Do not draw a character, do not draw a concept sheet, do not redesign the atlas arrangement. Upgrade the material painting for a chibi shield infantryman: red lacquer armor with richly burnished gold edges and engraved cloud scroll ornaments, shoulder armor upper left gold and dark crimson, main armor ivory gold and dark crimson, cloth cloak at left deep muted crimson woven silk, polished dark leather belt, keep all skin patches warm tan. Strong clean broad material gradients, refined metal highlights, readable large ornamentation, precise boundaries, no distracting noisy grain, no labels, no perspective. Fully opaque flat square UV atlas. Original padding can remain neutral. Maintain all UV islands in place.",
+      "output": "client/Assets/Resources/ProductionCharacters/Textures/r_shield_body.png",
+      "id": "r_shield_body"
+    },
+    {
+      "source": "client/Assets/Arts/Models/Body/Body_00001/Body_00001_006_T.png",
+      "prompt": "Edit this EXACT production UV albedo atlas. Preserve the EXACT pixel-relative position, layout, shape, scale and boundary of every single UV island, including cuffs, collars, cloth and skin patches. Do not draw a character, do not draw a concept sheet, do not redesign the atlas arrangement. Upgrade the material painting for a chibi blue archer: rich cobalt blue silk cloak at left, clean gold and silver armor plates on the right with crisp jade blue enamel inset diamond ornaments, dark navy and ivory cloth, subtle fine fabric weave, preserve warm tan skin islands and all skin geometry. Strong clean broad material gradients, refined metal highlights, readable large ornamentation, precise boundaries, no distracting noisy grain, no labels, no perspective. Fully opaque flat square UV atlas. Original padding can remain neutral. Maintain all UV islands in place.",
+      "output": "client/Assets/Resources/ProductionCharacters/Textures/r_archer_body.png",
+      "id": "r_archer_body"
+    },
+    {
+      "source": "client/Assets/Arts/Models/Body/Body_00014/Body_00014_001_T.png",
+      "prompt": "Edit this EXACT production UV albedo atlas. Preserve the EXACT pixel-relative position, layout, shape, scale and boundary of every single UV island, including cuffs, collars, cloth and skin patches. Do not draw a character, do not draw a concept sheet, do not redesign the atlas arrangement. Upgrade the material painting for a chibi female healer: all red and orange fabric must become emerald green silk, all blue cloth must become warm ivory fine fabric, preserve refined gold embroidery and edge trims, add delicate restrained medicinal leaf motifs within the existing large skirt islands, preserve warm peach skin islands exactly, premium modern stylized Chinese healer costume. Strong clean broad material gradients, refined metal highlights, readable large ornamentation, precise boundaries, no distracting noisy grain, no labels, no perspective. Fully opaque flat square UV atlas. Original padding can remain neutral. Maintain all UV islands in place.",
+      "output": "client/Assets/Resources/ProductionCharacters/Textures/r_healer_body.png",
+      "id": "r_healer_body"
+    },
+    {
+      "id": "guanyu_iris_refinement",
+      "source": "client/Assets/Resources/ProductionCharacters/Textures/guanyu_face.png (previous stage)",
+      "output": "client/Assets/Resources/ProductionCharacters/Textures/guanyu_face.png",
+      "prompt": "Edit ONLY the small dark oval UV island at the bottom center of this exact face atlas. It is an EYEBALL IRIS UV island, not hair. Replace its hair-like dark pattern with one clean circular anime iris: dark warm brown iris with subtle radial amber gradient, solid round black central pupil, a restrained single white catchlight top left, very dark outer rim. Iris must fill the existing oval island and remain at the exact same position and dimensions. Keep the entire rest of the atlas absolutely unchanged including red tan face, white eye openings, ears, eyebrows, mouth, hair patches and padding. No new islands, no illustration, no layout alteration, flat UV texture fully opaque."
     }
   ]
 }

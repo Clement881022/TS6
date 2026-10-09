@@ -119,6 +119,7 @@ namespace SanGuo.Client
         public void Attack(CharacterView? target = null)
         {
             if (IsDead) return;
+            if (_model.TryGetComponent<ArcherPoseRig>(out var bowRig)) bowRig.Shoot();
             _attackFacing = null;
             if (target != null)
             {
@@ -140,6 +141,7 @@ namespace SanGuo.Client
         public void Die()
         {
             if (IsDead) return;
+            if (_model.TryGetComponent<ArcherPoseRig>(out var bowRig)) bowRig.enabled = false;
             _dieT = 0f;
             _attackT = _castT = _hitT = -1f;
             PlayOneShot(Clip.Die);

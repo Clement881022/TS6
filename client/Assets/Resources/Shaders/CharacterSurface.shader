@@ -6,6 +6,7 @@ Shader "SanGuo/CharacterSurface"
         _BaseColor ("Surface tint", Color) = (1,1,1,1)
         _Smoothness ("Smoothness", Range(0,1)) = .38
         _MetalStrength ("Gold response", Range(0,1)) = .45
+        _ReliefStrength ("Painted gold relief", Range(0,2)) = .6
         _Cutoff ("Alpha cutoff", Range(0,1)) = .08
     }
     SubShader
@@ -25,25 +26,39 @@ Shader "SanGuo/CharacterSurface"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
             CBUFFER_START(UnityPerMaterial)
-                float4 _BaseMap_ST, _BaseColor;
-                float _Smoothness, _MetalStrength, _Cutoff;
+                float4 _BaseMap_ST, _BaseMap_TexelSize, _BaseColor;
+                float _Smoothness, _MetalStrength, _Cutoff, _ReliefStrength;
             CBUFFER_END
-            struct Attributes { float4 positionOS:POSITION; float3 normalOS:NORMAL; float2 uv:TEXCOORD0; };
-            struct Varyings { float4 positionCS:SV_POSITION; float3 positionWS:TEXCOORD0; float3 normalWS:TEXCOORD1; float2 uv:TEXCOORD2; };
+            struct Attributes { float4 positionOS:POSITION; float3 normalOS:NORMAL; float4 tangentOS:TANGENT; float2 uv:TEXCOORD0; };
+            struct Varyings { float4 positionCS:SV_POSITION; float3 positionWS:TEXCOORD0; float3 normalWS:TEXCOORD1; float2 uv:TEXCOORD2; float4 tangentWS:TEXCOORD3; };
             Varyings Vert(Attributes v)
             {
                 Varyings o;
                 o.positionWS=TransformObjectToWorld(v.positionOS.xyz);
                 o.positionCS=TransformWorldToHClip(o.positionWS);
                 o.normalWS=TransformObjectToWorldNormal(v.normalOS);
+                o.tangentWS=float4(TransformObjectToWorldDir(v.tangentOS.xyz),v.tangentOS.w*GetOddNegativeScale());
                 o.uv=TRANSFORM_TEX(v.uv,_BaseMap);
                 return o;
+            }
+            float Relief(float3 paint)
+            {
+                float mask=saturate((paint.r-paint.b)*3)*saturate((paint.g-paint.b)*2);
+                return dot(paint,float3(.30,.59,.11))*mask;
             }
             half4 Frag(Varyings i):SV_Target
             {
                 half4 paint=SAMPLE_TEXTURE2D(_BaseMap,sampler_BaseMap,i.uv)*_BaseColor;
                 // The source atlas alpha is a tint mask, not mesh transparency.
                 float3 n=normalize(i.normalWS), v=normalize(GetWorldSpaceViewDir(i.positionWS));
+                if(_ReliefStrength>.001 && dot(i.tangentWS.xyz,i.tangentWS.xyz)>.01)
+                {
+                    float2 delta=_BaseMap_TexelSize.xy*2;
+                    float du=Relief(SAMPLE_TEXTURE2D(_BaseMap,sampler_BaseMap,i.uv+float2(delta.x,0)).rgb)-Relief(SAMPLE_TEXTURE2D(_BaseMap,sampler_BaseMap,i.uv-float2(delta.x,0)).rgb);
+                    float dv=Relief(SAMPLE_TEXTURE2D(_BaseMap,sampler_BaseMap,i.uv+float2(0,delta.y)).rgb)-Relief(SAMPLE_TEXTURE2D(_BaseMap,sampler_BaseMap,i.uv-float2(0,delta.y)).rgb);
+                    float3 tangent=normalize(i.tangentWS.xyz),bitangent=normalize(cross(n,tangent))*i.tangentWS.w;
+                    n=normalize(n-(tangent*du+bitangent*dv)*_ReliefStrength);
+                }
                 Light key=GetMainLight(TransformWorldToShadowCoord(i.positionWS));
                 // Stable studio fill preserves the painted face in both the board and portrait camera.
                 float3 fill=normalize(float3(v.x-.45,.75,v.z+.30));

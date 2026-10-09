@@ -10,6 +10,7 @@ namespace SanGuo.Client
     /// 模型放在遠處的專用圖層、用自己的相機與燈光，不影響主場景；循環播放待機動作，Cheer() 播一次施法動作。
     /// 不需要時呼叫 Dispose。
     /// </summary>
+    [DefaultExecutionOrder(250)]
     public sealed class ModelStage : MonoBehaviour
     {
         /// <summary>專用圖層（相機與燈光只看這層）。</summary>
@@ -31,6 +32,12 @@ namespace SanGuo.Client
         private Vector3 _skeletalHeadScale;
         private Quaternion _modelBaseRotation;
         private float _reviewYaw;
+        private int _frameAfterPose=2;
+        private bool _bust;
+        private Vector3 _frameFocus;
+        private float _frameDistance;
+        private Vector3 _frameDirection;
+        private Coroutine? _framing;
 
         /// <param name="bust">true = 半身像：鏡頭只框住上半身（劇情對白用）。</param>
         public static ModelStage? Create(string characterName, int width = 512, int height = 640, bool bust = false)
@@ -46,6 +53,7 @@ namespace SanGuo.Client
 
         private void Build(GameObject prefab, int width, int height, bool bust)
         {
+            _bust=bust;
             _origin = new Vector3(4000f + 80f * (_count++ % 20), 0f, 4000f);
             transform.position = _origin;
             _model = Instantiate(prefab, transform);
@@ -83,6 +91,7 @@ namespace SanGuo.Client
                 size = Mathf.Max(bustHeight, fullW * 0.8f * height / (float)width, 0.1f);
             }
             float dist = size * 0.5f / Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad) * 1.12f;
+            _frameFocus=focus;_frameDistance=dist;
 
             Texture = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32) { name = "ModelStageRT" };
             Texture.antiAliasing = 4;
@@ -92,6 +101,7 @@ namespace SanGuo.Client
             camGo.transform.SetParent(transform, false);
             camGo.transform.position = focus + new Vector3(0f, size * 0.02f, dist);
             camGo.transform.LookAt(focus);
+            _frameDirection = (camGo.transform.position - focus).normalized;
             _camera = camGo.AddComponent<Camera>();
             _camera.fieldOfView = fov;
             _camera.clearFlags = CameraClearFlags.SolidColor;
@@ -166,15 +176,52 @@ namespace SanGuo.Client
 
         public void ReviewAngle(float yaw)
         {
+            _frameAfterPose=2;
             _reviewYaw = yaw;
             _model.transform.rotation = Quaternion.Euler(0,yaw,0)*_modelBaseRotation;
         }
 
-        public void ReviewAttack() { if (_clips?.Attack != null) StartClip(_clips.Attack, loop: false); }
+        public void ReviewAttack() { _frameAfterPose=2;if (_model.TryGetComponent<ArcherPoseRig>(out var bowRig)) bowRig.Shoot();if (_clips?.Attack != null) StartClip(_clips.Attack, loop: false); }
 
         private void LateUpdate()
         {
             if (_skeletalHead != null && _clips != null) _skeletalHead.localScale = _skeletalHeadScale * _clips.HeadScale;
+            if(_frameAfterPose>0 && --_frameAfterPose==0 && !_bust)
+            {
+                if (_framing != null) StopCoroutine(_framing);
+                _framing = StartCoroutine(FramePosedModel());
+            }
+        }
+
+        private System.Collections.IEnumerator FramePosedModel()
+        {
+            // Imported skin bounds include helper vertices. Frame visible rendered pixels instead.
+            float distance=_frameDistance*1.4f;
+            // 固定用初始方向：從上次調整後的相機位置推方向，會因 focus 偏移而逐次漂移。
+            Vector3 direction=_frameDirection;
+            _camera.transform.position=_frameFocus+direction*distance;_camera.transform.LookAt(_frameFocus);
+            yield return new WaitForEndOfFrame();
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            if(Texture==null || !Texture.IsCreated())yield break;
+            var previous=RenderTexture.active;RenderTexture.active=Texture;
+            var image=new Texture2D(Texture.width,Texture.height,TextureFormat.RGBA32,false);
+            image.ReadPixels(new Rect(0,0,Texture.width,Texture.height),0,0);
+            var pixels=image.GetPixels32();Destroy(image);RenderTexture.active=previous;
+            int minX=Texture.width,minY=Texture.height,maxX=0,maxY=0;
+            for(int y=0;y<Texture.height;y++)for(int x=0;x<Texture.width;x++)
+            {
+                if(pixels[y*Texture.width+x].a<32)continue;
+                minX=Mathf.Min(minX,x);maxX=Mathf.Max(maxX,x);minY=Mathf.Min(minY,y);maxY=Mathf.Max(maxY,y);
+            }
+            if(minX>maxX)yield break;
+            float worldHeight=2*distance*Mathf.Tan(_camera.fieldOfView*.5f*Mathf.Deg2Rad);
+            var focus=_frameFocus+_camera.transform.up*((minY+maxY)*.5f/Texture.height-.5f)*worldHeight;
+            float width=2*Mathf.Max(Mathf.Abs(minX-Texture.width*.5f),Mathf.Abs(maxX-Texture.width*.5f))/Texture.width;
+            float height=(maxY-minY)/(float)Texture.height;
+            distance*=Mathf.Max(width,height)/.72f;
+            _camera.transform.position=focus+direction*distance;_camera.transform.LookAt(focus);
+            _camera.farClipPlane=Mathf.Max(_camera.farClipPlane,distance+worldHeight*3);
         }
 
         public void Dispose()
