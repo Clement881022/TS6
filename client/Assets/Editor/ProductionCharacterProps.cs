@@ -33,13 +33,13 @@ namespace SanGuo.Client.Editor
             if(right!=null)
             {
                 var arrow=new GameObject("PropArrow");arrow.transform.SetParent(right,false);arrow.transform.localRotation=Quaternion.Euler(0,90,0);
-                Piece(arrow.transform,"PropArrowShaft",Tube(new[]{new Vector3(0,0,-.22f),new Vector3(0,0,.26f)},.005f,6),new Color(.26f,.13f,.06f),output);
+                Piece(arrow.transform,"PropArrowShaft",Tube(new[]{new Vector3(0,0,-.04f),new Vector3(0,0,.43f)},.005f,6),new Color(.26f,.13f,.06f),output);
                 var tip=Piece(arrow.transform,"PropArrowTip",Plate(new[]{new Vector2(0,.07f),new Vector2(-.022f,0),new Vector2(.022f,0)},.002f),new Color(.72f,.79f,.83f),output);
-                tip.localPosition=new Vector3(0,0,.26f);tip.localRotation=Quaternion.Euler(90,0,0);
+                tip.localPosition=new Vector3(0,0,.43f);tip.localRotation=Quaternion.Euler(90,0,0);
                 for(int i=0;i<3;i++)
                 {
                     var feather=Piece(arrow.transform,"PropArrowFeather"+i,Plate(new[]{new Vector2(0,.05f),new Vector2(.025f,0),new Vector2(.025f,-.04f),new Vector2(0,-.06f)},.001f),new Color(.85f,.88f,.80f),output);
-                    feather.localPosition=new Vector3(0,0,-.17f);feather.localRotation=Quaternion.Euler(90,0,i*120);
+                    feather.localPosition=new Vector3(0,0,.01f);feather.localRotation=Quaternion.Euler(90,0,i*120);
                 }
             }
         }

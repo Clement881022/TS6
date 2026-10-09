@@ -47,6 +47,32 @@ namespace SanGuo.Client.Editor
             Finish();
         }
 
+        [MenuItem("SanGuo/建立鄉勇劍兵")]
+        public static void BakeSwordArt()
+        {
+            Prepare();Bake("r_sword","sword");Finish();
+        }
+
+        [MenuItem("SanGuo/統一實際角色骨架尺寸")]
+        public static void NormalizeWorldSizes()
+        {
+            Prepare();
+            foreach(string path in Directory.GetFiles(Output,"*.prefab"))
+            {
+                var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(path);var root=UnityEngine.Object.Instantiate(prefab);
+                try
+                {
+                    root.name=Path.GetFileNameWithoutExtension(path);
+                    var clips=root.GetComponent<CharacterClipSet>();
+                    if(clips==null || clips.Idle==null)throw new InvalidOperationException("Missing skeletal idle: "+path);
+                    clips.Idle.SampleAnimation(root,0);Normalize(root,clips);ProductionCharacterAssembly.Validate(root);
+                    PrefabUtility.SaveAsPrefabAsset(root,path);
+                }
+                finally{UnityEngine.Object.DestroyImmediate(root);}
+            }
+            Finish();
+        }
+
         private static void Prepare()
         {
             Directory.CreateDirectory(Output + "/Meshes");
@@ -62,7 +88,8 @@ namespace SanGuo.Client.Editor
 
         private static void Bake(string id,string role)
         {
-            var source = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Characters/"+id+".prefab");
+            string sourceId=id=="r_sword"?"r_shield":id;
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Characters/"+sourceId+".prefab");
             if (source == null) throw new InvalidOperationException("Missing textured character source: "+id);
             var root = UnityEngine.Object.Instantiate(source);
             try
@@ -102,15 +129,27 @@ namespace SanGuo.Client.Editor
                 // 待機檔名不含 FightStandby 時，替換會原樣回傳待機檔，攻擊就被換成待機動作。
                 var attack=!clipPath.Contains("FightStandby") ? null : AssetDatabase.LoadAllAssetsAtPath(clipPath.Replace("FightStandby",motion)).OfType<AnimationClip>().FirstOrDefault(c=>!c.name.StartsWith("__preview__"));
                 if(attack != null) clips.Attack=attack;
-                if(id == "r_shield" || id == "r_archer" || id == "r_healer") clips.Idle.SampleAnimation(root,0);
+                if(id == "r_shield" || id == "r_archer" || id == "r_healer" || id == "r_sword") clips.Idle.SampleAnimation(root,0);
                 ProductionInfantryCostume.Apply(root,id,Output);
                 if(role == "archer") { ProductionCharacterProps.Bow(root,Output);root.AddComponent<ArcherPoseRig>(); }
                 if(role == "guard") ProductionCharacterProps.Shield(root,Output);
                 ProductionInfantryDesign.AddDesign(root,id,Output);
-                if(id == "r_shield" || id == "r_archer" || id == "r_healer") ProductionCharacterAssembly.Consolidate(root,id,Output);
+                ProductionArcherAnimation.Apply(root,id,Output);
+                if(id == "r_shield" || id == "r_archer" || id == "r_healer" || id == "r_sword") ProductionCharacterAssembly.Consolidate(root,id,Output);
                 if(id == "guanyu")
                     foreach(var t in root.GetComponentsInChildren<Transform>())
                         if(t.name == "Weapon_00029") t.localRotation = Quaternion.Euler(0,180,0);
+                Normalize(root,clips);
+                ProductionCharacterAssembly.Validate(root);
+                PrefabUtility.SaveAsPrefabAsset(root, Output + "/"+id+".prefab");
+                AssetDatabase.SaveAssets();
+                Debug.Log("PRODUCTION_CHARACTER "+id+" triangles=" + triangles + " motion="+role+" skinned=true textured=true");
+            }
+            finally { UnityEngine.Object.DestroyImmediate(root); }
+        }
+
+        private static void Normalize(GameObject root,CharacterClipSet clips)
+        {
                 var head=root.GetComponentsInChildren<Transform>().FirstOrDefault(t=>t.name=="Bip001 Head");
                 var originalHeadScale=head!=null?head.localScale:Vector3.one;
                 if(head!=null)head.localScale=originalHeadScale*clips.HeadScale;
@@ -122,15 +161,9 @@ namespace SanGuo.Client.Editor
                     if(first){bodyBounds=bounds;first=false;}else bodyBounds.Encapsulate(bounds);
                 }
                 if(head!=null)head.localScale=originalHeadScale;
-                if(first || bodyBounds.size.y<.05f)throw new InvalidOperationException("Empty posed character geometry: "+id);
+                if(first || bodyBounds.size.y<.05f)throw new InvalidOperationException("Empty posed character geometry: "+root.name);
                 root.transform.localScale *= 2.30f/bodyBounds.size.y;
-                Debug.Log("ART_WORLD_SIZE "+id+" posedHeight="+bodyBounds.size.y+" scale="+root.transform.localScale.x+" targetBodyHeight=2.3");
-                ProductionCharacterAssembly.Validate(root);
-                PrefabUtility.SaveAsPrefabAsset(root, Output + "/"+id+".prefab");
-                AssetDatabase.SaveAssets();
-                Debug.Log("PRODUCTION_CHARACTER "+id+" triangles=" + triangles + " motion="+role+" skinned=true textured=true");
-            }
-            finally { UnityEngine.Object.DestroyImmediate(root); }
+                Debug.Log("ART_WORLD_SIZE "+root.name+" posedHeight="+bodyBounds.size.y+" scale="+root.transform.localScale.x+" targetBodyHeight=2.3");
         }
 
         private static void SculptFace(Mesh mesh)
@@ -162,12 +195,14 @@ namespace SanGuo.Client.Editor
             if (part == "BodyRenderer")
             {
                 var painted = AssetDatabase.LoadAssetAtPath<Texture2D>(Output + "/Textures/"+id+"_body.png");
+                if(painted==null && id=="r_sword")painted=AssetDatabase.LoadAssetAtPath<Texture2D>(Output+"/Textures/r_shield_body.png");
                 if (painted != null) texture = painted;
             }
             foreach (string slot in new[] { "Hair", "Face", "Cosmetic", "Weapon" })
                 if (part == slot+"Renderer")
                 {
                     var painted=AssetDatabase.LoadAssetAtPath<Texture2D>(Output+"/Textures/"+id+"_"+slot.ToLowerInvariant()+".png");
+                    if(painted==null && id=="r_sword" && slot=="Face")painted=AssetDatabase.LoadAssetAtPath<Texture2D>(Output+"/Textures/r_shield_face.png");
                     if(painted!=null) texture=painted;
                 }
             mat.SetTexture("_BaseMap", texture);

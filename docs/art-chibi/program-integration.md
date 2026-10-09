@@ -14,6 +14,8 @@
 
 本輪在分工指定前已加入的 `ArcherPoseRig.cs`、`CharacterView.cs` 持弓／死亡接入、`ModelStage.cs` 透明輪廓取景，後續由 Claude Code 維護。保持既有骨架動畫可播放、射擊時觸發 `Shoot()`、倒下時停止持弓校正；切換角色與角度時不可累積取景偏移。
 
+第五階段 r_archer 已改用 `ProductionCharacters/Animations/r_archer_BowIdle.anim`、`r_archer_BowAttack.anim` 兩個完整骨架動畫素材，Prefab 不再帶有 ArcherPoseRig，避免舊校正覆蓋新美術姿勢。保持既有 CharacterClipSet 的 Idle／Attack 播放；其他舊弓兵的程式接入規格仍有效。製作工具 `ProductionArcherAnimation.cs` 僅在 Editor 執行，沒有新增執行期 IK 程式。
+
 驗證條件：模型旋轉後不出框、不空白、材質不呈粉紅色；弓與盾跟隨手骨；出牌、受擊、施法、死亡正常。HUD 與卡牌的文字／重疊檢查也必須保留。
 
 ## 下一輪由 Codex 處理的美術缺口

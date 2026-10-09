@@ -12,7 +12,7 @@ namespace SanGuo.Client.Editor
     {
         public static void Apply(GameObject root,string id,string output)
         {
-            if(id!="r_shield" && id!="r_archer")return;
+            if(id!="r_shield" && id!="r_archer" && id!="r_sword")return;
             var r=root.GetComponentsInChildren<SkinnedMeshRenderer>().First(x=>x.name=="BodyRenderer");
             var mesh=UnityEngine.Object.Instantiate(r.sharedMesh);var vertices=mesh.vertices;var weights=mesh.boneWeights;var uv=mesh.uv;
             var matrices=r.bones.Select((b,i)=>b.localToWorldMatrix*mesh.bindposes[i]).ToArray();
@@ -38,15 +38,22 @@ namespace SanGuo.Client.Editor
                     }
                     vertices[i]=skin.inverse.MultiplyPoint3x4(p);
                 }
-                if(boneName.Contains("Forearm") && !(uv[i].x<.22f && uv[i].y<.30f))
+                bool cuff=boneName.Contains("-LHC") || boneName.Contains("-RHC");
+                if((boneName.Contains("Forearm") || cuff) && !(uv[i].x<.22f && uv[i].y<.30f))
                 {
-                    string side=boneName.Contains(" L ")?"L":"R";
+                    string side=boneName.Contains(" L ") || boneName.Contains("-LHC")?"L":"R";
                     var elbow=root.GetComponentsInChildren<Transform>().First(t=>t.name=="Bip001 "+side+" Forearm").position;var hand=root.GetComponentsInChildren<Transform>().First(t=>t.name=="Bip001 "+side+" Hand").position;
                     var line=hand-elbow;float t=Mathf.Clamp01(Vector3.Dot(p-elbow,line)/line.sqrMagnitude);
                     var centre=elbow+line*t;var delta=p-centre;
                     if(delta.magnitude>.055f)
                     {
                         p=centre+delta.normalized*.055f;
+                        if(cuff)
+                        {
+                            int forearm=Array.FindIndex(r.bones,b=>b.name=="Bip001 "+side+" Forearm");
+                            int wrist=Array.FindIndex(r.bones,b=>b.name=="Bip001 "+side+" Hand");
+                            weights[i]=new BoneWeight{boneIndex0=forearm,weight0=1-t*.3f,boneIndex1=wrist,weight1=t*.3f};skin=SkinMatrix(weights[i],matrices);
+                        }
                         vertices[i]=skin.inverse.MultiplyPoint3x4(p);
                     }
                 }

@@ -13,7 +13,7 @@ namespace SanGuo.Client.Editor
         private static readonly Color Gold=new Color(.80f,.52f,.16f),Bronze=new Color(.30f,.22f,.13f),Red=new Color(.58f,.018f,.026f),Jade=new Color(.07f,.43f,.23f);
         public static void PrepareParts(GameObject root,string id)
         {
-            if(id == "r_shield" || id == "r_archer")
+            if(id == "r_shield" || id == "r_archer" || id == "r_sword")
             {
                 CopyPart(root,"FaceRenderer","r_militia");
                 var hair=root.GetComponentsInChildren<SkinnedMeshRenderer>(true).First(r=>r.name=="HairRenderer");
@@ -25,8 +25,43 @@ namespace SanGuo.Client.Editor
         public static void AddDesign(GameObject root,string id,string output)
         {
             if(id == "r_shield") { ShortHair(root,id,output);Helmet(root,output);ShortSpear(root,output); }
-            if(id == "r_archer") { ShortHair(root,id,output);Headscarf(root,output);Quiver(root,output); }
+            if(id == "r_archer") { ClearWeapons(root);ShortHair(root,id,output);Headscarf(root,output);Quiver(root,output); }
             if(id == "r_healer") { HealerCrown(root,output);MedicineGourd(root,output); }
+            if(id == "r_sword") { ShortHair(root,id,output);SwordHeadband(root,id,output);Sword(root,id,output); }
+        }
+
+        private static void SwordHeadband(GameObject root,string id,string output)
+        {
+            var face=SkinBounds(root,"FaceRenderer");var anchor=Anchor(root,"Bip001 Head","Design_SwordHeadband");
+            var centre=new Vector3(face.center.x,face.max.y-face.size.y*.27f,face.center.z-.014f);
+            float rx=face.size.x*.565f,rz=face.size.z*.76f;
+            var rings=new[]{new Vector2(rx,centre.y-.012f),new Vector2(rx*1.02f,centre.y),new Vector2(rx,centre.y+.028f)};
+            var strip=Lathe(rings,64);var vertices=strip.vertices;
+            for(int i=0;i<vertices.Length;i++){vertices[i].z*=rz/rx;vertices[i].x+=centre.x;vertices[i].z+=centre.z;}
+            strip.vertices=vertices;strip.RecalculateNormals();SmoothSeam(strip,64);
+            Add(anchor,id+"YellowHeadband",strip,new Color(.92f,.59f,.08f),output);
+            for(int side=0;side<2;side++)
+            {
+                var path=new List<Vector3>();for(int i=0;i<=24;i++){float t=i/24f;path.Add(centre+new Vector3(-rx*.78f-(.12f+side*.05f)*t,.012f-.055f*t+.045f*Mathf.Sin(t*Mathf.PI),-rz*.55f-.15f*t));}
+                Add(anchor,id+"YellowHeadbandTail"+side,Ribbon(path,.029f),new Color(.90f,.53f,.05f),output);
+            }
+        }
+
+        private static void Sword(GameObject root,string id,string output)
+        {
+            ClearWeapons(root);var anchor=Anchor(root,"Bip001 R Hand","Design_Sword");
+            anchor.localPosition=Vector3.zero;anchor.rotation=Quaternion.LookRotation((root.transform.up+root.transform.right*.55f).normalized,root.transform.forward);
+            Add(anchor,id+"SwordGrip",Tube(new[]{new Vector3(0,0,-.065f),new Vector3(0,0,.065f)},.016f,16),new Color(.13f,.055f,.025f),output);
+            Add(anchor,id+"SwordPommel",Tube(new[]{new Vector3(0,0,-.075f),new Vector3(0,0,-.060f)},.024f,16),Gold,output);
+            Add(anchor,id+"SwordGuard",Tube(new[]{new Vector3(-.065f,0,.074f),new Vector3(0,0,.088f),new Vector3(.065f,0,.074f)},.016f,16),Gold,output);
+            var blade=new Mesh{name=id+"SwordBlade"};
+            blade.vertices=new[]{new Vector3(-.032f,0,.09f),new Vector3(.032f,0,.09f),new Vector3(-.026f,0,.45f),new Vector3(.026f,0,.45f),new Vector3(0,0,.53f),new Vector3(0,.016f,.09f),new Vector3(0,.012f,.44f),new Vector3(0,-.016f,.09f),new Vector3(0,-.012f,.44f)};
+            blade.uv=blade.vertices.Select(v=>new Vector2(v.x/.064f+.5f,(v.z-.09f)/.44f)).ToArray();
+            blade.triangles=new[]{0,5,2,5,6,2,5,1,6,1,3,6,2,6,4,6,3,4,0,2,7,7,2,8,7,8,1,1,8,3,2,4,8,8,4,3,0,7,5,5,7,1};blade.RecalculateNormals();blade.RecalculateTangents();blade.RecalculateBounds();
+            Add(anchor,id+"SwordBlade",blade,new Color(.72f,.79f,.84f),output);
+            var scarf=Anchor(root,"Bip001 Neck","Design_SwordScarf");var neck=scarf.parent.position;
+            var paths=new[]{new[]{neck+new Vector3(-.07f,0,-.025f),neck+new Vector3(-.16f,.025f,-.09f),neck+new Vector3(-.23f,-.045f,-.13f)},new[]{neck+new Vector3(.04f,-.014f,-.03f),neck+new Vector3(.12f,.015f,-.08f),neck+new Vector3(.20f,-.055f,-.14f)}};
+            for(int i=0;i<paths.Length;i++)Add(scarf,id+"RedScarfTail"+i,Ribbon(paths[i],.036f),Red,output);
         }
 
         private static void CopyPart(GameObject root,string slot,string sourceId)
@@ -177,7 +212,7 @@ namespace SanGuo.Client.Editor
 
         private static void ClearWeapons(GameObject root)
         {
-            foreach(var t in root.GetComponentsInChildren<Transform>(true).Where(t=>t.name.StartsWith("Weapon_")).ToArray())
+            foreach(var t in root.GetComponentsInChildren<Transform>(true).Where(t=>t.name.StartsWith("Weapon_") || t.name=="WeaponRenderer").ToArray())
                 if(t!=null)UnityEngine.Object.DestroyImmediate(t.gameObject);
         }
 
