@@ -1,0 +1,10 @@
+{
+  "tool": "built-in image_gen",
+  "prompt": "Create a single isolated frontal GOLDEN CHINESE LION / beast head armour ornament, transparent background. Reference 1 is the established chibi Zhang Fei design: match the fierce golden sculpted beast on his shoulder, RED gemstone eyes, sharply curled heavy eyebrows, an angry open mouth with small ivory fangs, broad bulbous Chinese lion nose, ornate curled mane and strong cheekbones, flame-like swept side locks. Reference 2 shows existing painted metallic rendering quality, but do NOT include the red shield or any shield shape. The ornament alone fills 85% of a square canvas, perfectly centered, symmetrical orthographic FRONT view. Warm rich polished golden metal, hand-painted mobile fantasy chibi art, tight smooth highlights with recessed dark gold grooves and visible relief depth. Cohesive with the first reference, NO toy smile, NO plastic plain yellow, NO realistic fur, no text, no body, no armor plate, no shadow outside ornament, no border. The image will be UV mapped onto a raised 3D relief shoulder piece, so no perspective tilt and no external scenery.",
+  "references": [
+    "client/Assets/Resources/ChibiSkin/full_zhangfei.png",
+    "client/Assets/Resources/ProductionCharacters/Textures/equipment_shield.png"
+  ],
+  "output": "client/Assets/Resources/ProductionCharacters/Textures/zhangfei_lion_relief.png",
+  "usage": "透明 UV 表面，配合新增封閉浮雕網格；不是單張肩甲替代完整角色模型。"
+}

@@ -57,6 +57,7 @@ namespace SanGuo.Client.Editor
                 Add(head,"HeroHairLock"+i,SmoothSweep(new[]{crown+new Vector3(x,-.025f,.042f),crown+new Vector3(x*.95f,.050f-Mathf.Abs(i)*.008f,-.025f),crown+new Vector3(x*.8f+.055f,.110f-Mathf.Abs(i)*.018f,-.092f)},.045f,.85f),Color.black,output);
             }
             BanditBeard(root,id,output);
+            ZhangfeiArmour(root,output);
             var beard=Anchor(root,"Bip001 Head","Design_ZhangfeiMoustache");
             for(int sign=-1;sign<=1;sign+=2)
             {
@@ -115,6 +116,65 @@ namespace SanGuo.Client.Editor
                 if(i<segments){int k=i*4;triangles.AddRange(new[]{k,k+4,k+1,k+1,k+4,k+5,k+1,k+5,k+2,k+2,k+5,k+6,k+2,k+6,k+3,k+3,k+6,k+7,k+3,k+7,k,k,k+7,k+4});}
             }
             var mesh=new Mesh{name="SnakeSpearBlade"};mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);mesh.RecalculateNormals();mesh.RecalculateTangents();return mesh;
+        }
+
+        private static void ZhangfeiArmour(GameObject root,string output)
+        {
+            foreach(int sign in new[]{-1,1})
+            {
+                string side=sign<0?"L":"R";
+                var upperArm=root.GetComponentsInChildren<Transform>().First(t=>t.name=="Bip001 "+side+" UpperArm");
+                var shoulder=Anchor(root,"Bip001 Spine","Design_ZhangfeiPauldron"+side);
+                shoulder.position=upperArm.position+root.transform.up*.005f+root.transform.right*(-sign*.060f);
+                shoulder.rotation=root.transform.rotation;
+                var shell=Lathe(SmoothProfile(new[]{new Vector2(0,-.050f),new Vector2(.075f,-.047f),new Vector2(.108f,-.040f),new Vector2(.110f,-.020f),new Vector2(.100f,.012f),new Vector2(.068f,.040f),new Vector2(0,.047f)}),48);
+                var shellVertices=shell.vertices;for(int j=0;j<shellVertices.Length;j++)shellVertices[j].z*=.92f;shell.vertices=shellVertices;shell.RecalculateNormals();SmoothSeam(shell,48);
+                Add(shoulder,"PauldronShell"+side,shell,new Color(.20f,.18f,.14f),output);
+                var rim=Lathe(new[]{new Vector2(.108f,-.050f),new Vector2(.115f,-.037f),new Vector2(.108f,-.023f)},48);var p=rim.vertices;
+                for(int j=0;j<p.Length;j++)p[j].z*=.92f;rim.vertices=p;rim.RecalculateNormals();
+                Add(shoulder,"PauldronGoldRim"+side,rim,Gold,output);
+                LionMask(shoulder,new Vector3(0,-.002f,.084f),side,output);
+                var arm=Anchor(root,"Bip001 "+side+" Forearm","Design_ZhangfeiVambrace"+side);
+                arm.position=Vector3.Lerp(arm.parent.position,root.GetComponentsInChildren<Transform>().First(t=>t.name=="Bip001 "+side+" Hand").position,.67f);
+                arm.rotation=Quaternion.LookRotation(root.transform.forward,(root.GetComponentsInChildren<Transform>().First(t=>t.name=="Bip001 "+side+" Hand").position-arm.parent.position).normalized);
+                var guard=Lathe(new[]{new Vector2(.043f,-.043f),new Vector2(.048f,-.03f),new Vector2(.049f,.027f),new Vector2(.041f,.040f)},48);
+                Add(arm,"VambraceBlack"+side,guard,new Color(.16f,.13f,.10f),output);
+                foreach(float y in new[]{-.035f,.03f})Add(arm,"VambraceGold"+side+y,Lathe(new[]{new Vector2(.050f,y-.007f),new Vector2(.054f,y),new Vector2(.050f,y+.007f)},48),Gold,output);
+            }
+        }
+
+        private static void LionMask(Transform anchor,Vector3 centre,string side,string output)
+        {
+            var image=new Texture2D(2,2,TextureFormat.RGBA32,false);
+            try
+            {
+                string imagePath=output+"/Textures/zhangfei_lion_relief.png";
+                if(!image.LoadImage(System.IO.File.ReadAllBytes(imagePath)))throw new InvalidOperationException("Invalid lion relief atlas");
+                const int size=64,stride=size+1,count=stride*stride;
+                var vertices=new Vector3[count*2];var uv=new Vector2[count*2];var opaque=new bool[count];
+                for(int y=0;y<=size;y++)for(int x=0;x<=size;x++)
+                {
+                    int i=y*stride+x;float u=x/(float)size,v=y/(float)size;var paint=image.GetPixelBilinear(u,v);opaque[i]=paint.a>.75f;
+                    float dome=Mathf.Sqrt(Mathf.Max(0,1-Mathf.Pow((u-.5f)*2,2)-Mathf.Pow((v-.5f)*2,2)));
+                    float nose=.012f*Mathf.Exp(-35*(Mathf.Pow(u-.5f,2)+Mathf.Pow(v-.44f,2)));
+                    vertices[i]=centre+new Vector3((u-.5f)*.185f,(v-.5f)*.180f,.007f+.023f*dome+.006f*paint.grayscale+nose);
+                    vertices[i+count]=centre+new Vector3((u-.5f)*.185f,(v-.5f)*.180f,-.008f);uv[i]=uv[i+count]=new Vector2(u,v);
+                }
+                var triangles=new List<int>();var edges=new Dictionary<(int,int),(int a,int b,int uses)>();
+                void Edge(int a,int b){var key=(Mathf.Min(a,b),Mathf.Max(a,b));edges[key]=edges.TryGetValue(key,out var e)?(e.a,e.b,e.uses+1):(a,b,1);}
+                void Triangle(int a,int b,int c){triangles.AddRange(new[]{a,b,c,c+count,b+count,a+count});Edge(a,b);Edge(b,c);Edge(c,a);}
+                for(int y=0;y<size;y++)for(int x=0;x<size;x++)
+                {
+                    int a=y*stride+x,b=a+1,c=a+stride,d=c+1;
+                    if(opaque[a] && opaque[b] && opaque[c])Triangle(a,b,c);
+                    if(opaque[b] && opaque[d] && opaque[c])Triangle(b,d,c);
+                }
+                foreach(var e in edges.Values.Where(e=>e.uses==1))triangles.AddRange(new[]{e.b,e.a,e.a+count,e.b,e.a+count,e.b+count});
+                var mask=new Mesh{name="ZhangfeiLionRelief"};mask.vertices=vertices;mask.uv=uv;mask.SetTriangles(triangles,0);mask.RecalculateNormals();mask.RecalculateTangents();mask.RecalculateBounds();
+                var piece=Add(anchor,"LionRelief"+side,mask,Color.white,output);var material=piece.GetComponent<MeshRenderer>().sharedMaterial;
+                material.SetTexture("_BaseMap",AssetDatabase.LoadAssetAtPath<Texture2D>(imagePath));material.SetColor("_BaseColor",Color.white);material.SetFloat("_MetalStrength",.55f);material.SetFloat("_ReliefStrength",.45f);EditorUtility.SetDirty(material);
+            }
+            finally{UnityEngine.Object.DestroyImmediate(image);}
         }
 
         private static void HunterTopknot(GameObject root,string id,string output)
