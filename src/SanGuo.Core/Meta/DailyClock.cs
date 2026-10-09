@@ -19,6 +19,9 @@ namespace SanGuo.Core.Meta
             return (int)(w < 0 ? w + 7 : w);
         }
 
+        /// <summary>遊戲週序號（每週一重置；每週任務用）。</summary>
+        public static long WeekIndex(long now) => FloorDiv(DayIndex(now) + 3, 7);
+
         /// <summary>遊戲日所屬的月份（yyyy-MM），將魂商店等每月重置用。</summary>
         public static string MonthKey(long now)
         {

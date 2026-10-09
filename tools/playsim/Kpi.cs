@@ -12,7 +12,7 @@ public static class Kpi
 {
     static readonly (string User, string Label)[] Personas =
     {
-        ("f2p_player01", "無課"), ("light_spender01", "小課"), ("heavy_spender01", "大課"), ("whale_hypo01", "假設鯨魚"),
+        ("f2p_player01", "無課"), ("light_spender01", "小課"), ("heavy_spender01", "大課"), ("whale_hypo01", "鯨魚"),
     };
 
     /// <summary>背景族群的付費比例（暫定）：無課 70%、小課 25%、大課 5%。</summary>
@@ -208,7 +208,7 @@ public static class Kpi
         sb.AppendLine($"| 時間 | 第 31 天後每日分鐘（不含世界 Boss） | {Minutes(31, 999, x => x.D("minutes") - x.D("bossMin"))} | ≥ 15 |");
         sb.AppendLine($"| 挫折 | 主線敗場佔比 % | {Fmt(lossRatio)} | ≤ 30 |");
         sb.AppendLine($"| 挫折 | 單關挑戰次數 95 百分位 | {Percentile(attempts, 0.95)}（最多 {(attempts.Count > 0 ? attempts.Max() : 0)}） | ≤ 5 |");
-        sb.AppendLine($"| 經濟 | 第 1 個月抽數：無課／小課／大課 | {Pulls("f2p_player01", 0, 30)}／{Pulls("light_spender01", 0, 30)}／{Pulls("heavy_spender01", 0, 30)} | 約 100／120–135／500+ |");
+        sb.AppendLine($"| 經濟 | 第 1 個月抽數：無課／小課／大課（鯨魚見補充） | {Pulls("f2p_player01", 0, 30)}／{Pulls("light_spender01", 0, 30)}／{Pulls("heavy_spender01", 0, 30)} | 約 100／120–135／500+ |");
         sb.AppendLine($"| 經濟 | 第 2 個月抽數（第 31–60 天）：無課／小課／大課 | {Pulls("f2p_player01", 30, 60)}／{Pulls("light_spender01", 30, 60)}／{Pulls("heavy_spender01", 30, 60)} | 約 70／90+／500+ |");
         sb.AppendLine($"| 課金 | 最佳 Boss 隊：可用 UR ÷ 只有 SR（滿養成；SR 最佳隊同職業全換 UR） | {exp.UrSrA:0.00}／{exp.UrSrB:0.00} | ≥ 1.25 |");
         sb.AppendLine($"| 課金 | SR 最佳隊換上剛抽到的 0★ UR（取最好的一次替換）÷ 原本 | {exp.Ur0Sr5:0.00} | ≥ 1.0 |");

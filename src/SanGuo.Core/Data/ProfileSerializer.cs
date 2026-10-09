@@ -70,6 +70,10 @@ namespace SanGuo.Core.Data
                 ["dailyTaskClaimed"] = SortedList(p.DailyTaskClaimed),
                 ["sevenDayProgress"] = IntMap(p.SevenDayProgress),
                 ["sevenDayClaimed"] = SortedList(p.SevenDayClaimed),
+                ["weeklyWeek"] = p.WeeklyWeek == long.MinValue ? (object?)null : p.WeeklyWeek,
+                ["weeklyProgress"] = IntMap(p.WeeklyProgress),
+                ["weeklyClaimed"] = SortedList(p.WeeklyClaimed),
+                ["rechargeBought"] = SortedList(p.RechargeBought),
                 ["monthCardExpiry"] = LongMap(p.MonthCardExpiry),
                 ["monthCardClaimedDay"] = LongMap(p.MonthCardClaimedDay),
                 ["soulShopBought"] = IntMap(p.SoulShopBought),
@@ -188,6 +192,10 @@ namespace SanGuo.Core.Data
             ReadStringSet(root, "dailyTaskClaimed", p.DailyTaskClaimed);
             ReadIntMap(root, "sevenDayProgress", p.SevenDayProgress);
             ReadStringSet(root, "sevenDayClaimed", p.SevenDayClaimed);
+            p.WeeklyWeek = root.TryGetValue("weeklyWeek", out var ww) && ww != null ? ToLong(ww) : long.MinValue;
+            ReadIntMap(root, "weeklyProgress", p.WeeklyProgress);
+            ReadStringSet(root, "weeklyClaimed", p.WeeklyClaimed);
+            ReadStringSet(root, "rechargeBought", p.RechargeBought);
             ReadLongMap(root, "monthCardExpiry", p.MonthCardExpiry);
             ReadLongMap(root, "monthCardClaimedDay", p.MonthCardClaimedDay);
             ReadIntMap(root, "soulShopBought", p.SoulShopBought);

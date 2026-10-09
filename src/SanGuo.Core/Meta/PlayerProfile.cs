@@ -86,6 +86,12 @@ namespace SanGuo.Core.Meta
         public Dictionary<string, int> SevenDayProgress = new Dictionary<string, int>();
         /// <summary>已領取的七日任務與里程碑（里程碑 id 為 "milestone:點數"）。</summary>
         public HashSet<string> SevenDayClaimed = new HashSet<string>();
+        /// <summary>每週任務所屬的遊戲週（<see cref="DailyClock.WeekIndex"/>）與進度；換週時由 <see cref="EnsureDaily"/> 清空。</summary>
+        public long WeeklyWeek = long.MinValue;
+        public Dictionary<string, int> WeeklyProgress = new Dictionary<string, int>();
+        public HashSet<string> WeeklyClaimed = new HashSet<string>();
+        /// <summary>已買過的儲值檔位（首次雙倍用）。</summary>
+        public HashSet<string> RechargeBought = new HashSet<string>();
 
         /// <summary>月卡到期的遊戲日（<see cref="DailyClock.DayIndex"/>，不含該日）與最近一次領取每日獎勵的遊戲日。</summary>
         public Dictionary<string, long> MonthCardExpiry = new Dictionary<string, long>();
@@ -109,6 +115,13 @@ namespace SanGuo.Core.Meta
         /// <summary>換日就清空每日資料（資源副本次數、每日任務）。每個會讀寫每日資料的動作都先呼叫它。</summary>
         public void EnsureDaily(long now)
         {
+            long week = DailyClock.WeekIndex(now);
+            if (week != WeeklyWeek)
+            {
+                WeeklyWeek = week;
+                WeeklyProgress.Clear();
+                WeeklyClaimed.Clear();
+            }
             long day = DailyClock.DayIndex(now);
             if (day == DailyDay) return;
             DailyDay = day;
@@ -120,6 +133,8 @@ namespace SanGuo.Core.Meta
         public void OnLogin(long now)
         {
             EnsureDaily(now);
+            // 每天第一次登入另外回報「登入天數」（每週任務：登入 5 天）
+            if (!DailyTaskProgress.ContainsKey("d_login")) Quests.Report(this, Quests.Events.LoginDay, 1, now);
             Quests.Report(this, Quests.Events.Login, 1, now);
         }
 

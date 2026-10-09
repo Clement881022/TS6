@@ -101,6 +101,7 @@ namespace SanGuo.Core.Meta
                 bool sameSeason = p.WorldBoss.FightSeason == "" || p.WorldBoss.FightSeason == p.WorldBoss.Season;
                 p.WorldBoss.FightSeason = "";
                 bool newBest = sameSeason && WorldBoss.Record(p, damage);
+                Quests.Report(p, Quests.Events.WorldBossFight, 1, now);
                 return new StageFinishOutcome
                 {
                     Ok = true, Won = replay.Result == BattleResult.Won, Damage = damage, BestDamage = p.WorldBoss.Best, NewBest = newBest,

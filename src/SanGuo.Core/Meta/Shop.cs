@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace SanGuo.Core.Meta
 {
-    public enum ProductKind { MonthCard, Pass, FirstPack }
+    public enum ProductKind { MonthCard, Pass, FirstPack, Recharge }
 
     /// <summary>
     /// 付費商品（GDD 05 §9）。價格單位：人民幣元；1 元 = 10 元寶（草案）。1.0 付費點為月卡、通行證、首儲禮包。
@@ -42,6 +42,10 @@ namespace SanGuo.Core.Meta
         public const string PassBasic = "pass_basic";
         public const string PassLuxury = "pass_luxury";
         public const string FirstPack = "first_pack";
+        /// <summary>元寶儲值檔位（企劃 2026-10-09）：1 元 = 10 元寶，每檔第一次購買雙倍。</summary>
+        public static readonly int[] RechargeTiers = { 6, 30, 98, 198, 328, 648 };
+        public static string RechargeId(int cny) => "recharge_" + cny;
+        public static bool RechargeFirstTime(PlayerProfile p, string productId) => !p.RechargeBought.Contains(productId);
 
         /// <summary>首儲禮包（¥6，每帳號一次）：600 元寶、金幣 20000、武將經驗 5000、二階武器／防具／飾品各 1。</summary>
         public static Reward FirstPackReward()
@@ -51,7 +55,15 @@ namespace SanGuo.Core.Meta
             return r;
         }
 
-        public static List<ProductDef> Products() => new List<ProductDef>
+        public static List<ProductDef> Products()
+        {
+            var list = BaseProducts();
+            foreach (int cny in RechargeTiers)
+                list.Add(new ProductDef { Id = RechargeId(cny), Name = $"{cny * 10} 元寶", Kind = ProductKind.Recharge, PriceCny = cny, ImmediateYuanbao = cny * 10 });
+            return list;
+        }
+
+        private static List<ProductDef> BaseProducts() => new List<ProductDef>
         {
             new ProductDef { Id = MonthSmall, Name = "小月卡", Kind = ProductKind.MonthCard, PriceCny = 30, ImmediateYuanbao = 300, DailyYuanbao = 100 },
             new ProductDef { Id = MonthBig, Name = "大月卡", Kind = ProductKind.MonthCard, PriceCny = 68, ImmediateYuanbao = 680, DailyYuanbao = 200 },
@@ -101,6 +113,11 @@ namespace SanGuo.Core.Meta
                 case ProductKind.Pass:
                     BattlePass.Roll(p, now);
                     if (p.Pass.Tier == "") BattlePass.Activate(p, product.PassTier, now);
+                    p.Orders[orderId] = "paid:" + productId;
+                    return ShopResult.Ok;
+                case ProductKind.Recharge:
+                    // 每檔第一次購買雙倍（加送同額元寶）
+                    if (p.RechargeBought.Add(product.Id)) p.Yuanbao += product.ImmediateYuanbao;
                     p.Orders[orderId] = "paid:" + productId;
                     return ShopResult.Ok;
             }

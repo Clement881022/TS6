@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace SanGuo.Core.Meta
 {
-    public enum QuestKind { Daily, SevenDay }
+    public enum QuestKind { Daily, SevenDay, Weekly }
 
     public enum QuestClaimResult
     {
@@ -63,6 +63,10 @@ namespace SanGuo.Core.Meta
             public const string Breakthrough = "breakthrough";
             public const string GachaPull = "gacha_pull";
             public const string Login = "login";
+            /// <summary>每天第一次登入（每週任務「登入 N 天」）。</summary>
+            public const string LoginDay = "login_day";
+            /// <summary>挑戰世界 Boss（結算一場）。</summary>
+            public const string WorldBossFight = "world_boss";
         }
 
         /// <summary>今天是帳號的第幾天（建立當天 = 1）。</summary>
@@ -79,6 +83,7 @@ namespace SanGuo.Core.Meta
             {
                 if (q.EventKey != eventKey) continue;
                 if (q.Kind == QuestKind.Daily) Bump(p.DailyTaskProgress, q, count);
+                else if (q.Kind == QuestKind.Weekly) Bump(p.WeeklyProgress, q, count);
                 else if (day >= q.Day && day <= SevenDays) Bump(p.SevenDayProgress, q, count);
             }
         }
@@ -91,7 +96,7 @@ namespace SanGuo.Core.Meta
 
         public static int Progress(PlayerProfile p, QuestDef q)
         {
-            var dict = q.Kind == QuestKind.Daily ? p.DailyTaskProgress : p.SevenDayProgress;
+            var dict = q.Kind == QuestKind.Daily ? p.DailyTaskProgress : q.Kind == QuestKind.Weekly ? p.WeeklyProgress : p.SevenDayProgress;
             return dict.TryGetValue(q.Id, out int n) ? n : 0;
         }
 
@@ -101,7 +106,7 @@ namespace SanGuo.Core.Meta
             p.EnsureDaily(now);
             var q = book.Find(questId);
             if (q == null) return QuestClaimResult.Unknown;
-            var claimed = q.Kind == QuestKind.Daily ? p.DailyTaskClaimed : p.SevenDayClaimed;
+            var claimed = Claimed(p, q);
             if (q.Kind == QuestKind.SevenDay && DayNumber(p, now) < q.Day) return QuestClaimResult.NotUnlocked;
             if (claimed.Contains(q.Id)) return QuestClaimResult.AlreadyClaimed;
             if (Progress(p, q) < q.Target) return QuestClaimResult.NotComplete;
@@ -109,6 +114,10 @@ namespace SanGuo.Core.Meta
             p.Grant(q.Reward, now);
             return QuestClaimResult.Ok;
         }
+
+        /// <summary>該任務所屬的已領取集合（每日／每週／七日）。</summary>
+        public static HashSet<string> Claimed(PlayerProfile p, QuestDef q) =>
+            q.Kind == QuestKind.Daily ? p.DailyTaskClaimed : q.Kind == QuestKind.Weekly ? p.WeeklyClaimed : p.SevenDayClaimed;
 
         /// <summary>七日任務點數（已領取的任務點數總和）。</summary>
         public static int SevenDayPoints(PlayerProfile p, QuestBook? book = null)
@@ -140,6 +149,10 @@ namespace SanGuo.Core.Meta
         private static QuestDef Daily(string id, string desc, string ev, int target, Reward reward) =>
             new QuestDef { Id = id, Kind = QuestKind.Daily, Description = desc, EventKey = ev, Target = target, Reward = reward };
 
+        /// <summary>每週任務（2026-10-09 企劃定案，暫定約 1000 元寶／週，讓無課每月多約 20 抽）。</summary>
+        private static QuestDef Weekly(string id, string desc, string ev, int target, int yuanbao) =>
+            new QuestDef { Id = id, Kind = QuestKind.Weekly, Description = desc, EventKey = ev, Target = target, Reward = new Reward(yuanbao: yuanbao) };
+
         private static QuestDef Seven(string id, int day, string desc, string ev, int target, int points) =>
             new QuestDef
             {
@@ -157,6 +170,11 @@ namespace SanGuo.Core.Meta
                 Daily("d_res", "挑戰資源副本 2 次", Quests.Events.ResourceRun, 2, new Reward(yuanbao: 50)),
                 Daily("d_level", "升級武將 1 次", Quests.Events.HeroLevelUp, 1, new Reward(gold: 2000)),
                 Daily("d_gacha", "抽卡 1 次", Quests.Events.GachaPull, 1, new Reward(yuanbao: 50)),
+
+                Weekly("w_login", "本週登入 5 天", Quests.Events.LoginDay, 5, 200),
+                Weekly("w_stage", "本週通關關卡 20 次", Quests.Events.StageClear, 20, 300),
+                Weekly("w_res", "本週挑戰資源副本 15 次", Quests.Events.ResourceRun, 15, 300),
+                Weekly("w_boss", "本週挑戰世界 Boss 10 次", Quests.Events.WorldBossFight, 10, 200),
 
                 Seven("s1_level", 1, "升級武將 3 次", Quests.Events.HeroLevelUp, 3, 20),
                 Seven("s1_stage", 1, "通關關卡 5 次", Quests.Events.StageClear, 5, 20),

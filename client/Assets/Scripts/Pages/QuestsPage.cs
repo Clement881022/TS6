@@ -9,10 +9,11 @@ using UnityEngine.UIElements;
 
 namespace SanGuo.Client
 {
-    /// <summary>任務：左側分頁（每日 / 七日目標），右側任務卡兩欄排列；七日目標上方有里程碑獎勵。</summary>
+    /// <summary>任務：左側分頁（每日 / 每週 / 七日目標），右側任務卡兩欄排列；七日目標上方有里程碑獎勵。</summary>
     public sealed class QuestsPage : PageBase
     {
-        private bool _sevenDayTab;
+        private QuestKind _tab = QuestKind.Daily;
+        private bool _sevenDayTab => _tab == QuestKind.SevenDay;
 
         protected override Page Id => Page.Quests;
         protected override string Title => "任務";
@@ -20,7 +21,7 @@ namespace SanGuo.Client
         /// <summary>截圖 / 除錯用：切到七日目標分頁。</summary>
         public void DebugShowSevenDay()
         {
-            _sevenDayTab = true;
+            _tab = QuestKind.SevenDay;
             Rebuild();
         }
 
@@ -32,13 +33,15 @@ namespace SanGuo.Client
             int day = Quests.DayNumber(p, v.Now);
 
             bool dailyReady = book.Quests.Any(q => q.Kind == QuestKind.Daily && Claimable(p, q));
+            bool weeklyReady = book.Quests.Any(q => q.Kind == QuestKind.Weekly && Claimable(p, q));
             bool sevenReady = book.Quests.Any(q => q.Kind == QuestKind.SevenDay && q.Day <= Math.Max(day, 1) && Claimable(p, q))
                 || book.Milestones.Any(m => Quests.SevenDayPoints(p) >= m.Points && !p.SevenDayClaimed.Contains("milestone:" + m.Points));
 
             var side = new VisualElement();
             side.AddToClassList("quest-side");
-            side.Add(SideTab("每日任務", false, dailyReady));
-            side.Add(SideTab("七日目標", true, sevenReady));
+            side.Add(SideTab("每日任務", QuestKind.Daily, dailyReady));
+            side.Add(SideTab("每週任務", QuestKind.Weekly, weeklyReady));
+            side.Add(SideTab("七日目標", QuestKind.SevenDay, sevenReady));
             body.Add(side);
 
             var main = new VisualElement();
@@ -83,7 +86,7 @@ namespace SanGuo.Client
             // 可領取的排最前面，其次進行中，已領取的沉到最後。
             IEnumerable<QuestDef> list = _sevenDayTab
                 ? book.Quests.Where(x => x.Kind == QuestKind.SevenDay && x.Day <= Math.Max(day, 1))
-                : book.Quests.Where(x => x.Kind == QuestKind.Daily);
+                : book.Quests.Where(x => x.Kind == _tab);
             foreach (var q in list.OrderBy(x => Claimable(p, x) ? 0 : IsClaimed(p, x) ? 2 : 1)) AddQuestCard(scroll, q, p);
             if (_sevenDayTab)
             {
@@ -92,14 +95,13 @@ namespace SanGuo.Client
             }
         }
 
-        private static bool IsClaimed(PlayerProfile p, QuestDef q) =>
-            (q.Kind == QuestKind.Daily ? p.DailyTaskClaimed : p.SevenDayClaimed).Contains(q.Id);
+        private static bool IsClaimed(PlayerProfile p, QuestDef q) => Quests.Claimed(p, q).Contains(q.Id);
 
         private static bool Claimable(PlayerProfile p, QuestDef q) => !IsClaimed(p, q) && Quests.Progress(p, q) >= q.Target;
 
-        private Button SideTab(string text, bool seven, bool reddot)
+        private Button SideTab(string text, QuestKind kind, bool reddot)
         {
-            var b = UiKit.Tab(text, () => { _sevenDayTab = seven; Rebuild(); }, _sevenDayTab == seven);
+            var b = UiKit.Tab(text, () => { _tab = kind; Rebuild(); }, _tab == kind);
             b.AddToClassList("side-tab");
             return b.RedDot(reddot);
         }

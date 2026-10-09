@@ -12,7 +12,7 @@ namespace SanGuo.Client
     /// </summary>
     public sealed class ShopPage : PageBase
     {
-        private enum Tab { Pay, Soul, Pass }
+        private enum Tab { Pay, Soul, Pass, Recharge }
 
         private Tab _tab = Tab.Pay;
 
@@ -29,16 +29,59 @@ namespace SanGuo.Client
             seg.AddToClassList("seg");
             seg.AddToClassList("shop-tabs");
             seg.Add(UiKit.Tab("儲值", () => { _tab = Tab.Pay; Rebuild(); }, _tab == Tab.Pay).WithClass("seg-tab"));
+            seg.Add(UiKit.Tab("元寶", () => { _tab = Tab.Recharge; Rebuild(); }, _tab == Tab.Recharge).WithClass("seg-tab"));
             seg.Add(UiKit.Tab("通行證", () => { _tab = Tab.Pass; Rebuild(); }, _tab == Tab.Pass).WithClass("seg-tab"));
             seg.Add(UiKit.Tab("將魂商店", () => { _tab = Tab.Soul; Rebuild(); }, _tab == Tab.Soul).WithClass("seg-tab"));
             body.Add(seg);
 
             if (_tab == Tab.Pay) BuildPay(body);
+            else if (_tab == Tab.Recharge) BuildRecharge(body);
             else if (_tab == Tab.Pass) BuildPass(body);
             else BuildSoulShop(body);
         }
 
         public void DebugSetTab(int tab) { _tab = (Tab)tab; Rebuild(); }
+
+        /// <summary>元寶儲值分頁（企劃 2026-10-09）。</summary>
+        private void BuildRecharge(VisualElement body)
+        {
+            var v = GameSession.View;
+            var p = v.Raw;
+            // 元寶儲值（企劃 2026-10-09）：6 檔，每檔第一次購買雙倍。版面沿用現有卡片樣式，視覺待美術調整。
+            var recharge = new VisualElement();
+            recharge.AddToClassList("dun-row");
+            recharge.style.flexWrap = Wrap.Wrap; // 6 檔排成兩列
+            recharge.style.justifyContent = Justify.Center;
+            body.Add(recharge);
+            foreach (var product in Shop.Products())
+            {
+                var pr = product;
+                if (pr.Kind != ProductKind.Recharge) continue;
+                bool doubled = Shop.RechargeFirstTime(p, pr.Id);
+                var card = new VisualElement();
+                card.AddToClassList("shop-card");
+                card.AddToClassList(doubled ? "shop-card-gold" : "shop-card-blue");
+                var head = new VisualElement { pickingMode = PickingMode.Ignore };
+                head.AddToClassList("shop-head");
+                head.Add(UiKit.Text(pr.Name, "shop-name"));
+                card.Add(head);
+                var art = new VisualElement { pickingMode = PickingMode.Ignore };
+                art.AddToClassList("shop-art");
+                art.Add(UiKit.ItemTile("item_yuanbao", (doubled ? pr.ImmediateYuanbao * 2 : pr.ImmediateYuanbao).ToString(), "shop-icon"));
+                card.Add(art);
+                var text = new VisualElement { pickingMode = PickingMode.Ignore };
+                text.AddToClassList("card-body");
+                text.Add(UiKit.Text(doubled ? "首次購買雙倍" : $"{pr.ImmediateYuanbao} 元寶", doubled ? "txt-good" : "line-sub").WithClass("dun-center"));
+                card.Add(text);
+                var btns = new VisualElement();
+                btns.AddToClassList("card-footer");
+                btns.Add(UiKit.Btn($"¥{pr.PriceCny}", () => _ = Act(() => GameSession.Backend.BuyWithTestPayment(pr.Id), "儲值成功"), primary: doubled));
+                card.Add(btns);
+                recharge.Add(card);
+            }
+
+            // 不放「測試環境」說明：兩列卡片已佔滿高度，說明文字會壓到按鈕（視覺尺寸待美術調整）
+        }
 
         private void BuildPay(VisualElement body)
         {

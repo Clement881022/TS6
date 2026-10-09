@@ -39,7 +39,7 @@ var personas = new List<Persona>
     new Persona("無課", "f2p_player01", 0),
     new Persona("小課", "light_spender01", 1),
     new Persona("大課", "heavy_spender01", 2),
-    new Persona("假設鯨魚", "whale_hypo01", 3),
+    new Persona("鯨魚", "whale_hypo01", 3),
 };
 foreach (var pe in personas)
 {
@@ -89,7 +89,7 @@ public sealed class SimClock : TimeProvider
 public sealed class Persona
 {
     public string Label, Username, AccountId;
-    /// <summary>0 無課；1 小課（首儲 + 小月卡 + 通行證，每月 ¥66）；2 大課（全部商品，每月 ¥202）；3 大課 + 假設每月可直購 20000 元寶（約 ¥2000，遊戲目前沒有這個商品）。</summary>
+    /// <summary>0 無課；1 小課（首儲 + 小月卡 + 通行證，每月約 ¥66）；2 大課（月卡、通行證全買 + 每月儲值 ¥648×2，約 ¥1500）；3 鯨魚（同大課但儲值 ¥648×5，約 ¥3400）。</summary>
     public int Tier;
     public PlayerSim Sim;
     public Persona(string label, string user, int tier) { Label = label; Username = user; Tier = tier; }
@@ -227,16 +227,13 @@ public sealed class PlayerSim
         p = await P();
         BattlePass.Roll(p, now);
         if (p.Pass.Tier == "") await Buy(_pe.Tier >= 2 ? Shop.PassLuxury : Shop.PassBasic, _pe.Tier >= 2 ? 98 : 30);
-        // 假設的直購元寶（遊戲目前沒有這類商品）：直接寫入存檔，模擬每月 ¥2000
+        // 元寶儲值（每月第一次登入時）：大課 ¥648 × 2、鯨魚 ¥648 × 5（每檔第一次雙倍）
         string month = DailyClock.MonthKey(now);
-        if (_pe.Tier == 3 && _lastMonthInjected != month)
+        if (_pe.Tier >= 2 && _lastMonthInjected != month)
         {
             _lastMonthInjected = month;
-            var q = await P();
-            q.Yuanbao += 20000;
-            await _store.SaveAsync(Id, q);
-            _spendTotal += 2000;
-            _events.Add($"D{day} 假設直購 20000 元寶 ¥2000");
+            int times = _pe.Tier == 3 ? 5 : 2;
+            for (int i = 0; i < times; i++) await Buy(Shop.RechargeId(648), 648);
         }
     }
 
