@@ -26,6 +26,8 @@
 
 ## 下一輪由 Codex 處理的美術缺口
 
+使用者最新將範圍收斂為「全武將都有基本模型就先停」。已補齊 24 個缺少 ProductionCharacters 的角色，同 ID Prefab 透過現有載入優先順序替換舊模型；29 個武將全部覆蓋，正式角色 Prefab 共 57 個。底材、116 張實機截圖檢查與未精修項見 [基本模型覆蓋紀錄](roster-basic-coverage-review.md)。此階段完成後停止 3D 工作，商用美術認可仍未完成。
+
 第十四階段已整理 33 角色逐角實機缺口，見 `roster-stage14-review.md`。第十五階段關羽新青龍刀與双手握持曲線已直接接入同 ID Prefab，人物網格不改；正常四角及五動作共 100 張定格驗證見 `guanyu-glaive-stage15-review.md`，新刀仍待使用者美術認可。
 
 第十六階段黃忠以原蒙皮底材重製衣甲／臉／白鬍貼圖，新增頭盔、紅纓、弓、弓弦與箭筒，改用完整骨架持弓動畫素材，Prefab 未使用執行期 ArcherPoseRig。正式接入同 ID；尚有披風附件相交與髮飾細節需精修，不能標示商用完成。驗證與具體待修見 `huangzhong-stage16-review.md`。

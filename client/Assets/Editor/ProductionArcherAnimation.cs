@@ -49,10 +49,9 @@ namespace SanGuo.Client.Editor
                 // on props so a world-space aiming rotation does not mirror the arrow.
                 bow.localRotation=Quaternion.identity;bow.localPosition=Vector3.zero;bow.localScale=Vector3.one*(name.StartsWith("huangzhong")?1f:.72f);
                 if(Vector3.Dot(bow.TransformVector(Vector3.up),root.transform.up)<0)bow.localScale*=-1;
-                bool veteran=name.StartsWith("huangzhong");
-                if(veteran)bow.position=left.TransformPoint(new Vector3(-.033f,0,0))-bow.TransformVector(new Vector3(.10f,0,0));
+                bow.position=left.TransformPoint(new Vector3(-.033f,0,0))-bow.TransformVector(new Vector3(.10f,0,0));
                 var aim=(left.position-right.position).normalized;
-                arrow.position=veteran?right.TransformPoint(new Vector3(-.033f,0,0)):right.position;arrow.rotation=Quaternion.LookRotation(aim,root.transform.up);arrow.localScale=Vector3.one;
+                arrow.position=right.TransformPoint(new Vector3(-.033f,0,0));arrow.rotation=Quaternion.LookRotation(aim,root.transform.up);arrow.localScale=Vector3.one;
                 if(Vector3.Dot(arrow.TransformVector(Vector3.forward),aim)<0)arrow.localScale*=-1;
                 bowScale=bow.localScale.x;arrowScale=arrow.localScale.x;
                 if(Vector3.Dot(arrow.TransformVector(Vector3.forward).normalized,aim)<.999f)throw new InvalidOperationException("Mirrored arrow animation: "+name);

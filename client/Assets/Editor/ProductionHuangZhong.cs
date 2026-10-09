@@ -175,7 +175,7 @@ namespace SanGuo.Client.Editor
             }
             var mesh=new Mesh();mesh.SetVertices(v);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);mesh.RecalculateNormals();mesh.RecalculateBounds();return mesh;
         }
-        private static Mesh Relief(string imageName,float width,float height,float depth)
+        internal static Mesh Relief(string imageName,float width,float height,float depth)
         {
             var image=new Texture2D(2,2,TextureFormat.RGBA32,false);image.LoadImage(File.ReadAllBytes(Output+"/Textures/"+imageName+".png"));
             const int size=64;var v=new List<Vector3>();var uv=new List<Vector2>();var tri=new List<int>();var opaque=new bool[(size+1)*(size+1)];
@@ -224,7 +224,3 @@ namespace SanGuo.Client.Editor
         }
     }
 }
-
-
-
-

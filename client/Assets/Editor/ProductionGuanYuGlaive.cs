@@ -81,30 +81,31 @@ namespace SanGuo.Client.Editor
                 var m=r.sharedMaterial;m.SetFloat("_Smoothness",r.name.Contains("Blade")?.6f:.36f);m.SetFloat("_MetalStrength",r.name.Contains("Shaft") || r.name.Contains("Leather")?.08f:.72f);EditorUtility.SetDirty(m);
             }
         }
-        private static AnimationClip Author(GameObject root,AnimationClip source,string motion,bool attack,bool hit=false)
+        internal static AnimationClip Author(GameObject root,AnimationClip source,string motion,bool attack,bool hit=false,string propName="Design_GuanYuGlaive",bool spear=false)
         {
             // Read the original clip, even when re-baking an existing authored asset.
-            string originalPath=Output+"/Animations/guanyu_GlaiveSource"+motion+".anim";
+            string originalPath=Output+"/Animations/"+root.name+(spear?"_SpearSource":"_GlaiveSource")+motion+".anim";
             var original=AssetDatabase.LoadAssetAtPath<AnimationClip>(originalPath);
-            if(original==null){original=UnityEngine.Object.Instantiate(source);original.name="guanyu_GlaiveSource"+motion;AssetDatabase.CreateAsset(original,originalPath);}
-            var result=UnityEngine.Object.Instantiate(original);result.name="guanyu_Glaive"+motion;
+            if(original==null){original=UnityEngine.Object.Instantiate(source);original.name=root.name+(spear?"_SpearSource":"_GlaiveSource")+motion;AssetDatabase.CreateAsset(original,originalPath);}
+            var result=UnityEngine.Object.Instantiate(original);result.name=root.name+(spear?"_Spear":"_Glaive")+motion;
             var all=root.GetComponentsInChildren<Transform>();Transform Find(string n)=>all.First(t=>t.name==n);
-            var right=Find("Bip001 R Hand");var left=Find("Bip001 L Hand");var prop=Find("Design_GuanYuGlaive");
+            var right=Find("Bip001 R Hand");var left=Find("Bip001 L Hand");var prop=Find(propName);
             var targets=new[]{left.parent.parent,left.parent,left,right.parent.parent,right.parent,right,prop};
             var curves=targets.ToDictionary(t=>t,t=>Enumerable.Range(0,7).Select(_=>new AnimationCurve()).ToArray());
             var initial=all.Select(t=>(t,t.localPosition,t.localRotation,t.localScale)).ToArray();
+            var propScale=new[]{new AnimationCurve(),new AnimationCurve(),new AnimationCurve()};
             float duration=Mathf.Max(.1f,original.length);int frames=Mathf.CeilToInt(duration*30);
             float maxError=0;
             for(int i=0;i<=frames;i++)
             {
                 foreach(var p in initial){p.t.localPosition=p.localPosition;p.t.localRotation=p.localRotation;p.t.localScale=p.localScale;}
                 float time=duration*i/frames,phase=i/(float)frames;original.SampleAnimation(root,time);
-                var axis=new Vector3(-.68f,.73f,.06f).normalized;
+                var axis=(spear?new Vector3(-.5f,.86f,.03f):new Vector3(-.68f,.73f,.06f)).normalized;
                 if(attack)
                 {
                     float swing=Mathf.SmoothStep(0,1,Mathf.Clamp01((phase-.18f)/.43f));
                     float recover=Mathf.SmoothStep(0,1,Mathf.Clamp01((phase-.68f)/.32f));
-                    axis=Vector3.Slerp(axis,new Vector3(-.78f,-.32f,.54f).normalized,swing*(1-recover));
+                    axis=Vector3.Slerp(axis,(spear?new Vector3(-.15f,.10f,.98f):new Vector3(-.78f,-.32f,.54f)).normalized,swing*(1-recover));
                 }
                 var worldAxis=root.transform.TransformDirection(axis);
                 const float halfSpacing=.11f;
@@ -138,6 +139,7 @@ namespace SanGuo.Client.Editor
                 prop.rotation=Quaternion.LookRotation(worldAxis,root.transform.forward);
                 prop.localScale=Vector3.one;
                 if(Vector3.Dot(prop.TransformVector(Vector3.forward),worldAxis)<0)prop.localScale=-Vector3.one;
+                propScale[0].AddKey(time,prop.localScale.x);propScale[1].AddKey(time,prop.localScale.y);propScale[2].AddKey(time,prop.localScale.z);
                 float error=Vector3.Cross(support-prop.position,prop.TransformVector(Vector3.forward).normalized).magnitude;
                 maxError=Mathf.Max(maxError,error);
                 foreach(var t in targets)
@@ -153,6 +155,7 @@ namespace SanGuo.Client.Editor
                 foreach(var binding in AnimationUtility.GetCurveBindings(result).Where(b=>b.path==path && (b.propertyName.Contains("Rotation") || b.propertyName.Contains("Euler") || b.propertyName.Contains("Position"))).ToArray())AnimationUtility.SetEditorCurve(result,binding,null);
                 for(int k=0;k<7;k++)AnimationUtility.SetEditorCurve(result,EditorCurveBinding.FloatCurve(path,typeof(Transform),k<3?"m_LocalPosition."+"xyz"[k]:"m_LocalRotation."+"xyzw"[k-3]),curves[t][k]);
             }
+            for(int k=0;k<3;k++)AnimationUtility.SetEditorCurve(result,EditorCurveBinding.FloatCurve(AnimationUtility.CalculateTransformPath(prop,root.transform),typeof(Transform),"m_LocalScale."+"xyz"[k]),propScale[k]);
             result.EnsureQuaternionContinuity();var settings=AnimationUtility.GetAnimationClipSettings(result);settings.loopTime=motion=="Idle";AnimationUtility.SetAnimationClipSettings(result,settings);
             string pathOut=Output+"/Animations/"+result.name+".anim";var saved=AssetDatabase.LoadAssetAtPath<AnimationClip>(pathOut);
             if(saved==null){AssetDatabase.CreateAsset(result,pathOut);saved=result;}else{EditorUtility.CopySerialized(result,saved);EditorUtility.SetDirty(saved);UnityEngine.Object.DestroyImmediate(result);}
