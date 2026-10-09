@@ -35,7 +35,6 @@ namespace SanGuo.Client
         private const float UnitHeadHeight = 2.4f;     // 模型縮小後的頭頂高度（ModelScale 1.5 時為 3.1）
         private const float TagRoomAbove = 0.5f;       // 頭頂血量標籤的預留高度（世界單位），避免被切到畫面外
         private const float TagRoomBelow = 0.35f;       // 我方標籤在腳下
-        private const float ViewYawDegrees = 65f;      // 面向對手的同時微微轉向鏡頭
 
         private sealed class UnitView
         {
@@ -383,7 +382,7 @@ namespace SanGuo.Client
             {
                 Anchor = anchor,
                 View = view,
-                Facing = unit.Side == Side.Player ? new Vector3(-.65f, 0f, -.76f).normalized : new Vector3(-.90f, 0f, -.44f).normalized,
+                Facing = unit.Side == Side.Player ? Vector3.right : Vector3.left,
             };
             foreach(var bone in model.GetComponentsInChildren<Transform>())
             {
@@ -392,6 +391,39 @@ namespace SanGuo.Client
             }
             _views[unit.Id] = uv;
             return uv;
+        }
+
+        private UnitView? _facingReview;
+        private Vector3 _facingReviewDirection;
+
+        public float DebugBeginFacingReview(bool enemy)
+        {
+            var attacker = _battle!.Units.Find(u => u.Alive && (enemy ? u.Side == Side.Enemy : u.Side == Side.Player));
+            var target = _battle.Units.Find(u => u.Alive && u.Side != attacker!.Side && u.Pos.Lane != attacker.Pos.Lane)
+                ?? _battle.Units.Find(u => u.Alive && u.Side != attacker!.Side);
+            _facingReview = _views[attacker!.Id];
+            var other = _views[target!.Id];
+            _facingReviewDirection = other.Anchor.transform.position - _facingReview.Anchor.transform.position;
+            _facingReviewDirection.y = 0; _facingReviewDirection.Normalize();
+            _facingReview.View.Attack(other.View);
+            return _facingReview.View.AttackLength;
+        }
+
+        public void DebugValidateAttackFacing()
+        {
+            if (_facingReview == null || Vector3.Dot(_facingReview.View.DisplayedFacing, _facingReviewDirection) < .98f)
+                throw new InvalidOperationException("Attack animation does not face its target.");
+            Debug.Log("[shot] Attack target direction verified.");
+        }
+
+        public void DebugValidateIdleFacing()
+        {
+            foreach (var unit in _battle!.Units)
+            {
+                if (!unit.Alive || !_views.TryGetValue(unit.Id, out var view) || view.View.IsAttacking) continue;
+                if (Vector3.Dot(view.View.DisplayedFacing, unit.Side == Side.Player ? Vector3.right : Vector3.left) < .99f)
+                    throw new InvalidOperationException("Unit does not face the opposing side: " + unit.DefId);
+            }
         }
 
         // ------------------------------------------------------------ 每幀

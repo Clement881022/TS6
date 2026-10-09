@@ -53,6 +53,7 @@ namespace SanGuo.Client
             AddSheet(_root, "UI/Chibi");
             AddSheet(_root, "UI/Home");
             AddSheet(_root, "UI/BattlePolish");
+            AddSheet(_root, "UI/Revision");
             ApplyCjkFont(_root);
 
             // 連伺服器但裝置上沒有登入 token：先到登入頁。

@@ -1,0 +1,116 @@
+/* 此輪排版規則最後載入，統一實際可讀尺寸。 */
+.meta-page .btn, .meta-page .tab { min-height: 64px; font-size: 28px; }
+.meta-page .btn-sm { min-height: 64px; font-size: 26px; }
+.meta-page .txt, .meta-page .txt-sub, .meta-page .txt-dim, .meta-page .line-sub, .meta-page .card-row-desc { font-size: 26px; }
+.meta-page .page-content { min-height: 0; }
+.bg-herogrowth { background-image: url("../ChibiSkin/hall.png"); }
+.bg-herogrowth .page-content { flex-direction: row; }
+.meta-page .hero-right { width: 680px; }
+.meta-page .hero-right .seg { flex-shrink: 0; }
+.meta-page .side-panel-fill { min-height: 0; }
+.meta-page .side-body { min-height: 0; }
+.meta-page .card-row-name, .meta-page .stat-line-name, .meta-page .stat-line-val { font-size: 26px; }
+.meta-page .hero-grade-text { display: none; }
+.meta-page .strategy-roster-count { font-size: 26px; }
+.meta-page .strategy-roster-entry { min-height: 124px; }
+.meta-page .strategy-roster-name { font-size: 30px; }
+.meta-page .strategy-roster-level { font-size: 26px; }
+.meta-page .side-caption, .meta-page .break-row-text, .meta-page .cost-chip-have { font-size: 26px; }
+.meta-page .strategy-hero-summary { flex-shrink: 0; }
+.meta-page .seg-tab { font-size: 30px; min-height: 70px; }
+.meta-page .ui-help-button, .root .ui-help-button { width: 64px; min-width: 64px; height: 64px; min-height: 64px; margin: 0 10px; padding: 0; font-size: 34px; border-radius: 32px; background-image: none; background-color: rgb(27, 47, 49); border-width: 1px; border-color: rgb(179, 152, 93); color: rgb(246, 226, 178); flex-shrink: 0; }
+.ui-help-overlay { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(4, 12, 15, 0.82); align-items: center; justify-content: center; }
+.ui-help-panel { width: 880px; max-height: 80%; padding: 30px; background-color: rgb(19, 38, 41); border-width: 1px; border-color: rgb(199, 166, 99); }
+.ui-help-heading { flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.ui-help-title { font-size: 36px; color: rgb(245, 223, 172); }
+.meta-page .ui-help-close, .ui-help-close { width: 64px; min-width: 64px; min-height: 64px; font-size: 40px; color: rgb(245, 223, 172); background-color: rgb(31, 54, 57); }
+.ui-help-content { min-height: 0; flex-shrink: 1; }
+.ui-help-text { font-size: 28px; color: rgb(234, 232, 213); white-space: normal; margin-bottom: 22px; }
+
+/* 主城：大圖示底部入口與右側主線。 */
+.meta-page.bg-home .strategy-home-top { height: 104px; }
+.meta-page.bg-home .home-player { top: 14px; height: 76px; width: 360px; }
+.meta-page.bg-home .home-player .avatar { width: 72px; height: 72px; }
+.meta-page.bg-home .home-player-info { width: 250px; }
+.meta-page.bg-home .home-player-name { font-size: 32px; }
+.meta-page.bg-home .home-player-level, .meta-page.bg-home .home-player-exp { font-size: 26px; }
+.meta-page.bg-home .home-res { top: 24px; right: 124px; }
+.meta-page.bg-home .res-pill-text { font-size: 30px; }
+.meta-page.bg-home .res-pill-icon { width: 44px; height: 44px; }
+.meta-page.bg-home .strategy-home-top > .ui-help-button { position: absolute; right: 22px; top: 20px; }
+.meta-page.bg-home .home-fn-bar { position: absolute; left: 32px; right: 32px; top: auto; bottom: 24px; width: auto; height: 164px; padding: 14px 28px; flex-direction: row; justify-content: space-around; background-image: none; background-color: rgba(16, 34, 37, 0.96); border-top-width: 1px; border-top-color: rgb(169, 139, 81); }
+.meta-page.bg-home .home-fn, .meta-page.bg-home .home-fn:hover { width: 220px; height: 132px; padding: 8px; flex-direction: column; justify-content: center; margin: 0; }
+.meta-page.bg-home .home-fn-circle { width: 76px; height: 76px; margin: 0 0 8px; }
+.meta-page.bg-home .home-fn-icon { width: 76px; height: 76px; }
+.meta-page.bg-home .home-nav-text { flex-grow: 0; align-items: center; }
+.meta-page.bg-home .home-fn-label { font-size: 32px; margin: 0; white-space: nowrap; }
+.meta-page.bg-home .home-campaign { bottom: 216px; width: 470px; padding: 26px; }
+.meta-page.bg-home .home-campaign-kicker, .meta-page.bg-home .home-campaign-chapter, .meta-page.bg-home .home-campaign-progress-label, .meta-page.bg-home .home-campaign-progress-value, .meta-page.bg-home .home-preparation-note { font-size: 26px; }
+.meta-page.bg-home .home-campaign-next { font-size: 28px; }
+.meta-page.bg-home .home-primary { height: 88px; min-height: 88px; }
+.meta-page.bg-home .home-formation, .meta-page.bg-home .home-formation:hover, .meta-page.bg-home .home-formation:disabled { min-height: 64px; font-size: 28px; }
+.meta-page.bg-home .home-campaign-progress.bar-bg, .meta-page.bg-home .home-campaign-progress .bar-fill { height: 10px; min-height: 10px; }
+
+/* 戰鬥：半身卡圖與放大的隊伍生命區。 */
+.root .bl-bar { width: 350px; left: 12px; top: 84px; padding: 6px; }
+.root .bl-hero { width: 336px; height: 108px; padding: 8px; }
+.root .bl-hero-face { width: 82px; height: 82px; -unity-background-scale-mode: scale-to-fit; flex-shrink: 0; }
+.root .bl-hero-name { font-size: 28px; white-space: nowrap; }
+.root .bl-hero-col { min-width: 0; }
+.root .bl-hp-bg, .root .bl-hp-fill { height: 30px; }
+.root .bl-hp-text { font-size: 26px; }
+.root .bl-chips { display: flex; flex-wrap: wrap; }
+.root .bl-chips .ui-icon { width: 24px; height: 24px; }
+.root .sts-hand { left: 374px; }
+.root .sts-card-art { height: 156px; flex-shrink: 0; -unity-background-scale-mode: scale-to-fit; }
+.root .sts-card-description { font-size: 26px; margin: 4px 0; min-height: 96px; flex-shrink: 0; }
+.root .sts-card-name { font-size: 26px; }
+.root .sts-card { width: 224px; height: 328px; }
+.root .sts-hand { height: 364px; }
+.root .bl-d-desc, .root .bl-d-target, .root .bl-d-warn, .root .bl-d-hint { font-size: 26px; }
+
+.meta-page .quest-toolbar { flex-direction: row; align-items: center; justify-content: space-between; margin: 12px 0 20px; flex-shrink: 0; }
+.quest-toolbar-title { font-size: 32px; color: rgb(243, 224, 180); }
+.meta-page .quest-claim-all { min-width: 240px; height: 72px; }
+.meta-page .quest-desc, .meta-page .quest-count, .meta-page .quest-day { font-size: 28px; }
+.milestone-panel { padding: 20px 80px; background-color: rgba(15, 31, 35, 0.97); border-width: 1px; border-color: rgb(144, 123, 78); flex-shrink: 0; }
+.milestone-points { font-size: 30px; color: rgb(241, 217, 168); }
+.milestone-track { height: 166px; margin: 12px 0 0; }
+.milestone-line { position: absolute; left: 0; right: 0; top: 48px; height: 12px; }
+.milestone-line .bar-fill { height: 12px; }
+.meta-page .milestone-node { position: absolute; top: 0; width: 104px; height: 160px; min-height: 160px; padding: 0; margin: 0; translate: -50% 0; align-items: center; background-image: none; background-color: rgba(0, 0, 0, 0); border-width: 0; }
+.milestone-node .item-tile { width: 84px; height: 84px; background-color: rgb(21, 38, 42); border-radius: 42px; }
+.milestone-threshold { font-size: 28px; color: rgb(225, 211, 177); margin-top: 4px; }
+.milestone-state { font-size: 26px; color: rgb(242, 206, 125); }
+.milestone-locked .item-tile { opacity: 0.5; }
+.milestone-ready .item-tile { border-width: 3px; border-color: rgb(255, 212, 117); }
+.milestone-claimed .item-tile { border-width: 2px; border-color: rgb(113, 178, 139); }
+.milestone-claimed .milestone-state { color: rgb(137, 220, 169); }
+
+.recruit-layout { flex-direction: row; min-height: 0; }
+.recruit-selection { width: 340px; margin-right: 24px; flex-shrink: 0; }
+.meta-page .recruit-pool { height: 240px; min-height: 240px; margin: 0 0 18px; padding: 0; border-width: 1px; border-color: rgb(113, 103, 78); background-image: none; background-color: rgb(19, 37, 39); }
+.meta-page .recruit-pool-on { border-width: 3px; border-color: rgb(246, 208, 128); }
+.recruit-thumbnail { width: 100%; height: 174px; flex-shrink: 0; -unity-background-scale-mode: scale-and-crop; overflow: hidden; }
+.recruit-pool-name { height: 60px; font-size: 30px; -unity-text-align: middle-center; color: rgb(241, 223, 180); }
+.recruit-main { flex-grow: 1; flex-basis: 0; min-width: 0; min-height: 0; }
+.recruit-banner { flex-grow: 1; flex-basis: 0; min-height: 360px; -unity-background-scale-mode: scale-and-crop; overflow: hidden; border-width: 1px; border-color: rgb(203, 168, 98); }
+.recruit-lineup { position: absolute; left: 6%; right: 6%; top: 12%; bottom: 0; flex-direction: row; justify-content: center; }
+.recruit-character { flex-grow: 1; flex-basis: 0; height: 100%; -unity-background-scale-mode: scale-to-fit; }
+.recruit-title { position: absolute; left: 32px; top: 24px; font-size: 54px; color: rgb(255, 233, 186); -unity-text-outline-width: 1px; -unity-text-outline-color: rgb(36, 30, 17); background-color: rgba(19, 38, 40, 0.86); padding: 6px 18px; }
+.recruit-status { flex-direction: row; align-items: center; justify-content: space-between; height: 100px; flex-shrink: 0; padding: 12px 20px; background-color: rgba(15, 31, 35, 0.97); }
+.recruit-pity { width: 440px; }
+.recruit-pity-text { font-size: 28px; color: rgb(241, 223, 180); margin-bottom: 8px; }
+.recruit-actions { flex-direction: row; justify-content: flex-end; height: 126px; flex-shrink: 0; padding: 0 20px 12px; background-color: rgba(15, 31, 35, 0.97); }
+.meta-page .recruit-actions > .btn { width: 340px; height: 104px; margin-left: 20px; }
+.meta-page .recruit-actions .cost-chip-text { font-size: 32px; }
+.meta-page .recruit-actions .btn-tag { font-size: 26px; }
+.portrait-frame { overflow: hidden; }
+.portrait-source { position: absolute; -unity-background-scale-mode: stretch-to-fill; }
+
+.meta-page.bg-heroes .strategy-hero-summary { border-width: 0; background-color: rgba(0, 0, 0, 0); padding: 0; margin: 0; }
+.meta-page .quest-more { display: none; }
+.milestone-hero { width: 84px; height: 84px; background-color: rgb(21, 38, 42); border-width: 2px; border-color: rgb(184, 151, 87); border-radius: 42px; }
+.milestone-locked .milestone-hero { opacity: 0.5; }
+.milestone-ready .milestone-hero { border-width: 3px; border-color: rgb(255, 212, 117); }
+.milestone-claimed .milestone-hero { border-color: rgb(113, 178, 139); }

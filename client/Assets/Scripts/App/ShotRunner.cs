@@ -20,6 +20,10 @@ namespace SanGuo.Client
             var go = new GameObject("ShotRunner");
             DontDestroyOnLoad(go);
             Instance = go.AddComponent<ShotRunner>();
+            Application.logMessageReceived += (message, trace, type) =>
+            {
+                if (type == LogType.Exception || type == LogType.Error) Application.Quit(1);
+            };
             var args = System.Environment.GetCommandLineArgs();
             int review = System.Array.IndexOf(args, "-sanguoModelReview");
             bool campaign = System.Array.IndexOf(args, "-sanguoCampaignShot") >= 0;
@@ -150,7 +154,11 @@ namespace SanGuo.Client
             Debug.Log($"[shot] Q-style roster art verified: {GameSession.Roster.Count} faces and full illustrations.");
             yield return Wait(1.0f);
             Shot(dir, "home");
-            yield return Wait(0.4f);
+            yield return Wait(.4f);
+            var helpRoot = PageHost.Current!.GetComponent<UIDocument>().rootVisualElement;
+            Submit(helpRoot.Q<Button>(className: "ui-help-button"));
+            yield return Wait(.4f); Shot(dir, "home-help"); yield return Wait(.3f);
+            Submit(helpRoot.Q<Button>(className: "ui-help-close"));
 
             // Send actual UI navigation-submit events to verify the new home controls.
             var homeRoot = PageHost.Current!.GetComponent<UIDocument>().rootVisualElement;
@@ -161,19 +169,29 @@ namespace SanGuo.Client
                 throw new System.InvalidOperationException("Home expedition did not open the next stage detail.");
             yield return Go(Page.Home);
             var homeNav = homeRoot.Query<Button>(className: "home-fn").ToList();
-            Submit(homeNav[1]);
+            Submit(homeRoot.Q<Button>(name: "home-gacha"));
             yield return Wait(1.0f);
             if (!(PageHost.Current.ActivePage is GachaPage))
                 throw new System.InvalidOperationException("Home recruitment navigation failed.");
             Debug.Log("[shot] Home UI submit events verified: expedition detail and recruitment navigation.");
             Shot(dir, "gacha-main");
+            yield return Wait(.4f);
+            var recruitment = (GachaPage)PageHost.Current.ActivePage;
+            foreach (string pool in new[] { DemoMeta.StandardPoolId, DemoMeta.UpPoolId })
+            {
+                Submit(homeRoot.Q<Button>(name: "pool-" + pool));
+                yield return Wait(.5f); Shot(dir, "gacha-" + pool); yield return Wait(.3f);
+            }
+            recruitment.DebugShowRates(); yield return Wait(.4f); Shot(dir, "gacha-rates"); yield return Wait(.3f);
+            Submit(homeRoot.Q<Button>(className: "ui-help-close"));
+            recruitment.DebugSelectPool(DemoMeta.NewbiePoolId); yield return Wait(.3f);
             yield return Wait(0.4f);
             if (PageHost.Current?.ActivePage is GachaPage gacha) _ = gacha.DebugTenPull();
             yield return Wait(2.2f);
             Shot(dir, "gacha");
             yield return Wait(0.4f);
 
-            foreach (var page in new[] { Page.Map, Page.Heroes, Page.Dungeons, Page.Quests, Page.Shop })
+            foreach (var page in new[] { Page.Map, Page.Heroes, Page.HeroGrowth, Page.Dungeons, Page.Quests, Page.Shop })
             {
                 yield return Go(page);
                 Shot(dir, page.ToString().ToLowerInvariant());
@@ -181,11 +199,14 @@ namespace SanGuo.Client
 
                 // 各頁的次要畫面：關卡面板、武將的突破 / 裝備分頁、七日目標。
                 var active = PageHost.Current?.ActivePage;
+                DebugCheckMetaLayout(homeRoot);
+                if (page == Page.Heroes && homeRoot.Query<Button>().ToList().Exists(b => b.text == "升級" || b.text == "突破" || b.text == "卸下" || b.text.StartsWith("穿 ")))
+                    throw new System.InvalidOperationException("Read-only roster exposes growth controls.");
                 if (active is MapPage map) { map.DebugOpenStage(1); yield return Wait(0.4f); Shot(dir, "map-stage"); }
                 else if (active is HeroesPage heroes)
                 {
-                    heroes.DebugSetTab(1); yield return Wait(0.5f); Shot(dir, "heroes-break"); yield return Wait(0.3f); // 截圖在幀尾才擷取，下一步要等一下
-                    heroes.DebugSetTab(2); yield return Wait(0.5f); Shot(dir, "heroes-equip");
+                    heroes.DebugSetTab(1); yield return Wait(0.5f); Shot(dir, page == Page.HeroGrowth ? "growth-break" : "heroes-deck"); yield return Wait(0.3f); // 截圖在幀尾才擷取，下一步要等一下
+                    heroes.DebugSetTab(2); yield return Wait(0.5f); Shot(dir, page == Page.HeroGrowth ? "growth-equip" : "heroes-equip");
                     yield return Wait(0.3f);
                     heroes.DebugScrollRosterEnd(); yield return Wait(0.3f); Shot(dir, "heroes-roster-end");
                     yield return Wait(0.3f);
@@ -195,7 +216,20 @@ namespace SanGuo.Client
                     heroes.DebugToggleModel();
                 }
                 else if (active is DungeonsPage dungeons) { dungeons.DebugScrollEnd(); yield return Wait(0.4f); Shot(dir, "dungeons-end"); }
-                else if (active is QuestsPage quests) { quests.DebugShowSevenDay(); yield return Wait(0.5f); Shot(dir, "quests-seven"); }
+                else if (active is QuestsPage quests)
+                {
+                    var ready = homeRoot.Q<Button>(className: "quest-claim-all");
+                    if (ready.enabledInHierarchy) { Submit(ready); yield return Wait(.5f); Shot(dir, "quests-claimed"); yield return Wait(.3f); }
+                    quests.DebugShowSevenDay(); yield return Wait(.5f); Shot(dir, "quests-seven"); yield return Wait(.3f);
+                    ready = homeRoot.Q<Button>(className: "quest-claim-all");
+                    if (ready.enabledInHierarchy) { Submit(ready); yield return Wait(.5f); Shot(dir, "quests-seven-claimed"); }
+                    foreach (var milestoneState in new[] { (0, false), (60, false), (200, false), (200, true) })
+                    {
+                        quests.DebugReviewMilestones(milestoneState.Item1, milestoneState.Item2);
+                        yield return Wait(.4f); Shot(dir, "milestones-" + milestoneState.Item1 + (milestoneState.Item2 ? "-claimed" : "")); yield return Wait(.3f);
+                    }
+                    quests.DebugReviewMilestones(null);
+                }
                 else if (active is ShopPage shop)
                 {
                     shop.DebugSetTab(1); yield return Wait(0.5f); Shot(dir, "shop-souls"); yield return Wait(0.3f);
@@ -220,6 +254,16 @@ namespace SanGuo.Client
             yield return Wait(0.4f);
             yield return Wait(0.5f);
 
+            var facingStage = ((BattlePage)PageHost.Current!.ActivePage!).GetComponent<BattleStage>();
+            foreach (bool enemy in new[] { false, true })
+            {
+                float duration = facingStage.DebugBeginFacingReview(enemy);
+                yield return Wait(duration * .4f);
+                facingStage.DebugValidateAttackFacing();
+                Shot(dir, enemy ? "battle-enemy-facing" : "battle-player-facing");
+                yield return Wait(duration * .7f);
+                facingStage.DebugValidateIdleFacing();
+            }
             battle.DebugPreviewFirstCard();
             yield return Wait(0.3f);
             Shot(dir, "battle-preview");
@@ -244,6 +288,41 @@ namespace SanGuo.Client
             yield return Go(Page.Home);
             Shot(dir, "home-progress");
             yield return Wait(0.5f);
+            // 截圖流程使用不持久化的 LocalBackend；以既有測試付款與掃蕩 API 準備養成所需資源。
+            if (GameSession.Backend is LocalBackend)
+            {
+                var month = GameSession.Backend.BuyWithTestPayment(SanGuo.Core.Meta.Shop.MonthSmall);
+                while (!month.IsCompleted) yield return null;
+                var stamina = GameSession.Backend.ClaimMonthCard(SanGuo.Core.Meta.Shop.MonthSmall);
+                while (!stamina.IsCompleted) yield return null;
+                var pack = GameSession.Backend.BuyWithTestPayment(SanGuo.Core.Meta.Shop.FirstPack);
+                while (!pack.IsCompleted) yield return null;
+                var sweep = GameSession.Backend.Sweep(GameSession.StageIdOf(0, 2), 6);
+                while (!sweep.IsCompleted) yield return null;
+                if (!month.Result.Ok || !stamina.Result.Ok || !pack.Result.Ok || !sweep.Result.Ok) throw new System.InvalidOperationException("Growth review fixture preparation failed: " + sweep.Result.Code);
+                var profile = GameSession.Refresh(); while (!profile.IsCompleted) yield return null;
+            }
+            // 同一份後端資料：由獨立養成頁實際操作，再到唯讀頁確認等級與卡組。
+            string growthHero = GameSession.OwnedHeroes().Find(d => GameSession.View.Heroes[d.Id].Level < GameSession.View.Level)?.Id ?? "";
+            if (growthHero.Length > 0)
+            {
+                int before = GameSession.View.Heroes[growthHero].Level;
+                yield return Go(Page.HeroGrowth);
+                ((HeroGrowthPage)PageHost.Current!.ActivePage!).DebugSelectHero(growthHero); yield return Wait(.4f);
+                Submit(homeRoot.Query<Button>().Where(b => b.text == "升級" && b.ClassListContains("btn-block")).First()); yield return Wait(.8f);
+                if (GameSession.View.Heroes[growthHero].Level != before + 1) throw new System.InvalidOperationException("Growth UI upgrade did not refresh the hero.");
+                Shot(dir, "growth-upgraded"); yield return Wait(.3f);
+                ((HeroGrowthPage)PageHost.Current!.ActivePage!).DebugSetTab(2); yield return Wait(.4f);
+                var wear = homeRoot.Query<Button>().Where(b => b.text.StartsWith("穿 ")).First();
+                Submit(wear); yield return Wait(.7f);
+                if (!GameSession.View.Heroes[growthHero].Equipment.ContainsKey("Weapon")) throw new System.InvalidOperationException("Growth UI equipment did not refresh the hero.");
+                Shot(dir, "growth-equipped"); yield return Wait(.3f);
+                yield return Go(Page.Heroes);
+                ((HeroesPage)PageHost.Current!.ActivePage!).DebugSelectHero(growthHero); yield return Wait(.4f);
+                Shot(dir, "heroes-after-growth"); yield return Wait(.3f);
+                Debug.Log("[shot] Independent growth upgrade and read-only roster refresh verified.");
+            }
+
             GameSession.Select(0, 3);
             yield return Go(Page.Battle);
             battle = (PageHost.Current?.ActivePage as BattlePage)?.Screen;
@@ -267,6 +346,25 @@ namespace SanGuo.Client
             Shot(dir,"battle-enemy-details");yield return Wait(.4f);
             battle.DebugReviewUnitDetails(false);yield return Wait(.3f);
             Shot(dir,"battle-hero-details");yield return Wait(.4f);
+            yield return Go(Page.Home);
+            var portraitRoot = PageHost.Current!.GetComponent<UIDocument>().rootVisualElement;
+            var atlas = new VisualElement().WithClass("portrait-review-overlay");
+            atlas.style.position = Position.Absolute;
+            atlas.style.left = atlas.style.top = atlas.style.right = atlas.style.bottom = 0;
+            atlas.style.backgroundColor = new Color(.06f, .12f, .14f);
+            atlas.style.flexDirection = FlexDirection.Row; atlas.style.flexWrap = Wrap.Wrap;
+            foreach (var hero in GameSession.Roster)
+            {
+                var tile = new VisualElement(); tile.style.width = 265; tile.style.height = 196;
+                var images = UiKit.Row();
+                var bust = PortraitArt.Create(hero.Id, "", true); bust.style.width = 180; bust.style.height = 150;
+                var face = PortraitArt.Create(hero.Id, ""); face.style.width = 72; face.style.height = 72;
+                images.Add(bust); images.Add(face); tile.Add(images);
+                var label = UiKit.Text(hero.Id); label.style.fontSize = 24; label.style.color = Color.white; tile.Add(label);
+                atlas.Add(tile);
+            }
+            portraitRoot.Add(atlas); yield return Wait(.7f); Shot(dir, "portrait-atlas"); yield return Wait(.4f);
+            atlas.RemoveFromHierarchy();
             Application.Quit();
         }
 
@@ -379,13 +477,25 @@ namespace SanGuo.Client
             }
         }
 
+        private static void DebugCheckMetaLayout(VisualElement root)
+        {
+            var bounds = root.worldBound;
+            foreach (string cls in new[] { "hero-left", "hero-center", "hero-right", "recruit-selection", "recruit-banner", "quest-claim-all", "ui-help-button" })
+            {
+                var el = root.Q(className: cls);
+                if (el == null) continue;
+                if (el.worldBound.xMin < bounds.xMin - 1 || el.worldBound.xMax > bounds.xMax + 1 || el.worldBound.yMin < bounds.yMin - 1 || el.worldBound.yMax > bounds.yMax + 1)
+                    throw new System.InvalidOperationException("Meta UI is clipped: " + cls);
+            }
+        }
+
         private static void CheckHomeLayout()
         {
             var root = PageHost.Current!.GetComponent<UIDocument>().rootVisualElement;
             var bounds = root.worldBound;
             var navigation = root.Q(className: "home-fn-bar");
             var campaign = root.Q(className: "home-campaign");
-            foreach (var cls in new[] { "home-fn-bar", "home-campaign", "home-res", "strategy-brand", "home-primary" })
+            foreach (var cls in new[] { "home-fn-bar", "home-campaign", "home-res", "ui-help-button", "home-primary" })
             {
                 var element = root.Q(className: cls);
                 if (element == null || element.worldBound.xMin < bounds.xMin - 1 || element.worldBound.xMax > bounds.xMax + 1
@@ -393,7 +503,7 @@ namespace SanGuo.Client
                     throw new System.InvalidOperationException("Home UI is clipped: " + cls);
             }
             if (navigation.worldBound.Overlaps(campaign.worldBound)
-                || root.Q(className: "home-res").worldBound.Overlaps(root.Q(className: "strategy-brand").worldBound))
+                || root.Q(className: "home-res").worldBound.Overlaps(root.Q(className: "ui-help-button").worldBound))
                 throw new System.InvalidOperationException("Home navigation or header overlaps.");
             Debug.Log("[shot] Home layout bounds and group separation verified.");
         }

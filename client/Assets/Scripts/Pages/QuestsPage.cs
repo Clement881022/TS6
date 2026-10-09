@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using SanGuo.Core;
 using SanGuo.Core.Data;
 using SanGuo.Core.Meta;
@@ -12,6 +13,13 @@ namespace SanGuo.Client
     /// <summary>任務：左側分頁（每日 / 每週 / 七日目標），右側任務卡兩欄排列；七日目標上方有里程碑獎勵。</summary>
     public sealed class QuestsPage : PageBase
     {
+        private bool _claiming;
+        private int? _reviewMilestonePoints;
+        private bool _reviewMilestonesClaimed;
+        public void DebugReviewMilestones(int? points, bool claimed = false)
+        {
+            _reviewMilestonePoints = points; _reviewMilestonesClaimed = claimed; _tab = QuestKind.SevenDay; Rebuild();
+        }
         private QuestKind _tab = QuestKind.Daily;
         private bool _sevenDayTab => _tab == QuestKind.SevenDay;
 
@@ -52,31 +60,16 @@ namespace SanGuo.Client
             {
                 int points = Quests.SevenDayPoints(p);
                 main.Add(UiKit.Text($"第 {Math.Min(day, Quests.SevenDays)} 天　/　共 {Quests.SevenDays} 天", "quest-day"));
-                var ms = new VisualElement();
-                ms.AddToClassList("bpanel");
-                ms.AddToClassList("quest-ms");
-                ms.Add(UiKit.Text($"里程碑獎勵　{points} 點", "bpanel-title"));
-                var tiers = new VisualElement();
-                tiers.AddToClassList("tier-row");
-                foreach (var m in book.Milestones)
-                {
-                    int need = m.Points;
-                    bool claimed = p.SevenDayClaimed.Contains("milestone:" + need);
-                    bool ready = points >= need;
-                    var tier = new VisualElement();
-                    tier.AddToClassList("tier");
-                    if (claimed) tier.AddToClassList("tier-claimed");
-                    else if (ready) tier.AddToClassList("tier-ready");
-                    tier.Add(UiKit.Text($"{need} 點", "tier-title"));
-                    tier.Add(UiKit.RewardTiles(m.Reward));
-                    if (claimed) tier.Add(UiKit.DoneBtn("已領").WithClass("btn-sm"));
-                    else if (ready) tier.Add(UiKit.Btn("領取", () => _ = Act(() => GameSession.Backend.ClaimMilestone(need), "已領取"), primary: true).WithClass("btn-sm"));
-                    else tier.Add(UiKit.Bar(100f * points / need, "bar-gold bar-slim"));
-                    tiers.Add(tier);
-                }
-                ms.Add(tiers);
-                main.Add(ms);
+                main.Add(BuildMilestones(p, _reviewMilestonePoints ?? points));
             }
+            var toolbar = UiKit.Row("quest-toolbar");
+            bool any = book.Quests.Any(q => q.Kind == _tab && (!_sevenDayTab || q.Day <= Math.Max(day, 1)) && Claimable(p, q))
+                || (_sevenDayTab && book.Milestones.Any(m => Quests.SevenDayPoints(p) >= m.Points && !p.SevenDayClaimed.Contains("milestone:" + m.Points)));
+            toolbar.Add(UiKit.Text(_tab == QuestKind.Daily ? "每日任務" : _tab == QuestKind.Weekly ? "每週任務" : "七日目標", "quest-toolbar-title"));
+            var claim = UiKit.Btn("一鍵領取", () => _ = ClaimAll(), primary: true).WithClass("quest-claim-all");
+            claim.SetEnabled(any && !_claiming);
+            toolbar.Add(claim);
+            main.Add(toolbar);
 
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("grow");
@@ -92,6 +85,64 @@ namespace SanGuo.Client
             {
                 int later = book.Quests.Count(x => x.Kind == QuestKind.SevenDay && x.Day > day);
                 if (later > 0) scroll.Add(UiKit.Text($"另有 {later} 項任務將於之後開放", "quest-more"));
+            }
+        }
+
+        private VisualElement BuildMilestones(PlayerProfile p, int points)
+        {
+            var panel = new VisualElement().WithClass("milestone-panel");
+            panel.Add(UiKit.Text($"{points} / {DemoQuests.Book.Milestones.Max(m => m.Points)}", "milestone-points"));
+            var track = new VisualElement().WithClass("milestone-track");
+            int maximum = DemoQuests.Book.Milestones.Max(m => m.Points);
+            track.Add(UiKit.Bar(100f * points / maximum, "bar-gold milestone-line"));
+            foreach (var m in DemoQuests.Book.Milestones)
+            {
+                int threshold = m.Points;
+                bool claimed = _reviewMilestonePoints.HasValue ? _reviewMilestonesClaimed && points >= threshold : p.SevenDayClaimed.Contains("milestone:" + threshold);
+                bool ready = points >= threshold;
+                var node = UiKit.Btn("", () =>
+                {
+                    if (ready && !claimed) _ = Act(() => GameSession.Backend.ClaimMilestone(threshold), "已領取");
+                    else UiHelp.Dialog(Host, $"{threshold} 點獎勵", body => body.Add(UiKit.RewardTiles(m.Reward)));
+                }).WithClass("milestone-node");
+                node.style.left = UnityEngine.UIElements.Length.Percent(100f * threshold / maximum);
+                node.AddToClassList(claimed ? "milestone-claimed" : ready ? "milestone-ready" : "milestone-locked");
+                if (m.Reward.Heroes.Count > 0) node.Add(PortraitArt.Create(m.Reward.Heroes[0], "milestone-hero"));
+                else node.Add(UiKit.ItemTile(m.Reward.Yuanbao > 0 ? "item_yuanbao" : "item_chest"));
+                node.Add(UiKit.Text(threshold.ToString(), "milestone-threshold"));
+                node.Add(UiKit.Text(claimed ? "✓" : ready ? "領取" : "", "milestone-state"));
+                track.Add(node);
+            }
+            panel.Add(track);
+            return panel;
+        }
+
+        private async Task ClaimAll()
+        {
+            if (_claiming || Busy) return;
+            _claiming = true;
+            var pageRoot = Host.parent;
+            pageRoot.SetEnabled(false);
+            try
+            {
+                var backend = GameSession.Backend;
+                var result = await QuestClaimBatch.Run(_tab, backend.GetProfile, backend.ClaimQuest, backend.ClaimMilestone);
+                await GameSession.Refresh();
+                if (this == null || PageHost.Current?.ActivePage != this) return;
+                Rebuild();
+                Toast(result.Error != null ? $"已領取 {result.Claimed} 項 · {UiText.ExplainBackend(result.Error)}" : result.Claimed > 0 ? $"已領取 {result.Claimed} 項獎勵" : "沒有可領取的獎勵");
+            }
+            catch (Exception e)
+            {
+                UnityEngine.Debug.LogException(e);
+                await GameSession.Refresh();
+                if (this != null && PageHost.Current?.ActivePage == this) { Rebuild(); Toast(UiText.ExplainBackend("network")); }
+            }
+            finally
+            {
+                _claiming = false;
+                pageRoot.SetEnabled(true);
+                if (this != null && PageHost.Current?.ActivePage == this) Rebuild();
             }
         }
 

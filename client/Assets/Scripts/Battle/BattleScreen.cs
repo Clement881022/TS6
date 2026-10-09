@@ -138,6 +138,7 @@ namespace SanGuo.Client
             if (Debug.isDebugBuild) buttons.Add(MakeButton("直接勝利", DebugWin));
             buttons.Add(MakeButton("撤退", Leave));
             buttons.Add(MakeButton("重來", () => { _ = BeginStageId(_stageId); }));
+            buttons.Add(UiHelp.Button(_root, Page.Battle));
             header.Add(buttons);
             _content.Add(header);
 
@@ -145,9 +146,9 @@ namespace SanGuo.Client
             _field = new VisualElement();
             _field.AddToClassList("field");
             // 左側是手牌清單、底部是武將資訊列：戰場（鏡頭取景範圍）讓出這兩塊。
-            _field.style.marginLeft = 264f;
+            _field.style.marginLeft = 374f;
             _field.style.marginRight = 18f;
-            _field.style.marginBottom = 310f;
+            _field.style.marginBottom = 356f;
             _field.RegisterCallback<ClickEvent>(OnFieldClicked);
             _field.RegisterCallback<PointerDownEvent>(OnFieldDown);
             _field.RegisterCallback<PointerMoveEvent>(OnFieldMove);
@@ -1005,6 +1006,7 @@ namespace SanGuo.Client
 
         private static VisualElement Face(Unit? owner, string cls)
         {
+            if (owner != null) return PortraitArt.Create(owner.DefId, cls, cls == "sts-card-art");
             var face = new VisualElement { pickingMode = PickingMode.Ignore };
             face.AddToClassList(cls);
             var portrait = owner != null ? HeroArt.Face(owner.DefId) : null;
@@ -1038,13 +1040,14 @@ namespace SanGuo.Client
                 name.WithClass("sts-card-name");
                 row.Add(name);
                 var art = Face(card.Owner, "sts-card-art");
+
                 art.Add(UiIcons.Icon(KindIcon(card.Def), "sts-card-kind"));
                 row.Add(art);
-                row.Add(new Label(card.Owner?.Name ?? "全隊通用") { pickingMode = PickingMode.Ignore }.WithClass("sts-card-owner"));
+
                 var description = CardText.Description(card.Def);
-                var summary = CardText.Summary(card.Def);
-                row.Add(new Label(summary.Length > 0 ? summary : CardText.Target(card.Def, card.Owner?.AttackRange ?? 1)) { pickingMode = PickingMode.Ignore }.WithClass("sts-card-description"));
-                row.Add(new Label(card.Def.Target == TargetRule.MoveDest ? "移動" : card.Def.Basic ? "基本戰技" : "武將戰技") { pickingMode = PickingMode.Ignore }.WithClass("sts-card-type"));
+                var summary = card.Def.Target == TargetRule.MoveDest ? "" : CardText.Summary(card.Def);
+                row.Add(new Label(card.Def.Target == TargetRule.MoveDest ? "" : summary.Length > 0 ? summary : CardText.Target(card.Def, card.Owner?.AttackRange ?? 1)) { pickingMode = PickingMode.Ignore }.WithClass("sts-card-description"));
+
                 row.tooltip = card.Def.Name + "\n" + CardText.Target(card.Def, card.Owner?.AttackRange ?? 1) + "\n" + description + (ok != PlayResult.Ok ? "\n" + Explain(ok) : "");
 
                 row.RegisterCallback<ClickEvent>(_ => OnCardClicked(captured));
@@ -1062,7 +1065,7 @@ namespace SanGuo.Client
             if (count == 0) return;
             float width = _hand.resolvedStyle.width;
             if (float.IsNaN(width) || width <= 0) return;
-            const float cardWidth = 204f;
+            const float cardWidth = 224f;
             float step = count > 1 ? Mathf.Min(190f, (width - cardWidth - 40f) / (count - 1)) : 0f;
             float start = (width - (cardWidth + step * (count - 1))) * 0.5f;
             for (int i = 0; i < count; i++)
@@ -1594,6 +1597,7 @@ namespace SanGuo.Client
         public void DebugCheckLayout()
         {
             _stage.DebugValidateGridPicking();
+            _stage.DebugValidateIdleFacing();
             var visible = new List<Rect>();
             foreach (var tag in _tags.Values)
             {

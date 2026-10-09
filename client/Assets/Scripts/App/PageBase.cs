@@ -57,7 +57,7 @@ namespace SanGuo.Client
         {
             _host.Clear();
             if (!UseFrame) { BuildBody(_host); return; }
-            var body = UiKit.Frame(_host, Title, BackPage);
+            var body = UiKit.Frame(_host, Title, BackPage, Id);
             BuildBody(body);
         }
 

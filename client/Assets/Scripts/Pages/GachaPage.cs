@@ -27,83 +27,76 @@ namespace SanGuo.Client
 
         protected override void BuildBody(VisualElement body)
         {
-            var page = new VisualElement();
-            page.AddToClassList("gacha-page");
-            page.AddToClassList("grow");
-            body.Add(page);
-
             var current = _pools.Find(p => p.Id == _poolId) ?? _pools[0];
             GameSession.View.Pools.TryGetValue(current.Id, out var state);
-
-            var tabs = new VisualElement();
-            tabs.AddToClassList("gacha-tabs");
-            foreach (var p in _pools)
+            var page = new VisualElement().WithClass("recruit-layout grow");
+            body.Add(page);
+            var selection = new VisualElement().WithClass("recruit-selection");
+            foreach (var pool in _pools)
             {
-                var pool = p;
-                tabs.Add(UiKit.Tab(pool.Name, () => { _poolId = pool.Id; _last = null; Rebuild(); }, pool.Id == _poolId));
+                var selected = pool;
+                var tab = UiKit.Btn("", () => { _poolId = selected.Id; _last = null; Rebuild(); }).WithClass("recruit-pool");
+                tab.name = "pool-" + pool.Id;
+                if (pool.Id == current.Id) tab.AddToClassList("recruit-pool-on");
+                tab.Add(Banner(pool, "recruit-thumbnail"));
+                tab.Add(UiKit.Text(pool.Name, "recruit-pool-name"));
+                selection.Add(tab);
             }
-            page.Add(tabs);
-
-            // ---- 中央：主打武將展示 + 機率資訊 ----
-            var stage = new VisualElement();
-            stage.AddToClassList("gacha-stage");
-            var showcase = new VisualElement();
-            showcase.AddToClassList("gacha-showcase");
-            var heroes = current.UrHeroes.Select(DefOf).Where(d => d != null).Take(3).ToList();
-            // 主打放正中間，其餘左右對稱。
-            var order = Enumerable.Range(0, heroes.Count).ToList();
-            if (order.Count == 3) order = new List<int> { 1, 0, 2 };
-            foreach (int i in order)
-            {
-                var d = heroes[i]!;
-                var card = new VisualElement { pickingMode = PickingMode.Ignore };
-                card.AddToClassList("gacha-card");
-                if (i == 0) card.AddToClassList("gacha-card-main");
-                var tex = HeroArt.Full(d.Id) ?? HeroArt.Face(d.Id);
-                var art = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("gacha-character-art");
-                if (tex != null) art.style.backgroundImage = new StyleBackground(tex);
-                card.Add(art);
-                card.Add(new Label(d.Name) { pickingMode = PickingMode.Ignore }.WithClass("gacha-card-name"));
-                showcase.Add(card);
-            }
-            stage.Add(showcase);
-
-            var info = new VisualElement();
-            info.AddToClassList("bpanel");
-            info.AddToClassList("gacha-info");
-            info.Add(UiKit.Text("機率公示", "bpanel-title"));
-            var rates = new VisualElement();
-            rates.AddToClassList("gacha-rates");
-            foreach (var kv in current.DisclosedRates().Where(kv => kv.Value > 0))
-            {
-                var chip = new VisualElement();
-                chip.AddToClassList("rate-chip");
-                chip.Add(UiKit.Badge(kv.Key.ToString(), "badge-" + UiKit.RarityClass(kv.Key)));
-                chip.Add(UiKit.Text($"{kv.Value:0.##}%", "txt-gold"));
-                rates.Add(chip);
-            }
-            info.Add(rates);
-            string pity = current.PityDescription();
-            if (pity.Length > 0) info.Add(UiKit.Text(pity, "line-sub"));
+            page.Add(selection);
+            var main = new VisualElement().WithClass("recruit-main");
+            var banner = Banner(current, "recruit-banner");
+            banner.Add(UiKit.Text(current.Name, "recruit-title"));
+            main.Add(banner);
+            var status = UiKit.Row("recruit-status");
             if (current.HardPityUr > 0)
             {
                 int since = state?.PullsSinceUr ?? 0;
-                info.Add(UiKit.Text($"距離保底還有 {current.HardPityUr - since} 抽（累計 {state?.TotalPulls ?? 0} 抽）", "line-title"));
-                info.Add(UiKit.Bar(100f * since / current.HardPityUr, "bar-gold bar-slim"));
+                var pity = new VisualElement().WithClass("recruit-pity");
+                pity.Add(UiKit.Text($"UR 保底 {since} / {current.HardPityUr}", "recruit-pity-text"));
+                pity.Add(UiKit.Bar(100f * since / current.HardPityUr, "bar-gold"));
+                status.Add(pity);
             }
-            stage.Add(info);
-            page.Add(stage);
-
-            // ---- 底部：抽卡按鈕（首次十連保底 UR 以紅色角標提示）----
-            var actions = new VisualElement();
-            actions.AddToClassList("gacha-actions");
+            status.Add(UiKit.Btn("機率詳情", () => ShowRates(current)).WithClass("recruit-rates-button"));
+            main.Add(status);
+            var actions = UiKit.Row("recruit-actions");
             bool firstTen = current.FirstTenGuaranteesUr && (state?.TenPulls ?? 0) == 0;
             actions.Add(PullButton("單抽", current.SingleCost, 1, false, null));
             actions.Add(PullButton("十連", current.TenCost, 10, true, firstTen ? "首次必出 UR" : null));
-            page.Add(actions);
-
+            main.Add(actions);
+            page.Add(main);
             if (_last != null) body.Add(BuildResults());
         }
+
+        private VisualElement Banner(GachaPool pool, string cls)
+        {
+            var banner = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass(cls);
+            var texture = Resources.Load<Texture2D>("RecruitBanners/" + pool.Id);
+            if (texture != null) banner.style.backgroundImage = new StyleBackground(texture);
+            var heroes = pool.UpUrs.Count > 0 ? pool.UpUrs : pool.UrHeroes.Take(3).ToList();
+            var lineup = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("recruit-lineup");
+            foreach (string id in heroes)
+            {
+                var art = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("recruit-character");
+                var image = HeroArt.Full(id) ?? HeroArt.Face(id);
+                if (image != null) art.style.backgroundImage = new StyleBackground(image);
+                lineup.Add(art);
+            }
+            banner.Add(lineup);
+            return banner;
+        }
+
+        private void ShowRates(GachaPool pool) => UiHelp.Dialog(Host, pool.Name + " · 機率詳情", body =>
+        {
+            foreach (var rate in pool.DisclosedRates().Where(kv => kv.Value > 0))
+                body.Add(UiKit.Text($"{rate.Key}　{rate.Value:0.##}%", "ui-help-text"));
+            body.Add(UiKit.Text(pool.PityDescription(), "ui-help-text"));
+            var names = pool.UrHeroes.Select(id => DefOf(id)?.Name ?? id);
+            body.Add(UiKit.Text("UR：" + string.Join("、", names), "ui-help-text"));
+            if (pool.UpUrs.Count > 0) body.Add(UiKit.Text("UP：" + string.Join("、", pool.UpUrs.Select(id => DefOf(id)?.Name ?? id)), "ui-help-text"));
+        });
+
+        public void DebugSelectPool(string id) { _poolId = id; _last = null; Rebuild(); }
+        public void DebugShowRates() => ShowRates(_pools.Find(p => p.Id == _poolId) ?? _pools[0]);
 
         private Button PullButton(string label, int cost, int count, bool primary, string? tag)
         {

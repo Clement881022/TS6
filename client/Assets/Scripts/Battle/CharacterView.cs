@@ -32,6 +32,9 @@ namespace SanGuo.Client
         private string _motion = "sword";
         private Vector3? _attackFacing;
         public string MotionProfile => _motion;
+        public float AttackLength => _clips?.Attack != null ? Mathf.Max(.1f, _clips.Attack.length) : AttackDuration;
+        public bool IsAttacking => _attackT >= 0f;
+        public Vector3 DisplayedFacing => _model.rotation * Quaternion.Inverse(ModelYawFix * (_clips != null ? Quaternion.identity : _baseRot)) * Vector3.forward;
 
         private float _attackT = -1f, _castT = -1f, _hitT = -1f, _dieT = -1f;
         private float _hitSign = 1f;
@@ -243,12 +246,23 @@ namespace SanGuo.Client
         /// <param name="basePos">這一幀模型的基準世界位置（腳底）。</param>
         public void Tick(float dt, Vector3 facing, float scale, Vector3 basePos)
         {
-            if (_clips != null) { TickClips(dt, facing, basePos); return; }
-            if (_attackT >= 0 && _attackFacing.HasValue)
+            if (_attackT >= 0 && _attackFacing.HasValue && !IsDead)
             {
-                float k = _attackT / AttackDuration;
+                float duration = _clips?.Attack != null ? Mathf.Max(.1f, _clips.Attack.length) : AttackDuration;
+                float k = (_attackT + dt) / duration;
                 float turn = Mathf.Min(Mathf.Clamp01(k / .15f), 1f - Mathf.Clamp01((k - .7f) / .3f));
                 facing = Vector3.Slerp(facing, _attackFacing.Value, Mathf.SmoothStep(0, 1, turn)).normalized;
+            }
+            if (_clips != null)
+            {
+                if (_attackT >= 0)
+                {
+                    _attackT += dt;
+                    float duration = _clips.Attack != null ? Mathf.Max(.1f, _clips.Attack.length) : AttackDuration;
+                    if (_attackT >= duration) { _attackT = -1f; _attackFacing = null; }
+                }
+                TickClips(dt, facing, basePos);
+                return;
             }
             float t = Time.time + _phase;
             // 擺動軸：讓正角度 = 手臂向前揮。

@@ -36,7 +36,7 @@ namespace SanGuo.Client
             Tutorial.Show(Host, "home", "主城功能", new[]
             {
                 "嗨嗨，主公！我是巴豆妖，負責教你遊戲怎麼玩。左側功能列可以管理你的隊伍。",
-                "「征戰」推進主線關卡；「招募」抽取新武將；「武將」升級與強化；「副本」和「任務」能取得養成素材。",
+                "「征戰」推進主線關卡；「招募」抽取新武將；「武將」查看狀態與牌組；「養成」升級、突破與換裝；「副本」和「任務」能取得養成素材。",
                 "先從第一關開始，戰鬥裡我會再教你出牌。",
             }, "前往征戰", () => Nav.Go(Page.Map), speaker: "巴豆妖", model: "badou");
         }
@@ -66,10 +66,6 @@ namespace SanGuo.Client
 
             root.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("strategy-home-shade"));
             var topBar = new VisualElement().WithClass("strategy-home-top");
-            var brand = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("strategy-brand");
-            brand.Add(UiKit.Text("三國將星傳", "strategy-brand-title"));
-            topBar.Add(brand);
-
             // ---- 左上：玩家卡 + 章節進度 ----
             topBar.Add(BuildPlayerCard(v));
 
@@ -80,6 +76,7 @@ namespace SanGuo.Client
             res.Add(UiKit.ResPill("item_gold", v.Gold.ToString("N0")));
             res.Add(UiKit.ResPill("item_yuanbao", v.Yuanbao.ToString("N0")));
             topBar.Add(res);
+            topBar.Add(UiHelp.Button(root, Page.Home));
             root.Add(topBar);
 
             // 主線進度、下一關與主操作放在同一個面板，直接引導當前目標。
@@ -145,7 +142,7 @@ namespace SanGuo.Client
             var progress = UiKit.Bar(total <= 0 ? 0 : 100f * cleared / total, "bar-gold bar-slim");
             progress.AddToClassList("home-campaign-progress");
             plate.Add(progress);
-            plate.Add(UiKit.Text(HintFor(v, chapter, cleared, total), "home-campaign-hint"));
+
             var expedition = UiKit.Btn("", () => { GameSession.Select(chapter, nextLevel); GameSession.OpenSelectedStageOnMap = true; Nav.Go(Page.Map); }, primary: true).WithClass("home-primary");
             expedition.tooltip = $"前往 {chapter}-{nextLevel}，查看敵軍與出戰條件";
             bool fresh = v.ClearedStages.Count == 0;
@@ -158,7 +155,7 @@ namespace SanGuo.Client
             formation.tooltip = formationUnlocked ? "編輯主線出戰陣容" : $"通關第 {DemoMeta.FirstOpenFormationLevel - 1} 關後開放";
             var preparation = new VisualElement().WithClass("home-preparation");
             preparation.Add(formation);
-            preparation.Add(UiKit.Text(formationUnlocked ? "調整出戰隊伍" : $"第 {DemoMeta.FirstOpenFormationLevel} 關開放", "home-preparation-note"));
+            if (!formationUnlocked) preparation.Add(UiKit.Text($"第 {DemoMeta.FirstOpenFormationLevel} 關開放", "home-preparation-note"));
             plate.Add(preparation);
             return plate;
         }
@@ -167,10 +164,11 @@ namespace SanGuo.Client
         {
             var bar = new VisualElement { pickingMode = PickingMode.Ignore };
             bar.AddToClassList("home-fn-bar");
-            bar.Add(UiKit.Text("軍務", "home-nav-heading"));
-            bar.Add(FunctionButton("武將", "培養與裝備", "heroes", Page.Heroes));
+
+            bar.Add(FunctionButton("武將", "查看武將", "heroes", Page.Heroes));
+            bar.Add(FunctionButton("養成", "升級、突破與裝備", "shop", Page.HeroGrowth));
             bar.Add(FunctionButton("招募", "招募新將", "gacha", Page.Gacha));
-            bar.Add(UiKit.Text("日常", "home-nav-heading home-nav-divider"));
+
             bar.Add(FunctionButton("副本", "取得養成素材", "dungeons", Page.Dungeons));
             bar.Add(FunctionButton("世界 Boss", "群雄榜排名", "map", Page.WorldBoss));
             bar.Add(FunctionButton("任務", "領取目標獎勵", "quests", Page.Quests));
@@ -182,25 +180,20 @@ namespace SanGuo.Client
         {
             var b = new Button(() => Nav.Go(target));
             b.AddToClassList("home-fn");
+            b.name = "home-" + target.ToString().ToLowerInvariant();
             var circle = new VisualElement { pickingMode = PickingMode.Ignore };
             circle.AddToClassList("home-fn-circle");
-            circle.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-fn-icon").WithClass("tile-ico-" + icon));
+            var art = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-fn-icon").WithClass("tile-ico-" + icon);
+            if (target == Page.HeroGrowth) art.style.backgroundImage = new StyleBackground(UiKit.SkinTex("item_expbook"));
+            circle.Add(art);
             b.Add(circle);
             var text = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-nav-text");
             text.Add(UiKit.Text(label, "home-fn-label"));
-            text.Add(UiKit.Text(description, "home-nav-description"));
+
             b.Add(text);
             b.tooltip = description;
             return b;
         }
 
-        private static string HintFor(ProfileView v, int chapter, int cleared, int total)
-        {
-            if (v.ClearedStages.Count == 0) return "主公，先從第一關開始吧！";
-            if (cleared < total && v.Stamina >= v.StaminaCap) return "體力滿了，快去征戰！";
-            if (v.Heroes.Count < 5) return "多招募幾位武將，隊伍才強！";
-            if (cleared >= total) return "討董之戰告一段落，天書第三卷仍下落不明……";
-            return cleared == 0 && chapter > 0 ? $"{Campaign.Title(chapter).Split('　')[0]}開始了，敵人更強了，記得養成武將！" : "繼續推進主線吧，主公！";
-        }
     }
 }

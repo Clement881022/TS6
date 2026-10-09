@@ -165,14 +165,13 @@ namespace SanGuo.Client
         /// <summary>武將圓形頭像：有美術（HeroArt）就顯示頭像，否則用姓氏代替；依稀有度上框色。</summary>
         public static VisualElement Avatar(string name, Rarity rarity, bool large = false, string? heroId = null)
         {
-            var a = new VisualElement { pickingMode = PickingMode.Ignore };
-            a.AddToClassList("avatar");
+            var a = heroId != null ? PortraitArt.Create(heroId, "avatar") : new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("avatar");
             a.AddToClassList("avatar-" + RarityClass(rarity));
             if (large) a.AddToClassList("avatar-lg");
             var face = heroId != null ? HeroArt.Face(heroId) : null;
             if (face != null)
             {
-                a.style.backgroundImage = new StyleBackground(face);
+
                 a.AddToClassList("avatar-art");
             }
             else a.Add(new Label(name.Length > 0 ? name.Substring(0, 1) : "?") { pickingMode = PickingMode.Ignore }.WithClass("avatar-text"));
@@ -330,11 +329,7 @@ namespace SanGuo.Client
             if (extraClass.Length > 0) b.AddToClassList(extraClass);
             b.AddToClassList(cls + "-" + RarityClass(def.Rarity));
             if (selected) b.AddToClassList(cls + "-on");
-            var art = new VisualElement { pickingMode = PickingMode.Ignore };
-            art.AddToClassList(cls + "-art");
-            var face = HeroArt.Face(def.Id);
-            if (face != null) art.style.backgroundImage = new StyleBackground(face);
-            else art.Add(new Label(def.Name.Substring(0, 1)) { pickingMode = PickingMode.Ignore }.WithClass("avatar-text"));
+            var art = PortraitArt.Create(def.Id, cls + "-art");
             b.Add(art);
             if (stars >= 0)
             {
@@ -357,7 +352,7 @@ namespace SanGuo.Client
         /// 建出頁面外框並回傳內容區：標題列（返回鍵 + 金字標題 + 右上資源 + 關閉），內容區是一塊填滿的容器，頁面自己排版。
         /// back = 返回鍵去的頁面；關閉鍵一律回主城。
         /// </summary>
-        public static VisualElement Frame(VisualElement host, string title, Page back)
+        public static VisualElement Frame(VisualElement host, string title, Page back, Page page = Page.Home)
         {
             var bar = new VisualElement();
             bar.AddToClassList("hdr");
@@ -377,6 +372,7 @@ namespace SanGuo.Client
             res.Add(ResPill("item_yuanbao", v.Yuanbao.ToString("N0")));
             bar.Add(res);
 
+            if (page != Page.Login) bar.Add(UiHelp.Button(host, page));
             var close = new Button(() => Nav.Go(Page.Home));
             close.AddToClassList("hdr-close");
             close.text = "×";

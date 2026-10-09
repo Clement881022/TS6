@@ -161,7 +161,7 @@ namespace SanGuo.Client
             }
             if (def.KillRefund > 0) parts.Add($"擊敗回 {def.KillRefund} 費");
             // 卡面只放得下 2 行短句：放得下就用原格式，多段效果的專屬牌改用精簡寫法，超過 2 段以「…」表示（完整規則在詳情與 tooltip）。
-            if (parts.Count <= 2 && parts.All(p => Width(p) <= 18)) return string.Join("\n", parts);
+            if (parts.Count <= 2 && parts.All(p => Width(p) <= 14)) return string.Join("\n", parts);
             var compact = Compact(def);
             if (compact.Count > 2) compact = new List<string> { compact[0], compact[1] + "…" };
             return string.Join("\n", compact);
@@ -178,7 +178,7 @@ namespace SanGuo.Client
                 case StatusType.AtkUp: return "攻";
                 case StatusType.IntUp: return "謀";
                 case StatusType.DodgeUp: return "閃避";
-                case StatusType.CritUp: return "爆擊";
+                case StatusType.CritUp: return "爆";
                 default: return StatusName(s);
             }
         }
