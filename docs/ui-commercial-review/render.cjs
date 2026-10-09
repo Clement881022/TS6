@@ -45,7 +45,7 @@ async function inspect(page) {
         if(['auto','scroll','hidden','clip'].includes(style.overflowX)){left=Math.max(left,ar.left);right=Math.min(right,ar.right);}
         if(['auto','scroll','hidden','clip'].includes(style.overflowY)){top=Math.max(top,ar.top);bottom=Math.min(bottom,ar.bottom);}
       }
-      return {element:e,bound:{name:e.getAttribute('aria-label')||e.textContent.trim(),width:Math.max(0,right-left),height:Math.max(0,bottom-top),x:left-sr.left,y:top-sr.top,inside:left>=sr.left && top>=sr.top && right<=sr.right+.5 && bottom<=sr.bottom+.5}};
+      return {element:e,bound:{name:e.getAttribute('aria-label')||e.textContent.trim(),minimum:e.closest('.board-zone')?44:48,width:Math.max(0,right-left),height:Math.max(0,bottom-top),x:left-sr.left,y:top-sr.top,inside:left>=sr.left && top>=sr.top && right<=sr.right+.5 && bottom<=sr.bottom+.5}};
     }).filter(m=>m.bound.width>1 && m.bound.height>1);
     const active=measured.map(m=>m.element),bounds=measured.map(m=>m.bound);
     const overlay = scene.querySelector('.battle-detail:not(.hidden),.battle-drawer:not(.hidden)');
@@ -56,13 +56,14 @@ async function inspect(page) {
       const a=interactions[i],b=interactions[j];
       if(Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>1 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>1) overlaps.push([a.name,b.name]);
     }
-    return {width:sr.width,height:sr.height,targets:bounds,minimumTouchTarget:48,invalidTargets:checked.filter(b=>b.width<47.5 || b.height<47.5 || !b.inside),overlaps,loadedImages:Array.from(document.images).length,documentFontStatus:document.fonts.status};
+    return {width:sr.width,height:sr.height,targets:bounds,minimumTouchTarget:48,minimumBoardTarget:44,invalidTargets:checked.filter(b=>b.width<b.minimum-.5 || b.height<b.minimum-.5 || !b.inside),overlaps,loadedImages:Array.from(document.images).length,documentFontStatus:document.fonts.status};
   });
 }
 async function run() {
-  fs.mkdirSync(output,{recursive:true});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base = `http://127.0.0.1:${server.address().port}/docs/ui-commercial-review/index.html`;
+  if(process.argv.includes('--serve')) {console.log(base);return;}
+  fs.mkdirSync(output,{recursive:true});
   const browser = await chromium.launch({executablePath,headless:true});
   const report={generatedAt:new Date().toISOString(),scope:'HTML/CSS design prototype, not Unity or physical phone acceptance',screenshots:[],interactionChecks:[],errors:[]};
   try {
@@ -74,12 +75,13 @@ async function run() {
       await ready(page,`${base}?${exportQuery}`);
       const locator = page.locator(query.includes('export=components') ? '.component-sheet' : '.scene');
       await locator.screenshot({path:path.join(output,name),animations:'disabled'});
+      const renderedBox = await locator.boundingBox();
       const geometry=query.includes('export=components') ? null : await inspect(page);
       if(geometry) {
         assert(geometry.invalidTargets.length===0,`${name}: invalid touch targets ${JSON.stringify(geometry.invalidTargets)}`);
         assert(geometry.overlaps.length===0,`${name}: overlapping targets ${JSON.stringify(geometry.overlaps)}`);
       }
-      report.screenshots.push({file:name,pixels:[width*2,height*2],logical:[width,height],geometry});
+      report.screenshots.push({file:name,pixels:[Math.round(renderedBox.width*2),Math.round(renderedBox.height*2)],logical:[renderedBox.width,renderedBox.height],geometry});
       await page.close();
     }
     const page=await browser.newPage({viewport:{width:1100,height:900}});

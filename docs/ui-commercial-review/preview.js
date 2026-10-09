@@ -31,7 +31,7 @@ function boardUnit(file, enemy = false, intent = '') {
 }
 function battleScene() {
   const positions = {2:['face_bandit_archer',true,'攻擊'],4:['face_bandit_archer',true,'攻擊'],9:['face_bandit_shaman',true,'蓄力'],10:['face_r_shield',false],15:['face_r_villager',false],16:['face_liubei',false],18:['face_r_archer',false]};
-  const grid = Array.from({length:20},(_,i)=>`<div class="board-cell" data-cell="${i}">${positions[i] ? `<button data-unit="${i}" data-side="${positions[i][1] ? 'enemy' : 'ally'}" aria-label="${positions[i][1] ? '敵軍' : '友軍'}單位">${boardUnit(...positions[i])}</button>` : ''}</div>`).join('');
+  const grid = Array.from({length:25},(_,i)=>`<div class="board-cell" data-cell="${i}">${positions[i] ? `<button data-unit="${i}" data-side="${positions[i][1] ? 'enemy' : 'ally'}" aria-label="${positions[i][1] ? '敵軍' : '友軍'}單位">${boardUnit(...positions[i])}</button>` : ''}</div>`).join('');
   return `<div class="scene battle-scene variant-a ${state.ratio === '20:9' ? 'wide' : ''}" data-scene="battle"><div class="backdrop"></div>
     <div class="battle-top"><div class="battle-heading"><strong>0-6 · 護送馬商</strong><span>第 1 回合</span></div><button class="battle-menu" aria-label="戰鬥選單" aria-expanded="false">☰</button></div>
     <div class="proposal-watermark">手機戰鬥 UX 示意 · 棋盤以平面標記代替 3D</div>
