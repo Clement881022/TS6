@@ -20,6 +20,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SanGuo.Core\SanGuo.Core.csproj" />
+    <Compile Include="..\..\client\Assets\Scripts\Meta\GameBackend.cs" Link="Client\GameBackend.cs" />
+    <Compile Include="..\..\client\Assets\Scripts\App\QuestClaimBatch.cs" Link="Client\QuestClaimBatch.cs" />
   </ItemGroup>
 
 </Project>
