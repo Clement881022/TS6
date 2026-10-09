@@ -118,6 +118,27 @@ namespace SanGuo.Core.Tests
             Assert.Equal(yuanbao + 3000, p.Yuanbao);
         }
 
+        /// <summary>月底開打、隔月才交卷：用開打時的 Boss 重播（紀錄仍合法），但成績不算進新賽季。</summary>
+        [Fact]
+        public void FightAcrossMonthBoundary_ReplaysOldBoss_AndDoesNotScoreNewSeason()
+        {
+            var p = Unlocked(out var team);
+            var start = StageFlow.Start(p, WorldBoss.StageId, Oct, 7, team);
+            Assert.True(start.Ok, start.Code);
+            var battle = new Battle(DemoMeta.BuildSetup(WorldBoss.StageId, start.Seed, p, team)!);
+            var rec = new ReplayRecorder(battle);
+            for (int i = 0; i < 200 && battle.Result == BattleResult.Ongoing; i++) rec.PlayAuto();
+            Assert.True(WorldBoss.Score(battle) > 0);
+
+            WorldBoss.SettlePending(p, new InMemoryWorldBossBoard(), Nov); // 伺服器每個請求先做換季
+            var r = StageFlow.Finish(p, WorldBoss.StageId, rec.Actions, Nov);
+            Assert.True(r.Ok, r.Code);
+            Assert.Equal(WorldBoss.Score(battle), r.Damage);
+            Assert.False(r.NewBest);
+            Assert.Equal(0, p.WorldBoss.Best);
+            Assert.Equal("", p.WorldBoss.FightSeason);
+        }
+
         [Fact]
         public void NoScore_NoReward()
         {

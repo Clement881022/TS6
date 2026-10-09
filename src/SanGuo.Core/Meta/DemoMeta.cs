@@ -150,7 +150,8 @@ namespace SanGuo.Core.Meta
             {
                 // 賽季以開打時記在存檔裡的為準（跨月結算也重建同一隻 Boss）。
                 if (profile == null) return null;
-                setup = WorldBoss.Setup(profile.WorldBoss.Season, seed);
+                var wb = profile.WorldBoss;
+                setup = WorldBoss.Setup(wb.FightSeason != "" ? wb.FightSeason : wb.Season, seed);
             }
             else
             {

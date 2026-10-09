@@ -13,6 +13,8 @@ namespace SanGuo.Core.Meta
         /// <summary>今天（<see cref="DailyClock.DayIndex"/>）已用的挑戰次數。</summary>
         public long Day = long.MinValue;
         public int Used;
+        /// <summary>進行中那一場開打時的賽季：跨月才結算時，用它重建同一隻 Boss，成績也不算進新賽季。</summary>
+        public string FightSeason = "";
         /// <summary>換季時尚未結算的上一季成績（伺服器查排名後由 <see cref="WorldBoss.Settle"/> 發獎並清空）。</summary>
         public string PendingSeason = "";
         public long PendingBest;
@@ -117,6 +119,7 @@ namespace SanGuo.Core.Meta
             if (!IsUnlocked(p)) return WorldBossEntry.Locked;
             if (AttemptsLeft(p, now) <= 0) return WorldBossEntry.NoAttempts;
             p.WorldBoss.Used++;
+            p.WorldBoss.FightSeason = p.WorldBoss.Season;
             return WorldBossEntry.Ok;
         }
 

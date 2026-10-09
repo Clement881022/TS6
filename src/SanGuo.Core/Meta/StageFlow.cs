@@ -94,9 +94,12 @@ namespace SanGuo.Core.Meta
             if (!replay.Valid) return new StageFinishOutcome { Code = "invalid_replay", Persist = true };
             if (stageId == WorldBoss.StageId)
             {
-                // 打滿回合或全滅都照樣計分；擊倒 Boss 算勝利。
+                // 打滿回合或全滅都照樣計分；擊倒 Boss 算勝利。跨月才結算的那場屬於上一季（已轉入待結算），不計入新賽季。
                 long damage = WorldBoss.Score(replay.Battle!);
-                bool newBest = WorldBoss.Record(p, damage);
+                WorldBoss.Roll(p, now);
+                bool sameSeason = p.WorldBoss.FightSeason == "" || p.WorldBoss.FightSeason == p.WorldBoss.Season;
+                p.WorldBoss.FightSeason = "";
+                bool newBest = sameSeason && WorldBoss.Record(p, damage);
                 return new StageFinishOutcome
                 {
                     Ok = true, Won = replay.Result == BattleResult.Won, Damage = damage, BestDamage = p.WorldBoss.Best, NewBest = newBest,

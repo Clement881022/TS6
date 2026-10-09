@@ -83,7 +83,7 @@ namespace SanGuo.Core.Data
                 ["worldBoss"] = new Dictionary<string, object?>
                 {
                     ["season"] = p.WorldBoss.Season, ["best"] = p.WorldBoss.Best,
-                    ["day"] = p.WorldBoss.Day == long.MinValue ? (object?)null : p.WorldBoss.Day, ["used"] = (long)p.WorldBoss.Used,
+                    ["day"] = p.WorldBoss.Day == long.MinValue ? (object?)null : p.WorldBoss.Day, ["used"] = (long)p.WorldBoss.Used, ["fightSeason"] = p.WorldBoss.FightSeason,
                     ["pendingSeason"] = p.WorldBoss.PendingSeason, ["pendingBest"] = p.WorldBoss.PendingBest,
                     ["lastSeason"] = p.WorldBoss.LastSeason, ["lastRank"] = (long)p.WorldBoss.LastRank,
                     ["lastTotal"] = (long)p.WorldBoss.LastTotal, ["lastReward"] = (long)p.WorldBoss.LastReward,
@@ -210,7 +210,7 @@ namespace SanGuo.Core.Data
                 p.WorldBoss = new WorldBossState
                 {
                     Season = Str("season"), Best = Int(wb, "best", 0),
-                    Day = wb.TryGetValue("day", out var wbd) && wbd != null ? ToLong(wbd) : long.MinValue, Used = (int)Int(wb, "used", 0),
+                    Day = wb.TryGetValue("day", out var wbd) && wbd != null ? ToLong(wbd) : long.MinValue, Used = (int)Int(wb, "used", 0), FightSeason = Str("fightSeason"),
                     PendingSeason = Str("pendingSeason"), PendingBest = Int(wb, "pendingBest", 0),
                     LastSeason = Str("lastSeason"), LastRank = (int)Int(wb, "lastRank", 0),
                     LastTotal = (int)Int(wb, "lastTotal", 0), LastReward = (int)Int(wb, "lastReward", 0),

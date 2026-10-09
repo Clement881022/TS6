@@ -433,4 +433,17 @@ public sealed class ServerApiTests : IDisposable
         Assert.Equal(2, panel.GetProperty("attemptsLeft").GetInt32());
         Assert.Equal(0, panel.GetProperty("top").GetArrayLength());
     }
+
+    [Fact]
+    public async Task WorldBoss_Leaderboard_DoesNotExposeOtherAccountIds()
+    {
+        var c = Client();
+        await c.PostAsync("/login", null);
+        _factory.Services.GetRequiredService<IWorldBossBoard>().Submit("2026-10", "bob-secret-id", 500);
+        var top = (await Json(await c.GetAsync("/worldboss"))).GetProperty("data").GetProperty("top");
+        Assert.Equal(1, top.GetArrayLength());
+        string shown = top[0].GetProperty("account").GetString()!;
+        Assert.DoesNotContain("bob", shown);
+        Assert.StartsWith("玩家", shown);
+    }
 }

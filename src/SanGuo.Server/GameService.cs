@@ -257,7 +257,7 @@ public sealed class GameService
         var (rank, total) = s.Best > 0 ? _board.RankOf(s.Season, s.Best) : (0, 0);
         var top = _board.Top(s.Season, 10).Select(t => new Dictionary<string, object?>
         {
-            ["account"] = t.AccountId == accountId ? "我" : t.AccountId, ["best"] = t.Best,
+            ["account"] = t.AccountId == accountId ? "我" : PublicName(t.AccountId), ["best"] = t.Best,
         }).ToList();
         return ApiResult.Success(new
         {
@@ -305,6 +305,12 @@ public sealed class GameService
         var r = Shop.ClaimMonthCardDaily(p, cardId, now);
         return r == ShopResult.Ok ? ApiResult.Success(new { yuanbao = p.Yuanbao }) : ApiResult.Fail(r.ToString());
     });
+
+    /// <summary>
+    /// 排行榜上他人的顯示名稱。帳號 id 目前就是 X-Account 憑證，直接公開等於讓人冒用他人帳號，所以只給雜湊後的代號。
+    /// </summary>
+    private static string PublicName(string accountId) =>
+        "玩家" + Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(accountId)), 0, 3);
 
     private static ulong RandomSeed()
     {
