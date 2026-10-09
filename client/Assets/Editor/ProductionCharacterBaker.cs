@@ -108,10 +108,10 @@ namespace SanGuo.Client.Editor
                             EditorUtility.SetDirty(mesh);
                         }
                     }
-                    clips.HeadScale=1f;clips.NeckExtension=NeckExtensionFor(clips.MotionProfile);clips.ProportionVersion=1;
+                    clips.HeadScale=ProductionInfantryProportions.HeadScaleFor(root.name);clips.NeckExtension=NeckExtensionFor(clips.MotionProfile);clips.ProportionVersion=Math.Max(1,clips.ProportionVersion);
                     clips.Idle.SampleAnimation(root,0);Normalize(root,clips);ProductionCharacterAssembly.Validate(root);
                     PrefabUtility.SaveAsPrefabAsset(root,path);
-                    Debug.Log("ART_PROPORTIONS "+root.name+" headScale=1 neckExtension="+clips.NeckExtension+" version=1");
+                    Debug.Log("ART_PROPORTIONS "+root.name+" headScale="+clips.HeadScale+" neckExtension="+clips.NeckExtension+" version="+clips.ProportionVersion);
                 }
                 finally{UnityEngine.Object.DestroyImmediate(root);}
             }
@@ -190,6 +190,7 @@ namespace SanGuo.Client.Editor
                     foreach(var t in root.GetComponentsInChildren<Transform>())
                         if(t.name == "Weapon_00029") t.localRotation = Quaternion.Euler(0,180,0);
                 ProductionIdlePosture.Apply(root,id,Output);
+                ProductionInfantryProportions.Apply(root,id);
                 Normalize(root,clips);
                 ProductionCharacterAssembly.Validate(root);
                 PrefabUtility.SaveAsPrefabAsset(root, Output + "/"+id+".prefab");

@@ -650,7 +650,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2.2593539, y: 2.2593539, z: 2.2593539}
+  m_LocalScale: {x: 2.3775613, y: 2.3775613, z: 2.3775613}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5087679782962165775}
@@ -696,9 +696,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SanGuo.Client.CharacterClipSet
   MotionProfile: archer
-  HeadScale: 1
+  HeadScale: 0.8
   NeckExtension: 0.12
-  ProportionVersion: 1
+  ProportionVersion: 2
   SourceIdle: {fileID: 7400000, guid: 9eec908fed677b443adc586c24838c0a, type: 2}
   Idle: {fileID: 7400000, guid: f7288bb79fa3996478811dc5b77e9b10, type: 2}
   Attack: {fileID: 7400000, guid: a40ee72c96b797e43a8fc4dcd2bf6e38, type: 2}

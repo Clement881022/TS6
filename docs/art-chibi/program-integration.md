@@ -26,6 +26,8 @@
 
 ## 下一輪由 Codex 處理的美術缺口
 
+第十三階段針對 r_shield／r_archer 將整組頭部與頭飾縮至 0.80，並修改肩胸蒙皮網格；ProportionVersion=2 防止累積變形。既有 HeadScale 播放路徑沿用，全部動畫引用保留。見 [弓盾兵比例驗收](infantry-proportions-stage13-review.md)。其他角色未套用這次縮頭。
+
 第十二階段已重製待機頭部俯角、胸肩與雙腿站姿，並收回先前過大的頸部延長量；各模型新增 `Animations/<ID>_UprightIdle.anim`，Prefab 的 SourceIdle 保留原底稿。驗收見 `posture-stage12-review.md`。攻擊／施法／受擊／倒下引用維持原值，不能將新待機覆蓋到這些動作欄位。
 
 盾兵頭盔與短兵器、弓兵頭巾和臉型、醫士髮飾與道具已完成第一輪獨立模型重製，見 `infantry-stage3-review.md`。具名角色的造型辨識與衣裝輪廓仍需逐一重製；只有材質改善不能視為美術完成。
