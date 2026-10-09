@@ -18,6 +18,8 @@
 
 第六階段 bandit_archer 與 bandit_marksman 也各自改用 `Animations/<角色ID>_BowIdle.anim`、`<角色ID>_BowAttack.anim`，Prefab 不再帶有 ArcherPoseRig。這四種山賊的正式資產仍位於 ProductionCharacters，接入時保留各自 ID，不要把獵戶映射回舊 bandit_archer 模型。驗收與待修項見 `bandit-stage6-review.md`。
 
+第七階段張飛重製素材已沿用相同 ID 與 CharacterClipSet，見 `zhangfei-stage7-review.md`。第八階段棋盤 Prefab、材質、接入尺寸與 HUD 美術修正規格見 `board-stage8-integration.md`；新棋盤尚未替換執行期 BuildFloor，接入由 Claude Code 處理。
+
 驗證條件：模型旋轉後不出框、不空白、材質不呈粉紅色；弓與盾跟隨手骨；出牌、受擊、施法、死亡正常。HUD 與卡牌的文字／重疊檢查也必須保留。
 
 ## 下一輪由 Codex 處理的美術缺口
