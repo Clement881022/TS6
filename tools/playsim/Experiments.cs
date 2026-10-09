@@ -21,7 +21,7 @@ public static class Experiments
         [Role.Mage] = "yuji", [Role.Strategist] = "jianyong", [Role.Healer] = "ganfuren",
     };
 
-    static readonly (string Name, Role[] Roles)[] Comps =
+    public static readonly (string Name, Role[] Roles)[] Comps =
     {
         ("坦補戰戰", new[] { Role.Tank, Role.Healer, Role.Warrior, Role.Warrior }),
         ("坦補戰弓", new[] { Role.Tank, Role.Healer, Role.Warrior, Role.Ranger }),
@@ -33,7 +33,7 @@ public static class Experiments
         ("雙坦補戰", new[] { Role.Tank, Role.Tank, Role.Healer, Role.Warrior }),
     };
 
-    static (PlayerProfile, List<FormationEntry>) Team(Role[] roles, bool ur, int level, int stars, int gear)
+    public static (PlayerProfile, List<FormationEntry>) Team(Role[] roles, bool ur, int level, int stars, int gear)
     {
         var p = PlayerProfile.CreateNew(0);
         p.Level = 60;
@@ -57,7 +57,7 @@ public static class Experiments
         return (p, team);
     }
 
-    static (double Win, double AvgTurns) Rate(string stage, PlayerProfile p, List<FormationEntry> team, bool smart, int runs)
+    public static (double Win, double AvgTurns) Rate(string stage, PlayerProfile p, List<FormationEntry> team, bool smart, int runs)
     {
         int wins = 0, turns = 0;
         for (ulong seed = 1; seed <= (ulong)runs; seed++)
@@ -72,7 +72,7 @@ public static class Experiments
         return (100.0 * wins / runs, (double)turns / runs);
     }
 
-    static (double Avg, long Min, long Max, double Sd) Boss(PlayerProfile p, List<FormationEntry> team, bool smart, int runs, string season = "2026-10")
+    public static (double Avg, long Min, long Max, double Sd) Boss(PlayerProfile p, List<FormationEntry> team, bool smart, int runs, string season = "2026-10")
     {
         p.WorldBoss.Season = season;
         var list = new List<long>();

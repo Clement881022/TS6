@@ -1,5 +1,8 @@
-// 用法：dotnet run --project tools/playsim -- <天數> <輸出資料夾>（模擬帳號遊玩）；dotnet run --project tools/playsim -- exp <輸出檔>（對照實驗）。
-// 報告見 docs/playtest-sim.md。
+// 用法（報告見 docs/playtest-sim.md、驗收指標見 docs/adjust-plan.md §1）：
+//   dotnet run --project tools/playsim -- <天數> <輸出資料夾> [--pop 族群檔]   模擬一輪
+//   dotnet run --project tools/playsim -- multi <輪數> <天數> <輸出資料夾>      平行跑多輪，再彙總成 kpi.md
+//   dotnet run --project tools/playsim -- kpi <輸出資料夾>                    只彙總（含對照實驗）
+//   dotnet run --project tools/playsim -- exp <輸出檔>                        只跑對照實驗
 using System.Text;
 using SanGuo.Core;
 using SanGuo.Core.Data;
@@ -14,16 +17,20 @@ using SanGuo.Server;
 
 Console.OutputEncoding = Encoding.UTF8;
 if (args.Length > 0 && args[0] == "exp") { var t = Experiments.Run(); File.WriteAllText(args.Length > 1 ? args[1] : "experiments.md", t); Console.WriteLine(t); return; }
+if (args.Length > 0 && args[0] == "multi") { await Kpi.Multi(int.Parse(args[1]), int.Parse(args[2]), args[3]); return; }
+if (args.Length > 0 && args[0] == "kpi") { Kpi.Write(args[1]); return; }
 int days = args.Length > 0 ? int.Parse(args[0]) : 60;
 string outDir = args.Length > 1 ? args[1] : ".";
+int popIndex = Array.IndexOf(args, "--pop");
+string popFile = popIndex >= 0 && popIndex + 1 < args.Length ? args[popIndex + 1] : null;
 Directory.CreateDirectory(outDir);
 
 string db = Path.Combine(Path.GetTempPath(), $"playsim-{Guid.NewGuid():N}.db");
 var clock = new SimClock { Current = new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.FromHours(8)) };
 var store = new SqliteProfileStore($"Data Source={db}");
-var board = new SqliteWorldBossBoard($"Data Source={db}");
+IWorldBossBoard board = new PopulationBoard(new SqliteWorldBossBoard($"Data Source={db}"), popFile);
 var accounts = new SqliteAccountStore($"Data Source={db}", clock);
-var game = new GameService(store, board, clock, new ServerOptions { EnableDevEndpoints = true }, accounts);
+var game = new GameService(store, board, clock, new ServerOptions { EnableDevEndpoints = true, StartingHeroExp = 0 } /* 正式新手紅利：不送開發用武將經驗（企劃決定 7） */, accounts);
 
 var personas = new List<Persona>
 {
@@ -59,7 +66,12 @@ sb.AppendLine();
 sb.AppendLine("# 戰鬥 meta（全部帳號合計）");
 sb.Append(Meta.Report());
 File.WriteAllText(Path.Combine(outDir, "report.md"), sb.ToString());
-foreach (var pe in personas) File.WriteAllText(Path.Combine(outDir, $"daily-{pe.Username}.csv"), pe.Sim.DailyCsv());
+foreach (var pe in personas)
+{
+    File.WriteAllText(Path.Combine(outDir, $"daily-{pe.Username}.csv"), pe.Sim.DailyCsv());
+    File.WriteAllText(Path.Combine(outDir, $"summary-{pe.Username}.txt"), await pe.Sim.Summary());
+}
+File.WriteAllText(Path.Combine(outDir, "meta.txt"), Meta.Summary());
 Console.WriteLine(sb.ToString());
 Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
 try { File.Delete(db); } catch { }
@@ -87,7 +99,7 @@ public sealed class DayStat
     public int Day;
     public double Seconds;
     public double BattleSeconds, StorySeconds, MenuSeconds, BossSeconds;
-    public int Battles, Losses, NewClears, Sweeps;
+    public int Battles, Losses, StoryLosses, NewClears, Sweeps;
     public int StaminaSpent, StaminaWasted;
     public int Level;
     public string Frontier = "";
@@ -158,7 +170,9 @@ public sealed class PlayerSim
         await Gacha();
         await Growth();
         await ClaimAll();
-        // 領完任務 / 通行證後可能又有體力或資源：再刷一輪
+        // 刷完副本、領完獎勵後變強了，就再回去推主線；剩下的體力再刷一輪
+        await Growth();
+        await PushStory();
         await Dungeons();
 
         p = await P();
@@ -252,7 +266,11 @@ public sealed class PlayerSim
 
     public static double TeamPower(PlayerProfile p, List<FormationEntry> team) => team.Sum(t => Score(p, t.HeroId, false));
 
-    /// <summary>坦克 + 補師 + 兩名最強輸出（以「拉到帳號等級時」的潛力比較，模擬玩家換上新抽到的強角）。</summary>
+    /// <summary>某些關卡玩家試出來的隊伍（同一關輸 2 次以上就離線試打候選組合，模擬真人換隊伍嘗試）。</summary>
+    private readonly Dictionary<string, List<string>> _stageTeam = new();
+    private string _currentStage = "";
+
+    /// <summary>坦克 + 補師 + 兩名最強輸出（輸出 = 坦補以外的職業；以「拉到帳號等級時」的潛力比較，模擬玩家換上新抽到的強角）。</summary>
     public static List<FormationEntry> ChooseTeam(PlayerProfile p)
     {
         var owned = p.Heroes.Keys.Where(k => HeroRoster.Find(k) != null).ToList();
@@ -263,7 +281,7 @@ public sealed class PlayerSim
         var healer = Best(x => R(x) == Role.Healer); if (healer != null) picked.Add(healer);
         while (picked.Count < 4)
         {
-            var x = Best(_ => true);
+            var x = Best(y => R(y) != Role.Tank && R(y) != Role.Healer) ?? Best(_ => true);
             if (x == null) break;
             picked.Add(x);
         }
@@ -280,11 +298,131 @@ public sealed class PlayerSim
         return team;
     }
 
+    private List<FormationEntry> StoryTeam(PlayerProfile p, string stageId)
+    {
+        if (_stageTeam.TryGetValue(stageId, out var ids) && ids.All(p.Heroes.ContainsKey)) return Place(ids);
+        return ChooseTeam(p);
+    }
+
+    /// <summary>同一關輸了好幾次：離線試打候選組合（坦補＋兩輸出、雙坦、雙補、三輸出…），各 4 場，取勝率最高者。</summary>
+    private void TryOtherTeams(PlayerProfile p, string stageId)
+    {
+        Role R(string id) => HeroRoster.Find(id)!.Role;
+        var owned = p.Heroes.Keys.Where(k => HeroRoster.Find(k) != null).ToList();
+        var byRole = owned.GroupBy(R).ToDictionary(g => g.Key, g => g.OrderByDescending(x => Score(p, x, true)).Take(2).ToList());
+        var pool = byRole.Values.SelectMany(x => x).Distinct().ToList();
+        var probe = new PlayerProfile { Level = p.Level };
+        foreach (var id in pool)
+        {
+            var h = p.Heroes[id];
+            probe.Heroes[id] = new HeroState { HeroId = id, Level = h.Level, Stars = h.Stars, Equipment = new Dictionary<string, int>(h.Equipment) };
+        }
+        List<string> best = null; double bestWins = -1;
+        var combos = new List<List<string>>();
+        for (int a = 0; a < pool.Count; a++)
+            for (int b = a + 1; b < pool.Count; b++)
+                for (int c = b + 1; c < pool.Count; c++)
+                    for (int d = c + 1; d < pool.Count; d++)
+                        combos.Add(new List<string> { pool[a], pool[b], pool[c], pool[d] });
+        // 候選太多時只留每種職業組合各一個（玩家不會試遍所有排列）
+        combos = combos.GroupBy(x => string.Join("+", x.Select(R).OrderBy(r => r))).Select(g => g.First()).ToList();
+        foreach (var ids in combos)
+        {
+            var team = Place(ids);
+            int wins = 0;
+            for (ulong seed = 1; seed <= 4; seed++)
+            {
+                var setup = DemoMeta.BuildSetup(stageId, seed * 104729, probe, team);
+                if (setup == null) break;
+                var b = new Battle(setup);
+                var rec = new ReplayRecorder(b);
+                var bot = new SmartBot("trial", null);
+                for (int i = 0; i < 60 && b.Result == BattleResult.Ongoing; i++) bot.PlayTurn(rec);
+                if (b.Result == BattleResult.Won) wins++;
+            }
+            if (wins > bestWins) { bestWins = wins; best = ids; }
+        }
+        if (best != null) { _stageTeam[stageId] = best; _events.Add($"D{_today.Day} {stageId} 換隊伍：{string.Join("+", best.Select(Short))}（試打 {bestWins}/4）"); }
+    }
+
+    private List<FormationEntry> _bossTeam;
+    private int _bossTeamDay = -99, _bossTeamRoster = -1;
+
+    /// <summary>
+    /// Boss 隊：坦 + 補固定，兩名輸出從各輸出職業潛力前 2 名中挑「離線試打 3 場平均傷害最高」的組合。
+    /// 每 7 天或拿到新武將時重選，模擬玩家用每日次數研究配隊；還沒開放世界 Boss 時沿用主線隊。
+    /// </summary>
+    private List<FormationEntry> BossTeam(PlayerProfile p)
+    {
+        if (!WorldBoss.IsUnlocked(p)) return ChooseTeam(p);
+        int day = _today?.Day ?? 0;
+        if (_bossTeam != null && day - _bossTeamDay < 7 && _bossTeamRoster == p.Heroes.Count) return _bossTeam;
+        _bossTeamDay = day; _bossTeamRoster = p.Heroes.Count;
+        var story = ChooseTeam(p);
+        Role R(string id) => HeroRoster.Find(id)!.Role;
+        var owned = p.Heroes.Keys.Where(k => HeroRoster.Find(k) != null).ToList();
+        string tank = owned.Where(x => R(x) == Role.Tank).OrderByDescending(x => Score(p, x, true)).FirstOrDefault();
+        string healer = owned.Where(x => R(x) == Role.Healer).OrderByDescending(x => Score(p, x, true)).FirstOrDefault();
+        var dps = owned.Where(x => R(x) != Role.Tank && R(x) != Role.Healer)
+            .GroupBy(R).SelectMany(g => g.OrderByDescending(x => Score(p, x, true)).Take(2)).ToList();
+        var best = story;
+        double bestDmg = BossTrial(p, story);
+        for (int i = 0; i < dps.Count; i++)
+            for (int j = i + 1; j < dps.Count; j++)
+            {
+                var ids = new[] { tank, healer, dps[i], dps[j] }.Where(x => x != null).Distinct().ToList();
+                var team = Place(ids);
+                double dmg = BossTrial(p, team);
+                if (dmg > bestDmg) { bestDmg = dmg; best = team; }
+            }
+        _bossTeam = best;
+        return best;
+    }
+
+    /// <summary>離線試打（養成按「拉到帳號等級」估算：玩家會先把新隊員練起來）。</summary>
+    private static double BossTrial(PlayerProfile p, List<FormationEntry> team)
+    {
+        var probe = new PlayerProfile { Level = p.Level };
+        probe.WorldBoss.Season = p.WorldBoss.Season == "" ? "2026-10" : p.WorldBoss.Season;
+        foreach (var e in team)
+        {
+            var h = p.Heroes[e.HeroId];
+            probe.Heroes[e.HeroId] = new HeroState { HeroId = h.HeroId, Level = Math.Max(h.Level, p.Level), Stars = h.Stars, Equipment = new Dictionary<string, int>(h.Equipment) };
+        }
+        double sum = 0;
+        for (ulong seed = 1; seed <= 3; seed++)
+        {
+            var b = new Battle(DemoMeta.BuildSetup(WorldBoss.StageId, seed * 7777, probe, team)!);
+            var rec = new ReplayRecorder(b);
+            var bot = new SmartBot("trial", null);
+            for (int i = 0; i < 60 && b.Result == BattleResult.Ongoing; i++) bot.PlayTurn(rec);
+            sum += WorldBoss.Score(b);
+        }
+        return sum / 3;
+    }
+
+    public static List<FormationEntry> Place(List<string> ids)
+    {
+        Role R(string id) => HeroRoster.Find(id)!.Role;
+        var front = new Queue<(int, int)>(new[] { (2, 3), (1, 3), (3, 3) });
+        var back = new Queue<(int, int)>(new[] { (2, 4), (1, 4), (3, 4) });
+        var team = new List<FormationEntry>();
+        foreach (var id in ids.OrderBy(x => R(x) == Role.Tank ? 0 : R(x) == Role.Warrior ? 1 : 2))
+        {
+            bool melee = R(id) == Role.Tank || R(id) == Role.Warrior;
+            var q = melee && front.Count > 0 ? front : back.Count > 0 ? back : front;
+            var (l, r) = q.Dequeue();
+            team.Add(new FormationEntry(id, l, r));
+        }
+        return team;
+    }
+
     private async Task Growth()
     {
         var p = await P();
         var team = ChooseTeam(p);
-        var ids = team.Select(t => t.HeroId).ToList();
+        // 主線隊優先，Boss 隊多出來的成員其次（資源先給主線隊）
+        var ids = team.Select(t => t.HeroId).Concat(BossTeam(p).Select(t => t.HeroId)).Distinct().ToList();
         if (ids.Count == 0) return;
 
         // 將魂商店：先換隊伍成員的重複份，再換經驗 / 金幣
@@ -311,7 +449,7 @@ public sealed class PlayerSim
         p = await P();
         foreach (var slot in Equipment.Slots)
         {
-            int min = ids.Min(i => p.Heroes[i].Equipment.TryGetValue(slot.ToString(), out int t) ? t : 0);
+            int min = ids.Min(i => p.Heroes.TryGetValue(i, out var h) && h.Equipment.TryGetValue(slot.ToString(), out int t) ? t : 0);
             for (int t = 1; t < min; t++)
             {
                 int n = Equipment.Count(p, slot, t);
@@ -345,7 +483,7 @@ public sealed class PlayerSim
     private async Task<(bool Ok, bool Won, int Turns, ApiResult R, Battle B)> Fight(string stageId, bool manual, string kind)
     {
         var p = await P();
-        var team = ChooseTeam(p);
+        var team = kind == "boss" ? BossTeam(p) : kind == "story" ? StoryTeam(p, stageId) : ChooseTeam(p);
         var start = await _g.StartStage(Id, stageId, team);
         if (!start.Ok) return (false, false, 0, start, null);
         ulong seed = (ulong)(long)start.Data!.GetType().GetProperty("seed")!.GetValue(start.Data)!;
@@ -364,6 +502,7 @@ public sealed class PlayerSim
         double secs = manual ? 20 + turns * 30 : 10 + turns * 8;
         _today.Seconds += secs; _today.BattleSeconds += secs; _today.Battles++;
         if (!won) _today.Losses++;
+        if (!won && kind == "story") _today.StoryLosses++;
         Meta.RecordBattle(kind, stageId, team, battle, won);
 
         // 反事實：同一場用「一般自動戰鬥」與「只出基本牌」會不會贏（衡量操作 / 卡牌選擇是否重要）
@@ -380,6 +519,11 @@ public sealed class PlayerSim
         return (fin.Ok, won, turns, fin, battle);
     }
 
+    /// <summary>上次在這關輸掉時的戰力、帳號等級與遊戲日（用來判斷「有沒有變強再回來」）。</summary>
+    private readonly Dictionary<string, (double Pow, int Level, int Day)> _lostAt = new();
+    /// <summary>重打門檻：戰力至少提升這麼多，或帳號升級，才回來挑戰（企劃指正：打不贏要先刷裝備、升級，不死嗑）。</summary>
+    public const double RetryPowerGain = 0.05;
+
     private async Task PushStory()
     {
         for (int guard = 0; guard < 80; guard++)
@@ -390,6 +534,14 @@ public sealed class PlayerSim
             var (c, l) = Campaign.Frontier(p.ClearedStages);
             string sid = Campaign.StageId(c, l);
             _attemptsPerStage.TryGetValue(sid, out int tries);
+            if (_lostAt.TryGetValue(sid, out var lost))
+            {
+                double powNow = TeamPower(p, ChooseTeam(p));
+                bool stronger = powNow >= lost.Pow * (1 + RetryPowerGain) || p.Level > lost.Level;
+                // 已經沒有東西可養時，真人也只能隔天再碰碰運氣：每天最多再試一次
+                bool nextDay = _today.Day > lost.Day;
+                if (!stronger && !nextDay) return;
+            }
             // 劇情：第一次進關播放戰前對白，首通後播放戰後對白；每句約 3 秒
             if (_seenStory.Add(sid))
             {
@@ -403,6 +555,7 @@ public sealed class PlayerSim
             _attemptsPerStage[sid] = tries + 1;
             if (won)
             {
+                _lostAt.Remove(sid);
                 double s = StoryLines(sid, true) * 3;
                 _today.Seconds += s; _today.StorySeconds += s;
                 _today.NewClears++;
@@ -410,14 +563,10 @@ public sealed class PlayerSim
                 await Growth();
                 continue;
             }
-            // 輸了：養成一下再試一次；再輸就這個時段不推主線
+            // 輸了：記下當時的戰力，先去刷副本、升級，變強了再回來；輸 2 次以上就換隊伍試試
+            _lostAt[sid] = (powBefore, p.Level, _today.Day);
+            if (tries + 1 >= 2 && (tries + 1) % 2 == 0) TryOtherTeams(await P(), sid);
             await Growth();
-            var p2 = await P();
-            double pow2 = TeamPower(p2, ChooseTeam(p2));
-            var (ok2, won2, _, _, _) = await Fight(sid, true, "story");
-            if (ok2) Meta.RecordAttempt(sid, pow2, won2);
-            _attemptsPerStage[sid] = tries + 2;
-            if (ok2 && won2) { _today.NewClears++; _events.Add($"D{_today.Day} {sid} 第 {tries + 2} 次才過"); await Growth(); continue; }
             return;
         }
     }
@@ -531,9 +680,25 @@ public sealed class PlayerSim
 
     public string DailyCsv()
     {
-        var sb = new StringBuilder("day,minutes,battleMin,storyMin,bossMin,menuMin,battles,losses,newClears,sweeps,staminaSpent,staminaWasted,level,frontier,power,yuanbao,pulls,ur,bossBest,spend,bossToday,team\n");
+        var sb = new StringBuilder("day,minutes,battleMin,storyMin,bossMin,menuMin,battles,losses,storyLosses,newClears,sweeps,staminaSpent,staminaWasted,level,frontier,power,yuanbao,pulls,ur,bossBest,spend,bossToday,team\n");
         foreach (var d in _days)
-            sb.AppendLine($"{d.Day},{d.Seconds / 60:0.0},{d.BattleSeconds / 60:0.0},{d.StorySeconds / 60:0.0},{d.BossSeconds / 60:0.0},{d.MenuSeconds / 60:0.0},{d.Battles},{d.Losses},{d.NewClears},{d.Sweeps},{d.StaminaSpent},{d.StaminaWasted},{d.Level},{d.Frontier},{d.Power:0},{d.Yuanbao},{d.PullsTotal},{d.UrOwned},{d.BossBest},{d.SpendCny},{d.BossToday},{d.Team}");
+            sb.AppendLine($"{d.Day},{d.Seconds / 60:0.0},{d.BattleSeconds / 60:0.0},{d.StorySeconds / 60:0.0},{d.BossSeconds / 60:0.0},{d.MenuSeconds / 60:0.0},{d.Battles},{d.Losses},{d.StoryLosses},{d.NewClears},{d.Sweeps},{d.StaminaSpent},{d.StaminaWasted},{d.Level},{d.Frontier},{d.Power:0},{d.Yuanbao},{d.PullsTotal},{d.UrOwned},{d.BossBest},{d.SpendCny},{d.BossToday},{d.Team}");
+        return sb.ToString();
+    }
+
+    /// <summary>給 KPI 彙總用的單輪摘要（key=value）。</summary>
+    public async Task<string> Summary()
+    {
+        var p = await P();
+        var sb = new StringBuilder();
+        sb.AppendLine($"persona={_pe.Label}");
+        sb.AppendLine($"spend={_spendTotal}");
+        sb.AppendLine($"settleSeason={p.WorldBoss.LastSeason}");
+        sb.AppendLine($"settleRank={p.WorldBoss.LastRank}");
+        sb.AppendLine($"settleTotal={p.WorldBoss.LastTotal}");
+        sb.AppendLine($"settleReward={p.WorldBoss.LastReward}");
+        sb.AppendLine("attempts=" + string.Join(";", _attemptsPerStage.Where(kv => !kv.Key.Contains('@') && !kv.Key.StartsWith("res_")).Select(kv => $"{kv.Key}:{kv.Value}")));
+        sb.AppendLine("bossTeam=" + string.Join("+", (_bossTeam ?? ChooseTeam(p)).Select(e => Short(e.HeroId))));
         return sb.ToString();
     }
 
@@ -569,7 +734,10 @@ public sealed class PlayerSim
 public sealed class SmartBot
 {
     public bool BasicOnly;
+    /// <summary>非 null 時隨機打亂出牌順序與目標（專家機器人用來產生不同候選打法）。</summary>
+    public Random Random;
     private readonly string _kind;
+    private bool Tracked => _kind == "story" || _kind == "boss" || _kind == "dungeon";
     public SmartBot(string kind, List<string> team) { _kind = kind; }
 
     public void PlayTurn(ReplayRecorder rec)
@@ -587,7 +755,7 @@ public sealed class SmartBot
             if (move != null && adv != null) { rec.Play(move, AutoPlayer.ChooseMove(b, adv), adv); continue; }
             break;
         }
-        if (_kind != "basic" && b.Result == BattleResult.Ongoing)
+        if (Tracked && b.Result == BattleResult.Ongoing)
         {
             // 回合末仍「可出卻沒出」的非移動牌：代表費用 / 時機限制造成取捨
             int leftover = b.Hand.Count(c => c.Def.Target != TargetRule.MoveDest && !c.Def.Basic);
@@ -596,12 +764,20 @@ public sealed class SmartBot
         rec.EndTurn();
     }
 
+    private void RecordCard(CardInstance c) { if (Tracked) Meta.RecordCard(_kind, c); }
+
     private bool PlayOne(ReplayRecorder rec)
     {
         var b = rec.Battle;
         var options = b.Hand.Where(c => c.Def.Target != TargetRule.MoveDest && b.CanPlay(c) == PlayResult.Ok)
             .Where(c => !BasicOnly || c.Def.Basic)
             .OrderByDescending(c => c.Def.Basic ? 1 : 2).ToList();
+        if (Random != null)
+        {
+            options = options.OrderBy(_ => Random.Next()).ToList();
+            // 偶爾提早結束回合、把牌留到下回合（存費 / 等時機）
+            if (options.Count > 0 && Random.NextDouble() < 0.15) return false;
+        }
         foreach (var c in options)
         {
             var owner = c.Owner!;
@@ -611,7 +787,7 @@ public sealed class SmartBot
                 var hurt = b.AliveUnits(Side.Player).Any(u => u.Hp < u.MaxHp * 0.75);
                 if (!hurt && effect != null && effect.Type == EffectType.Heal) continue;
                 if (b.ResolveTargets(owner, c.Def) == null) continue;
-                if (rec.Play(c) == PlayResult.Ok) { Meta.RecordCard(_kind, c); return true; }
+                if (rec.Play(c) == PlayResult.Ok) { RecordCard(c); return true; }
                 continue;
             }
             if (c.Def.Target == TargetRule.Enemy)
@@ -622,9 +798,10 @@ public sealed class SmartBot
                 bool debuff = c.Def.Effects.Any(e => e.Status == StatusType.ArmorBreak || e.Status == StatusType.Burn);
                 if (debuff) pick = inRange.OrderByDescending(e => e.EffectiveDef).ThenByDescending(e => e.Hp).First();
                 else pick = inRange.OrderByDescending(e => e.IsObjective ? 2 : e.Stats.Range > 1 && e.Stats.Hp < 350 ? 1 : 0).ThenBy(e => e.Hp).First();
+                if (Random != null && Random.NextDouble() < 0.5) pick = inRange[Random.Next(inRange.Count)];
                 if (c.Def.Shape == Shape.Row3)
                     pick = inRange.OrderByDescending(e => b.AliveUnits(Side.Enemy).Count(o => o.Pos.Row == e.Pos.Row && Math.Abs(o.Pos.Lane - e.Pos.Lane) <= 1)).First();
-                if (rec.Play(c, pick.Pos) == PlayResult.Ok) { Meta.RecordCard(_kind, c); return true; }
+                if (rec.Play(c, pick.Pos) == PlayResult.Ok) { RecordCard(c); return true; }
                 continue;
             }
             if (c.Def.Target == TargetRule.AllEnemies && effect != null && effect.Status == StatusType.Taunt)
@@ -633,7 +810,7 @@ public sealed class SmartBot
                 if (!foes.Any(e => !e.Has(StatusType.Taunt) || e.Charging)) continue;
             }
             if (c.Def.Target == TargetRule.AllAllies && b.AliveUnits(Side.Enemy).Count == 0) continue;
-            if (rec.Play(c) == PlayResult.Ok) { Meta.RecordCard(_kind, c); return true; }
+            if (rec.Play(c) == PlayResult.Ok) { RecordCard(c); return true; }
         }
         return false;
     }
@@ -707,6 +884,14 @@ public static class Meta
         var c = Counter.GetValueOrDefault(ch);
         Counter[ch] = (c.n + 1, c.smart + (smart ? 1 : 0), c.auto + (auto ? 1 : 0), c.basic + (basic ? 1 : 0));
         CfList.Add((stage, smart, auto, basic));
+    }
+
+    public static string Summary()
+    {
+        int names = CardPlays.Keys.Select(k => k.Split('|')[3]).Distinct().Count();
+        int total = CardPlays.Values.Sum();
+        int special = CardPlays.Where(k => k.Key.Contains("|特殊|")).Sum(k => k.Value);
+        return $"distinctCards={names}\nspecialShare={100.0 * special / Math.Max(1, total):0}\nretryGain={100 * _gainSum / Math.Max(1, _gainN):0.0}\nwinsAfterLoss={_winsAfterLoss}\nwinsSamePower={_winSamePow}\n";
     }
 
     public static string Report()
