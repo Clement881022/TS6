@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-09",
+  "tool": "built-in imagegen",
+  "status": "role-design-stage-verified-not-commercial-final",
+  "textureFolder": "client/Assets/Resources/ProductionCharacters/Textures",
+  "records": [
+    {
+      "id": "infantry_face",
+      "source": "client/Assets/Arts/Models/Face/Face_10001/Face_10001_001_T.png",
+      "output": [
+        "r_shield_face.png",
+        "r_archer_face.png"
+      ],
+      "prompt": "Edit this EXACT face UV atlas for a premium chibi Chinese young male infantry/archer. Preserve EVERY UV island's exact outline, position, size, layout, ears, mouth, brow landmarks and white eye opening shapes. Main face paint should be healthy warm peach-tan skin, softly rounded friendly cheeks with gentle broad gradients, a small clean nose, confident dark charcoal eyebrows in the original eyebrow positions, mild cheerful expression, no realism, no wrinkles, no noise or pores. The small dark oval at lower center is an EYE IRIS, NOT hair or a logo: replace it with a clean rich warm brown anime iris, round black pupil, subtly shaded outer rim, one bright small white catchlight upper left. Fill precisely the existing oval. Keep white eye slots empty because eyeball geometry uses that lower oval. Side hair patches charcoal black. No character illustration, no text, no new islands, no layout alteration, flat fully opaque square production texture atlas."
+    },
+    {
+      "id": "healer_hair",
+      "source": "client/Assets/Arts/Models/Hair/Hair_00014/Hair_00014_001_T.tga",
+      "output": [
+        "r_healer_hair.png"
+      ],
+      "prompt": "Edit this exact UV albedo atlas. Keep every UV island's exact position, contour, scale and layout. All hair strand islands must change from purple-gray into rich dark chestnut brown softly sculpted flowing locks with warm broad caramel highlights and dark silky shadows; clean modern premium chibi character material, no individual noisy hair lines. The golden orange crown island upper right must remain unchanged. Keep gray padding unchanged. Do not draw a hairstyle or a character, no new islands, no text, no layout alteration, fully opaque flat square game UV atlas."
+    },
+    {
+      "id": "shield_body",
+      "source": "client/Assets/Resources/ProductionCharacters/Textures/r_shield_body.png (previous stage)",
+      "output": [
+        "r_shield_body.png"
+      ],
+      "prompt": "Edit this exact body UV atlas to match a chibi gold-and-dark-bronze shield warrior with a red cape. ABSOLUTELY preserve every UV island shape, position, scale, boundaries and skin region. The shoulder armor upper left and torso armor upper right should become dark burnished bronze and charcoal gunmetal plates with elegant crisp warm golden trim, rivets and cloud scroll engraving; retain existing island contour and ornament placement. The metal lamellar skirt plates lower right must become dark bronze-gray with polished gold borders. All fabric, including the large cape island left, should remain rich crimson silk. Skin at lower left and neck must remain unchanged warm peach tan. Keep leather belt deep brown. Refined broad material gradients, clean precise edges, premium bright gold, no noise, no layout redesign, no full character drawing, no text. Fully opaque flat square UV albedo atlas."
+    },
+    {
+      "id": "healer_face",
+      "source": "client/Assets/Arts/Models/Face/Face_00014/Face_00014_001_T.png",
+      "output": [
+        "r_healer_face.png"
+      ],
+      "prompt": "Edit this exact chibi healer female face UV albedo atlas. Preserve every UV island's exact contour, position, scale and geometry landmarks. This is a game texture, not a drawing of a character. Keep the main large face skin island in the same location with softly shaded warm healthy peach complexion, subtle peach blush, tiny gentle friendly closed smile at its existing mouth position. Remove the thin vertical blush streaks and tiny white teardrop-like cheek marks. The oval eye texture island at BOTTOM LEFT must change from unnatural red to warm dark chestnut brown iris, with a clearly defined dark brown circular pupil toward the upper center in its existing position, soft golden amber lower rim, two modest clean white reflections, no red or pink, no hearts, no busy curls. Preserve oval eye island shape and size exactly. Bottom middle brow and lash islands retain exact silhouettes, dark brown lashes and softer gently curved brown brow. Maintain the ear and pale white eye socket island at their exact positions. Premium clean sunny chibi strategy game surface, smooth broad shading, no pores, no grain, no added islands, no text. Entire square opaque atlas."
+    },
+    {
+      "id": "helmet",
+      "source": "new custom geometry UV",
+      "output": [
+        "equipment_helmet.png"
+      ],
+      "prompt": "Create a flat square production albedo texture for a stylized chibi Three Kingdoms bronze helmet, NOT a picture of the helmet. The whole square is one rectangular equirectangular UV island, u horizontal goes around the helmet, v vertical from lower rim at image bottom to the crown at top. Rich warm burnished dark bronze, broad smooth stylized metallic gradients, restrained gold cloud-scroll engraving repeating across the lower third, thin inset gold perimeter line near bottom, tasteful hand painted sculptural highlights, no grain, no noise, no realism, premium bright chibi strategy game finish. Upper half quieter broad warm bronze panel, bottom third small elegant gold cloud-scrolls. Edges horizontal seamlessly meet. Entire image filled with surface, no background, no objects, no text, no frame."
+    },
+    {
+      "id": "cloth",
+      "source": "new custom geometry UV",
+      "output": [
+        "equipment_blue_silk.png"
+      ],
+      "prompt": "Create a flat square game albedo texture for a chibi Chinese warrior's royal cobalt blue silk headscarf. A single rectangular UV island fills the entire canvas; horizontal u runs around the scarf, vertical v goes from rim at image bottom to crown at image top. Hand painted premium stylized game fabric, several large soft vertical gathered folds, deep cobalt folds and clear bright azure raised folds, restrained fine silk weave, elegant subtle repeated darker blue cloud motifs, warm gold embroidered narrow line along the very bottom 4 percent. No objects, no head, no perspective, no text, no frame. Entire canvas opaque filled blue cloth surface, no white background, polished sunny colorful chibi strategy aesthetic."
+    },
+    {
+      "id": "hair",
+      "source": "new custom geometry UV",
+      "output": [
+        "equipment_hair.png"
+      ],
+      "prompt": "Create a flat square albedo texture for a sculpted 3D chibi character brown hair lock. One rectangular UV strip fills the entire canvas: horizontal u wraps around each lock circumference, vertical v goes from root at bottom to pointed tip at top. Dark warm chestnut brown with a broad soft caramel sheen in the center, smoothly shaded dimensional rounded strand mass, a few controlled fine painted long vertical brown hair strand lines. Premium contemporary stylized game art, clean broad glossy volume, no noise, no pores, no objects, no character, no text, no frame. Whole square completely filled with the brown hair material. Horizontal edges same dark brown, lower and upper edges neutral brown for repeating application on sculpted hair locks."
+    },
+    {
+      "id": "shield",
+      "source": "new custom geometry UV",
+      "output": [
+        "equipment_shield.png"
+      ],
+      "prompt": "Create a square flat production UV albedo texture, no perspective, for a chibi Three Kingdoms warrior kite shield. Entire canvas is deep vermilion lacquer, softly shaded premium stylized hand painted material. A single ornate sculptural gold Chinese guardian lion face emblem, friendly and brave with curled mane, at the EXACT CENTER of the square, fitting inside central 22 percent of square width and height. Around emblem only very subtle red cloud motifs; no border because shield rim is separate geometry. No text, no shield silhouette, no background, no frame, no objects. Gold lion should look like richly hand painted golden embossed relief with bright gold highlights and shaded bronze recesses, clear readable at small game scale. Full opaque square lacquer surface ready for UV."
+    },
+    {
+      "id": "gourd",
+      "source": "new custom geometry UV",
+      "output": [
+        "equipment_gourd.png"
+      ],
+      "prompt": "Create a flat square rectangular game UV albedo texture for a premium chibi Chinese healer's jade-green medicine gourd. Entire square fills one equirectangular surface island, horizontal u wraps around, vertical v goes bottom to neck top. Emerald green glazed jade with gentle broad soft vertical specular sheen, quiet elegant gold cloud scroll motifs across lower half at 25 percent from bottom, tiny elegant botanical leaf engraving. Wide smooth stylized painted material, rich jade gradient with bright softer center and darker edges, clean glossy ceramic shading, no noise. No gourd silhouette, no text, no background, no perspective, no frame, no objects. The entire square is filled opaque green jade material."
+    }
+  ],
+  "rejected": [
+    {
+      "id": "infantry_cap_atlas",
+      "prompt": "Edit this exact UV atlas for a premium chibi blue headscarf and dark hair. Strictly preserve each existing UV island's layout, position, boundaries and dimensions. All golden/olive cap fabric must become rich royal cobalt blue silk with clean broad folded gradients, fine restrained fabric texture. Replace the existing white shaggy fur trim WITH SMOOTH GOLD EMBROIDERED BORDER at the exact same positions and silhouette, no fuzzy hairs. The two brown triangular hair islands at left must become dark chestnut nearly black polished hair locks with broad soft directional highlights. Keep all topology and original padding positions. Do not draw a complete head or character, no text, no new islands, no redesign of atlas arrangement. Entirely opaque flat square texture atlas. Crisp premium stylized game art, no grain.",
+      "reason": "Did not preserve complete cap UV atlas. Not included in project. Short hair replaced with independent sculpted geometry."
+    }
+  ]
+}

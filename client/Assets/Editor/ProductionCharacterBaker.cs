@@ -39,6 +39,14 @@ namespace SanGuo.Client.Editor
             Finish();
         }
 
+        [MenuItem("SanGuo/重製鄉勇造型")]
+        public static void BakeInfantryArt()
+        {
+            Prepare();
+            Bake("r_shield","guard");Bake("r_archer","archer");Bake("r_healer","caster");
+            Finish();
+        }
+
         private static void Prepare()
         {
             Directory.CreateDirectory(Output + "/Meshes");
@@ -60,6 +68,7 @@ namespace SanGuo.Client.Editor
             try
             {
                 root.name = id;
+                ProductionInfantryDesign.PrepareParts(root,id);
                 int triangles = 0;
                 foreach (var renderer in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
                 {
@@ -93,8 +102,10 @@ namespace SanGuo.Client.Editor
                 // 待機檔名不含 FightStandby 時，替換會原樣回傳待機檔，攻擊就被換成待機動作。
                 var attack=!clipPath.Contains("FightStandby") ? null : AssetDatabase.LoadAllAssetsAtPath(clipPath.Replace("FightStandby",motion)).OfType<AnimationClip>().FirstOrDefault(c=>!c.name.StartsWith("__preview__"));
                 if(attack != null) clips.Attack=attack;
+                if(id == "r_shield" || id == "r_archer" || id == "r_healer") clips.Idle.SampleAnimation(root,0);
                 if(role == "archer") { ProductionCharacterProps.Bow(root,Output);root.AddComponent<ArcherPoseRig>(); }
                 if(role == "guard") ProductionCharacterProps.Shield(root,Output);
+                ProductionInfantryDesign.AddDesign(root,id,Output);
                 if(id == "guanyu")
                     foreach(var t in root.GetComponentsInChildren<Transform>())
                         if(t.name == "Weapon_00029") t.localRotation = Quaternion.Euler(0,180,0);

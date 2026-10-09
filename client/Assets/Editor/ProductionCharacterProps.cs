@@ -49,7 +49,7 @@ namespace SanGuo.Client.Editor
             var hand=Bone(root,"Bip001 L Hand");if(hand == null) throw new InvalidOperationException("Guard has no left hand.");
             var grip=new GameObject("PropShield");grip.transform.SetParent(hand,false);
             grip.transform.localRotation=Quaternion.Euler(90,0,90)*Quaternion.Euler(0,180,0);
-            grip.transform.localPosition=grip.transform.localRotation*Vector3.forward*.09f;
+            grip.transform.localPosition=grip.transform.localRotation*Vector3.forward*.15f;
             var contour=new[]{new Vector2(-.19f,.27f),new Vector2(-.13f,.31f),new Vector2(.13f,.31f),new Vector2(.19f,.27f),new Vector2(.22f,-.08f),new Vector2(.16f,-.22f),new Vector2(0,-.33f),new Vector2(-.16f,-.22f),new Vector2(-.22f,-.08f)};
             Piece(grip.transform,"PropShieldRim",Plate(contour,.045f),new Color(.87f,.61f,.20f),output);
             var inner=contour.Select(p=>p*.88f).ToArray();
@@ -64,12 +64,12 @@ namespace SanGuo.Client.Editor
                 var p=contour[i]*.88f;
                 Piece(grip.transform,"PropShieldRivet"+i,Tube(new[]{new Vector3(p.x,p.y,.045f),new Vector3(p.x,p.y,.07f)},.012f,12),new Color(.95f,.69f,.25f),output);
             }
-            Piece(grip.transform,"PropShieldBoss",Tube(new[]{new Vector3(0,0,.035f),new Vector3(0,0,.090f)},.045f,20),new Color(.87f,.61f,.20f),output);
+            Piece(grip.transform,"PropShieldBoss",Tube(new[]{new Vector3(0,0,.035f),new Vector3(0,0,.050f)},.010f,20),new Color(.87f,.61f,.20f),output);
         }
 
         private static Transform? Bone(GameObject root,string name)=>root.GetComponentsInChildren<Transform>().FirstOrDefault(t=>t.name == name);
 
-        private static Transform Piece(Transform parent,string name,Mesh mesh,Color color,string output)
+        public static Transform Piece(Transform parent,string name,Mesh mesh,Color color,string output)
         {
             string meshPath=output+"/Meshes/"+name+".asset";
             var existing=AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
@@ -83,14 +83,17 @@ namespace SanGuo.Client.Editor
                 AssetDatabase.CreateAsset(material,materialPath);
             }
             // 既有材質也要套用目前顏色，否則改色後重新烘焙仍沿用舊色。
-            material.SetColor("_BaseColor",color);material.SetFloat("_MetalStrength",.75f);
+            material.SetColor("_BaseColor",color);material.SetFloat("_MetalStrength",name.Contains("Cloth") || name.Contains("Hair") || name.Contains("Plume") || name.Contains("Tassel") || name.Contains("Leather") ? .12f:.75f);
+            string? surface = name=="ShieldHelmetDome" ? "equipment_helmet" : name.Contains("Cloth") ? "equipment_blue_silk" : name.Contains("HairCap") || name.Contains("HairLock") || name.Contains("HairBackLock") || name.Contains("HairTemple") ? "equipment_hair" : name=="PropShieldFace" ? "equipment_shield" : name=="HealerMedicineGourd" ? "equipment_gourd" : null;
+            var painted=surface==null?null:AssetDatabase.LoadAssetAtPath<Texture2D>(output+"/Textures/"+surface+".png");
+            if(painted!=null){material.SetTexture("_BaseMap",painted);material.SetColor("_BaseColor",Color.white);}
             EditorUtility.SetDirty(material);
             var go=new GameObject(name);go.transform.SetParent(parent,false);
             go.AddComponent<MeshFilter>().sharedMesh=existing;go.AddComponent<MeshRenderer>().sharedMaterial=material;
             return go.transform;
         }
 
-        private static Mesh Plate(Vector2[] contour,float thickness)
+        public static Mesh Plate(Vector2[] contour,float thickness)
         {
             int n=contour.Length;var v=new List<Vector3>();var uv=new List<Vector2>();var t=new List<int>();
             for(int side=0;side<2;side++)
@@ -104,7 +107,7 @@ namespace SanGuo.Client.Editor
             var mesh=new Mesh();mesh.SetVertices(v);mesh.SetUVs(0,uv);mesh.SetTriangles(t,0);mesh.RecalculateNormals();mesh.RecalculateTangents();return mesh;
         }
 
-        private static Mesh Tube(IReadOnlyList<Vector3> points,float radius,int sides)
+        public static Mesh Tube(IReadOnlyList<Vector3> points,float radius,int sides)
         {
             var v=new List<Vector3>();var uv=new List<Vector2>();var t=new List<int>();
             for(int i=0;i<points.Count;i++)
