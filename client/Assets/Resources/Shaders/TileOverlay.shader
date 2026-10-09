@@ -39,7 +39,7 @@ Shader "SanGuo/TileOverlay"
                 float e = min(d.x, d.y);
                 float edge = 1.0 - smoothstep(_Border * 0.55, _Border, e);
                 fixed4 c = _Color;
-                c.a = lerp(_Color.a, saturate(_Color.a + 0.55), edge);
+                c.a = lerp(_Color.a, saturate(_Color.a * 1.8), edge);
                 return c;
             }
             ENDCG

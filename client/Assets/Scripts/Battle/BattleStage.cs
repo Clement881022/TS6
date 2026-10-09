@@ -41,6 +41,7 @@ namespace SanGuo.Client
         {
             public GameObject Anchor = null!;
             public CharacterView View = null!;
+            public Transform? LeftFoot, RightFoot;
             public bool Placed;
             public Vector3 Facing;
         }
@@ -173,7 +174,7 @@ namespace SanGuo.Client
                     tile.transform.SetParent(_tileRoot.transform, false);
                     var pos = new Position(lane, row);
                     var center = TileWorld(pos);
-                    tile.transform.position = center + Vector3.down * (TileTop * 0.5f);
+                    tile.transform.position = center + Vector3.up * (0.006f - TileTop * 0.5f);
                     tile.transform.localScale = new Vector3(TilePitchX * 0.94f, TileTop, TilePitch * 0.92f);
 
                     var tag = tile.AddComponent<TileTag>();
@@ -181,7 +182,7 @@ namespace SanGuo.Client
                     tag.Renderer = tile.GetComponent<Renderer>();
                     if (TileShader != null) tag.Renderer.sharedMaterial = new Material(TileShader);
                     // 共用棋盤沒有敵我領土：所有格子都是中立色（只有技能預覽才會上色）。
-                    tag.BaseColor = new Color(0.82f, 0.78f, 0.60f, 0.06f);
+                    tag.BaseColor = new Color(0.82f, 0.78f, 0.60f, 0f);
                     tag.Renderer.material.SetFloat("_Border", 0.024f);
                     tag.Renderer.material.color = tag.BaseColor;
                     _tiles[(lane, row)] = tag;
@@ -194,6 +195,15 @@ namespace SanGuo.Client
         private void BuildFloor(Transform parent)
         {
             int lanes = _battle!.Setup.Lanes, rows = _battle.Setup.Rows;
+            if(lanes==5 && rows==5)
+            {
+                var craftedBoard=Resources.Load<GameObject>("ProductionBoard/CourtyardBoard_5x5");
+                if(craftedBoard!=null)
+                {
+                    Instantiate(craftedBoard,parent,false);
+                    return;
+                }
+            }
             float w = rows * TilePitchX, d = lanes * TilePitch;
             var jade = new Color(.17f, .28f, .27f);
             var bronze = new Color(.72f, .51f, .23f);
@@ -302,6 +312,12 @@ namespace SanGuo.Client
         public Vector2? UnitFootPanel(Unit unit)
         {
             if (!_views.TryGetValue(unit.Id, out var uv) || !uv.Anchor.activeSelf) return null;
+            if(uv.LeftFoot!=null && uv.RightFoot!=null)
+            {
+                var left=WorldToPanel(uv.LeftFoot.position+Vector3.down*.12f);
+                var right=WorldToPanel(uv.RightFoot.position+Vector3.down*.12f);
+                return new Vector2((left.x+right.x)*.5f,Mathf.Max(left.y,right.y));
+            }
             return WorldToPanel(uv.Anchor.transform.position + Vector3.up * 0.05f);
         }
 
@@ -325,6 +341,17 @@ namespace SanGuo.Client
             if (tag == null) return false;
             pos = tag.Pos;
             return true;
+        }
+
+        public void DebugValidateGridPicking()
+        {
+            foreach(var tile in _tiles.Values)
+            {
+                var projected=WorldToPanel(TileWorld(tile.Pos));
+                if(!TryPick(projected,out var picked) || picked.Lane!=tile.Pos.Lane || picked.Row!=tile.Pos.Row)
+                    throw new InvalidOperationException("Battle grid raycast does not match its rendered center: "+tile.Pos);
+            }
+            Debug.Log("[shot] Battle grid center raycasts verified: "+_tiles.Count);
         }
 
         // ------------------------------------------------------------ 模型
@@ -358,6 +385,11 @@ namespace SanGuo.Client
                 View = view,
                 Facing = unit.Side == Side.Player ? new Vector3(-.65f, 0f, -.76f).normalized : new Vector3(-.90f, 0f, -.44f).normalized,
             };
+            foreach(var bone in model.GetComponentsInChildren<Transform>())
+            {
+                if(bone.name=="Bip001 L Foot")uv.LeftFoot=bone;
+                if(bone.name=="Bip001 R Foot")uv.RightFoot=bone;
+            }
             _views[unit.Id] = uv;
             return uv;
         }

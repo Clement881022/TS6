@@ -459,11 +459,22 @@
 .root .bl-d-hint { color: rgb(146, 218, 158); }
 .root .bl-d-warn { color: rgb(255, 160, 118); }
 .root .bl-end, .root .bl-end:hover { background-image: url("../ChibiSkin/gold.png"); -unity-slice-left: 100; -unity-slice-right: 100; -unity-slice-top: 60; -unity-slice-bottom: 60; -unity-slice-scale: 0.18px; background-color: rgb(205, 165, 78); color: rgb(52, 34, 15); }
-.root .tag-hero { padding: 3px; }
+.root .tag-hero { padding: 0; height: 9px; min-height: 9px; border-width: 0; background-color: rgba(0, 0, 0, 0); }
 .root .tag-hero .tag-face { width: 30px; height: 30px; margin-right: 4px; border-width: 1px; }
 .root .tag-hp-text, .root .tag-hero .tag-hp-text { white-space: nowrap; font-size: 15px; -unity-font-style: normal; -unity-text-align: middle-center; top: 0; bottom: 0; }
 .root .tag-hp-bg, .root .tag-hp-fill { height: 22px; border-radius: 3px; }
-.root .tag-enemy .tag-face { width: 30px; height: 30px; margin-right: 4px; border-width: 1px; }
+.root .tag-hero .tag-hp-bg { width: 72px; height: 9px; min-height: 9px; margin: 0; background-color: rgb(24, 47, 42); border-width: 1px; border-color: rgb(220, 199, 134); border-radius: 4px; }
+.root .tag-hero .tag-hp-fill { height: 7px; min-height: 7px; border-radius: 3px; }
+.root .tag-enemy { padding: 3px 5px; }
+.root .tag-enemy .tag-face { display: none; }
+.root .tag-enemy .tag-name { font-size: 16px; overflow: hidden; text-overflow: ellipsis; }
+.root .tag-enemy .tag-hp-bg, .root .tag-enemy .tag-hp-fill { height: 16px; }
+.root .tag-enemy .tag-hp-text { font-size: 13px; }
+.root .tag-enemy .tag-intent .icon { width: 18px; height: 18px; }
+.root .tag-enemy .tag-intent .chip-text { display: none; }
+.root .tag-enemy .tag-extra .chip-text { font-size: 12px; }
+.root .tag-enemy .tag-extra .icon { width: 16px; height: 16px; }
+.root .tag-anchor-line { position: absolute; width: 1px; background-color: rgba(231, 201, 135, 0.7); transform-origin: 50% 0%; }
 .root .tag-enemy .tag-role { display: none; }
 .root .tag-name { font-size: 18px; white-space: nowrap; }
 .root .tag-intent .ui-chip-text { font-size: 16px; white-space: nowrap; }

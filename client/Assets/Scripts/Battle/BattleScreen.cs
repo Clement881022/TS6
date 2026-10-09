@@ -30,11 +30,12 @@ namespace SanGuo.Client
             public Label HpText = null!;
             public VisualElement Extra = null!;
             public VisualElement Intent = null!;
+            public VisualElement? AnchorLine;
             public float LastLeft = float.NaN, LastTop = float.NaN;
         }
 
-        private const float TagWidth = 150f;
-        private const float HeroTagWidth = 124f;
+        private const float TagWidth = 112f;
+        private const float HeroTagWidth = 72f;
         private const float TagHeight = 74f;
 
         private readonly VisualElement _root;
@@ -258,9 +259,22 @@ namespace SanGuo.Client
                 mainRow.AddToClassList("tag-main");
                 mainRow.Add(tag.Face);
                 mainRow.Add(column);
-                tag.Root.Add(mainRow);
-                tag.Root.Add(tag.Extra);
-                tag.Root.Add(tag.Intent);
+                if(unit.Side==Side.Player)
+                {
+                    // Full numeric HP and statuses remain in the roster and unit details.
+                    // The world marker only communicates health and must leave the model clear.
+                    hpBg.Remove(tag.HpText);
+                    tag.Root.Add(hpBg);
+                }
+                else
+                {
+                    tag.AnchorLine=new VisualElement {pickingMode=PickingMode.Ignore};
+                    tag.AnchorLine.AddToClassList("tag-anchor-line");
+                    _tagLayer.Add(tag.AnchorLine);
+                    tag.Root.Add(mainRow);
+                    tag.Root.Add(tag.Extra);
+                    tag.Root.Add(tag.Intent);
+                }
                 _tagLayer.Add(tag.Root);
                 _tags[unit.Id] = tag;
             }
@@ -559,7 +573,12 @@ namespace SanGuo.Client
 
         private void OnFieldHover(PointerMoveEvent evt)
         {
-            var unit = PickUnit(evt.position);
+            ShowUnitInfoAt(evt.position);
+        }
+
+        private void ShowUnitInfoAt(Vector2 panelPoint)
+        {
+            var unit = PickUnit(panelPoint);
             if (unit == null) { HideUnitInfo(); return; }
             if (_hoverUnit != unit)
             {
@@ -567,7 +586,7 @@ namespace SanGuo.Client
                 RenderUnitInfo(unit);
             }
             // 面板跟著游標，靠近右 / 下緣時翻到另一側，避免被切掉。
-            var local = _field.WorldToLocal(evt.position);
+            var local = _field.WorldToLocal(panelPoint);
             float w = _field.layout.width, h = _field.layout.height;
             const float panelW = 330f, panelH = 400f;
             float left = local.x + 28f;
@@ -649,6 +668,13 @@ namespace SanGuo.Client
             if (unit.Side == Side.Enemy && unit.Charging) AddStatusRow("charge", "蓄力中");
             if (_unitInfo.childCount == before)
                 _unitInfo.Add(new Label("目前沒有增減益") { pickingMode = PickingMode.Ignore }.WithClass("ui-none"));
+            if(unit.Side==Side.Enemy)
+            {
+                _unitInfo.Add(new Label("行動預告") {pickingMode=PickingMode.Ignore}.WithClass("ui-sec"));
+                var intentRow=new VisualElement {pickingMode=PickingMode.Ignore};
+                intentRow.style.flexDirection=FlexDirection.Row;
+                FillIntent(intentRow,unit);_unitInfo.Add(intentRow);
+            }
         }
 
         /// <summary>懸停面板的一格屬性；name 是 stat_* 圖示名，或純文字（閃避 / 暴擊等沒有圖示的屬性）。</summary>
@@ -853,33 +879,74 @@ namespace SanGuo.Client
             float width = _tagLayer.resolvedStyle.width, height = _tagLayer.resolvedStyle.height;
             if (width < 1 || height < 1) return;
             var occupied = new List<Rect>();
+            foreach(var panel in new[]{_logBox,_detail,_unitInfo})
+            {
+                if(panel.resolvedStyle.display==DisplayStyle.None || panel.worldBound.width<1 || panel.worldBound.height<1)continue;
+                var min=_tagLayer.WorldToLocal(panel.worldBound.min);
+                var max=_tagLayer.WorldToLocal(panel.worldBound.max);
+                occupied.Add(Rect.MinMaxRect(min.x-4,min.y-4,max.x+4,max.y+4));
+            }
+            var silhouettes = new List<Rect>();
+            foreach(var living in _battle.Units.Where(u=>u.Alive))
+            {
+                var headPoint=_stage.UnitHeadPanel(living);var footPoint=_stage.UnitFootPanel(living);
+                if(headPoint==null || footPoint==null)continue;
+                var head=_tagLayer.WorldToLocal(headPoint.Value);var foot=_tagLayer.WorldToLocal(footPoint.Value);
+                float bodyHeight=Mathf.Abs(foot.y-head.y);
+                float halfWidth=bodyHeight*.22f;
+                silhouettes.Add(Rect.MinMaxRect(Mathf.Min(head.x,foot.x)-halfWidth,
+                    Mathf.Min(head.y,foot.y),Mathf.Max(head.x,foot.x)+halfWidth,Mathf.Max(head.y,foot.y)));
+            }
             foreach (var unit in _battle.Units.OrderBy(u => u.Side == Side.Enemy ? 0 : 1))
             {
                 if (!_tags.TryGetValue(unit.Id, out var tag)) continue;
                 bool below = unit.Side == Side.Player;
                 var point = unit.Alive ? (below ? _stage.UnitFootPanel(unit) : _stage.UnitHeadPanel(unit)) : null;
-                if (point == null) { tag.Root.style.visibility = Visibility.Hidden; continue; }
+                if (point == null)
+                {
+                    tag.Root.style.visibility = Visibility.Hidden;
+                    if(tag.AnchorLine!=null)tag.AnchorLine.style.visibility=Visibility.Hidden;
+                    continue;
+                }
                 var anchor = _tagLayer.WorldToLocal(point.Value);
                 if (anchor.x < 0 || anchor.x > width || anchor.y < 0 || anchor.y > height)
-                { tag.Root.style.visibility = Visibility.Hidden; continue; }
+                {
+                    tag.Root.style.visibility = Visibility.Hidden;
+                    if(tag.AnchorLine!=null)tag.AnchorLine.style.visibility=Visibility.Hidden;
+                    continue;
+                }
                 float tagWidth = below ? HeroTagWidth : TagWidth;
                 float measuredHeight = tag.Root.resolvedStyle.height;
-                float tagHeight = float.IsNaN(measuredHeight) || measuredHeight < 1 ? (below ? 40f : 82f) : measuredHeight;
-                var desired = new Vector2(anchor.x - tagWidth * 0.5f, below ? anchor.y + 2f : anchor.y - tagHeight - 4f);
+                float tagHeight = float.IsNaN(measuredHeight) || measuredHeight < 1 ? (below ? 9f : 82f) : measuredHeight;
+                var desired = new Vector2(anchor.x - tagWidth * 0.5f, below ? anchor.y + 5f : anchor.y - tagHeight - 4f);
                 Rect placement = default;
                 bool found = false;
                 // Keep the complete HUD inside the field, including after zoom/pan.
                 // Search nearby free positions before allowing labels to overlap each other.
-                for (int ring = 0; ring < 5 && !found; ring++)
+                for (int ring = 0; ring < (below ? 2 : 3) && !found; ring++)
                     for (int direction = 0; direction < (ring == 0 ? 1 : 4) && !found; direction++)
                     {
-                        float dx = direction == 2 ? -ring * (tagWidth + 6) : direction == 3 ? ring * (tagWidth + 6) : 0;
+                        float dx = below ? 0 : direction == 2 ? -ring * (tagWidth + 6) : direction == 3 ? ring * (tagWidth + 6) : 0;
                         float dy = direction == 0 ? -ring * (tagHeight + 6) : direction == 1 ? ring * (tagHeight + 6) : 0;
                         placement = new Rect(Mathf.Clamp(desired.x + dx, 4, Mathf.Max(4, width - tagWidth - 4)),
                             Mathf.Clamp(desired.y + dy, 4, Mathf.Max(4, height - tagHeight - 4)), tagWidth, tagHeight);
-                        found = !occupied.Any(r => r.Overlaps(placement));
+                        // Never teleport a friend bar onto a neighbouring character.
+                        // Hide crowded world markers; complete information remains in the roster.
+                        found = !occupied.Any(r => r.Overlaps(placement)) && !silhouettes.Any(r=>r.Overlaps(placement));
                     }
                 tag.Root.style.visibility = found ? Visibility.Visible : Visibility.Hidden;
+                if(tag.AnchorLine!=null)
+                {
+                    tag.AnchorLine.style.visibility=found ? Visibility.Visible : Visibility.Hidden;
+                    if(found)
+                    {
+                        var start=new Vector2(Mathf.Clamp(anchor.x,placement.xMin,placement.xMax),Mathf.Clamp(anchor.y,placement.yMin,placement.yMax));
+                        var delta=anchor-start;
+                        tag.AnchorLine.style.left=start.x;tag.AnchorLine.style.top=start.y;
+                        tag.AnchorLine.style.height=delta.magnitude;
+                        tag.AnchorLine.style.rotate=new Rotate(new Angle(Mathf.Atan2(-delta.x,delta.y)*Mathf.Rad2Deg));
+                    }
+                }
                 if (!found) continue;
                 occupied.Add(placement);
                 if (Mathf.Abs(tag.LastLeft - placement.x) < 0.5f && Mathf.Abs(tag.LastTop - placement.y) < 0.5f) continue;
@@ -1484,6 +1551,17 @@ namespace SanGuo.Client
             if (enlarged) _stage.ZoomBy(10f);
         }
 
+        public void DebugReviewUnitDetails(bool enemy)
+        {
+            var unit=_battle.Units.FirstOrDefault(u=>u.Alive && (enemy ? u.Side==Side.Enemy : u.DefId=="r_healer"))
+                ?? _battle.Units.First(u=>u.Alive && u.Side==Side.Player);
+            var foot=_stage.UnitFootPanel(unit);var head=_stage.UnitHeadPanel(unit);
+            if(foot==null || head==null)throw new InvalidOperationException("Review unit is not rendered.");
+            ShowUnitInfoAt(new Vector2(foot.Value.x,(foot.Value.y+head.Value.y)*.5f));
+            if(_hoverUnit!=unit)throw new InvalidOperationException("Unit body hover picked the wrong character.");
+            Debug.Log("[shot] Unit body hover and details verified: "+unit.Name);
+        }
+
         public void DebugReviewScenario(int level)
         {
             _chapter = 0; _level = level; _seed = 12345; StartBattle(false);
@@ -1515,6 +1593,7 @@ namespace SanGuo.Client
 
         public void DebugCheckLayout()
         {
+            _stage.DebugValidateGridPicking();
             var visible = new List<Rect>();
             foreach (var tag in _tags.Values)
             {
@@ -1524,6 +1603,9 @@ namespace SanGuo.Client
                 if (bounds.xMin < field.xMin - 1 || bounds.xMax > field.xMax + 1 || bounds.yMin < field.yMin - 1 || bounds.yMax > field.yMax + 1)
                     throw new InvalidOperationException("Battle HUD escaped the field.");
                 if (visible.Any(r => r.Overlaps(bounds))) throw new InvalidOperationException("Battle HUD labels overlap.");
+                foreach(var panel in new[]{_logBox,_detail,_unitInfo})
+                    if(panel.resolvedStyle.display!=DisplayStyle.None && panel.worldBound.Overlaps(bounds))
+                        throw new InvalidOperationException("Battle HUD overlaps a visible information panel.");
                 visible.Add(bounds);
             }
             foreach (var tile in _handCards)

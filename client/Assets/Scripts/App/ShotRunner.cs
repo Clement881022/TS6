@@ -262,6 +262,11 @@ namespace SanGuo.Client
             yield return Wait(.5f); Shot(dir, "battle-crowded"); yield return Wait(.4f);
             battle.DebugReviewZoom(true);
             yield return Wait(.5f); Shot(dir, "battle-crowded-zoom"); yield return Wait(.4f);
+            battle.DebugReviewZoom(false);yield return Wait(.5f);
+            battle.DebugReviewUnitDetails(true);yield return Wait(.3f);
+            Shot(dir,"battle-enemy-details");yield return Wait(.4f);
+            battle.DebugReviewUnitDetails(false);yield return Wait(.3f);
+            Shot(dir,"battle-hero-details");yield return Wait(.4f);
             Application.Quit();
         }
 
