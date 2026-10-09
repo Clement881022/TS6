@@ -237,6 +237,9 @@ namespace SanGuo.Client
             float width=2*Mathf.Max(Mathf.Abs(minX-Texture.width*.5f),Mathf.Abs(maxX-Texture.width*.5f))/Texture.width;
             float height=(maxY-minY)/(float)Texture.height;
             distance*=Mathf.Max(width,height)/.72f;
+            // A long weapon sweeps farther than the first attack pose. Reserve
+            // room for its follow-through in the art preview camera.
+            if (_once && _clips?.MotionProfile == "polearm") distance*=1.55f;
             _camera.transform.position=focus+direction*distance;_camera.transform.LookAt(focus);
             _camera.farClipPlane=Mathf.Max(_camera.farClipPlane,distance+worldHeight*3);
         }
