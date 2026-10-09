@@ -32,6 +32,8 @@ public sealed class ServerApiTests : IDisposable
                 s.AddSingleton<IProfileStore>(_ => new SqliteProfileStore($"Data Source={_dbPath}"));
                 s.RemoveAll<IWorldBossBoard>();
                 s.AddSingleton<IWorldBossBoard>(_ => new SqliteWorldBossBoard($"Data Source={_dbPath}"));
+                s.RemoveAll<SqliteAccountStore>();
+                s.AddSingleton(_ => new SqliteAccountStore($"Data Source={_dbPath}", _time));
                 s.RemoveAll<TimeProvider>();
                 s.AddSingleton<TimeProvider>(_time);
                 s.RemoveAll<ServerOptions>();

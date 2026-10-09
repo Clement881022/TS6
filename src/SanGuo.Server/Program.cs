@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using SanGuo.Core;
 using SanGuo.Core.Data;
 using SanGuo.Core.Meta;
@@ -11,13 +12,38 @@ builder.Services.AddSingleton(TimeProvider.System);
 var dbPath = builder.Configuration["Database:Path"] ?? "sanguo.db";
 builder.Services.AddSingleton<IProfileStore>(_ => new SqliteProfileStore($"Data Source={dbPath}"));
 builder.Services.AddSingleton<IWorldBossBoard>(_ => new SqliteWorldBossBoard($"Data Source={dbPath}"));
+builder.Services.AddSingleton(sp => new SqliteAccountStore($"Data Source={dbPath}", sp.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<GameService>();
+// 登入類端點限流（每個 IP 每分鐘 30 次），擋暴力猜密碼。
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.AddPolicy("auth", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1) }));
+});
 
 var app = builder.Build();
+app.UseRateLimiter();
 
-// 帳號辨識目前是占位：以 X-Account 標頭當帳號 id。正式版要換成真正的登入與 token 驗證。
-static string? Account(HttpRequest req) =>
-    req.Headers.TryGetValue("X-Account", out var v) && !string.IsNullOrWhiteSpace(v) ? v.ToString() : null;
+static string? Bearer(HttpRequest req)
+{
+    string header = req.Headers.Authorization.ToString();
+    return header.StartsWith("Bearer ", StringComparison.Ordinal) && header.Length > 7 ? header.Substring(7).Trim() : null;
+}
+
+// 帳號辨識：Authorization: Bearer <token>（由 /auth/* 取得）。
+// 用 X-Account 標頭直接指定帳號只在開發模式（EnableDevEndpoints）可用，給測試與自動截圖。
+static string? Account(HttpRequest req)
+{
+    var services = req.HttpContext.RequestServices;
+    string? token = Bearer(req);
+    if (token != null) return services.GetRequiredService<SqliteAccountStore>().Resolve(token);
+    if (services.GetRequiredService<ServerOptions>().EnableDevEndpoints
+        && req.Headers.TryGetValue("X-Account", out var v) && !string.IsNullOrWhiteSpace(v))
+        return v.ToString();
+    return null;
+}
 
 static IResult Respond(ApiResult r) => r.Ok ? Results.Ok(r) : Results.BadRequest(r);
 
@@ -29,6 +55,65 @@ static async Task<IResult> Handle(HttpRequest req, Func<string, Task<ApiResult>>
 }
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+// ---- 帳號 ----
+static IResult SessionResult(Session s) => Results.Ok(ApiResult.Success(new
+{
+    token = s.Token, accountId = s.AccountId, nickname = s.Nickname, username = s.Username, bound = s.Username != null, expiresAt = s.ExpiresAt,
+}));
+static IResult AuthFail(string code) => Results.BadRequest(ApiResult.Fail(code));
+
+app.MapPost("/auth/guest", (GuestRequest body, SqliteAccountStore accounts) =>
+    SqliteAccountStore.ValidGuestKey(body.GuestKey) ? SessionResult(accounts.Guest(body.GuestKey)) : AuthFail("invalid_guest_key"))
+    .RequireRateLimiting("auth");
+app.MapPost("/auth/register", (CredentialRequest body, SqliteAccountStore accounts) =>
+{
+    var username = SqliteAccountStore.NormalizeUsername(body.Username);
+    if (username == null) return AuthFail("invalid_username");
+    if (!SqliteAccountStore.ValidPassword(body.Password)) return AuthFail("invalid_password");
+    var s = accounts.Register(username, body.Password);
+    return s == null ? AuthFail("username_taken") : SessionResult(s);
+}).RequireRateLimiting("auth");
+app.MapPost("/auth/login", (CredentialRequest body, SqliteAccountStore accounts) =>
+{
+    var username = SqliteAccountStore.NormalizeUsername(body.Username);
+    var s = username != null && body.Password != null ? accounts.Login(username, body.Password) : null;
+    return s == null ? AuthFail("wrong_credentials") : SessionResult(s);
+}).RequireRateLimiting("auth");
+app.MapPost("/auth/bind", (HttpRequest req, CredentialRequest body, SqliteAccountStore accounts) =>
+{
+    var account = Account(req);
+    if (account == null) return Results.Unauthorized();
+    var username = SqliteAccountStore.NormalizeUsername(body.Username);
+    if (username == null) return AuthFail("invalid_username");
+    if (!SqliteAccountStore.ValidPassword(body.Password)) return AuthFail("invalid_password");
+    var error = accounts.Bind(account, username, body.Password);
+    return error != null ? AuthFail(error) : Results.Ok(ApiResult.Success(new { username }));
+}).RequireRateLimiting("auth");
+app.MapPost("/auth/logout", (HttpRequest req, SqliteAccountStore accounts) =>
+{
+    var token = Bearer(req);
+    if (token != null) accounts.Logout(token);
+    return Results.Ok(ApiResult.Success());
+});
+app.MapGet("/auth/me", (HttpRequest req, SqliteAccountStore accounts) =>
+{
+    var account = Account(req);
+    if (account == null) return Results.Unauthorized();
+    var info = accounts.Info(account);
+    return Results.Ok(ApiResult.Success(new
+    {
+        accountId = account, nickname = info?.Nickname ?? account, username = info?.Username, bound = info?.Username != null,
+    }));
+});
+app.MapPost("/account/nickname", (HttpRequest req, NicknameRequest body, SqliteAccountStore accounts) =>
+{
+    var account = Account(req);
+    if (account == null) return Results.Unauthorized();
+    var nickname = SqliteAccountStore.NormalizeNickname(body.Nickname);
+    if (nickname == null) return AuthFail("invalid_nickname");
+    return accounts.SetNickname(account, nickname) ? Results.Ok(ApiResult.Success(new { nickname })) : AuthFail("no_account");
+});
 
 app.MapPost("/login", (HttpRequest req, GameService g) => Handle(req, g.Login));
 app.MapGet("/profile", (HttpRequest req, GameService g) => Handle(req, g.GetProfile));
@@ -109,5 +194,8 @@ public sealed record ProductRequest(string ProductId);
 public sealed record OrderRequest(string OrderId);
 public sealed record DevClearRequest(string StageId, int Stars);
 public sealed record PassClaimRequest(int Level, bool Paid);
+public sealed record GuestRequest(string GuestKey);
+public sealed record CredentialRequest(string Username, string Password);
+public sealed record NicknameRequest(string Nickname);
 
 public partial class Program { }
