@@ -1,0 +1,795 @@
+{
+  "scope": "Static design prototype over existing Unity 3D capture; no live 3D or physical phone acceptance",
+  "screenshots": [
+    {
+      "file": "home-16x9.png",
+      "pixels": [
+        1600,
+        900
+      ],
+      "geometry": {
+        "targets": [
+          {
+            "name": "主公帳號",
+            "x": 24,
+            "y": 12,
+            "w": 142,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "主城說明",
+            "x": 728,
+            "y": 14,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "出征 · 0-1",
+            "x": 566,
+            "y": 249,
+            "w": 194,
+            "h": 50,
+            "centered": true
+          },
+          {
+            "name": "武將",
+            "x": 34.65625,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "養成",
+            "x": 159.984375,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "招募",
+            "x": 285.328125,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "挑戰",
+            "x": 410.65625,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "任務",
+            "x": 535.984375,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "商店",
+            "x": 661.328125,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          }
+        ],
+        "overlaps": [],
+        "invalid": [],
+        "uncentered": [],
+        "dock": {
+          "bottomGap": 0,
+          "leftGap": 0,
+          "rightGap": 0,
+          "border": "0px",
+          "radius": "0px",
+          "dividers": 0,
+          "entries": 6
+        },
+        "source3D": null
+      }
+    },
+    {
+      "file": "home-20x9.png",
+      "pixels": [
+        2000,
+        900
+      ],
+      "geometry": {
+        "targets": [
+          {
+            "name": "主公帳號",
+            "x": 40,
+            "y": 12,
+            "w": 142,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "主城說明",
+            "x": 912,
+            "y": 14,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "出征 · 0-1",
+            "x": 750,
+            "y": 249,
+            "w": 194,
+            "h": 50,
+            "centered": true
+          },
+          {
+            "name": "武將",
+            "x": 64.65625,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "養成",
+            "x": 217.984375,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "招募",
+            "x": 371.328125,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "挑戰",
+            "x": 524.65625,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "任務",
+            "x": 677.984375,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "商店",
+            "x": 831.328125,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          }
+        ],
+        "overlaps": [],
+        "invalid": [],
+        "uncentered": [],
+        "dock": {
+          "bottomGap": 0,
+          "leftGap": 0,
+          "rightGap": 0,
+          "border": "0px",
+          "radius": "0px",
+          "dividers": 0,
+          "entries": 6
+        },
+        "source3D": null
+      }
+    },
+    {
+      "file": "home-challenges.png",
+      "pixels": [
+        1600,
+        900
+      ],
+      "geometry": {
+        "targets": [
+          {
+            "name": "主公帳號",
+            "x": 24,
+            "y": 12,
+            "w": 142,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "主城說明",
+            "x": 728,
+            "y": 14,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "出征 · 0-1",
+            "x": 566,
+            "y": 249,
+            "w": 194,
+            "h": 50,
+            "centered": true
+          },
+          {
+            "name": "武將",
+            "x": 34.65625,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "養成",
+            "x": 159.984375,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "招募",
+            "x": 285.328125,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "挑戰",
+            "x": 410.65625,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "任務",
+            "x": 535.984375,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "商店",
+            "x": 661.328125,
+            "y": 364,
+            "w": 104,
+            "h": 74,
+            "centered": true
+          },
+          {
+            "name": "素材副本",
+            "x": 288,
+            "y": 230,
+            "w": 224,
+            "h": 54,
+            "centered": true
+          },
+          {
+            "name": "世界 Boss",
+            "x": 288,
+            "y": 284,
+            "w": 224,
+            "h": 54,
+            "centered": true
+          }
+        ],
+        "overlaps": [],
+        "invalid": [],
+        "uncentered": [],
+        "dock": {
+          "bottomGap": 0,
+          "leftGap": 0,
+          "rightGap": 0,
+          "border": "0px",
+          "radius": "0px",
+          "dividers": 0,
+          "entries": 6
+        },
+        "source3D": null
+      }
+    },
+    {
+      "file": "battle-3d-16x9.png",
+      "pixels": [
+        1600,
+        900
+      ],
+      "geometry": {
+        "targets": [
+          {
+            "name": "戰鬥選單",
+            "x": 736,
+            "y": 6,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看敵軍 enemy-1",
+            "x": 370,
+            "y": 129,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看敵軍 enemy-2",
+            "x": 468,
+            "y": 120,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看敵軍 enemy-3",
+            "x": 525,
+            "y": 160,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看友軍 ally-1",
+            "x": 311,
+            "y": 202,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看友軍 ally-2",
+            "x": 384,
+            "y": 219,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看友軍 ally-3",
+            "x": 331,
+            "y": 256,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看友軍 ally-4",
+            "x": 423,
+            "y": 285,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看張飛",
+            "x": 16,
+            "y": 78,
+            "w": 52,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "查看義勇劍兵",
+            "x": 16,
+            "y": 139,
+            "w": 52,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "查看義勇弓兵",
+            "x": 16,
+            "y": 200,
+            "w": 52,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "查看義勇醫士",
+            "x": 16,
+            "y": 261,
+            "w": 52,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "前面的手牌",
+            "x": 16,
+            "y": 363,
+            "w": 48,
+            "h": 56,
+            "centered": true
+          },
+          {
+            "name": "嘲諷，費用 1",
+            "x": 71,
+            "y": 346,
+            "w": 96.796875,
+            "h": 90,
+            "centered": true
+          },
+          {
+            "name": "基本攻擊，費用 1",
+            "x": 174.796875,
+            "y": 346,
+            "w": 96.796875,
+            "h": 90,
+            "centered": true
+          },
+          {
+            "name": "基本攻擊，費用 1",
+            "x": 278.59375,
+            "y": 346,
+            "w": 96.796875,
+            "h": 90,
+            "centered": true
+          },
+          {
+            "name": "基本攻擊，費用 1",
+            "x": 382.390625,
+            "y": 346,
+            "w": 96.796875,
+            "h": 90,
+            "centered": true
+          },
+          {
+            "name": "基本攻擊，費用 1",
+            "x": 486.1875,
+            "y": 346,
+            "w": 96.796875,
+            "h": 90,
+            "centered": true
+          },
+          {
+            "name": "後面的手牌",
+            "x": 590,
+            "y": 363,
+            "w": 48,
+            "h": 56,
+            "centered": true
+          },
+          {
+            "name": "結束回合",
+            "x": 652,
+            "y": 375,
+            "w": 132,
+            "h": 48,
+            "centered": true
+          }
+        ],
+        "overlaps": [],
+        "invalid": [],
+        "uncentered": [],
+        "dock": null,
+        "source3D": "../../ui-layout-review/1920x1080/36-battle-start.png"
+      }
+    },
+    {
+      "file": "battle-3d-20x9.png",
+      "pixels": [
+        2000,
+        900
+      ],
+      "geometry": {
+        "targets": [
+          {
+            "name": "戰鬥選單",
+            "x": 916,
+            "y": 6,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看敵軍 enemy-1",
+            "x": 470,
+            "y": 129,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看敵軍 enemy-2",
+            "x": 568,
+            "y": 120,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看敵軍 enemy-3",
+            "x": 625,
+            "y": 160,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看友軍 ally-1",
+            "x": 411,
+            "y": 202,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看友軍 ally-2",
+            "x": 484,
+            "y": 219,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看友軍 ally-3",
+            "x": 431,
+            "y": 256,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看友軍 ally-4",
+            "x": 523,
+            "y": 285,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看張飛",
+            "x": 36,
+            "y": 78,
+            "w": 52,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "查看義勇劍兵",
+            "x": 36,
+            "y": 139,
+            "w": 52,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "查看義勇弓兵",
+            "x": 36,
+            "y": 200,
+            "w": 52,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "查看義勇醫士",
+            "x": 36,
+            "y": 261,
+            "w": 52,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "前面的手牌",
+            "x": 36,
+            "y": 363,
+            "w": 48,
+            "h": 56,
+            "centered": true
+          },
+          {
+            "name": "嘲諷，費用 1",
+            "x": 91,
+            "y": 346,
+            "w": 128.796875,
+            "h": 90,
+            "centered": true
+          },
+          {
+            "name": "基本攻擊，費用 1",
+            "x": 226.796875,
+            "y": 346,
+            "w": 128.796875,
+            "h": 90,
+            "centered": true
+          },
+          {
+            "name": "基本攻擊，費用 1",
+            "x": 362.59375,
+            "y": 346,
+            "w": 128.796875,
+            "h": 90,
+            "centered": true
+          },
+          {
+            "name": "基本攻擊，費用 1",
+            "x": 498.390625,
+            "y": 346,
+            "w": 128.796875,
+            "h": 90,
+            "centered": true
+          },
+          {
+            "name": "基本攻擊，費用 1",
+            "x": 634.1875,
+            "y": 346,
+            "w": 128.796875,
+            "h": 90,
+            "centered": true
+          },
+          {
+            "name": "後面的手牌",
+            "x": 770,
+            "y": 363,
+            "w": 48,
+            "h": 56,
+            "centered": true
+          },
+          {
+            "name": "結束回合",
+            "x": 832,
+            "y": 375,
+            "w": 132,
+            "h": 48,
+            "centered": true
+          }
+        ],
+        "overlaps": [],
+        "invalid": [],
+        "uncentered": [],
+        "dock": null,
+        "source3D": "../../ui-layout-review/1920x1080/36-battle-start.png"
+      }
+    },
+    {
+      "file": "battle-3d-selected.png",
+      "pixels": [
+        1600,
+        900
+      ],
+      "geometry": {
+        "targets": [
+          {
+            "name": "戰鬥選單",
+            "x": 736,
+            "y": 6,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看敵軍 enemy-1",
+            "x": 370,
+            "y": 129,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看敵軍 enemy-2",
+            "x": 468,
+            "y": 120,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看敵軍 enemy-3",
+            "x": 525,
+            "y": 160,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看友軍 ally-1",
+            "x": 311,
+            "y": 202,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看友軍 ally-2",
+            "x": 384,
+            "y": 219,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看友軍 ally-3",
+            "x": 331,
+            "y": 256,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看友軍 ally-4",
+            "x": 423,
+            "y": 285,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "查看張飛",
+            "x": 16,
+            "y": 78,
+            "w": 52,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "查看義勇劍兵",
+            "x": 16,
+            "y": 139,
+            "w": 52,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "查看義勇弓兵",
+            "x": 16,
+            "y": 200,
+            "w": 52,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "查看義勇醫士",
+            "x": 16,
+            "y": 261,
+            "w": 52,
+            "h": 52,
+            "centered": true
+          },
+          {
+            "name": "結束回合",
+            "x": 652,
+            "y": 375,
+            "w": 132,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "name": "取消選牌",
+            "x": 582,
+            "y": 367,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          }
+        ],
+        "overlaps": [],
+        "invalid": [],
+        "uncentered": [],
+        "dock": null,
+        "source3D": "../../ui-layout-review/1920x1080/36-battle-start.png"
+      }
+    }
+  ],
+  "checks": [
+    "six-entry navigation, two merged challenge destinations, flush unframed dock, centered button text, aligned original icons, original Unity 3D source, card-to-target, unit detail, last card, battle menu",
+    "touch emulation 800x450: card -> 3D projected enemy target",
+    "touch emulation 1000x450: card -> 3D projected enemy target"
+  ],
+  "errors": []
+}

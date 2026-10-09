@@ -4,6 +4,8 @@
 
 ## 交付
 
+- 2026-10-10 更新：[黑灰提案 02](revision-02/index.html)、[新版規格與驗證](revision-02/README.md)。新版整併挑戰入口、取消底欄外框與分隔線，戰鬥改用既有 3D 實機截圖作配置底材。
+
 - [可點選預覽](index.html)：切換主城 A／B、16:9／20:9、安全區與戰鬥 UX。
 - [A 主城 16:9](exports/home-A-16x9.png)、[B 主城 16:9](exports/home-B-16x9.png)。
 - [A 主城 20:9](exports/home-A-20x9.png)、[B 主城 20:9](exports/home-B-20x9.png)。
