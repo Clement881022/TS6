@@ -119,20 +119,20 @@ namespace SanGuo.Core.Meta
 
         /// <summary>
         /// 各階副本掉出「本階」裝備的機率（企劃 2026-10-09：機率掉落、越高階越難掉；數值以 tools/playsim 校準）。
-        /// 沒掉到本階時改掉低一階的裝備（第 1 階必掉）。
+        /// 沒掉到就沒有裝備（第 1 階必掉）。原本「沒掉到給低一階」會讓高階副本變成穩定的次一階來源，裝備仍然太快畢業。
         /// </summary>
-        public static readonly double[] DropChance = { 1.0, 0.5, 0.3, 0.18, 0.1 };
+        public static readonly double[] DropChance = { 1.0, 0.4, 0.2, 0.1, 0.05 };
 
         public static double DropChanceOf(int tier) => DropChance[Math.Max(1, Math.Min(MaxTier, tier)) - 1];
 
-        /// <summary>素材副本的裝備掉落：每次 1 件、隨機部位；以 <see cref="DropChance"/> 決定是本階或低一階。回傳「庫存鍵 → 數量」。</summary>
+        /// <summary>素材副本的裝備掉落：每次最多 1 件、隨機部位，掉率見 <see cref="DropChance"/>。回傳「庫存鍵 → 數量」。</summary>
         public static Dictionary<string, int> RollDrops(int tier, int count, Rng rng)
         {
             var drops = new Dictionary<string, int>();
             for (int i = 0; i < count; i++)
             {
-                int got = tier > 1 && rng.Next(10000) >= (int)System.Math.Round(DropChanceOf(tier) * 10000) ? tier - 1 : tier;
-                string key = ItemKey(Slots[rng.Next(Slots.Length)], got);
+                if (rng.Next(10000) >= (int)System.Math.Round(DropChanceOf(tier) * 10000)) continue;
+                string key = ItemKey(Slots[rng.Next(Slots.Length)], tier);
                 drops[key] = drops.TryGetValue(key, out int n) ? n + 1 : 1;
             }
             return drops;

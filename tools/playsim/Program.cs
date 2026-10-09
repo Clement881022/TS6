@@ -19,6 +19,7 @@ Console.OutputEncoding = Encoding.UTF8;
 if (args.Length > 0 && args[0] == "exp") { var t = Experiments.Run(); File.WriteAllText(args.Length > 1 ? args[1] : "experiments.md", t); Console.WriteLine(t); return; }
 if (args.Length > 0 && args[0] == "multi") { await Kpi.Multi(int.Parse(args[1]), int.Parse(args[2]), args[3]); return; }
 if (args.Length > 0 && args[0] == "kpi") { Kpi.Write(args[1]); return; }
+if (args.Length > 0 && args[0] == "winat") { Console.WriteLine($"{args[1]} Lv{args[2]} {args[3]}★ {args[4]}階：{Calibrate.WinAt(args[1], int.Parse(args[2]), int.Parse(args[3]), int.Parse(args[4])):0}%"); return; }
 if (args.Length > 0 && args[0] == "calib") { foreach (var o in args.Skip(1)) Console.WriteLine(Calibrate.Run(o.Split(',').Select(int.Parse).ToArray())); return; }
 int days = args.Length > 0 ? int.Parse(args[0]) : 60;
 string outDir = args.Length > 1 ? args[1] : ".";

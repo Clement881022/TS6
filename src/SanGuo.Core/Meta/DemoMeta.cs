@@ -56,7 +56,7 @@ namespace SanGuo.Core.Meta
                 StageId = StageId(chapter, level),
                 Chapter = chapter,
                 StaminaCost = 10,
-                Exp = 20 + 10 * index,
+                Exp = 10, // 帳號經驗 = 消耗的體力（每關 10 點）
                 Gold = 200 + 100 * index,
                 FirstClearYuanbao = level == Campaign.LevelsPerChapter ? 300 : 60,
                 StarTurnPar = Campaign.TurnPar(chapter, level),
@@ -96,9 +96,9 @@ namespace SanGuo.Core.Meta
 
         /// <summary>
         /// 各階素材副本的敵人等級（暫定）：第 1 階於第零章中段解鎖故較低；其後以自動戰鬥校準，
-        /// 讓上一章章末養成剛解鎖時勝率約六成以上、再晚一章約九成以上（見 OpenStageBalanceTests）。
+        /// 2026-10-09 起副本逐階解鎖（不看章節），敵人等級改為與章末等級同步，接手原本的章節門檻（以 tools/playsim 的節奏校準）。
         /// </summary>
-        public static readonly int[] DungeonEnemyLevels = { 6, 22, 28, 33, 37 };
+        public static readonly int[] DungeonEnemyLevels = { 6, 28, 34, 39, 43 };
 
         /// <summary>
         /// 資源副本的戰鬥設定：每階有自己的敵人配置（第 1–2 階為第零章盜匪，第 3–5 階沿用解鎖時那一章的主線敵人），我方由玩家編隊決定（套用編隊前是空的），開放自動戰鬥。

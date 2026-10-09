@@ -58,6 +58,7 @@ namespace SanGuo.Core.Tests
         {
             long now = At(5);
             var p = PlayerProfile.CreateNew(now);
+            p.Level = 30; // 避免掃蕩中途升級補滿體力，干擾扣體力的驗證
             p.ClaimClear(Stage, now, stars: 2);
             Assert.Equal(SweepResult.NotThreeStars, p.TrySweep(Stage, 1, now, out _));
 
@@ -166,10 +167,10 @@ namespace SanGuo.Core.Tests
             Assert.Equal(6000, p.Gold);
             Assert.Equal(2400, p.GetMaterial(HeroGrowth.HeroExp));
             Assert.Equal(15, p.Yuanbao);
-            // 每次 1 件：本階（機率 Equipment.DropChance）或低一階
-            int items = Equipment.Slots.Sum(s => Equipment.Count(p, s, 3) + Equipment.Count(p, s, 2));
-            Assert.Equal(1, items);
-            Assert.Equal(0, Equipment.Slots.Sum(s => Equipment.Count(p, s, 1)));
+            // 每次最多 1 件本階裝備（機率 Equipment.DropChance），沒掉到就沒有
+            int items = Equipment.Slots.Sum(s => Equipment.Count(p, s, 3));
+            Assert.InRange(items, 0, 1);
+            Assert.Equal(0, Equipment.Slots.Sum(s => Equipment.Count(p, s, 2) + Equipment.Count(p, s, 1)));
             Assert.Contains(d.Id, p.ClearedStages);
         }
 
@@ -184,7 +185,7 @@ namespace SanGuo.Core.Tests
             int stamina = p.Stamina.Get(now);
             Assert.Equal(DungeonEntryResult.Ok, ResourceDungeons.TrySweep(p, d, 4, now, out var reward));
             Assert.Equal(stamina - 40 * 4, p.Stamina.Get(now));
-            Assert.Equal(4, reward!.Materials.Where(m => m.Key.StartsWith("eq:")).Sum(m => m.Value));
+            Assert.InRange(reward!.Materials.Where(m => m.Key.StartsWith("eq:")).Sum(m => m.Value), 0, 4); // 每場最多 1 件（機率掉落）
             Assert.Equal(DungeonEntryResult.InvalidCount, ResourceDungeons.TrySweep(p, d, 0, now, out _));
             Assert.Equal(DungeonEntryResult.InvalidCount, ResourceDungeons.TrySweep(p, d, ResourceDungeons.MaxSweepCount + 1, now, out _));
         }

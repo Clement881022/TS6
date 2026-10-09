@@ -15,9 +15,9 @@ namespace SanGuo.Core
         /// <summary>
         /// 各章末的敵人等級；第零章為 12。原本等於該時間點的玩家預期等級（12／19／25／29／32／36／40，GDD 04 §5.3），
         /// 2026-10-09 稀有度改為影響基礎屬性（SR 115%）並加入專屬牌後，玩家隊伍變強，依 CampaignBalanceTests 的戰力門檻重新校準為下列數值
-        /// （以 tools/playsim 的 calib 模式量測）。P4 節奏調整時會再一起重調。
+        /// （以 tools/playsim 的 calib 模式量測）。P4（帳號經驗 = 消耗的體力、副本逐階解鎖、裝備機率掉落）後，玩家實際養成比原假設強（專屬牌、新手 UR），再依模擬節奏整體上調為下列數值。
         /// </summary>
-        public static readonly int[] ChapterEndLevel = { 12, 22, 28, 32, 36, 41, 48 };
+        public static readonly int[] ChapterEndLevel = { 12, 28, 34, 38, 42, 47, 54 };
 
         private static readonly string[] Titles =
         {

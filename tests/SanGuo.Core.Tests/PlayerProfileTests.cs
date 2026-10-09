@@ -71,6 +71,15 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
+        public void ExpCurve_AlwaysCostsMoreThanARefill()
+        {
+            // 帳號經驗 = 消耗的體力；每級所需必須大於升級後補滿的體力，否則會形成「升級 → 補滿 → 再升級」的循環。
+            for (int lv = 1; lv < PlayerLevelCurve.MaxLevel; lv++)
+                Assert.True(PlayerLevelCurve.ExpToNext(lv) > PlayerLevelCurve.StaminaCap(lv + 1), $"Lv{lv}");
+            Assert.Equal(0, PlayerLevelCurve.ExpToNext(PlayerLevelCurve.MaxLevel));
+        }
+
+        [Fact]
         public void LevelUp_RaisesStaminaCap_AndRefills()
         {
             var p = PlayerProfile.CreateNew(T0);

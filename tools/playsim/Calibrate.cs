@@ -8,8 +8,8 @@ using SanGuo.Core.Meta;
 /// </summary>
 public static class Calibrate
 {
-    static readonly (string Id, int Lane, int Row)[] Team = { ("zhangfei", 2, 3), ("guanyu", 1, 3), ("handang", 3, 4), ("liubei", 2, 4) };
-    static readonly (int Level, int Stars, int Gear)[] Growth = { (12, 0, 0), (19, 0, 1), (25, 0, 2), (29, 1, 2), (32, 2, 3), (36, 3, 4), (40, 4, 4) };
+    static readonly (string Id, int Lane, int Row)[] Team = { ("zhangfei", 2, 3), ("guanyu", 1, 3), ("lvbu", 3, 3), ("liubei", 2, 4) };
+    static readonly (int Level, int Stars, int Gear)[] Growth = { (12, 0, 0), (12, 0, 1), (23, 0, 2), (27, 1, 2), (30, 2, 2), (33, 3, 3), (40, 5, 4) };
 
     static double Win(string stage, (int Level, int Stars, int Gear) g, int runs = 40)
     {
@@ -31,6 +31,9 @@ public static class Calibrate
         }
         return 100.0 * wins / runs;
     }
+
+    /// <summary>指定關卡在指定養成下的勝率（除錯用）。</summary>
+    public static double WinAt(string stage, int level, int stars, int gear, int runs = 40) => Win(stage, (level, stars, gear), runs);
 
     public static string Run(int[] offsets)
     {

@@ -47,6 +47,7 @@ namespace SanGuo.Core.Meta
         {
             var reward = WithDrops(d, 1, new Rng(seed));
             p.Grant(reward, now);
+            p.AddExp(d.StaminaCost, now); // 帳號經驗 = 消耗的體力
             p.ClearedStages.Add(d.Id);
             Quests.Report(p, Quests.Events.ResourceRun, 1, now);
             return reward;
@@ -62,6 +63,7 @@ namespace SanGuo.Core.Meta
             if (r != DungeonEntryResult.Ok) return r;
             reward = WithDrops(d, count, new Rng((ulong)now * 2654435761UL + (ulong)count));
             p.Grant(reward, now);
+            p.AddExp(d.StaminaCost * count, now); // 帳號經驗 = 消耗的體力
             Quests.Report(p, Quests.Events.ResourceRun, count, now);
             Quests.Report(p, Quests.Events.Sweep, count, now);
             return DungeonEntryResult.Ok;

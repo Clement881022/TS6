@@ -106,7 +106,14 @@ namespace SanGuo.Core.Meta
                     Ok = true, Won = replay.Result == BattleResult.Won, Damage = damage, BestDamage = p.WorldBoss.Best, NewBest = newBest,
                 };
             }
-            if (replay.Result != BattleResult.Won) return new StageFinishOutcome { Ok = true, Won = false };
+            if (replay.Result != BattleResult.Won)
+            {
+                // 輸了也已經花掉體力：帳號經驗 = 消耗的體力，照樣入帳。
+                var lostDungeon = DemoMeta.FindDungeon(stageId);
+                int cost = lostDungeon?.StaminaCost ?? DemoMeta.FindStage(stageId)?.StaminaCost ?? 0;
+                int levels = cost > 0 ? p.AddExp(cost, now) : 0;
+                return new StageFinishOutcome { Ok = true, Won = false, Exp = cost, LevelsGained = levels };
+            }
 
             var dungeon = DemoMeta.FindDungeon(stageId);
             if (dungeon != null)
