@@ -99,7 +99,9 @@ namespace SanGuo.Client
             _heroArt = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-hero");
             ApplyHeroArt(_heroArt, CurrentHomeHero());
             layer.Add(_heroArt);
-            var switchButton = UiKit.Btn("切換角色", SwitchHero).WithClass("home-hero-switch");
+            var switchButton = new Button(SwitchHero).WithClass("home-hero-switch");
+            switchButton.Add(UiKit.Text("⇄", "home-hero-switch-icon"));
+            switchButton.tooltip = "切換角色";
             switchButton.name = "home-hero-switch";
             layer.Add(switchButton);
             return layer;
@@ -123,10 +125,16 @@ namespace SanGuo.Client
             box.name = "home-featured";
             var texture = Resources.Load<Texture2D>("RecruitBanners/" + pool.Id);
             if (texture != null) box.style.backgroundImage = new StyleBackground(texture);
-            string heroId = pool.UpUrs.Count > 0 ? pool.UpUrs[0] : pool.UrHeroes.FirstOrDefault() ?? "";
-            var art = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-featured-art");
-            ApplyHeroArt(art, heroId);
-            box.Add(art);
+            var featured = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-featured-heroes");
+            var heroIds = pool.UpUrs.Count > 0 ? pool.UpUrs : pool.UrHeroes.Take(1).ToList();
+            foreach (string heroId in heroIds)
+            {
+                var art = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-featured-art");
+                art.name = "home-featured-" + heroId;
+                ApplyHeroArt(art, heroId);
+                featured.Add(art);
+            }
+            box.Add(featured);
             box.Add(UiKit.Text("當期主打", "home-featured-tag"));
             box.Add(UiKit.Text(pool.Name, "home-featured-name"));
             box.RegisterCallback<ClickEvent>(_ => Nav.Go(Page.Gacha));
@@ -170,6 +178,7 @@ namespace SanGuo.Client
             var plate = new VisualElement().WithClass("home-departure");
             var (_, nextLevel) = GameSession.Frontier();
             var expedition = UiKit.Btn("", () => { GameSession.Select(chapter, nextLevel); GameSession.OpenSelectedStageOnMap = true; Nav.Go(Page.Map); }, primary: true).WithClass("home-primary");
+            expedition.name = "home-expedition";
             var flag = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-sortie-art");
             flag.style.backgroundImage = new StyleBackground(Resources.Load<Texture2D>("HomeArt/Sortie"));
             expedition.Add(flag);
