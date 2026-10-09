@@ -1,0 +1,742 @@
+{
+  "date": "2026-10-10",
+  "scope": "Editable home visual proposal; browser checks are not art or physical-phone acceptance",
+  "screenshots": [
+    {
+      "file": "home-16x9.png",
+      "geometry": {
+        "dividers": [
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          }
+        ],
+        "buttons": [
+          {
+            "label": "主公帳號",
+            "x": 24,
+            "y": 12,
+            "w": 150,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "體力 62 / 62",
+            "x": 417.953125,
+            "y": 12,
+            "w": 97.390625,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "銅錢 5,000",
+            "x": 522.34375,
+            "y": 12,
+            "w": 95.828125,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "元寶 2,000",
+            "x": 625.171875,
+            "y": 12,
+            "w": 95.828125,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "主城說明",
+            "x": 728,
+            "y": 12,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "查看主線進度",
+            "x": 602,
+            "y": 289,
+            "w": 174,
+            "h": 60,
+            "centered": true
+          },
+          {
+            "label": "武將",
+            "x": 24,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "養成",
+            "x": 122,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "招募",
+            "x": 220,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "挑戰",
+            "x": 318,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "任務",
+            "x": 416,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "商店",
+            "x": 514,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "出征",
+            "x": 636,
+            "y": 372,
+            "w": 140,
+            "h": 56,
+            "centered": true
+          }
+        ],
+        "overlaps": [],
+        "invalid": [],
+        "dock": {
+          "bottom": 0,
+          "left": 0,
+          "right": 0,
+          "border": "0px",
+          "radius": "0px"
+        },
+        "icons": [
+          {
+            "label": "武將",
+            "centerError": 0
+          },
+          {
+            "label": "養成",
+            "centerError": 0
+          },
+          {
+            "label": "招募",
+            "centerError": 0
+          },
+          {
+            "label": "挑戰",
+            "centerError": 0
+          },
+          {
+            "label": "任務",
+            "centerError": 0
+          },
+          {
+            "label": "商店",
+            "centerError": 0
+          }
+        ]
+      }
+    },
+    {
+      "file": "home-20x9.png",
+      "geometry": {
+        "dividers": [
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          }
+        ],
+        "buttons": [
+          {
+            "label": "主公帳號",
+            "x": 40,
+            "y": 12,
+            "w": 150,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "體力 62 / 62",
+            "x": 601.953125,
+            "y": 12,
+            "w": 97.390625,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "銅錢 5,000",
+            "x": 706.34375,
+            "y": 12,
+            "w": 95.828125,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "元寶 2,000",
+            "x": 809.171875,
+            "y": 12,
+            "w": 95.828125,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "主城說明",
+            "x": 912,
+            "y": 12,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "查看主線進度",
+            "x": 786,
+            "y": 289,
+            "w": 174,
+            "h": 60,
+            "centered": true
+          },
+          {
+            "label": "武將",
+            "x": 40,
+            "y": 362,
+            "w": 126,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "養成",
+            "x": 166,
+            "y": 362,
+            "w": 126,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "招募",
+            "x": 292,
+            "y": 362,
+            "w": 126,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "挑戰",
+            "x": 418,
+            "y": 362,
+            "w": 126,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "任務",
+            "x": 544,
+            "y": 362,
+            "w": 126,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "商店",
+            "x": 670,
+            "y": 362,
+            "w": 126,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "出征",
+            "x": 820,
+            "y": 372,
+            "w": 140,
+            "h": 56,
+            "centered": true
+          }
+        ],
+        "overlaps": [],
+        "invalid": [],
+        "dock": {
+          "bottom": 0,
+          "left": 0,
+          "right": 0,
+          "border": "0px",
+          "radius": "0px"
+        },
+        "icons": [
+          {
+            "label": "武將",
+            "centerError": 0
+          },
+          {
+            "label": "養成",
+            "centerError": 0
+          },
+          {
+            "label": "招募",
+            "centerError": 0
+          },
+          {
+            "label": "挑戰",
+            "centerError": 0
+          },
+          {
+            "label": "任務",
+            "centerError": 0
+          },
+          {
+            "label": "商店",
+            "centerError": 0
+          }
+        ]
+      }
+    },
+    {
+      "file": "home-challenges.png",
+      "geometry": {
+        "dividers": [
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          }
+        ],
+        "buttons": [
+          {
+            "label": "主公帳號",
+            "x": 24,
+            "y": 12,
+            "w": 150,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "體力 62 / 62",
+            "x": 417.953125,
+            "y": 12,
+            "w": 97.390625,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "銅錢 5,000",
+            "x": 522.34375,
+            "y": 12,
+            "w": 95.828125,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "元寶 2,000",
+            "x": 625.171875,
+            "y": 12,
+            "w": 95.828125,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "主城說明",
+            "x": 728,
+            "y": 12,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "查看主線進度",
+            "x": 602,
+            "y": 289,
+            "w": 174,
+            "h": 60,
+            "centered": true
+          },
+          {
+            "label": "武將",
+            "x": 24,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "養成",
+            "x": 122,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "招募",
+            "x": 220,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "挑戰",
+            "x": 318,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "任務",
+            "x": 416,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "商店",
+            "x": 514,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "出征",
+            "x": 636,
+            "y": 372,
+            "w": 140,
+            "h": 56,
+            "centered": true
+          },
+          {
+            "label": "素材副本",
+            "x": 316,
+            "y": 221,
+            "w": 190,
+            "h": 56,
+            "centered": true
+          },
+          {
+            "label": "世界 Boss",
+            "x": 316,
+            "y": 277,
+            "w": 190,
+            "h": 56,
+            "centered": true
+          }
+        ],
+        "overlaps": [],
+        "invalid": [],
+        "dock": {
+          "bottom": 0,
+          "left": 0,
+          "right": 0,
+          "border": "0px",
+          "radius": "0px"
+        },
+        "icons": [
+          {
+            "label": "武將",
+            "centerError": 0
+          },
+          {
+            "label": "養成",
+            "centerError": 0
+          },
+          {
+            "label": "招募",
+            "centerError": 0
+          },
+          {
+            "label": "挑戰",
+            "centerError": 0
+          },
+          {
+            "label": "任務",
+            "centerError": 0
+          },
+          {
+            "label": "商店",
+            "centerError": 0
+          }
+        ]
+      }
+    },
+    {
+      "file": "phone-size-16x9.png",
+      "geometry": {
+        "dividers": [
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          },
+          {
+            "width": "1px",
+            "height": "36px",
+            "color": "rgba(184, 169, 145, 0.333)"
+          }
+        ],
+        "buttons": [
+          {
+            "label": "主公帳號",
+            "x": 24,
+            "y": 12,
+            "w": 150,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "體力 62 / 62",
+            "x": 417.953125,
+            "y": 12,
+            "w": 97.390625,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "銅錢 5,000",
+            "x": 522.34375,
+            "y": 12,
+            "w": 95.828125,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "元寶 2,000",
+            "x": 625.171875,
+            "y": 12,
+            "w": 95.828125,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "主城說明",
+            "x": 728,
+            "y": 12,
+            "w": 48,
+            "h": 48,
+            "centered": true
+          },
+          {
+            "label": "查看主線進度",
+            "x": 602,
+            "y": 289,
+            "w": 174,
+            "h": 60,
+            "centered": true
+          },
+          {
+            "label": "武將",
+            "x": 24,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "養成",
+            "x": 122,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "招募",
+            "x": 220,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "挑戰",
+            "x": 318,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "任務",
+            "x": 416,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "商店",
+            "x": 514,
+            "y": 362,
+            "w": 98,
+            "h": 76,
+            "centered": true
+          },
+          {
+            "label": "出征",
+            "x": 636,
+            "y": 372,
+            "w": 140,
+            "h": 56,
+            "centered": true
+          }
+        ],
+        "overlaps": [],
+        "invalid": [],
+        "dock": {
+          "bottom": 0,
+          "left": 0,
+          "right": 0,
+          "border": "0px",
+          "radius": "0px"
+        },
+        "icons": [
+          {
+            "label": "武將",
+            "centerError": 0
+          },
+          {
+            "label": "養成",
+            "centerError": 0
+          },
+          {
+            "label": "招募",
+            "centerError": 0
+          },
+          {
+            "label": "挑戰",
+            "centerError": 0
+          },
+          {
+            "label": "任務",
+            "centerError": 0
+          },
+          {
+            "label": "商店",
+            "centerError": 0
+          }
+        ]
+      }
+    }
+  ],
+  "checks": [
+    "800x450 touch: account, resource, campaign progress, departure, help, both challenge destinations, toggle, selected navigation",
+    "1000x450 touch: account, resource, campaign progress, departure, help, both challenge destinations, toggle, selected navigation"
+  ],
+  "errors": [],
+  "asset": {
+    "type": "Generated chibi PNG atlas, native CSS optical centering and clipping; original ChibiSkin scene, portrait and resource icons"
+  }
+}
