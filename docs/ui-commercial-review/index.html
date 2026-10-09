@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>三國將星傳 · 手機 UI 設計提案</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="preview.css">
+  <script src="preview.js" defer></script>
+</head>
+<body>
+  <header class="review-header">
+    <div><p class="eyebrow">三國將星傳 / 美術提案 01</p><h1>先看畫面，再決定方向。</h1><p class="intro">主城兩種材質方向，同一場景、同一資料。另附手機戰鬥 UX 原型。</p></div>
+    <span class="proposal-label">設計提案 · 尚未接入遊戲</span>
+  </header>
+  <main>
+    <div class="controls" aria-label="提案檢視選項">
+      <div class="control-group" aria-label="畫面"><button data-page="home" aria-pressed="true">主城</button><button data-page="battle" aria-pressed="false">戰鬥 UX</button></div>
+      <div class="control-group variant-controls" aria-label="美術方向"><button data-variant="A" aria-pressed="true">A 青玉金邊</button><button data-variant="B" aria-pressed="false">B 銅金徽章</button></div>
+      <div class="control-group" aria-label="手機比例"><button data-ratio="16:9" aria-pressed="true">16:9</button><button data-ratio="20:9" aria-pressed="false">20:9</button></div>
+      <label class="safe-control"><input id="safe-toggle" type="checkbox">顯示安全區</label>
+    </div>
+    <div class="preview-caption"><strong id="proposal-title">A · 輕巧青玉金邊</strong><span id="proposal-description">細邊、低紋理、較輕的面板，讓主城地標與出征成為焦點。</span></div>
+    <div id="viewport-wrap"><div id="viewport"></div></div>
+    <p class="demo-status" role="status" aria-live="polite">可點按元件查看設計回饋；不會操作遊戲帳號。</p>
+    <div class="review-notes"><p><b>檢視基準</b> 800×450 / 1000×450 邏輯畫布；操作區至少 48×48；資訊字級 16 起。</p><p><b>素材來源</b> 城景、人物與圖示沿用專案 ChibiSkin；面板、版面及操作狀態為本輪新增設計。</p><p><b>手機驗收</b> 可將本頁以手機橫式開啟。本機桌面截圖僅驗證配置，不代表已通過手機實機驗收。</p></div>
+    <section id="components" aria-label="元件放大與操作狀態"></section>
+  </main>
+  <dialog id="review-dialog"><button class="dialog-close" aria-label="關閉">×</button><h2 id="dialog-title"></h2><p id="dialog-text"></p><button class="dialog-done">了解</button></dialog>
+</body>
+</html>
