@@ -23,6 +23,8 @@ namespace SanGuo.Client
         private Transform? _torso, _head, _armR, _armL;
         private Quaternion _torsoBase, _headBase, _armRBase, _armLBase;
         private Vector3 _headScale = Vector3.one;
+        private Vector3 _headOffset;
+        private bool _headOffsetApplied;
         private Renderer[] _renderers = System.Array.Empty<Renderer>();
         private Color[] _baseColors = System.Array.Empty<Color>();
         private MaterialPropertyBlock _block = null!;
@@ -63,7 +65,11 @@ namespace SanGuo.Client
             {
                 _motion = _clips.MotionProfile;
                 _head = Find("Bip001 Head");
-                if (_head != null) _headScale = _head.localScale;
+                if (_head != null)
+                {
+                    _headScale = _head.localScale;
+                    _headOffset = _head.localPosition * _clips.NeckExtension;
+                }
                 InitClips(); return;
             }
             _torso = Find("pivot_torso");
@@ -218,8 +224,16 @@ namespace SanGuo.Client
             for (int i = 1; i < _clipOf.Length; i++)
                 _mixer.SetInputWeight(i, _oneShotT >= 0f && i == (int)_oneShot ? oneShotWeight : 0f);
             _mixer.SetInputWeight((int)Clip.Idle, 1f - oneShotWeight);
+            // Remove last frame's art offset before evaluation. Clips without translation
+            // tracks must not accumulate the offset; clips with tracks retain their motion.
+            if (_head != null && _headOffsetApplied) _head.localPosition -= _headOffset;
             _graph.Evaluate(0f);
-            if (_head != null) _head.localScale = _headScale * _clips!.HeadScale;
+            if (_head != null)
+            {
+                _head.localScale = _headScale * _clips!.HeadScale;
+                _head.localPosition += _headOffset;
+                _headOffsetApplied = true;
+            }
         }
 
         // ------------------------------------------------------------ 每幀

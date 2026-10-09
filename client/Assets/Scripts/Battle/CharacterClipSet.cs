@@ -11,6 +11,9 @@ namespace SanGuo.Client
     {
         public string MotionProfile = "sword";
         public float HeadScale = 1f;
+        // Extend the existing neck-to-head bone span; skin weights keep the neck continuous.
+        public float NeckExtension;
+        public int ProportionVersion;
         public AnimationClip? Idle;
         public AnimationClip? Attack;
         public AnimationClip? Cast;

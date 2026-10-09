@@ -85,12 +85,48 @@ namespace SanGuo.Client.Editor
             Finish();
         }
 
+        [MenuItem("SanGuo/修正頭頸比例")]
+        public static void BalanceProportions()
+        {
+            Prepare();
+            foreach (string path in Directory.GetFiles(Output,"*.prefab"))
+            {
+                var root=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path));
+                try
+                {
+                    root.name=Path.GetFileNameWithoutExtension(path);
+                    var clips=root.GetComponent<CharacterClipSet>();
+                    if(clips==null || clips.Idle==null)throw new InvalidOperationException("Missing skeletal idle: "+path);
+                    if(clips.ProportionVersion<1)
+                    {
+                        foreach(var renderer in root.GetComponentsInChildren<SkinnedMeshRenderer>())
+                        {
+                            if(renderer.name!="FaceRenderer" || renderer.sharedMesh==null)continue;
+                            var mesh=renderer.sharedMesh;var vertices=mesh.vertices;
+                            for(int i=0;i<vertices.Length;i++)vertices[i].x/=1.06f;
+                            mesh.vertices=vertices;mesh.RecalculateNormals();mesh.RecalculateTangents();mesh.RecalculateBounds();
+                            EditorUtility.SetDirty(mesh);
+                        }
+                    }
+                    clips.HeadScale=1f;clips.NeckExtension=NeckExtensionFor(clips.MotionProfile);clips.ProportionVersion=1;
+                    clips.Idle.SampleAnimation(root,0);Normalize(root,clips);ProductionCharacterAssembly.Validate(root);
+                    PrefabUtility.SaveAsPrefabAsset(root,path);
+                    Debug.Log("ART_PROPORTIONS "+root.name+" headScale=1 neckExtension="+clips.NeckExtension+" version=1");
+                }
+                finally{UnityEngine.Object.DestroyImmediate(root);}
+            }
+            Finish();
+        }
+
         private static void Prepare()
         {
             Directory.CreateDirectory(Output + "/Meshes");
             Directory.CreateDirectory(Output + "/Materials");
             AssetDatabase.Refresh();
         }
+
+        private static float NeckExtensionFor(string role) => role=="caster" ? 0f
+            : role=="guard" || role=="archer" ? .35f : .20f;
 
         private static void Finish()
         {
@@ -135,7 +171,9 @@ namespace SanGuo.Client.Editor
                 if (clips == null || clips.Idle == null || clips.Attack == null)
                     throw new InvalidOperationException("Sample requires an actual skeleton and animation clips.");
                 clips.MotionProfile = role;
-                clips.HeadScale = role == "caster" ? 1.26f : 1.22f;
+                clips.HeadScale = 1f;
+                clips.NeckExtension = NeckExtensionFor(role);
+                clips.ProportionVersion = 1;
                 string clipPath=AssetDatabase.GetAssetPath(clips.Idle);
                 string motion=role == "archer" ? "Farfight1" : role == "caster" ? "Magic" : role == "guard" ? "Fight2" : role == "polearm" ? "Fight3" : "Fight1";
                 // 待機檔名不含 FightStandby 時，替換會原樣回傳待機檔，攻擊就被換成待機動作。
@@ -164,7 +202,12 @@ namespace SanGuo.Client.Editor
         {
                 var head=root.GetComponentsInChildren<Transform>().FirstOrDefault(t=>t.name=="Bip001 Head");
                 var originalHeadScale=head!=null?head.localScale:Vector3.one;
-                if(head!=null)head.localScale=originalHeadScale*clips.HeadScale;
+                var originalHeadPosition=head!=null?head.localPosition:Vector3.zero;
+                if(head!=null)
+                {
+                    head.localScale=originalHeadScale*clips.HeadScale;
+                    head.localPosition=originalHeadPosition*(1f+clips.NeckExtension);
+                }
                 var bodyBounds=new Bounds();bool first=true;
                 foreach(var r in root.GetComponentsInChildren<SkinnedMeshRenderer>())
                 {
@@ -172,7 +215,7 @@ namespace SanGuo.Client.Editor
                     var bounds=ProductionInfantryDesign.SkinBounds(root,r.name);
                     if(first){bodyBounds=bounds;first=false;}else bodyBounds.Encapsulate(bounds);
                 }
-                if(head!=null)head.localScale=originalHeadScale;
+                if(head!=null){head.localScale=originalHeadScale;head.localPosition=originalHeadPosition;}
                 if(first || bodyBounds.size.y<.05f)throw new InvalidOperationException("Empty posed character geometry: "+root.name);
                 root.transform.localScale *= 2.30f/bodyBounds.size.y;
                 Debug.Log("ART_WORLD_SIZE "+root.name+" posedHeight="+bodyBounds.size.y+" scale="+root.transform.localScale.x+" targetBodyHeight=2.3");
@@ -190,7 +233,7 @@ namespace SanGuo.Client.Editor
                     float u=(uv[i].x-x)/.13f,v=(uv[i].y-.52f)/.11f;
                     cheek+=Mathf.Exp(-(u*u+v*v)*2f);
                 }
-                var p=vertices[i];p.x*=1.06f;
+                var p=vertices[i];
                 vertices[i]=p+normals[i]*(cheek*.0013f);
             }
             mesh.vertices=vertices;mesh.RecalculateNormals();mesh.RecalculateTangents();mesh.RecalculateBounds();

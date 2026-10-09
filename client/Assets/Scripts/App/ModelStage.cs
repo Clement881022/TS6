@@ -30,6 +30,8 @@ namespace SanGuo.Client
         private CharacterView? _proceduralView;
         private Transform? _skeletalHead;
         private Vector3 _skeletalHeadScale;
+        private Vector3 _skeletalHeadOffset;
+        private bool _headOffsetApplied;
         private Quaternion _modelBaseRotation;
         private float _reviewYaw;
         private int _frameAfterPose=2;
@@ -62,7 +64,12 @@ namespace SanGuo.Client
             SetLayer(_model, StageLayer);
             _clips = _model.GetComponent<CharacterClipSet>();
             foreach (var bone in _model.GetComponentsInChildren<Transform>())
-                if (bone.name == "Bip001 Head") { _skeletalHead = bone; _skeletalHeadScale = bone.localScale; break; }
+                if (bone.name == "Bip001 Head")
+                {
+                    _skeletalHead = bone; _skeletalHeadScale = bone.localScale;
+                    _skeletalHeadOffset = bone.localPosition * (_clips != null ? _clips.NeckExtension : 0f);
+                    break;
+                }
             if (_clips == null)
             {
                 _proceduralView = _model.AddComponent<CharacterView>();
@@ -165,6 +172,11 @@ namespace SanGuo.Client
 
         private void Update()
         {
+            if (_skeletalHead != null && _headOffsetApplied)
+            {
+                _skeletalHead.localPosition -= _skeletalHeadOffset;
+                _headOffsetApplied = false;
+            }
             _proceduralView?.Tick(Time.deltaTime, Quaternion.Euler(0,_reviewYaw,0)*Vector3.forward, 1f, _origin);
             if (!_playable.IsValid() || _current == null) return;
             if (_playable.GetTime() >= _current.length - 0.02f)
@@ -185,7 +197,12 @@ namespace SanGuo.Client
 
         private void LateUpdate()
         {
-            if (_skeletalHead != null && _clips != null) _skeletalHead.localScale = _skeletalHeadScale * _clips.HeadScale;
+            if (_skeletalHead != null && _clips != null)
+            {
+                _skeletalHead.localScale = _skeletalHeadScale * _clips.HeadScale;
+                _skeletalHead.localPosition += _skeletalHeadOffset;
+                _headOffsetApplied = true;
+            }
             if(_frameAfterPose>0 && --_frameAfterPose==0 && !_bust)
             {
                 if (_framing != null) StopCoroutine(_framing);
