@@ -190,7 +190,7 @@ namespace SanGuo.Client
 
             _tagLayer = new VisualElement { pickingMode = PickingMode.Ignore };
             _tagLayer.AddToClassList("tag-layer");
-            _field.Add(_tagLayer);
+            _content.Insert(_content.IndexOf(_field) + 1, _tagLayer);
 
             _unitInfo = new VisualElement { pickingMode = PickingMode.Ignore };
             _unitInfo.AddToClassList("unit-info");

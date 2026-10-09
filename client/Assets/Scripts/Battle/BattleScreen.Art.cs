@@ -23,7 +23,7 @@ namespace SanGuo.Client
         {
             if (_battle == null || _aimLayer == null) return;
             var painter = context.painter2D;
-            painter.lineWidth = 3;
+            painter.lineWidth = 6;
             painter.strokeColor = new Color(1f,.25f,.18f,.25f+.75f*(.5f+.5f*Mathf.Sin(Time.time*Mathf.PI*2)));
             foreach (var enemy in _battle.Units.Where(u => u.Alive && u.Side == Side.Enemy))
             {

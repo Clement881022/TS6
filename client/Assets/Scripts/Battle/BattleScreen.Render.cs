@@ -85,7 +85,7 @@ namespace SanGuo.Client
 
         private void UpdateTagPositions()
         {
-            if (_tagLayer == null || _field.resolvedStyle.width < 1) return;
+            if (_tagLayer == null || _tagLayer.resolvedStyle.width < 1) return;
             float width = _tagLayer.resolvedStyle.width, height = _tagLayer.resolvedStyle.height;
             if (width < 1 || height < 1) return;
             foreach (var unit in _battle.Units)
