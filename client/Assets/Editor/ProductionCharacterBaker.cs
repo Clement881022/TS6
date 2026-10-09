@@ -103,19 +103,29 @@ namespace SanGuo.Client.Editor
                 var attack=!clipPath.Contains("FightStandby") ? null : AssetDatabase.LoadAllAssetsAtPath(clipPath.Replace("FightStandby",motion)).OfType<AnimationClip>().FirstOrDefault(c=>!c.name.StartsWith("__preview__"));
                 if(attack != null) clips.Attack=attack;
                 if(id == "r_shield" || id == "r_archer" || id == "r_healer") clips.Idle.SampleAnimation(root,0);
+                ProductionInfantryCostume.Apply(root,id,Output);
                 if(role == "archer") { ProductionCharacterProps.Bow(root,Output);root.AddComponent<ArcherPoseRig>(); }
                 if(role == "guard") ProductionCharacterProps.Shield(root,Output);
                 ProductionInfantryDesign.AddDesign(root,id,Output);
+                if(id == "r_shield" || id == "r_archer" || id == "r_healer") ProductionCharacterAssembly.Consolidate(root,id,Output);
                 if(id == "guanyu")
                     foreach(var t in root.GetComponentsInChildren<Transform>())
                         if(t.name == "Weapon_00029") t.localRotation = Quaternion.Euler(0,180,0);
+                var head=root.GetComponentsInChildren<Transform>().FirstOrDefault(t=>t.name=="Bip001 Head");
+                var originalHeadScale=head!=null?head.localScale:Vector3.one;
+                if(head!=null)head.localScale=originalHeadScale*clips.HeadScale;
                 var bodyBounds=new Bounds();bool first=true;
-                foreach(var r in root.GetComponentsInChildren<Renderer>())
+                foreach(var r in root.GetComponentsInChildren<SkinnedMeshRenderer>())
                 {
-                    if(r.name.Contains("Weapon") || r.name.Contains("Prop")) continue;
-                    if(first){bodyBounds=r.bounds;first=false;}else bodyBounds.Encapsulate(r.bounds);
+                    if(r.name.Contains("Weapon") || r.sharedMesh==null) continue;
+                    var bounds=ProductionInfantryDesign.SkinBounds(root,r.name);
+                    if(first){bodyBounds=bounds;first=false;}else bodyBounds.Encapsulate(bounds);
                 }
-                root.transform.localScale = Vector3.one * (2.30f/Mathf.Max(.5f,bodyBounds.size.y));
+                if(head!=null)head.localScale=originalHeadScale;
+                if(first || bodyBounds.size.y<.05f)throw new InvalidOperationException("Empty posed character geometry: "+id);
+                root.transform.localScale *= 2.30f/bodyBounds.size.y;
+                Debug.Log("ART_WORLD_SIZE "+id+" posedHeight="+bodyBounds.size.y+" scale="+root.transform.localScale.x+" targetBodyHeight=2.3");
+                ProductionCharacterAssembly.Validate(root);
                 PrefabUtility.SaveAsPrefabAsset(root, Output + "/"+id+".prefab");
                 AssetDatabase.SaveAssets();
                 Debug.Log("PRODUCTION_CHARACTER "+id+" triangles=" + triangles + " motion="+role+" skinned=true textured=true");

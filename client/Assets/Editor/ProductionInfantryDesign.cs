@@ -82,7 +82,7 @@ namespace SanGuo.Client.Editor
             r.sharedMesh=mesh;
         }
 
-        private static Bounds SkinBounds(GameObject root,string name)
+        public static Bounds SkinBounds(GameObject root,string name)
         {
             var renderer=root.GetComponentsInChildren<SkinnedMeshRenderer>(true).First(r=>r.name==name);
             var mesh=renderer.sharedMesh;var vertices=mesh.vertices;var weights=mesh.boneWeights;

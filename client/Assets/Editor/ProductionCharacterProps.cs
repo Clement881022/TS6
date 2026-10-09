@@ -84,7 +84,7 @@ namespace SanGuo.Client.Editor
             }
             // 既有材質也要套用目前顏色，否則改色後重新烘焙仍沿用舊色。
             material.SetColor("_BaseColor",color);material.SetFloat("_MetalStrength",name.Contains("Cloth") || name.Contains("Hair") || name.Contains("Plume") || name.Contains("Tassel") || name.Contains("Leather") ? .12f:.75f);
-            string? surface = name=="ShieldHelmetDome" ? "equipment_helmet" : name.Contains("Cloth") ? "equipment_blue_silk" : name.Contains("HairCap") || name.Contains("HairLock") || name.Contains("HairBackLock") || name.Contains("HairTemple") ? "equipment_hair" : name=="PropShieldFace" ? "equipment_shield" : name=="HealerMedicineGourd" ? "equipment_gourd" : null;
+            string? surface = name=="ShieldHelmetDome" ? "equipment_helmet" : name.Contains("BootLeather") || name=="ArcherQuiverLeather" ? "equipment_dark_leather" : name.Contains("Cloth") ? "equipment_blue_silk" : name.Contains("HairCap") || name.Contains("HairLock") || name.Contains("HairBackLock") || name.Contains("HairTemple") ? "equipment_hair" : name=="PropShieldFace" ? "equipment_shield" : name=="HealerMedicineGourd" ? "equipment_gourd" : null;
             var painted=surface==null?null:AssetDatabase.LoadAssetAtPath<Texture2D>(output+"/Textures/"+surface+".png");
             if(painted!=null){material.SetTexture("_BaseMap",painted);material.SetColor("_BaseColor",Color.white);}
             EditorUtility.SetDirty(material);
