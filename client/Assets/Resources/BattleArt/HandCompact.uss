@@ -1,7 +1,7 @@
 .root .sts-card { height: 244px; }
 .root .sts-hand { height: 284px; }
-.root .sts-card-name { height: 30px; margin-top: 24px; margin-left: 0; font-size: 24px; }
-.root .sts-card-art { height: 138px; margin-top: 2px; }
+.root .sts-card-name { position: absolute; left: 44px; right: 46px; top: 8px; height: 34px; margin-top: 0; margin-left: 0; font-size: 22px; white-space: nowrap; overflow: hidden; -unity-text-align: middle-center; }
+.root .sts-card-art { height: 176px; margin-top: 38px; }
 .root .sts-card-description { display: none; }
 .root .sts-card-owner { display: none; }
 .root .sts-card-category { position: absolute; right: 9px; top: 8px; width: 34px; height: 34px; -unity-background-scale-mode: scale-to-fit; }
