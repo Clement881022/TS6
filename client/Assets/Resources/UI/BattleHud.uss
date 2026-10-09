@@ -5,24 +5,24 @@
 .root .bl-dock-left .bl-pile-btn, .root .bl-dock-right .bl-pile-btn { width: 100%; height: 96px; min-height: 96px; margin: 0; flex-grow: 0; flex-direction: row; align-items: center; justify-content: center; }
 .root .bl-dock-left .bl-pile-icon, .root .bl-dock-right .bl-pile-icon { width: 64px; height: 64px; margin-right: 14px; }
 .root .bl-dock-left .bl-pile-count, .root .bl-dock-right .bl-pile-count { font-size: 46px; }
-.root .sts-hand { left: 236px; right: 250px; }
+.root .sts-hand { left: 236px; right: 250px; bottom: -28px; }
 
-.root .ul-panel { position: absolute; left: 14px; top: 100px; width: 250px; padding: 6px; background-color: rgba(10, 24, 27, 0.88); border-width: 1px; border-color: rgb(142, 121, 73); border-radius: 6px; }
+.root .ul-panel { position: absolute; left: 14px; top: 100px; width: 340px; padding: 8px; background-color: rgba(10, 24, 27, 0.88); border-width: 1px; border-color: rgb(142, 121, 73); border-radius: 6px; }
 .root .ul-tabs { flex-direction: row; margin-bottom: 4px; }
-.root .ul-tab { flex-grow: 1; flex-basis: 0; height: 46px; min-height: 46px; margin: 0 2px; padding: 0; font-size: 26px; color: white; border-width: 0; border-radius: 12px; opacity: 0.5; -unity-text-align: middle-center; }
+.root .ul-tab { flex-grow: 1; flex-basis: 0; height: 62px; min-height: 62px; margin: 0 3px; padding: 0; font-size: 34px; color: white; border-width: 0; border-radius: 12px; opacity: 0.5; -unity-text-align: middle-center; }
 .root .ul-tab-ally { background-color: rgb(34, 160, 64); }
 .root .ul-tab-enemy { background-color: rgb(214, 36, 36); }
 .root .ul-tab-on { opacity: 1; }
-.root .ul-row { flex-direction: row; align-items: center; height: 64px; margin-top: 4px; padding: 4px 6px; background-color: rgba(255, 255, 255, 0.07); border-width: 1px; border-color: rgba(0, 0, 0, 0); border-radius: 4px; }
+.root .ul-row { flex-direction: row; align-items: center; height: 92px; margin-top: 6px; padding: 6px 10px; background-color: rgba(255, 255, 255, 0.07); border-width: 1px; border-color: rgba(0, 0, 0, 0); border-radius: 4px; }
 .root .ul-row:hover { background-color: rgba(255, 255, 255, 0.14); }
 .root .ul-row-on { border-color: rgb(235, 191, 99); background-color: rgba(235, 191, 99, 0.16); }
 .root .ul-row-dead { opacity: 0.35; }
-.root .ul-face { width: 52px; height: 52px; min-width: 52px; margin-right: 8px; -unity-background-scale-mode: scale-and-crop; border-radius: 4px; background-color: rgba(0, 0, 0, 0.3); }
+.root .ul-face { width: 76px; height: 76px; min-width: 76px; margin-right: 12px; -unity-background-scale-mode: scale-and-crop; border-radius: 4px; background-color: rgba(0, 0, 0, 0.3); }
 .root .ul-col { flex-grow: 1; flex-shrink: 1; min-width: 0; }
-.root .ul-name { font-size: 20px; height: 24px; color: rgb(245, 235, 217); white-space: nowrap; overflow: hidden; -unity-text-outline-width: 0; }
-.root .ul-hp-text { font-size: 20px; height: 24px; color: white; -unity-text-outline-width: 0; }
-.root .ul-hp-bg { height: 8px; border-radius: 4px; background-color: rgb(20, 20, 26); overflow: hidden; }
-.root .ul-hp-fill { height: 8px; background-color: rgb(70, 170, 95); }
+.root .ul-name { font-size: 28px; height: 34px; color: rgb(245, 235, 217); white-space: nowrap; overflow: hidden; -unity-text-outline-width: 0; }
+.root .ul-hp-text { font-size: 26px; height: 32px; color: white; -unity-text-outline-width: 0; }
+.root .ul-hp-bg { height: 12px; border-radius: 6px; background-color: rgb(20, 20, 26); overflow: hidden; }
+.root .ul-hp-fill { height: 12px; background-color: rgb(70, 170, 95); }
 .root .ul-hp-fill-enemy { background-color: rgb(220, 90, 90); }
 .root .unit-info { width: 330px; }
 

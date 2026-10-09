@@ -88,74 +88,21 @@ namespace SanGuo.Client
             if (_tagLayer == null || _field.resolvedStyle.width < 1) return;
             float width = _tagLayer.resolvedStyle.width, height = _tagLayer.resolvedStyle.height;
             if (width < 1 || height < 1) return;
-            var occupied = new List<Rect>();
-            foreach(var panel in new[]{_logBox,_detail,_unitInfo})
-            {
-                if(panel.resolvedStyle.display==DisplayStyle.None || panel.worldBound.width<1 || panel.worldBound.height<1)continue;
-                var min=_tagLayer.WorldToLocal(panel.worldBound.min);
-                var max=_tagLayer.WorldToLocal(panel.worldBound.max);
-                occupied.Add(Rect.MinMaxRect(min.x-4,min.y-4,max.x+4,max.y+4));
-            }
-            var silhouettes = new List<Rect>();
-            foreach(var living in _battle.Units.Where(u=>u.Alive))
-            {
-                var headPoint=_stage.UnitHeadPanel(living);var footPoint=_stage.UnitFootPanel(living);
-                if(headPoint==null || footPoint==null)continue;
-                var head=_tagLayer.WorldToLocal(headPoint.Value);var foot=_tagLayer.WorldToLocal(footPoint.Value);
-                float bodyHeight=Mathf.Abs(foot.y-head.y);
-                float halfWidth=bodyHeight*.22f;
-                silhouettes.Add(Rect.MinMaxRect(Mathf.Min(head.x,foot.x)-halfWidth,
-                    Mathf.Min(head.y,foot.y),Mathf.Max(head.x,foot.x)+halfWidth,Mathf.Max(head.y,foot.y)));
-            }
-            foreach (var unit in _battle.Units.OrderBy(u => _stage.UnitHeadPanel(u)?.y ?? float.MaxValue))
+            foreach (var unit in _battle.Units)
             {
                 if (!_tags.TryGetValue(unit.Id, out var tag)) continue;
-                bool below = false;
-                var point = unit.Alive ? (below ? _stage.UnitFootPanel(unit) : _stage.UnitHeadPanel(unit)) : null;
+                var point = unit.Alive ? _stage.UnitTagPanel(unit) : null;
                 if (point == null)
                 {
                     tag.Root.style.visibility = Visibility.Hidden;
-                    if(tag.AnchorLine!=null)tag.AnchorLine.style.visibility=Visibility.Hidden;
                     continue;
                 }
                 var anchor = _tagLayer.WorldToLocal(point.Value);
-                if (anchor.x < 0 || anchor.x > width || anchor.y < 0 || anchor.y > height)
-                {
-                    tag.Root.style.visibility = Visibility.Hidden;
-                    if(tag.AnchorLine!=null)tag.AnchorLine.style.visibility=Visibility.Hidden;
-                    continue;
-                }
-                float tagWidth = below ? HeroTagWidth : TagWidth;
+                float tagWidth = TagWidth;
                 float measuredHeight = tag.Root.resolvedStyle.height;
-                float tagHeight = float.IsNaN(measuredHeight) || measuredHeight < 1 ? (below ? 9f : 82f) : measuredHeight;
-                var desired = new Vector2(anchor.x - tagWidth * 0.5f, below ? anchor.y + 5f : anchor.y - tagHeight - 4f);
-                Rect placement = default;
-                bool found = false;
-                Rect Place(float dx, float dy) => new Rect(Mathf.Clamp(desired.x + dx, 4, Mathf.Max(4, width - tagWidth - 4)),
-                    Mathf.Clamp(desired.y + dy, 4, Mathf.Max(4, height - tagHeight - 4)), tagWidth, tagHeight);
-                var home = Place(0, 0);
-                foreach (var (dx, dy) in new[] { (0f, 0f), (0f, -20f), (-30f, -10f), (30f, -10f), (0f, -44f), (-40f, -30f), (40f, -30f), (0f, -70f) })
-                {
-                    placement = Place(dx, dy);
-                    found = !occupied.Any(r => r.Overlaps(placement));
-                    if (found) break;
-                }
-                if (!found) { placement = home; found = true; }
-                tag.Root.style.visibility = found ? Visibility.Visible : Visibility.Hidden;
-                if(tag.AnchorLine!=null)
-                {
-                    tag.AnchorLine.style.visibility=found ? Visibility.Visible : Visibility.Hidden;
-                    if(found)
-                    {
-                        var start=new Vector2(Mathf.Clamp(anchor.x,placement.xMin,placement.xMax),Mathf.Clamp(anchor.y,placement.yMin,placement.yMax));
-                        var delta=anchor-start;
-                        tag.AnchorLine.style.left=start.x;tag.AnchorLine.style.top=start.y;
-                        tag.AnchorLine.style.height=delta.magnitude;
-                        tag.AnchorLine.style.rotate=new Rotate(new Angle(Mathf.Atan2(-delta.x,delta.y)*Mathf.Rad2Deg));
-                    }
-                }
-                if (!found) continue;
-                occupied.Add(placement);
+                float tagHeight = float.IsNaN(measuredHeight) || measuredHeight < 1 ? 82f : measuredHeight;
+                var placement = new Rect(anchor.x - tagWidth * 0.5f, anchor.y - tagHeight, tagWidth, tagHeight);
+                tag.Root.style.visibility = Visibility.Visible;
                 if (Mathf.Abs(tag.LastLeft - placement.x) < 0.5f && Mathf.Abs(tag.LastTop - placement.y) < 0.5f) continue;
                 tag.LastLeft = placement.x; tag.LastTop = placement.y;
                 tag.Root.style.left = placement.x;

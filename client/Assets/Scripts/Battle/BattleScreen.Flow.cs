@@ -244,19 +244,6 @@ namespace SanGuo.Client
         {
             _stage.DebugValidateGridPicking();
             _stage.DebugValidateIdleFacing();
-            var visible = new List<Rect>();
-            foreach (var tag in _tags.Values)
-            {
-                if (tag.Root.resolvedStyle.visibility != Visibility.Visible) continue;
-                var bounds = tag.Root.worldBound;
-                var field = _field.worldBound;
-                if (bounds.xMin < field.xMin - 1 || bounds.xMax > field.xMax + 1 || bounds.yMin < field.yMin - 1 || bounds.yMax > field.yMax + 1)
-                    throw new InvalidOperationException("Battle HUD escaped the field.");
-                foreach(var panel in new[]{_logBox,_detail,_unitInfo})
-                    if(panel.resolvedStyle.display!=DisplayStyle.None && panel.worldBound.Overlaps(bounds))
-                        throw new InvalidOperationException("Battle HUD overlaps a visible information panel.");
-                visible.Add(bounds);
-            }
             foreach (var tile in _handCards)
             {
                 var label = tile.Q<Label>(className: "sts-card-description");

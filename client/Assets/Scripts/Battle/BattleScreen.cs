@@ -25,7 +25,6 @@ namespace SanGuo.Client
             public Label HpText = null!;
             public VisualElement Extra = null!;
             public VisualElement Intent = null!;
-            public VisualElement? AnchorLine;
             public float LastLeft = float.NaN, LastTop = float.NaN;
         }
 
@@ -228,7 +227,6 @@ namespace SanGuo.Client
                 if (unit.Side == Side.Enemy) tag.HpFill.AddToClassList("tag-hp-fill-enemy");
                 hpBg.Add(tag.HpFill);
                 tag.HpText = new Label { pickingMode = PickingMode.Ignore }; tag.HpText.AddToClassList("tag-hp-text");
-                hpBg.Add(tag.HpText);
                 tag.Extra = new VisualElement { pickingMode = PickingMode.Ignore }; tag.Extra.AddToClassList("tag-extra");
                 tag.Intent = new VisualElement { pickingMode = PickingMode.Ignore }; tag.Intent.AddToClassList("tag-intent");
                 tag.Role = new VisualElement { pickingMode = PickingMode.Ignore }; tag.Role.AddToClassList("tag-role");
@@ -241,6 +239,7 @@ namespace SanGuo.Client
                 var column = new VisualElement { pickingMode = PickingMode.Ignore };
                 column.AddToClassList("tag-column");
                 column.Add(nameRow);
+                column.Add(tag.HpText);
                 column.Add(hpBg);
                 var mainRow = new VisualElement { pickingMode = PickingMode.Ignore };
                 mainRow.AddToClassList("tag-main");
@@ -248,8 +247,6 @@ namespace SanGuo.Client
                 mainRow.Add(column);
                 if (unit.Side == Side.Enemy) tag.Root.Add(tag.Intent);
                 tag.Root.Add(mainRow);
-                hpBg.Remove(tag.HpText);
-                tag.Root.Add(tag.HpText);
                 tag.Root.Add(tag.Extra);
                 _tagLayer.Add(tag.Root);
                 _tags[unit.Id] = tag;

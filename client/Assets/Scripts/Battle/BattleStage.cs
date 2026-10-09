@@ -39,6 +39,7 @@ namespace SanGuo.Client
             public Transform? LeftFoot, RightFoot;
             public bool Placed;
             public Vector3 Facing;
+            public Renderer[]? Bodies;
         }
 
         private const float DefaultZoom = 1.3f, MinZoom = 0.7f, MaxZoom = 3.2f;
@@ -327,6 +328,25 @@ namespace SanGuo.Client
                 return new Vector2((left.x+right.x)*.5f,Mathf.Max(left.y,right.y));
             }
             return WorldToPanel(uv.Anchor.transform.position + Vector3.up * 0.05f);
+        }
+
+        public Vector2? UnitTagPanel(Unit unit)
+        {
+            if (!_views.TryGetValue(unit.Id, out var uv) || !uv.Anchor.activeSelf) return null;
+            if (uv.Bodies == null || uv.Bodies.Length == 0)
+            {
+                var skinned = uv.Anchor.GetComponentsInChildren<SkinnedMeshRenderer>();
+                uv.Bodies = skinned.Length > 0 ? skinned : uv.Anchor.GetComponentsInChildren<Renderer>();
+            }
+            var origin = uv.Anchor.transform.position;
+            float top = origin.y + UnitHeadHeight;
+            if (uv.Bodies.Length > 0)
+            {
+                top = float.MinValue;
+                foreach (var body in uv.Bodies) if (body != null) top = Mathf.Max(top, body.bounds.max.y);
+                if (top == float.MinValue) top = origin.y + UnitHeadHeight;
+            }
+            return WorldToPanel(new Vector3(origin.x, top, origin.z));
         }
 
         public Vector2? UnitHeadPanel(Unit unit)
