@@ -150,6 +150,14 @@ namespace SanGuo.Core.Tests
                 Assert.Equal(300, drops.Where(kv => kv.Key.StartsWith("eqs:") && kv.Key.EndsWith(":" + tier)).Sum(kv => kv.Value));
                 Assert.DoesNotContain(drops.Keys, k => k.StartsWith("eq:"));
             }
+            // 武器掉落與碎片都是某個職業專屬的（例如「神品法杖碎片」）：六個職業都會出現，沒有無職業的武器
+            var weaponDrops = Equipment.RollDrops(5, 600, new Rng(11)).Where(kv => kv.Key.StartsWith("eqs:weapon:")).ToList();
+            Assert.All(weaponDrops, kv => Assert.True(Equipment.TryParseShardKey(kv.Key, out _, out _, out var r) && r.HasValue));
+            Assert.Equal(6, weaponDrops.Count);
+            var pieceDrops = Equipment.RollDrops(1, 600, new Rng(11)).Keys.Where(k => k.StartsWith("eq:weapon:")).ToList();
+            Assert.All(pieceDrops, k => Assert.True(Equipment.TryParseKey(k, out _, out _, out var r) && r.HasValue));
+            Assert.Equal("神品法杖碎片", Equipment.ShardName(EquipSlot.Weapon, 5, Role.Mage));
+            Assert.Equal("極品防具碎片", Equipment.ShardName(EquipSlot.Armor, 4));
             Assert.True(Equipment.ShardCostOf(5) > Equipment.ShardCostOf(4));
             Assert.False(Equipment.UsesShards(3));
         }

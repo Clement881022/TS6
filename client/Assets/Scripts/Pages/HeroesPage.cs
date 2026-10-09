@@ -343,7 +343,7 @@ namespace SanGuo.Client
                 bool any = false;
                 for (int tier = 1; tier <= Equipment.MaxTier; tier++)
                 {
-                    // 通用裝備（含無職業的兵胚）加上本職業已定型的武器；其他職業的武器不能穿，不列出
+                    // 通用裝備（含贈送的自選武器匣）加上本職業已定型的武器；其他職業的武器不能穿，不列出
                     int have = v.Material(Equipment.ItemKey(sl, tier)) + (sl == EquipSlot.Weapon ? v.Material(Equipment.WeaponKey(def.Role, tier)) : 0);
                     if (have <= 0) continue;
                     any = true;
@@ -351,14 +351,14 @@ namespace SanGuo.Client
                     stock.Add(UiKit.Btn($"穿 {Equipment.Name(sl, t, def.Role)} ×{have}", () => _ = Act(() => GameSession.Backend.Equip(def.Id, sl.ToString(), t)), primary: t > worn).WithClass("btn-sm"));
                     stock.Add(UiKit.Btn($"分解 +{Equipment.DismantleGold(t)}", () => _ = Act(() => GameSession.Backend.Dismantle(sl.ToString(), t, 1))).WithClass("btn-sm"));
                 }
-                if (!any) stock.Add(UiKit.Text(sl == EquipSlot.Weapon ? $"庫存沒有可用的{Equipment.WeaponTypeName(def.Role)}（素材副本可取得兵胚與碎片）" : "庫存沒有這個部位的裝備（素材副本可取得）", "card-row-desc"));
+                if (!any) stock.Add(UiKit.Text(sl == EquipSlot.Weapon ? $"庫存沒有可用的{Equipment.WeaponTypeName(def.Role)}" : "庫存沒有這個部位的裝備", "card-row-desc"));
                 row.Add(stock);
                 // 高階裝備碎片進度
                 for (int tier = 1; tier <= Equipment.MaxTier; tier++)
                 {
                     if (!Equipment.UsesShards(tier)) continue;
-                    int shards = v.Material(Equipment.ShardKey(sl, tier));
-                    if (shards > 0) row.Add(UiKit.Text($"{Equipment.ShardName(sl, tier)} {shards}/{Equipment.ShardCostOf(tier)}", "card-row-desc"));
+                    int shards = v.Material(Equipment.ShardKey(sl, tier, def.Role));
+                    if (shards > 0) row.Add(UiKit.Text($"{Equipment.ShardName(sl, tier, def.Role)} {shards}/{Equipment.ShardCostOf(tier)}", "card-row-desc"));
                 }
                 scroll.Add(row);
             }

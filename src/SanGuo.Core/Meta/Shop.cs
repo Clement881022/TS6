@@ -49,7 +49,7 @@ namespace SanGuo.Core.Meta
         public static string RechargeId(int cny) => "recharge_" + cny;
         public static bool RechargeFirstTime(PlayerProfile p, string productId) => !p.RechargeBought.Contains(productId);
 
-        /// <summary>首儲禮包（¥6，每帳號一次）：600 元寶、金幣 20000、武將經驗 5000、良品兵胚／防具／飾品各 1。</summary>
+        /// <summary>首儲禮包（¥6，每帳號一次）：600 元寶、金幣 20000、武將經驗 5000、良品自選武器匣／防具／飾品各 1。</summary>
         public static Reward FirstPackReward()
         {
             var r = new Reward(yuanbao: 600, gold: 20000).With(HeroGrowth.HeroExp, 5000);

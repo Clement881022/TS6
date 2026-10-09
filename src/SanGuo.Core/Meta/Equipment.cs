@@ -17,10 +17,10 @@ namespace SanGuo.Core.Meta
     /// <summary>
     /// 裝備（GDD 09）：每名武將 3 個部位（武器、防具、飾品），品階 1–5，屬性固定、無隨機詞條；品階加成為非線性曲線（見 <see cref="Percents"/>，低階比線性弱、高階比線性強）。
     /// 武器依職業分類（重盾、戰刀、長弓、法杖、羽扇、藥杖），只有對應職業能配戴；防具與飾品全職業通用。
-    /// 取得自素材副本：低階（1–3 階）直接掉裝備，高階（4–5 階）掉碎片，集滿合成。
+    /// 取得自素材副本：低階（1–3 階）直接掉裝備，高階（4–5 階）掉碎片，集滿合成；掉落的武器（含碎片）都是某個職業專屬的，例如「神品法杖碎片」。
     /// 庫存存放於 <see cref="PlayerProfile.Materials"/>：
-    ///   通用裝備 / 兵胚（無職業的武器，穿上時依配戴者職業定型）= <c>eq:部位:品階</c>；
-    ///   已定型的職業武器（卸下後留在庫存）= <c>eq:weapon:職業:品階</c>；碎片 = <c>eqs:部位:品階</c>。
+    ///   防具、飾品、自選武器匣（贈送用，穿上時依配戴者職業定型成該職業武器）= <c>eq:部位:品階</c>；
+    ///   職業武器 = <c>eq:weapon:職業:品階</c>；碎片 = <c>eqs:部位:品階</c>（武器碎片為 <c>eqs:weapon:職業:品階</c>）。
     /// 武將身上的裝備記為部位 → 品階。
     /// </summary>
     public static class Equipment
@@ -36,14 +36,17 @@ namespace SanGuo.Core.Meta
 
         // ---- 庫存鍵 ----
 
-        /// <summary>通用裝備（防具、飾品、無職業的武器兵胚）的庫存鍵。</summary>
+        /// <summary>通用裝備（防具、飾品、贈送用的自選武器匣）的庫存鍵。</summary>
         public static string ItemKey(EquipSlot slot, int tier) => $"eq:{slot.ToString().ToLowerInvariant()}:{tier}";
 
         /// <summary>已定型的職業武器庫存鍵。</summary>
         public static string WeaponKey(Role role, int tier) => $"eq:weapon:{role.ToString().ToLowerInvariant()}:{tier}";
 
-        /// <summary>碎片庫存鍵（高階裝備以碎片取得）。</summary>
-        public static string ShardKey(EquipSlot slot, int tier) => $"eqs:{slot.ToString().ToLowerInvariant()}:{tier}";
+        /// <summary>碎片庫存鍵（高階裝備以碎片取得）；武器碎片依職業分開。</summary>
+        public static string ShardKey(EquipSlot slot, int tier, Role? role = null) =>
+            slot == EquipSlot.Weapon && role.HasValue
+                ? $"eqs:weapon:{role.Value.ToString().ToLowerInvariant()}:{tier}"
+                : $"eqs:{slot.ToString().ToLowerInvariant()}:{tier}";
 
         public static bool TryParseKey(string key, out EquipSlot slot, out int tier) => TryParseKey(key, out slot, out tier, out _);
 
@@ -64,14 +67,22 @@ namespace SanGuo.Core.Meta
             return int.TryParse(parts[parts.Length - 1], out tier) && tier >= 1 && tier <= MaxTier;
         }
 
-        public static bool TryParseShardKey(string key, out EquipSlot slot, out int tier)
+        public static bool TryParseShardKey(string key, out EquipSlot slot, out int tier) => TryParseShardKey(key, out slot, out tier, out _);
+
+        public static bool TryParseShardKey(string key, out EquipSlot slot, out int tier, out Role? role)
         {
             slot = EquipSlot.Weapon;
             tier = 0;
+            role = null;
             var parts = key.Split(':');
-            if (parts.Length != 3 || parts[0] != "eqs") return false;
+            if (parts[0] != "eqs" || (parts.Length != 3 && parts.Length != 4)) return false;
             if (!Enum.TryParse(parts[1], true, out slot)) return false;
-            return int.TryParse(parts[2], out tier) && tier >= 1 && tier <= MaxTier;
+            if (parts.Length == 4)
+            {
+                if (slot != EquipSlot.Weapon || !Enum.TryParse<Role>(parts[2], true, out var r)) return false;
+                role = r;
+            }
+            return int.TryParse(parts[parts.Length - 1], out tier) && tier >= 1 && tier <= MaxTier;
         }
 
         // ---- 名稱 ----
@@ -108,11 +119,11 @@ namespace SanGuo.Core.Meta
             new[] { "竹骨扇", "鶴羽扇", "烏木羽扇", "八卦羽扇", "臥龍天機扇" },
             new[] { "藥鋤", "銅鈴杖", "青囊杖", "懸壺杖", "妙手回春杖" },
         };
-        private static readonly string[] BlankNames = { "粗鐵兵胚", "精鋼兵胚", "玄鐵兵胚", "隕鐵兵胚", "天外神鐵兵胚" };
+        private static readonly string[] BlankNames = { "凡品武器自選匣", "良品武器自選匣", "上品武器自選匣", "極品武器自選匣", "神品武器自選匣" };
         private static readonly string[] ArmorNames = { "麻布戰袍", "硬皮甲", "鐵札甲", "明光鎧", "龍鱗寶甲" };
         private static readonly string[] AccessoryNames = { "麻繩護符", "銅虎符", "青玉環", "金絲玉珮", "麒麟玄玉" };
 
-        /// <summary>裝備名稱；武器給了職業就是該職業的武器名，沒給就是無職業的兵胚。</summary>
+        /// <summary>裝備名稱；武器給了職業就是該職業的武器名，沒給就是贈送用的「自選武器匣」。</summary>
         public static string Name(EquipSlot slot, int tier, Role? role = null)
         {
             int i = Math.Max(1, Math.Min(MaxTier, tier)) - 1;
@@ -124,7 +135,9 @@ namespace SanGuo.Core.Meta
             }
         }
 
-        public static string ShardName(EquipSlot slot, int tier) => Name(slot, tier) + "碎片";
+        /// <summary>碎片名稱，例如「神品法杖碎片」「極品防具碎片」。</summary>
+        public static string ShardName(EquipSlot slot, int tier, Role? role = null) =>
+            TierLabel(tier) + (slot == EquipSlot.Weapon ? (role.HasValue ? WeaponTypeName(role.Value) : "武器") : SlotName(slot)) + "碎片";
 
         /// <summary>分解可得的金幣（暫定：品階 × 300）。</summary>
         public static int DismantleGold(int tier) => 300 * tier;
@@ -183,7 +196,7 @@ namespace SanGuo.Core.Meta
             return n;
         }
 
-        /// <summary>穿上庫存中的裝備；武器只能穿自己職業的（有已定型的先用，否則用兵胚定型）。該部位原本的裝備退回庫存。</summary>
+        /// <summary>穿上庫存中的裝備；武器只能穿自己職業的（有職業武器先用，否則用自選武器匣定型）。該部位原本的裝備退回庫存。</summary>
         public static EquipResult Equip(PlayerProfile p, string heroId, EquipSlot slot, int tier)
         {
             if (!p.Heroes.TryGetValue(heroId, out var hero)) return EquipResult.UnknownHero;
@@ -242,10 +255,10 @@ namespace SanGuo.Core.Meta
         /// 低階副本（1–3 階）直接掉裝備的機率（企劃 2026-10-09：機率掉落、越高階越難掉）。沒掉到就沒有。
         /// 4–5 階不走這個表，改掉碎片（<see cref="ShardCost"/>）。
         /// </summary>
-        public static readonly double[] DropChance = { 1.0, 0.4, 0.15, 0, 0 };
+        public static readonly double[] DropChance = { 1.0, 0.4, 0.2, 0, 0 };
 
         /// <summary>高階裝備合成一件所需的碎片數（0 = 該階直接掉裝備）。每次副本掉 1 個隨機部位的碎片。</summary>
-        public static readonly int[] ShardCost = { 0, 0, 0, 12, 40 };
+        public static readonly int[] ShardCost = { 0, 0, 0, 9, 30 };
 
         public static bool UsesShards(int tier) => ShardCostOf(tier) > 0;
 
@@ -253,39 +266,54 @@ namespace SanGuo.Core.Meta
 
         public static double DropChanceOf(int tier) => DropChance[Math.Max(1, Math.Min(MaxTier, tier)) - 1];
 
-        /// <summary>素材副本的裝備掉落：低階每次最多 1 件、隨機部位；高階每次 1 個隨機部位的碎片。回傳「庫存鍵 → 數量」。</summary>
+        /// <summary>
+        /// 素材副本的裝備掉落：低階每次最多 1 件、高階每次 1 個碎片；部位隨機，掉到武器時職業也隨機
+        /// （所以某職業的專屬武器只佔掉落的 1/18）。回傳「庫存鍵 → 數量」。
+        /// </summary>
         public static Dictionary<string, int> RollDrops(int tier, int count, Rng rng)
         {
             var drops = new Dictionary<string, int>();
             bool shards = UsesShards(tier);
+            var roles = (Role[])Enum.GetValues(typeof(Role));
             for (int i = 0; i < count; i++)
             {
                 if (!shards && rng.Next(10000) >= (int)Math.Round(DropChanceOf(tier) * 10000)) continue;
                 var slot = Slots[rng.Next(Slots.Length)];
-                string key = shards ? ShardKey(slot, tier) : ItemKey(slot, tier);
+                Role? role = slot == EquipSlot.Weapon ? roles[rng.Next(roles.Length)] : (Role?)null;
+                string key = shards ? ShardKey(slot, tier, role) : role.HasValue ? WeaponKey(role.Value, tier) : ItemKey(slot, tier);
                 drops[key] = drops.TryGetValue(key, out int n) ? n + 1 : 1;
             }
             return drops;
         }
 
-        /// <summary>碎片集滿就自動合成裝備（武器合成為無職業的兵胚，穿上時定型）；回傳合成了幾件。</summary>
+        /// <summary>碎片集滿就自動合成裝備（武器碎片合成該職業的武器）；回傳合成了幾件。</summary>
         public static int AutoForge(PlayerProfile p)
         {
             int made = 0;
+            var roles = (Role[])Enum.GetValues(typeof(Role));
             for (int tier = 1; tier <= MaxTier; tier++)
             {
                 int cost = ShardCostOf(tier);
                 if (cost <= 0) continue;
                 foreach (var slot in Slots)
                 {
-                    int n = p.GetMaterial(ShardKey(slot, tier)) / cost;
-                    if (n <= 0) continue;
-                    p.AddMaterial(ShardKey(slot, tier), -n * cost);
-                    p.AddMaterial(ItemKey(slot, tier), n);
-                    made += n;
+                    if (slot == EquipSlot.Weapon)
+                    {
+                        foreach (var role in roles) made += Forge(p, ShardKey(slot, tier, role), WeaponKey(role, tier), cost);
+                    }
+                    else made += Forge(p, ShardKey(slot, tier), ItemKey(slot, tier), cost);
                 }
             }
             return made;
+        }
+
+        private static int Forge(PlayerProfile p, string shardKey, string itemKey, int cost)
+        {
+            int n = p.GetMaterial(shardKey) / cost;
+            if (n <= 0) return 0;
+            p.AddMaterial(shardKey, -n * cost);
+            p.AddMaterial(itemKey, n);
+            return n;
         }
     }
 }

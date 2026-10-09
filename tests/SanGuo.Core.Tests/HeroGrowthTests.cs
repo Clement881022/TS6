@@ -328,7 +328,7 @@ namespace SanGuo.Core.Tests
             var p = Rich();
             p.Heroes["handang"] = new HeroState { HeroId = "handang" };
             Assert.Equal(Role.Ranger, HeroRoster.Find("handang")!.Role);
-            // 兵胚（無職業）穿上就定型；卸下後只剩該職業能再穿
+            // 自選武器匣（贈送用、無職業）穿上就定型；卸下後只剩該職業能再穿
             p.AddMaterial(Equipment.ItemKey(EquipSlot.Weapon, 3), 1);
             Assert.Equal(EquipResult.Ok, Equipment.Equip(p, "handang", EquipSlot.Weapon, 3));
             Assert.Equal(EquipResult.Ok, Equipment.Unequip(p, "handang", EquipSlot.Weapon));
@@ -342,6 +342,17 @@ namespace SanGuo.Core.Tests
             p.AddMaterial(Equipment.ItemKey(EquipSlot.Armor, 2), 1);
             Assert.Equal(EquipResult.Ok, Equipment.Equip(p, "zhangfei", EquipSlot.Armor, 2));
             Assert.Equal("長梢弓", Equipment.Name(EquipSlot.Weapon, 3, Role.Ranger));
+        }
+
+        [Fact]
+        public void Equipment_WeaponShardsForgeRoleWeapon()
+        {
+            var p = PlayerProfile.CreateNew(0);
+            int cost = Equipment.ShardCostOf(5);
+            p.Grant(new Reward().With(Equipment.ShardKey(EquipSlot.Weapon, 5, Role.Mage), cost).With(Equipment.ShardKey(EquipSlot.Weapon, 5, Role.Tank), cost - 1), 0);
+            Assert.Equal(1, p.GetMaterial(Equipment.WeaponKey(Role.Mage, 5)));   // 神品法杖
+            Assert.Equal(0, p.GetMaterial(Equipment.WeaponKey(Role.Tank, 5)));   // 重盾碎片還沒集滿，不會跟法杖碎片混用
+            Assert.Equal(cost - 1, p.GetMaterial(Equipment.ShardKey(EquipSlot.Weapon, 5, Role.Tank)));
         }
 
         [Fact]
