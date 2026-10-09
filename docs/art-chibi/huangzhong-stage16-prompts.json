@@ -1,0 +1,62 @@
+{
+  "mode": "built-in imagegen",
+  "records": [
+    {
+      "key": "huang_body",
+      "prompt": "Edit Image 1, the original Body_00025 UV texture atlas, into a polished Huang Zhong chibi warrior BODY albedo atlas. Image 1 is the EDIT TARGET. Image 2 is the character COSTUME DESIGN reference: veteran archer, orange silk cloak and sash, bronze brown segmented armor with bright rich gold bevels and lion/dragon scroll decoration, ivory undershirt, dark brown leather. Image 3 is the target SURFACE QUALITY reference from accepted Guan Yu: comparable crisp embroidery, convincing layered metals, broad luminous gold edges, detailed hand-painted materials. Preserve EXACTLY Image 1's UV island positions, silhouettes, scales, and seams; no layout change; keep the small flesh hand patch bottom centre flesh-colored, keep vacant background locations. Repaint former bright green armor panels as rich brown-bronze and gold; existing yellow cloak island upper RIGHT as rich warm ORANGE SILK with tiny gold cloud border and woven highlights. Repaint green sleeves as orange cloth, black plate areas as layered antique bronze armor; fine gold lion scrolls inside existing panel shapes. Existing pale undershirt areas remain ivory. Remove cheap flat outlines and muddy surfaces; dimensional polished stylized AAA chibi game albedo, NO text, NO weapon illustration, NO character portrait, NO additional UV islands. Square opaque PNG atlas.",
+      "paths": [
+        "D:/三國將星傳/client/Assets/Arts/Models/Body/Body_00025/Body_00025_001_T.png",
+        "D:/三國將星傳/client/Assets/Resources/ChibiSkin/full_huangzhong.png",
+        "D:/三國將星傳/client/Assets/Resources/ProductionCharacters/Textures/guanyu_body.png"
+      ]
+    },
+    {
+      "key": "huang_face",
+      "prompt": "Edit Image 1 the Face_00025 UV texture atlas into a refined veteran Huang Zhong chibi warrior FACE atlas. Image 1 is the edit target, preserve EVERY UV island position, scale and outline exactly including the large face upper 75%, two pale eye holes at x~.3 and .68 y~.36, the iris oval bottom centre, ear bottom left, small white moustache hair patch mid-right. Image 2 is identity reference: elderly but vigorous Chinese archer, heavy WHITE eyebrows, warm peach ruddy skin, calm stern expressive youthful chibi eye scale with aged temple wrinkles and subtle eye lines. Keep white eye holes precisely white, paint fine white eyebrows above them; NO drawn pupils on the large face; the only iris belongs in the existing oval bottom centre: detailed amber brown iris black pupil and white catchlight exactly placed. Preserve nose, mouth and ears, make them dimensional and clean like accepted Guan Yu face quality. Gentle warm skin, fine white moustache texture in existing moustache patch. No full beard painted on cheeks, no helmet in face atlas, no words, no change in atlas layout. Square opaque PNG.",
+      "paths": [
+        "D:/三國將星傳/client/Assets/Arts/Models/Face/Face_00025/Face_00025_001_T.png",
+        "D:/三國將星傳/client/Assets/Resources/ChibiSkin/full_huangzhong.png"
+      ]
+    },
+    {
+      "key": "huang_helmet",
+      "prompt": "Edit the FIRST image (the exact Hair_00025 UV atlas of helmet and plume) into a luxurious chibi Huang Zhong veteran archer HELMET atlas. SECOND image is only costume design reference. Preserve exact UV islands, locations, silhouette, outlines and scale: long hair/plume island at upper LEFT must be repainted VERMILION RED horsehair plume with fine sweeping strands, not yellow hair. All green field regions that represent helmet metal are now warm DARK BRONZE with subtle hammered texture and engraved cloud pattern. All existing gold borders and lower helmet forehead band and side-cheek plates become brilliant polished GOLD with crisp bevels, tiny lion motifs on the large gold brow/cheek islands (not a full new island). Existing large lower-centre green GEM becomes deep ruby red enamel. Keep texture geometry and all gaps in position. Add no character portrait or helmet silhouette other than existing UV shapes. Bright high-end Chinese fantasy chibi game material painted in equal quality to Guan Yu. Full square opaque PNG, no text.",
+      "paths": [
+        "D:/三國將星傳/build/model-quality/huang-hair-source.png",
+        "D:/三國將星傳/client/Assets/Resources/ChibiSkin/full_huangzhong.png"
+      ],
+      "note": "Generated atlas did not preserve source UV. It is used with NEW sculpted helmet geometry and authored UVs; not applied to old helmet mesh."
+    },
+    {
+      "key": "huang_beard",
+      "prompt": "Edit this EXACT cosmetic white facial-hair UV atlas into richly sculpted silky WHITE BEARD and MOUSTACHE textures for veteran chibi archer Huang Zhong. Preserve every island position and contour exactly. Keep background flat ivory, add no islands, no character face, no helmet, no words. Paint dense layered white-silver curved hair strands, soft grey recessed roots and bright ivory tips, with large clean separated clumps consistent with polished Guan Yu beard quality. Upper horizontal island moustache, lower five pointed long beard/hair islands: make each silky and dimensional. Do not turn hair black or yellow. Exact existing layout. Square opaque PNG.",
+      "paths": [
+        "D:/三國將星傳/client/Assets/Arts/Models/Cosmetic/Cosmetic_00025/Cosmetic_00025_001_T.png"
+      ]
+    },
+    {
+      "key": "huang_dragon",
+      "prompt": "A single frontal sculpted golden CHINESE DRAGON HEAD ornament, isolated on real transparent background, for Huang Zhong's fantasy chibi recurve bow. Compact symmetrical face with long curled whiskers, backward curved antler horns, two small ruby red eyes, dragon scales on forehead and cheeks, broad snarling muzzle, white-silver fangs. Stylized polished gold metal relief, warm gold highlights and dark amber recesses, fine crisp metal carving matching accepted Guan Yu luxurious golden armor. Chinese long dragon, not lion or European monster. Front view orthographic evenly lit, no perspective, no cast shadow, no text, no plate behind it. Entire ornament including horns and whiskers within frame with 8% empty padding. One head only, no atlas of many parts. Strong readable silhouette appropriate for mapping to a 3D relief mesh.",
+      "paths": []
+    },
+    {
+      "key": "huang_helmet_rejected",
+      "prompt": "Precise material repaint of THIS image only. Preserve the original image arrangement EXACTLY. It is an existing UV texture atlas. Do not make a new atlas. Do not make a whole helmet design. Do not add separate parts or black background. The current atlas has a single long yellow plume shape at top LEFT, large green background/helmet regions, and gold forehead/ear trim concentrated in lower half. KEEP all contours, boundaries, dimensions and positions identical to this image, including the upper centre long gold strip. Change only COLORS and paint material detail: yellow plume upper left becomes rich RED horsehair plume with fine crimson strands; ALL green areas turn DARK BROWN BRONZE (the whole green background becomes bronze brown, with no black gaps); existing gold areas stay gold with polished brighter dimensional highlights and subtle engraved clouds; green jewel inside existing bottom centre gold trim becomes RUBY RED. Every original region must remain in its exact original location. No extra shapes. Image must closely overlay original one for UV coordinates. Refined bright Chinese chibi warrior game texture atlas. Square image, fully opaque.",
+      "paths": [
+        "build/model-quality/huang-hair-source.png"
+      ],
+      "status": "Rejected: did not preserve original UV atlas layout. Not used."
+    },
+    {
+      "key": "huang_body_padding",
+      "prompt": "Precise pixel-layout-preserving material edit of this existing UV atlas. Keep EVERY current orange, ivory, gold, brown, flesh patch and illustrated UV island unchanged in its exact position, outline, scale and detail. Change ONLY the slate BLUE-GREY BACKGROUND and all blue-grey padding between islands: replace that blue-grey color everywhere with deep warm DARK BROWN LEATHER, subtle fine grain, same brown family as current bronze armor. This background is used as edge padding in the 3D mesh; it must be warm dark leather instead of blue-grey so seams are coherent. Absolutely no new shapes, no rearranged atlas, no new armor, no extra patterns outside islands. Preserve the current texture atlas and repaint only its background. Square opaque texture PNG.",
+      "reason": "UV padding changed from grey to brown leather after real player seams appeared."
+    },
+    {
+      "key": "huang_hair_fibers",
+      "prompt": "Square full-bleed seamless game albedo texture of fine flowing straight SILVER WHITE HAIR fibers. Entire canvas is a dense uniform field of slender longitudinal strands running perfectly vertically from top to bottom, gentle warm ivory highlights and cool pale grey recessed fine strands, premium hand-painted stylized chibi game character finish. No hair silhouettes, no locks on empty background, no white gaps, no face, no symbols, no borders, no text, no isolated objects, no transverse stripes. Subtle continuous vertical anisotropic detail with moderate low contrast; material swatch for UV mapped sculpted 3D hair. Opaque PNG.",
+      "mode": "new opaque material texture",
+      "output": "huangzhong_hair_fibers.png"
+    }
+  ]
+}

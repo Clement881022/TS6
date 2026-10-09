@@ -12,7 +12,7 @@ namespace SanGuo.Client.Editor
     {
         public static void Apply(GameObject root,string id,string output)
         {
-            if(id!="r_archer" && id!="bandit_archer" && id!="bandit_marksman")return;
+            if(id!="r_archer" && id!="bandit_archer" && id!="bandit_marksman" && id!="huangzhong")return;
             var set=root.GetComponent<CharacterClipSet>();
             var rig=root.GetComponent<ArcherPoseRig>();if(rig!=null)UnityEngine.Object.DestroyImmediate(rig);
             set.Idle=Author(root,set.Idle,id+"_BowIdle",output,false);
@@ -20,7 +20,7 @@ namespace SanGuo.Client.Editor
             set.Idle.SampleAnimation(root,0);
         }
 
-        private static AnimationClip Author(GameObject root,AnimationClip source,string name,string output,bool attack)
+        internal static AnimationClip Author(GameObject root,AnimationClip source,string name,string output,bool attack)
         {
             var sampled=UnityEngine.Object.Instantiate(source);
             foreach(var binding in AnimationUtility.GetObjectReferenceCurveBindings(sampled))
@@ -47,10 +47,12 @@ namespace SanGuo.Client.Editor
                 left.rotation=Quaternion.LookRotation(root.transform.forward,root.transform.up);
                 // The imported hand bones use a uniform negative scale. Compensate
                 // on props so a world-space aiming rotation does not mirror the arrow.
-                bow.localRotation=Quaternion.identity;bow.localPosition=Vector3.zero;bow.localScale=Vector3.one*.72f;
+                bow.localRotation=Quaternion.identity;bow.localPosition=Vector3.zero;bow.localScale=Vector3.one*(name.StartsWith("huangzhong")?1f:.72f);
                 if(Vector3.Dot(bow.TransformVector(Vector3.up),root.transform.up)<0)bow.localScale*=-1;
+                bool veteran=name.StartsWith("huangzhong");
+                if(veteran)bow.position=left.TransformPoint(new Vector3(-.033f,0,0))-bow.TransformVector(new Vector3(.10f,0,0));
                 var aim=(left.position-right.position).normalized;
-                arrow.position=right.position;arrow.rotation=Quaternion.LookRotation(aim,root.transform.up);arrow.localScale=Vector3.one;
+                arrow.position=veteran?right.TransformPoint(new Vector3(-.033f,0,0)):right.position;arrow.rotation=Quaternion.LookRotation(aim,root.transform.up);arrow.localScale=Vector3.one;
                 if(Vector3.Dot(arrow.TransformVector(Vector3.forward),aim)<0)arrow.localScale*=-1;
                 bowScale=bow.localScale.x;arrowScale=arrow.localScale.x;
                 if(Vector3.Dot(arrow.TransformVector(Vector3.forward).normalized,aim)<.999f)throw new InvalidOperationException("Mirrored arrow animation: "+name);

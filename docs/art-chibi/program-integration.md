@@ -26,6 +26,10 @@
 
 ## 下一輪由 Codex 處理的美術缺口
 
+第十四階段已整理 33 角色逐角實機缺口，見 `roster-stage14-review.md`。第十五階段關羽新青龍刀與双手握持曲線已直接接入同 ID Prefab，人物網格不改；正常四角及五動作共 100 張定格驗證見 `guanyu-glaive-stage15-review.md`，新刀仍待使用者美術認可。
+
+第十六階段黃忠以原蒙皮底材重製衣甲／臉／白鬍貼圖，新增頭盔、紅纓、弓、弓弦與箭筒，改用完整骨架持弓動畫素材，Prefab 未使用執行期 ArcherPoseRig。正式接入同 ID；尚有披風附件相交與髮飾細節需精修，不能標示商用完成。驗證與具體待修見 `huangzhong-stage16-review.md`。
+
 第十三階段針對 r_shield／r_archer 將整組頭部與頭飾縮至 0.80，並修改肩胸蒙皮網格；ProportionVersion=2 防止累積變形。既有 HeadScale 播放路徑沿用，全部動畫引用保留。見 [弓盾兵比例驗收](infantry-proportions-stage13-review.md)。其他角色未套用這次縮頭。
 
 第十二階段已重製待機頭部俯角、胸肩與雙腿站姿，並收回先前過大的頸部延長量；各模型新增 `Animations/<ID>_UprightIdle.anim`，Prefab 的 SourceIdle 保留原底稿。驗收見 `posture-stage12-review.md`。攻擊／施法／受擊／倒下引用維持原值，不能將新待機覆蓋到這些動作欄位。
