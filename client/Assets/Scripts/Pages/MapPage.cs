@@ -53,14 +53,14 @@ namespace SanGuo.Client
                 }
             }
 
-            int cleared = 0;
+            int earnedStars = 0;
             for (int i = 0; i < total; i++)
             {
                 int level = i + 1;
                 string sid = GameSession.StageIdOf(Chapter, level);
                 int stars = v.StarsOf(sid);
                 bool isCleared = v.ClearedStages.Contains(sid);
-                if (isCleared) cleared++;
+                earnedStars += stars;
                 bool open = GameSession.IsUnlocked(Chapter, level);
                 bool boss = level == total;
 
@@ -75,8 +75,13 @@ namespace SanGuo.Client
                 node.AddToClassList(isCleared ? "mnode-clear" : open ? "mnode-open" : "mnode-lock");
                 if (boss) node.AddToClassList("mnode-boss");
                 if (open && !isCleared) node.AddToClassList("mnode-current");
-                if (open) node.Add(new Label(level.ToString()) { pickingMode = PickingMode.Ignore }.WithClass("mnode-num"));
-                else node.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("mnode-lockicon"));
+                var setup = Campaign.Setup(Chapter, level, 1);
+                string icon = boss ? "fortress" : setup.Objective == Objective.Escort ? "escort"
+                    : setup.Objective == Objective.Defend || levelNames[i].Contains("寨") || levelNames[i].Contains("城") ? "fortress"
+                    : levelNames[i].Contains("村") ? "village" : "battle";
+                node.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("mnode-art mnode-art-" + icon));
+                node.Add(new Label($"{Chapter}-{level}") { pickingMode = PickingMode.Ignore }.WithClass("mnode-num"));
+                if (!open) node.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("mnode-lockicon"));
                 holder.Add(node);
 
                 var rating = UiKit.StarsRow(stars, 3, "mnode-stars");
@@ -94,17 +99,24 @@ namespace SanGuo.Client
             info.style.flexDirection = FlexDirection.Row;
             info.style.alignItems = Align.Center;
             int prev = Chapter - 1, next = Chapter + 1;
-            var prevBtn = UiKit.Btn("‹ 上一章", () => SwitchChapter(prev)).WithClass("btn-sm");
+            var prevBtn = UiKit.Btn("", () => SwitchChapter(prev)).WithClass("btn-sm campaign-nav");
+            prevBtn.tooltip = "上一章";
+            prevBtn.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("campaign-arrow campaign-arrow-prev"));
             prevBtn.SetEnabled(prev >= (GameSession.HardMode ? HardStages.FirstChapter : Campaign.FirstChapter));
             info.Add(prevBtn);
             var progress = new VisualElement { pickingMode = PickingMode.Ignore };
             progress.style.flexGrow = 1;
             progress.style.marginLeft = progress.style.marginRight = 12;
             progress.AddToClassList("campaign-progress");
-            progress.Add(UiKit.Text($"章節進度  {cleared} / {total}", "txt-gold"));
-            progress.Add(UiKit.Bar(100f * cleared / total, "bar-gold bar-slim"));
+            var starCount = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("campaign-star-count");
+            starCount.Add(UiKit.StarsRow(1, 1));
+            starCount.Add(UiKit.Text($"{earnedStars} / {total * 3}", "txt-gold"));
+            progress.Add(starCount);
+            progress.Add(UiKit.Bar(100f * earnedStars / (total * 3), "bar-gold bar-slim"));
             info.Add(progress);
-            var nextBtn = UiKit.Btn("下一章 ›", () => SwitchChapter(next)).WithClass("btn-sm");
+            var nextBtn = UiKit.Btn("", () => SwitchChapter(next)).WithClass("btn-sm campaign-nav");
+            nextBtn.tooltip = "下一章";
+            nextBtn.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("campaign-arrow campaign-arrow-next"));
             nextBtn.SetEnabled(next <= Campaign.LastChapter && GameSession.IsUnlocked(next, 1));
             info.Add(nextBtn);
             if (GameSession.HardModeOpen || GameSession.HardMode)
