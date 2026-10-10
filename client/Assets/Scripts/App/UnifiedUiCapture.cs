@@ -33,7 +33,7 @@ namespace SanGuo.Client
             if (GameSession.OwnedHeroes().Count == 0) throw new InvalidOperationException("Review roster is empty");
             yield return new WaitForSecondsRealtime(2);
             yield return CommercialUiCapture.Capture(directory, "gacha-results");
-            foreach (var page in new[] { Page.Home, Page.Map, Page.Heroes, Page.HeroGrowth, Page.Gacha,
+            foreach (var page in new[] { Page.Home, Page.Map, Page.Heroes, Page.HeroGrowth, Page.Equipment, Page.Gacha,
                 Page.Dungeons, Page.WorldBoss, Page.Quests, Page.Shop, Page.Formation, Page.Account, Page.Login })
             {
                 if (page == Page.Formation) GameSession.FormationStageId = GameSession.StageIdOf(0, DemoMeta.FirstOpenFormationLevel);
@@ -108,7 +108,7 @@ namespace SanGuo.Client
             battle.DebugValidateCommercialArt();
             yield return CommercialUiCapture.Capture(directory, "battle-reference");
             File.WriteAllText(Path.Combine(directory, "verification.txt"),
-                "Twelve pages, roster/growth tabs, four shop tabs, recruitment rates/results, stage detail, seven-day quests and help captured. Header/panel colors and layout bounds passed. Battle commercial-art structure passed. Visual quality requires screenshot review; account is offline mode.");
+                "Thirteen pages, roster/growth tabs, four shop tabs, recruitment rates/results, stage detail, seven-day quests and help captured. Header resource margins, panel colors and layout bounds passed. Battle commercial-art structure passed. Visual quality requires screenshot review; account is offline mode.");
             Application.Quit();
         }
 
@@ -164,6 +164,15 @@ namespace SanGuo.Client
             if (host == null) throw new InvalidOperationException("Missing unified theme: " + page);
             var header = host.Q(className: "hdr");
             if (header != null) CheckColor(header, new Color(29 / 255f, 29 / 255f, 33 / 255f, .96f), page);
+            if (header != null)
+                foreach (var resource in header.Query(className: "res-pill").ToList())
+                {
+                    var box = resource.worldBound;
+                    var bounds = header.worldBound;
+                    if (box.yMin < bounds.yMin + 12 || box.yMax > bounds.yMax - 12
+                        || box.xMin < bounds.xMin || box.xMax > bounds.xMax)
+                        throw new InvalidOperationException("Header resource margin: " + page);
+                }
             foreach (string cls in new[] { "hero-left", "hero-right", "recruit-selection", "recruit-banner", "quest-claim-all", "account-panel", "hdr" })
             {
                 var element = host.Q(className: cls);
