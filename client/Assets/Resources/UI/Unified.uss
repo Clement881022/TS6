@@ -224,10 +224,9 @@
 .unified-ui .equipment-inventory-panel { flex-grow: 1; flex-basis: 0; min-width: 0; padding: 24px; margin-right: 20px; }
 .unified-ui .equipment-detail-panel { width: 410px; flex-shrink: 0; padding: 24px; }
 .unified-ui .equipment-section-title { font-size: 32px; color: rgb(241, 208, 139); margin-bottom: 20px; flex-shrink: 0; }
-.unified-ui .equipment-hero-selector { margin-bottom: 16px; flex-shrink: 0; }
-.unified-ui .equipment-hero-selector .unity-base-field__label { min-width: 62px; font-size: 26px; color: rgb(245, 235, 217); }
-.unified-ui .equipment-hero-selector .unity-base-field__input { min-height: 58px; background-color: rgb(29,29,33); border-color: rgb(145,122,83); border-width: 1px; }
-.unified-ui .equipment-hero-selector .unity-base-popup-field__text { font-size: 24px; color: rgb(245,235,217); }
+.unified-ui .equipment-hero-selector { margin-bottom: 16px; min-height: 58px; font-size: 26px; flex-shrink: 0; }
+.unified-ui .equipment-hero-choice { flex-direction: row; align-items: center; min-height: 128px; margin-bottom: 12px; padding: 12px; border-width: 2px; border-color: rgb(145,122,83); border-radius: 10px; background-color: rgb(29,29,33); flex-shrink: 0; }
+.unified-ui .equipment-hero-choice.equipment-selected { border-color: rgb(241,208,139); background-color: rgb(57,51,40); }
 .unified-ui .equipment-hero-identity { flex-direction: row; align-items: center; margin-bottom: 24px; }
 .unified-ui .equipment-hero-face { width: 84px; height: 100px; flex-shrink: 0; margin-right: 16px; }
 .unified-ui .equipment-hero-name { font-size: 26px; color: rgb(245,235,217); white-space: normal; }

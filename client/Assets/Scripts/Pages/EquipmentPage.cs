@@ -40,16 +40,9 @@ namespace SanGuo.Client
             if (_worn) hero.Equipment.TryGetValue(_slot.ToString(), out _tier);
             var left = new VisualElement().WithClass("equipment-worn-panel bpanel");
             left.name = "equipment-worn-panel";
-            var selector = new DropdownField("武將", owned.Select(d => d.Name).ToList(), owned.FindIndex(d => d.Id == def.Id));
+            var selector = UiKit.Btn("更換武將  ▾", ShowHeroPicker);
             selector.name = "equipment-hero-selector";
             selector.AddToClassList("equipment-hero-selector");
-            selector.RegisterValueChangedCallback(e =>
-            {
-                HeroesPage.LastSelectedHeroId = owned.First(d => d.Name == e.newValue).Id;
-                _tier = 0;
-                _worn = false;
-                Rebuild();
-            });
             left.Add(selector);
             var identity = new VisualElement().WithClass("equipment-hero-identity");
             identity.Add(PortraitArt.Create(def.Id, "equipment-hero-face"));
@@ -109,6 +102,31 @@ namespace SanGuo.Client
             }
             body.Add(inventory);
             body.Add(Details(def, hero, view));
+        }
+
+        private void ShowHeroPicker()
+        {
+            var overlay = UiHelp.Dialog(Host, "選擇武將", content =>
+            {
+                foreach (var hero in GameSession.OwnedHeroes())
+                {
+                    var def = hero;
+                    var row = new Button(() =>
+                    {
+                        HeroesPage.LastSelectedHeroId = def.Id;
+                        _tier = 0;
+                        _worn = false;
+                        Rebuild();
+                    }).WithClass("equipment-hero-choice");
+                    row.name = "equipment-choose-" + def.Id;
+                    if (def.Id == HeroesPage.LastSelectedHeroId) row.AddToClassList("equipment-selected");
+                    row.Add(PortraitArt.Create(def.Id, "equipment-hero-face"));
+                    row.Add(UiKit.Text(def.Name, "equipment-hero-name"));
+                    content.Add(row);
+                }
+            });
+            overlay.name = "equipment-hero-picker";
+            overlay.Q<Button>(className: "ui-help-close").name = "equipment-hero-picker-close";
         }
 
         private VisualElement Details(HeroDef def, HeroState hero, ProfileView view)

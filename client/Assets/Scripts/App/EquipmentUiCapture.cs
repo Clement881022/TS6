@@ -82,8 +82,24 @@ namespace SanGuo.Client
                 throw new InvalidOperationException("Dismantle action");
             Validate(root);
             yield return CommercialUiCapture.Capture(directory, "05-armor-inventory");
-            root.Q<DropdownField>("equipment-hero-selector").value = GameSession.DefOf("zhangjiao")!.Name;
+            var panelBounds = root.Q("equipment-worn-panel").worldBound;
+            Submit(root.Q<Button>("equipment-hero-selector"));
+            yield return new WaitForSecondsRealtime(.3f);
+            var picker = root.Q("equipment-hero-picker");
+            if (picker == null || root.Q("equipment-worn-panel").worldBound != panelBounds)
+                throw new InvalidOperationException("Hero picker changes page layout");
+            CheckBounds(root, picker.Q(className: "ui-help-panel"));
+            foreach (var choice in picker.Query<Button>(className: "equipment-hero-choice").ToList()) CheckBounds(root, choice);
+            yield return CommercialUiCapture.Capture(directory, "09-hero-picker");
+            Submit(root.Q<Button>("equipment-hero-picker-close"));
+            yield return new WaitForSecondsRealtime(.2f);
+            if (root.Q("equipment-hero-picker") != null || HeroesPage.LastSelectedHeroId != "xiahoudun")
+                throw new InvalidOperationException("Hero picker dismissal");
+            Submit(root.Q<Button>("equipment-hero-selector"));
+            yield return new WaitForSecondsRealtime(.2f);
+            Submit(root.Q<Button>("equipment-choose-zhangjiao"));
             yield return new WaitForSecondsRealtime(.4f);
+            if (root.Q("equipment-hero-picker") != null) throw new InvalidOperationException("Hero picker remains after selection");
             Submit(root.Q<Button>("equipment-filter-Weapon"));
             yield return new WaitForSecondsRealtime(.3f);
             if (!root.Q<Label>(className: "equipment-hero-name").text.Contains("張角")) throw new InvalidOperationException("Hero selector");
@@ -111,7 +127,7 @@ namespace SanGuo.Client
             if (root.Query<Button>(className: "equipment-stock-tile").ToList().Count != 0) throw new InvalidOperationException("Empty inventory");
             Validate(root);
             yield return CommercialUiCapture.Capture(directory, "08-empty-inventory");
-            File.WriteAllText(Path.Combine(directory, "verification.txt"), "Seven home buttons and order; equipment entry; selectable inventory; equip, replace with old item return, unequip, dismantle; hero selection; growth entry and return preserving hero; empty inventory; panel containment passed. Disposable local profile only. Visual quality reviewed separately.");
+            File.WriteAllText(Path.Combine(directory, "verification.txt"), "Seven home buttons and order; equipment entry; selectable inventory; equip, replace with old item return, unequip, dismantle; hero picker opening, dismissal, selection and unchanged page bounds; growth entry and return preserving hero; empty inventory; panel containment passed. Disposable local profile only. Visual quality reviewed separately.");
             Application.Quit();
         }
 
