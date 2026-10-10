@@ -1,0 +1,138 @@
+#nullable enable
+using System;
+using System.Collections;
+using System.IO;
+using UnityEngine;
+using UnityEngine.UIElements;
+using SanGuo.Core.Meta;
+
+namespace SanGuo.Client
+{
+    public sealed class UnifiedUiCapture : MonoBehaviour
+    {
+        public static void Begin(string directory)
+        {
+            var go = new GameObject("Unified UI review");
+            DontDestroyOnLoad(go);
+            go.AddComponent<UnifiedUiCapture>().StartCoroutine(Run(directory));
+            Application.logMessageReceived += (message, trace, type) =>
+            {
+                if (type == LogType.Error || type == LogType.Exception) Application.Quit(1);
+            };
+        }
+
+        private static IEnumerator Run(string directory)
+        {
+            Directory.CreateDirectory(directory);
+            yield return new WaitForSecondsRealtime(2);
+            var root = PageHost.Current!.GetComponent<UIDocument>().rootVisualElement;
+            Nav.Go(Page.Gacha);
+            yield return new WaitForSecondsRealtime(1);
+            var seed = ((GachaPage)PageHost.Current.ActivePage!).DebugTenPull();
+            while (!seed.IsCompleted) yield return null;
+            if (GameSession.OwnedHeroes().Count == 0) throw new InvalidOperationException("Review roster is empty");
+            yield return new WaitForSecondsRealtime(2);
+            yield return CommercialUiCapture.Capture(directory, "gacha-results");
+            foreach (var page in new[] { Page.Home, Page.Map, Page.Heroes, Page.HeroGrowth, Page.Gacha,
+                Page.Dungeons, Page.WorldBoss, Page.Quests, Page.Shop, Page.Formation, Page.Account, Page.Login })
+            {
+                if (page == Page.Formation) GameSession.FormationStageId = GameSession.StageIdOf(0, DemoMeta.FirstOpenFormationLevel);
+                Nav.Go(page);
+                yield return new WaitForSecondsRealtime(1.2f);
+                Validate(root, page);
+                yield return CommercialUiCapture.Capture(directory, page.ToString().ToLowerInvariant());
+                var active = PageHost.Current.ActivePage;
+                if (active is HeroesPage heroes)
+                {
+                    for (int tab = 1; tab <= 2; tab++)
+                    {
+                        heroes.DebugSetTab(tab);
+                        yield return new WaitForSecondsRealtime(.5f);
+                        Validate(root, page);
+                        yield return CommercialUiCapture.Capture(directory, page.ToString().ToLowerInvariant() + "-tab-" + tab);
+                    }
+                }
+                else if (active is ShopPage shop)
+                {
+                    for (int tab = 1; tab <= 3; tab++)
+                    {
+                        shop.DebugSetTab(tab);
+                        yield return new WaitForSecondsRealtime(.5f);
+                        Validate(root, page);
+                        yield return CommercialUiCapture.Capture(directory, "shop-tab-" + tab);
+                    }
+                }
+                else if (active is GachaPage gacha)
+                {
+                    gacha.DebugShowRates();
+                    yield return new WaitForSecondsRealtime(.5f);
+                    yield return CommercialUiCapture.Capture(directory, "gacha-rates");
+                    root.Q(className: "ui-help-overlay")?.RemoveFromHierarchy();
+                }
+                else if (active is MapPage map)
+                {
+                    map.DebugOpenStage(1);
+                    yield return new WaitForSecondsRealtime(.5f);
+                    yield return CommercialUiCapture.Capture(directory, "map-stage");
+                }
+                else if (active is QuestsPage quests)
+                {
+                    quests.DebugShowSevenDay();
+                    yield return new WaitForSecondsRealtime(.5f);
+                    yield return CommercialUiCapture.Capture(directory, "quests-seven-day");
+                }
+                if (page == Page.Account)
+                {
+                    UiHelp.Show(root.Q(className: "page-host"), "操作提示", UiHelp.Text(page));
+                    yield return new WaitForSecondsRealtime(.5f);
+                    yield return CommercialUiCapture.Capture(directory, "help");
+                }
+            }
+            GameSession.Select(0, 6);
+            GameSession.Ticket = null;
+            Nav.Go(Page.Battle);
+            yield return new WaitForSecondsRealtime(1.5f);
+            var battle = ((BattlePage)PageHost.Current.ActivePage!).Screen!;
+            battle.DebugReviewScenario(6);
+            yield return new WaitForSecondsRealtime(1);
+            battle.DebugValidateCommercialArt();
+            yield return CommercialUiCapture.Capture(directory, "battle-reference");
+            File.WriteAllText(Path.Combine(directory, "verification.txt"),
+                "Twelve pages, roster/growth tabs, four shop tabs, recruitment rates/results, stage detail, seven-day quests and help captured. Header/panel colors and layout bounds passed. Battle commercial-art structure passed. Visual quality requires screenshot review; account is offline mode.");
+            Application.Quit();
+        }
+
+        private static void Validate(VisualElement root, Page page)
+        {
+            if (page == Page.Home)
+            {
+                if (root.Q(className: "unified-ui") != null) throw new InvalidOperationException("Reference home style was overridden");
+                return;
+            }
+            var host = root.Q(className: "unified-ui");
+            if (host == null) throw new InvalidOperationException("Missing unified theme: " + page);
+            var header = host.Q(className: "hdr");
+            if (header != null) CheckColor(header, new Color(29 / 255f, 29 / 255f, 33 / 255f, .96f), page);
+            foreach (string cls in new[] { "hero-left", "hero-right", "recruit-selection", "recruit-banner", "quest-claim-all", "account-panel", "hdr" })
+            {
+                var element = host.Q(className: cls);
+                if (element == null) continue;
+                var box = element.worldBound;
+                var bounds = root.worldBound;
+                if (box.width <= 0 || box.height <= 0 || box.xMin < bounds.xMin - 1 || box.xMax > bounds.xMax + 1
+                    || box.yMin < bounds.yMin - 1 || box.yMax > bounds.yMax + 1)
+                    throw new InvalidOperationException("UI outside viewport: " + page + "/" + cls);
+            }
+            var panel = host.Q(className: "panel") ?? host.Q(className: "account-panel");
+            if (panel != null) CheckColor(panel, new Color(35 / 255f, 35 / 255f, 39 / 255f, .96f), page);
+        }
+
+        private static void CheckColor(VisualElement element, Color expected, Page page)
+        {
+            var actual = element.resolvedStyle.backgroundColor;
+            if (Mathf.Abs(actual.r - expected.r) > .01f || Mathf.Abs(actual.g - expected.g) > .01f
+                || Mathf.Abs(actual.b - expected.b) > .01f || Mathf.Abs(actual.a - expected.a) > .01f)
+                throw new InvalidOperationException("Theme color mismatch: " + page + "/" + element.GetClasses());
+        }
+    }
+}

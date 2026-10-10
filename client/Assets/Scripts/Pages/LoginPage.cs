@@ -20,13 +20,11 @@ namespace SanGuo.Client
 
         protected override void BuildBody(VisualElement root)
         {
-            root.style.backgroundColor = new Color(0.12f, 0.10f, 0.09f);
             root.style.alignItems = Align.Center;
             root.style.justifyContent = Justify.Center;
 
             var panel = AccountUi.Panel(560);
             panel.Add(AccountUi.Heading("三國將星傳", 64));
-            panel.Add(AccountUi.Note("（登入畫面佔位，正式美術待補）"));
 
             var guest = UiKit.Btn("遊客進入", () => _ = Run(a => a.LoginGuest()), primary: true);
             AccountUi.Wide(guest);
@@ -86,24 +84,18 @@ namespace SanGuo.Client
     {
         public static VisualElement Panel(float width)
         {
-            var p = new VisualElement();
+            var p = new VisualElement().WithClass("account-panel");
             p.style.width = width;
             p.style.maxWidth = Length.Percent(92);
             p.style.paddingLeft = p.style.paddingRight = 40;
             p.style.paddingTop = p.style.paddingBottom = 32;
-            p.style.backgroundColor = new Color(0.20f, 0.16f, 0.13f, 0.96f);
-            p.style.borderTopLeftRadius = p.style.borderTopRightRadius = p.style.borderBottomLeftRadius = p.style.borderBottomRightRadius = 12;
-            p.style.borderTopWidth = p.style.borderBottomWidth = p.style.borderLeftWidth = p.style.borderRightWidth = 2;
-            var gold = new Color(0.78f, 0.62f, 0.33f);
-            p.style.borderTopColor = p.style.borderBottomColor = p.style.borderLeftColor = p.style.borderRightColor = gold;
             return p;
         }
 
         public static Label Heading(string text, int size)
         {
-            var l = new Label(text);
+            var l = UiKit.Text(text, "account-heading");
             l.style.fontSize = size;
-            l.style.color = new Color(0.95f, 0.85f, 0.60f);
             l.style.unityTextAlign = TextAnchor.MiddleCenter;
             l.style.marginBottom = 4;
             return l;
@@ -111,9 +103,8 @@ namespace SanGuo.Client
 
         public static Label Note(string text)
         {
-            var l = new Label(text);
+            var l = UiKit.Text(text, "account-note");
             l.style.fontSize = 22;
-            l.style.color = new Color(0.85f, 0.80f, 0.72f);
             l.style.whiteSpace = WhiteSpace.Normal;
             l.style.unityTextAlign = TextAnchor.MiddleCenter;
             l.style.marginTop = l.style.marginBottom = 8;
@@ -142,7 +133,6 @@ namespace SanGuo.Client
             f.style.flexDirection = FlexDirection.Column;
             f.style.marginTop = 10;
             f.labelElement.style.fontSize = 22;
-            f.labelElement.style.color = new Color(0.85f, 0.80f, 0.72f);
             f.labelElement.style.marginBottom = 4;
             var input = f.Q(className: "unity-base-text-field__input");
             if (input != null)
@@ -153,12 +143,6 @@ namespace SanGuo.Client
                 input.style.justifyContent = Justify.Center;
                 foreach (var text in input.Query<TextElement>().ToList()) text.style.unityTextAlign = TextAnchor.MiddleLeft;
                 input.style.paddingLeft = input.style.paddingRight = 12;
-                input.style.backgroundColor = new Color(0.08f, 0.07f, 0.06f);
-                input.style.color = Color.white;
-                var line = new Color(0.55f, 0.45f, 0.30f);
-                input.style.borderTopWidth = input.style.borderBottomWidth = input.style.borderLeftWidth = input.style.borderRightWidth = 1;
-                input.style.borderTopColor = input.style.borderBottomColor = input.style.borderLeftColor = input.style.borderRightColor = line;
-                input.style.borderTopLeftRadius = input.style.borderTopRightRadius = input.style.borderBottomLeftRadius = input.style.borderBottomRightRadius = 6;
             }
             return f;
         }

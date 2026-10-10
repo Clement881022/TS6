@@ -1,0 +1,149 @@
+.unified-ui { background-color: rgb(29, 29, 33); color: rgb(245, 235, 217); }
+.unified-ui .hdr { background-color: rgba(29, 29, 33, 0.96); border-bottom-color: rgb(145, 122, 83); }
+.unified-ui .hdr-title { color: rgb(245, 235, 217); font-size: 44px; }
+.unified-ui .hdr-back, .unified-ui .hdr-close, .unified-ui .popup-close,
+.unified-ui .ui-help-button, .unified-ui .ui-help-close {
+    background-image: none; background-color: rgb(40, 40, 44); border-width: 1px;
+    border-color: rgb(145, 122, 83); border-radius: 12px; color: rgb(241, 208, 139);
+}
+.unified-ui .hdr-back:hover, .unified-ui .hdr-close:hover, .unified-ui .popup-close:hover,
+.unified-ui .ui-help-button:hover { background-color: rgb(72, 62, 47); border-color: rgb(214, 170, 88); }
+.unified-ui .res-pill { background-image: none; background-color: rgb(35, 35, 39); border-color: rgb(145, 122, 83); border-radius: 8px; }
+.unified-ui .res-pill-text { color: rgb(245, 235, 217); }
+.unified-ui .panel, .unified-ui .bpanel, .unified-ui .popup,
+.unified-ui .gacha-info, .unified-ui .quest-ms, .unified-ui .tier,
+.unified-ui .account-panel, .unified-ui .milestone-panel {
+    background-image: none; background-color: rgba(35, 35, 39, 0.96);
+    border-width: 1px; border-color: rgb(145, 122, 83); border-radius: 12px;
+}
+.unified-ui .panel Label, .unified-ui .bpanel Label, .unified-ui .popup Label,
+.unified-ui .txt, .unified-ui .line-title, .unified-ui .stat-line-val,
+.unified-ui .card-row-name, .unified-ui .quest-desc, .unified-ui .quest-count,
+.unified-ui .account-note { color: rgb(245, 235, 217); }
+.unified-ui .txt-sub, .unified-ui .txt-dim, .unified-ui .line-sub,
+.unified-ui .card-row-desc, .unified-ui .side-caption, .unified-ui .stat-line-name,
+.unified-ui .break-row-text, .unified-ui .cost-chip-have, .unified-ui .foot-note,
+.unified-ui .strategy-roster-count, .unified-ui .strategy-roster-level { color: rgb(205, 195, 176); }
+.unified-ui .bpanel-title, .unified-ui .popup-title, .unified-ui .section-text,
+.unified-ui .txt-gold, .unified-ui .stage-title, .unified-ui .tier-title,
+.unified-ui .account-heading, .unified-ui .milestone-points,
+.unified-ui .quest-toolbar-title { color: rgb(241, 208, 139); }
+.unified-ui .txt-good, .unified-ui .break-row-on .break-row-text { color: rgb(137, 220, 169); }
+.unified-ui .section-line { background-color: rgba(184, 169, 145, 0.34); }
+.unified-ui .btn, .unified-ui .btn:hover, .unified-ui .btn-done, .unified-ui .btn-done:hover,
+.unified-ui .tab, .unified-ui .tab:hover, .unified-ui .challenge-tab {
+    background-image: none; background-color: rgb(40, 40, 44); color: rgb(245, 235, 217);
+    border-width: 1px; border-color: rgb(145, 122, 83); border-radius: 12px;
+    -unity-text-outline-width: 0; scale: 1 1; translate: 0 0;
+}
+.unified-ui .btn:hover, .unified-ui .tab:hover, .unified-ui .challenge-tab:hover {
+    background-color: rgb(58, 53, 46); border-color: rgb(214, 170, 88);
+}
+.unified-ui .btn:active { background-color: rgb(72, 62, 47); }
+.unified-ui .tab-on, .unified-ui .tab-on:hover,
+.unified-ui .challenge-tab.active, .unified-ui .challenge-tab.active:hover {
+    background-color: rgb(72, 62, 47); color: rgb(248, 220, 163);
+    border-color: rgb(214, 170, 88); border-bottom-width: 3px;
+}
+.unified-ui .challenge-tab { -unity-text-align: middle-center; }
+.unified-ui .btn-primary, .unified-ui .btn-primary:hover,
+.unified-ui .btn-on, .unified-ui .btn-on:hover {
+    background-image: url("../ChibiSkin/gold.png"); background-color: rgb(205, 165, 78);
+    border-width: 0; border-radius: 14px; color: rgb(48, 32, 16);
+    -unity-slice-left: 100; -unity-slice-right: 100; -unity-slice-top: 60; -unity-slice-bottom: 60;
+    -unity-slice-scale: 0.2px; -unity-background-image-tint-color: white;
+}
+.unified-ui .btn-primary:hover, .unified-ui .btn-on:hover { -unity-background-image-tint-color: rgb(255, 242, 210); }
+.unified-ui .btn-primary .cost-chip-text, .unified-ui .btn-on .cost-chip-text,
+.unified-ui .btn-primary .btn-tag, .unified-ui .btn-on .btn-tag { color: rgb(48, 32, 16); }
+.unified-ui .btn-done, .unified-ui .btn-done:hover, .unified-ui .btn:disabled,
+.unified-ui .btn-primary:disabled, .unified-ui .btn-on:disabled {
+    background-image: none; background-color: rgb(39, 39, 43); border-width: 1px;
+    border-color: rgb(88, 83, 73); color: rgb(164, 157, 142);
+}
+.unified-ui .btn:disabled .cost-chip-text, .unified-ui .btn:disabled .btn-tag { color: rgb(164, 157, 142); }
+.unified-ui .item-tile, .unified-ui .htile, .unified-ui .htile-role,
+.unified-ui .milestone-node .item-tile { background-color: rgb(40, 40, 44); border-color: rgb(145, 122, 83); border-radius: 8px; }
+.unified-ui .cost-chip .item-tile { background-color: rgba(0, 0, 0, 0); }
+.unified-ui .item-count, .unified-ui .htile-name, .unified-ui .htile-level,
+.unified-ui .htile-stars { background-color: rgba(29, 29, 33, 0.94); color: rgb(245, 235, 217); }
+.unified-ui .cost-chip-text { color: rgb(241, 208, 139); }
+.unified-ui .cost-chip-bad .cost-chip-text, .unified-ui .cost-chip-bad .cost-chip-have { color: rgb(243, 147, 122); }
+.unified-ui .htile-sr { border-color: rgb(156, 127, 174); }
+.unified-ui .htile-ur, .unified-ui .htile-on { border-color: rgb(214, 170, 88); }
+.unified-ui .bar-bg { background-color: rgb(26, 26, 30); border-radius: 6px; }
+.unified-ui .bar-fill.bar-gold { background-color: rgb(205, 165, 78); border-radius: 6px; }
+.unified-ui .hero-left, .unified-ui .hero-namebar, .unified-ui .card-row,
+.unified-ui .shop-soul-note { background-image: none; background-color: rgba(35, 35, 39, 0.96); border-color: rgb(145, 122, 83); border-radius: 12px; }
+.unified-ui .hero-center { background-color: rgba(29, 29, 33, 0.35); border-color: rgb(145, 122, 83); border-radius: 12px; }
+.unified-ui .strategy-hero-summary { background-image: none; background-color: rgba(35, 35, 39, 0.96); border-width: 1px; border-color: rgb(145, 122, 83); border-radius: 12px; }
+.unified-ui.bg-heroes .strategy-hero-summary { padding: 18px; background-image: none; background-color: rgba(35, 35, 39, 0.96); border-width: 1px; }
+.unified-ui .hero-namebar-name, .unified-ui .strategy-summary-name { color: rgb(245, 235, 217); }
+.unified-ui .hero-namebar-level { color: rgb(241, 208, 139); }
+.unified-ui .hero-stats, .unified-ui .hero-grade { border-top-color: rgba(184, 169, 145, 0.34); }
+.unified-ui .strategy-roster-entry { background-color: rgb(40, 40, 44); border-color: rgb(88, 83, 73); border-radius: 8px; }
+.unified-ui .strategy-roster-entry:hover { background-color: rgb(58, 53, 46); border-color: rgb(214, 170, 88); }
+.unified-ui .strategy-roster-selected, .unified-ui .strategy-roster-selected:hover { background-color: rgb(72, 62, 47); border-color: rgb(214, 170, 88); }
+.unified-ui .strategy-roster-name { color: rgb(245, 235, 217); }
+.unified-ui .dun-card, .unified-ui .shop-card { background-color: rgba(35, 35, 39, 0.96); border-color: rgb(145, 122, 83); border-radius: 12px; }
+.unified-ui .dun-head, .unified-ui .shop-head,
+.unified-ui .shop-card-gold .shop-head, .unified-ui .shop-card-purple .shop-head {
+    background-color: rgb(40, 40, 44); border-bottom-color: rgb(145, 122, 83);
+}
+.unified-ui .dun-name, .unified-ui .shop-name { color: rgb(241, 208, 139); }
+.unified-ui .dun-art, .unified-ui .shop-art { background-color: rgba(205, 165, 78, 0.08); }
+.unified-ui .quest-done2 { background-color: rgb(72, 62, 47); border-color: rgb(214, 170, 88); }
+.unified-ui .milestone-node .item-tile, .unified-ui .milestone-hero { border-radius: 42px; }
+.unified-ui .milestone-ready .item-tile, .unified-ui .milestone-ready .milestone-hero { border-color: rgb(214, 170, 88); }
+.unified-ui .milestone-claimed .item-tile, .unified-ui .milestone-claimed .milestone-hero { border-color: rgb(137, 220, 169); }
+.unified-ui .recruit-pool, .unified-ui .recruit-status, .unified-ui .recruit-actions,
+.unified-ui .gacha-card, .unified-ui .gacha-card-name { background-color: rgba(35, 35, 39, 0.96); border-color: rgb(145, 122, 83); }
+.unified-ui .recruit-pool { border-radius: 12px; overflow: hidden; }
+.unified-ui .recruit-pool-on { border-color: rgb(214, 170, 88); }
+.unified-ui .recruit-title { background-color: rgba(35, 35, 39, 0.94); color: rgb(245, 235, 217); border-radius: 8px; }
+.unified-ui .recruit-banner { border-radius: 12px; border-color: rgb(214, 170, 88); }
+.unified-ui .recruit-pool-name, .unified-ui .recruit-pity-text { color: rgb(241, 208, 139); }
+.unified-ui .pull-overlay { background-color: rgb(29, 29, 33); -unity-background-image-tint-color: rgb(120, 120, 125); }
+.unified-ui .mnode { background-color: rgb(40, 40, 44); border-color: rgb(145, 122, 83); }
+.unified-ui .mnode-open, .unified-ui .mnode-open:hover { background-color: rgb(113, 84, 34); border-color: rgb(214, 170, 88); }
+.unified-ui .mnode-clear { background-color: rgb(42, 79, 64); border-color: rgb(137, 220, 169); }
+.unified-ui .mnode-current { border-color: rgb(248, 220, 163); }
+.unified-ui .mnode-lock { background-color: rgb(39, 39, 43); border-color: rgb(88, 83, 73); }
+.unified-ui .mnode-plate, .unified-ui .map-info,
+.unified-ui .form-strip, .unified-ui .form-toolbar { background-color: rgba(35, 35, 39, 0.96); color: rgb(245, 235, 217); border-color: rgb(145, 122, 83); border-radius: 8px; }
+.unified-ui .slot-empty, .unified-ui .formation-cell, .unified-ui .formation-chip { background-color: rgba(35, 35, 39, 0.96); border-color: rgb(145, 122, 83); border-radius: 8px; }
+.unified-ui .slot-empty:hover { background-color: rgb(72, 62, 47); border-color: rgb(214, 170, 88); }
+.unified-ui .slot-plus, .unified-ui .formation-label, .unified-ui .form-strip-label { color: rgb(241, 208, 139); }
+.unified-ui .unity-scroller--vertical, .unified-ui .unity-scroller--horizontal,
+.unified-ui .unity-scroller .unity-base-slider__drag-container { background-color: rgb(29, 29, 33); }
+.unified-ui .unity-scroller .unity-button { background-color: rgb(58, 53, 46); }
+.unified-ui .unity-scroller .unity-base-slider__dragger { background-color: rgb(155, 128, 76); }
+.unified-ui .unity-base-field__label { color: rgb(205, 195, 176); }
+.unified-ui .unity-base-text-field__input { background-color: rgb(29, 29, 33); color: rgb(245, 235, 217); border-width: 1px; border-color: rgb(145, 122, 83); border-radius: 8px; }
+.unified-ui .unity-base-text-field__input:focus { border-color: rgb(214, 170, 88); }
+.unified-ui .hint { background-image: none; background-color: rgba(35, 35, 39, 0.96); color: rgb(245, 235, 217); border-width: 1px; border-color: rgb(145, 122, 83); border-radius: 12px; }
+.unified-ui .hint-warn { color: rgb(243, 147, 122); }
+.unified-ui .account-heading { -unity-font: url("../Fonts/ChibiDisplay.ttf"); -unity-font-style: normal; }
+.page-root .ui-help-panel { background-color: rgb(35, 35, 39); border-color: rgb(145, 122, 83); border-radius: 12px; }
+.page-root .ui-help-title { color: rgb(241, 208, 139); }
+.page-root .ui-help-text { color: rgb(245, 235, 217); }
+.page-root .ui-help-close { background-color: rgb(40, 40, 44); color: rgb(241, 208, 139); border-radius: 12px; }
+.page-root .toast { background-color: rgba(35, 35, 39, 0.96); border-width: 1px; border-color: rgb(214, 170, 88); border-radius: 12px; color: rgb(245, 235, 217); }
+.page-root .tut-band, .page-root .story-band { background-color: rgb(35, 35, 39); border-top-color: rgb(145, 122, 83); }
+.page-root .tut-name, .page-root .story-name { background-color: rgb(40, 40, 44); color: rgb(241, 208, 139); }
+.page-root .tut-text, .page-root .story-text, .page-root .tut-body { color: rgb(245, 235, 217); }
+.unified-ui .panel .txt-dim, .unified-ui .panel .line-sub,
+.unified-ui .bpanel .txt-dim, .unified-ui .bpanel .line-sub,
+.unified-ui .popup .txt-dim, .unified-ui .popup .line-sub,
+.unified-ui .panel .stat-line-name, .unified-ui .panel .card-row-desc { color: rgb(205, 195, 176); }
+.unified-ui .panel .section-text, .unified-ui .bpanel .section-text,
+.unified-ui .panel .txt-gold, .unified-ui .bpanel .bpanel-title,
+.unified-ui .popup .popup-title { color: rgb(241, 208, 139); }
+.unified-ui .panel .txt-good, .unified-ui .bpanel .txt-good,
+.unified-ui .popup .txt-good { color: rgb(137, 220, 169); }
+.unified-ui .tier-ready { background-color: rgb(72, 62, 47); border-color: rgb(214, 170, 88); }
+.unified-ui .badge-role { background-color: rgb(58, 53, 46); color: rgb(205, 195, 176); border-radius: 6px; }
+.unified-ui .form-toolbar .btn-primary { background-image: url("../ChibiSkin/gold.png"); }
+.unified-ui .quest-toolbar { padding: 12px 20px; background-color: rgba(35, 35, 39, 0.96); border-width: 1px; border-color: rgb(145, 122, 83); border-radius: 12px; }
+.unified-ui .challenge-tabs { justify-content: center; }
+.unified-ui .challenge-tabs-floating { top: 20px; }

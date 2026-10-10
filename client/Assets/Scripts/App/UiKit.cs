@@ -10,7 +10,7 @@ namespace SanGuo.Client
     {
         private static UnityEngine.TextCore.Text.FontAsset? DisplayFont;
         private static readonly string[] DisplayClasses = { "strategy-brand-title", "strategy-expedition-title", "hdr-title", "home-fn-label", "home-chapter-title",
-            "hero-namebar-name", "strategy-summary-name", "bpanel-title", "popup-title", "dun-name", "shop-name", "btn", "tab", "header-title", "bl-end", "bl-d-name", "sts-card-name", "home-campaign-title", "home-primary-title" };
+            "hero-namebar-name", "strategy-summary-name", "bpanel-title", "popup-title", "dun-name", "shop-name", "btn", "tab", "header-title", "bl-end", "bl-d-name", "sts-card-name", "home-campaign-title", "home-primary-title", "account-heading", "stage-title", "recruit-title", "recruit-pool-name", "quest-toolbar-title", "challenge-tab", "ui-help-title" };
 
         public static void ApplyDisplayFont(VisualElement element)
         {
@@ -58,6 +58,7 @@ namespace SanGuo.Client
             var b = new Button { text = text, pickingMode = PickingMode.Ignore };
             b.AddToClassList("btn");
             b.AddToClassList("btn-done");
+            ApplyDisplayFont(b);
             return b;
         }
 

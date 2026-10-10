@@ -50,12 +50,14 @@ namespace SanGuo.Client
             AddSheet(_root, "BattleArt/HandCompact");
             AddSheet(_root, "UI/BattleHud");
             AddSheet(_root, "UI/HomeLayout");
+            AddSheet(_root, "UI/Unified");
             ApplyCjkFont(_root);
 
             Show(GameSession.Accounts is { HasSession: false } ? Page.Login : startPage);
             if (GameSession.ShotDir != null && ShotRunner.Instance == null)
             {
-                if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sanguoCommercialShot") >= 0) CommercialUiCapture.Begin(GameSession.ShotDir);
+                if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sanguoUnifiedShot") >= 0) UnifiedUiCapture.Begin(GameSession.ShotDir);
+                else if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sanguoCommercialShot") >= 0) CommercialUiCapture.Begin(GameSession.ShotDir);
                 else ShotRunner.Begin(GameSession.ShotDir);
             }
         }

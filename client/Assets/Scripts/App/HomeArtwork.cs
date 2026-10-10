@@ -33,6 +33,7 @@ namespace SanGuo.Client
                 var target = item.Item1;
                 var button = new Button(() => Nav.Go(target)) { text = item.Item2 };
                 button.AddToClassList("challenge-tab");
+                UiKit.ApplyDisplayFont(button);
                 if (target == active) button.AddToClassList("active");
                 button.name = "challenge-" + target;
                 tabs.Add(button);

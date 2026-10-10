@@ -64,7 +64,7 @@ namespace SanGuo.Client
             File.WriteAllText(Path.Combine(directory,"verification.txt"),"Home six routes, challenge tabs, expedition route, grid picking, head HUD, intent order and compact card fields passed. No commercial art quality claim.");
             Application.Quit();
         }
-        private static IEnumerator Capture(string directory,string name)
+        internal static IEnumerator Capture(string directory,string name)
         {
             int width = Screen.width, height = Screen.height;
             var settings = PageHost.Current!.GetComponent<UIDocument>().panelSettings;

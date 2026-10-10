@@ -30,6 +30,7 @@ namespace SanGuo.Client
             _host.AddToClassList("page-host");
             _host.AddToClassList("bg-" + Id.ToString().ToLowerInvariant());
             if (Id != Page.Battle) _host.AddToClassList("meta-page");
+            if (Id != Page.Home && Id != Page.Battle) _host.AddToClassList("unified-ui");
             container.Add(_host);
             Rebuild();
             if (!NeedsProfile) { OnReady(); return; }
