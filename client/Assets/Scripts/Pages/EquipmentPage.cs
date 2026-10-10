@@ -159,7 +159,8 @@ namespace SanGuo.Client
                 var equip = UiKit.Btn(current > 0 ? "替換裝備" : "配戴", () => _ = Act(() => GameSession.Backend.Equip(def.Id, slot.ToString(), tier)), primary: true).WithClass("btn-lg");
                 equip.name = "equipment-equip";
                 actions.Add(equip);
-                var dismantle = UiKit.Btn("分解  +" + Equipment.DismantleGold(tier) + " 銅錢", () => _ = Act(() => GameSession.Backend.Dismantle(slot.ToString(), tier, 1))).WithClass("btn-lg");
+                string stockSlot = slot == EquipSlot.Accessory ? "Accessory:" + (Equipment.UsesCritAccessory(def.Role) ? "crit" : "dodge") : slot.ToString();
+                var dismantle = UiKit.Btn("分解  +" + Equipment.DismantleGold(tier) + " 銅錢", () => _ = Act(() => GameSession.Backend.Dismantle(stockSlot, tier, 1))).WithClass("btn-lg");
                 dismantle.name = "equipment-dismantle";
                 actions.Add(dismantle);
             }
@@ -168,6 +169,6 @@ namespace SanGuo.Client
         }
 
         private static int Count(ProfileView view, HeroDef def, EquipSlot slot, int tier) =>
-            view.Material(Equipment.ItemKey(slot, tier)) + (slot == EquipSlot.Weapon ? view.Material(Equipment.WeaponKey(def.Role, tier)) : 0);
+            Equipment.CountFor(view.Raw, def.Role, slot, tier);
     }
 }

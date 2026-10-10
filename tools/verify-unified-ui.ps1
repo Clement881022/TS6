@@ -23,7 +23,7 @@ $game = Start-Process (Join-Path $outRoot 'SanGuo.exe') -ArgumentList $playerArg
 if (-not $game.WaitForExit(120000)) { $game.Kill(); throw "Capture timed out: $playerLog" }
 if ($game.ExitCode -ne 0) { throw "Capture failed: $playerLog" }
 $shots = @(Get-ChildItem -LiteralPath $shotsRoot -Filter '*.png' | Where-Object { $_.LastWriteTime -ge $started })
-if ($shots.Count -ne 29) { throw "Expected 29 captures, got $($shots.Count): $playerLog" }
+if ($shots.Count -ne 31) { throw "Expected 31 captures, got $($shots.Count): $playerLog" }
 Add-Type -AssemblyName System.Drawing
 foreach ($shot in $shots) {
     $image = [Drawing.Image]::FromFile($shot.FullName)

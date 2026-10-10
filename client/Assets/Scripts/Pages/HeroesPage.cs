@@ -401,6 +401,7 @@ namespace SanGuo.Client
         {
             var card = new VisualElement().WithClass("growth-equipment-card equipment-tier-" + tier);
             string icon = slot == EquipSlot.Weapon ? "weapon_" + def.Role.ToString().ToLowerInvariant() : slot.ToString().ToLowerInvariant();
+            if (slot == EquipSlot.Accessory && Equipment.UsesCritAccessory(def.Role)) icon = "accessory_crit";
             var art = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("growth-equipment-art");
             var texture = Resources.Load<Texture2D>("EquipmentArt/" + icon);
             if (texture != null) art.style.backgroundImage = new StyleBackground(texture);
@@ -418,7 +419,7 @@ namespace SanGuo.Client
                     details.Add(UiKit.Text($"生命 +{percent}%", "growth-equipment-effect"));
                     details.Add(UiKit.Text($"防禦 +{percent}%", "growth-equipment-effect"));
                 }
-                else details.Add(UiKit.Text(mods.Crit > 0 ? $"爆擊率 +{mods.Crit} 點" : $"閃避 +{mods.Dodge} 點", "growth-equipment-effect"));
+                else details.Add(UiKit.Text(mods.Crit > 0 ? $"爆擊率 +{mods.Crit}%" : $"閃避率 +{mods.Dodge}%", "growth-equipment-effect"));
                 card.tooltip = $"{Equipment.Name(slot, tier, def.Role)} · {Equipment.TierLabel(tier)}";
             }
             else details.Add(UiKit.Text("未配戴", "growth-equipment-empty"));

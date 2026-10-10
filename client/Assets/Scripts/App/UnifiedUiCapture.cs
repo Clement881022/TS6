@@ -54,12 +54,13 @@ namespace SanGuo.Client
                 }
                 else if (active is ShopPage shop)
                 {
-                    var equipmentTile = root.Query(className: "item-tile").ToList().Find(tile => tile.tooltip.Contains("可在裝備頁配戴"));
+                    var equipmentTile = root.Q(className: "shop-equipment-item");
                     if (equipmentTile == null) throw new InvalidOperationException("Shop equipment details missing");
                     using (var click = ClickEvent.GetPooled()) { click.target = equipmentTile; equipmentTile.SendEvent(click); }
                     yield return new WaitForSecondsRealtime(.3f);
                     if (root.Q(className: "ui-help-overlay") == null) throw new InvalidOperationException("Shop item click did not open details");
                     if (!root.Q<Label>(className: "ui-help-text").text.Contains("攻擊 +11%")) throw new InvalidOperationException("Shop weapon effect missing");
+                    ValidateItemDetail(root);
                     yield return CommercialUiCapture.Capture(directory, "shop-equipment-detail");
                     root.Q(className: "ui-help-overlay").RemoveFromHierarchy();
                     for (int tab = 1; tab <= 3; tab++)
@@ -70,17 +71,37 @@ namespace SanGuo.Client
                         yield return CommercialUiCapture.Capture(directory, "shop-tab-" + tab);
                         if (tab == 1)
                         {
-                            var accessory = root.Query(className: "shop-equipment-item").ToList().Find(tile => tile.tooltip.Contains("飾品"));
+                            var accessory = root.Query(className: "shop-equipment-item").ToList().Find(tile => tile.tooltip.Contains("閃避率"));
                             if (accessory == null) throw new InvalidOperationException("Shop accessory missing");
                             using (var click = ClickEvent.GetPooled()) { click.target = accessory; accessory.SendEvent(click); }
                             yield return new WaitForSecondsRealtime(.3f);
                             var text = root.Q<Label>(className: "ui-help-text").text;
-                            if (!text.Contains("爆擊率 +7 個百分點") || !text.Contains("閃避率 +4 個百分點")) throw new InvalidOperationException("Shop accessory effects missing");
+                            if (!text.Contains("閃避率 +4%") || text.Contains("爆擊")) throw new InvalidOperationException("Shop dodge accessory effect");
+                            ValidateItemDetail(root);
                             yield return CommercialUiCapture.Capture(directory, "shop-accessory-detail");
+                            root.Q(className: "ui-help-overlay").RemoveFromHierarchy();
+                            accessory = root.Query(className: "shop-equipment-item").ToList().Find(tile => tile.tooltip.Contains("爆擊率"));
+                            using (var click = ClickEvent.GetPooled()) { click.target = accessory; accessory.SendEvent(click); }
+                            yield return new WaitForSecondsRealtime(.3f);
+                            text = root.Q<Label>(className: "ui-help-text").text;
+                            if (!text.Contains("爆擊率 +7%") || text.Contains("閃避")) throw new InvalidOperationException("Shop crit accessory effect");
+                            ValidateItemDetail(root);
+                            yield return CommercialUiCapture.Capture(directory, "shop-crit-detail");
+                            root.Q(className: "ui-help-overlay").RemoveFromHierarchy();
+                            var gold = root.Query(className: "item-tile").ToList().Find(tile => tile.tooltip.StartsWith("金幣\n"));
+                            using (var click = ClickEvent.GetPooled()) { click.target = gold; gold.SendEvent(click); }
+                            yield return new WaitForSecondsRealtime(.3f);
+                            ValidateItemDetail(root);
+                            if (root.Q<Label>(className: "ui-help-title").text != "金幣") throw new InvalidOperationException("Gold detail repeats quantity");
+                            yield return CommercialUiCapture.Capture(directory, "shop-gold-detail");
                             root.Q(className: "ui-help-overlay").RemoveFromHierarchy();
                         }
                         if (tab == 2)
                         {
+                            var markers = root.Query<Label>(className: "shop-pass-track-name").ToList();
+                            if (markers.Count != 2 || markers[0].text != "免費" || markers[1].text != "高級") throw new InvalidOperationException("Pass track legend");
+                            foreach (var ticket in root.Query(className: "shop-pass-ticket").ToList())
+                                if (ticket.resolvedStyle.backgroundImage.texture == null) throw new InvalidOperationException("Pass ticket art missing");
                             var scroll = root.Q<ScrollView>(className: "shop-pass-scroll");
                             yield return ValidateShopScroll(root, scroll);
                             scroll.horizontalScroller.value = scroll.horizontalScroller.highValue;
@@ -130,6 +151,16 @@ namespace SanGuo.Client
             File.WriteAllText(Path.Combine(directory, "verification.txt"),
                 "Thirteen pages, roster/growth tabs, four shop tabs, recruitment rates/results, stage detail, seven-day quests and help captured. Header resource margins, panel colors and layout bounds passed. Battle commercial-art structure passed. Visual quality requires screenshot review; account is offline mode.");
             Application.Quit();
+        }
+
+        private static void ValidateItemDetail(VisualElement root)
+        {
+            var overlay = root.Q(className: "ui-help-overlay");
+            if (overlay.Q(className: "shop-item-detail-art")?.resolvedStyle.backgroundImage.texture == null)
+                throw new InvalidOperationException("Item detail art missing");
+            foreach (var label in overlay.Query<Label>().ToList())
+                if (label.text.Contains("數量") || label.text.Contains("可在裝備頁") || label.text.Contains("部位："))
+                    throw new InvalidOperationException("Item detail has redundant text");
         }
 
         private static IEnumerator ValidateShopScroll(VisualElement root, ScrollView scroll)

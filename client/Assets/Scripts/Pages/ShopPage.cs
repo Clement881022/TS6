@@ -12,6 +12,12 @@ namespace SanGuo.Client
         private enum Tab { Pay, Soul, Pass, Recharge }
 
         private Tab _tab = Tab.Pay;
+        private sealed class ItemDetail
+        {
+            public EquipSlot Slot;
+            public int Tier;
+            public Role? Role;
+        }
 
         protected override Page Id => Page.Shop;
         protected override string Title => "商店";
@@ -205,6 +211,21 @@ namespace SanGuo.Client
             }
             body.Add(top);
 
+            var track = new VisualElement().WithClass("shop-pass-track");
+            var legend = new VisualElement().WithClass("shop-pass-legend");
+            legend.Add(new VisualElement().WithClass("shop-pass-legend-spacer"));
+            foreach (var pass in new[] { ("pass_free", "免費"), ("pass_premium", "高級") })
+            {
+                var marker = new VisualElement().WithClass("shop-pass-marker");
+                var image = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("shop-pass-ticket");
+                var texture = UnityEngine.Resources.Load<UnityEngine.Texture2D>("ShopArt/" + pass.Item1);
+                if (texture != null) image.style.backgroundImage = new StyleBackground(texture);
+                marker.Add(image);
+                marker.Add(UiKit.Text(pass.Item2, "shop-pass-track-name"));
+                legend.Add(marker);
+            }
+            track.Add(legend);
+            body.Add(track);
             var scroll = new ScrollView(ScrollViewMode.Horizontal);
             scroll.AddToClassList("grow");
             scroll.AddToClassList("shop-pass-scroll");
@@ -222,21 +243,21 @@ namespace SanGuo.Client
                 lvText.style.flexShrink = 0;
                 lvText.style.whiteSpace = WhiteSpace.NoWrap;
                 head.Add(lvText);
-                head.Add(PassCell(Rewards(BattlePass.FreeReward(l)), "免費", level >= l, !stale && p.Pass.ClaimedFree.Contains(l), true,
+                head.Add(PassCell(Rewards(BattlePass.FreeReward(l)), level >= l, !stale && p.Pass.ClaimedFree.Contains(l), true,
                     () => _ = Act(() => GameSession.Backend.ClaimPass(l, false), "已領取")));
-                head.Add(PassCell(Rewards(BattlePass.PaidReward(l)), "付費", level >= l, !stale && p.Pass.ClaimedPaid.Contains(l), tier != "",
+                head.Add(PassCell(Rewards(BattlePass.PaidReward(l)), level >= l, !stale && p.Pass.ClaimedPaid.Contains(l), tier != "",
                     () => _ = Act(() => GameSession.Backend.ClaimPass(l, true), "已領取")));
                 row.Add(head);
                 scroll.Add(row);
             }
-            body.Add(scroll);
+            track.Add(scroll);
             var footer = new VisualElement().WithClass("shop-pass-footer");
             footer.Add(UiKit.Btn("一鍵領取", () => _ = Act(() => GameSession.Backend.ClaimPassAll(), "已領取"), primary: true).WithClass("shop-pass-claim-all"));
             body.Add(footer);
             body.Add(UiKit.Text("測試環境：購買不會實際扣款", "foot-note"));
         }
 
-        private static VisualElement PassCell(VisualElement tiles, string label, bool reached, bool claimed, bool owned, System.Action claim)
+        private static VisualElement PassCell(VisualElement tiles, bool reached, bool claimed, bool owned, System.Action claim)
         {
             var cell = new VisualElement();
             cell.AddToClassList("shop-pass-cell");
@@ -244,10 +265,6 @@ namespace SanGuo.Client
             cell.style.alignItems = Align.Center;
             cell.style.flexGrow = 1;
             cell.style.marginLeft = 0;
-            var tag = UiKit.Text(label, "line-sub");
-            tag.style.flexShrink = 0;
-            tag.style.whiteSpace = WhiteSpace.NoWrap;
-            cell.Add(tag);
             tiles.style.marginLeft = 8;
             tiles.style.marginRight = 8;
             tiles.style.flexDirection = FlexDirection.Row;
@@ -301,10 +318,10 @@ namespace SanGuo.Client
                     head.Add(portrait.WithClass("shop-exchange-icon"));
                 }
                 else if (it.Kind == SoulItemKind.Equipment)
-                    head.Add(Material(Equipment.ItemKey(it.Slot, it.Tier), 1).WithClass("shop-exchange-icon"));
+                    head.Add(Material(it.Id, 1).WithClass("shop-exchange-icon"));
                 else
-                    head.Add(Item(it.Kind == SoulItemKind.Gold ? "item_gold" : "item_expbook", it.Name,
-                        it.Kind == SoulItemKind.Gold ? "用於武將養成與裝備強化。" : "用於提升武將等級。", it.Amount).WithClass("shop-exchange-icon"));
+                    head.Add(Item(it.Kind == SoulItemKind.Gold ? "item_gold" : "item_expbook", it.Kind == SoulItemKind.Gold ? "金幣" : "武將經驗",
+                        it.Kind == SoulItemKind.Gold ? "用於武將升級與突破。" : "用於提升武將等級。", it.Amount).WithClass("shop-exchange-icon"));
                 var purchase = soldOut
                     ? UiKit.DoneBtn("本月已兌完").WithClass("btn-sm")
                     : UiKit.Btn("", () => _ = Act(() => GameSession.Backend.BuySoulItem(it.Id), "兌換成功"), primary: souls >= it.Cost).WithClass("btn-sm shop-soul-cost");
@@ -333,8 +350,61 @@ namespace SanGuo.Client
             var tile = UiKit.ItemTile(icon, count.ToString());
             tile.pickingMode = PickingMode.Position;
             tile.focusable = true;
-            tile.tooltip = $"{name} ×{count}\n{description}";
-            void Show() => UiHelp.Show(Host, name, $"數量：{count}\n{description}");
+            tile.tooltip = $"{name}\n{description}";
+            void Show()
+            {
+                var overlay = UiHelp.Dialog(Host, name, body =>
+                {
+                    var row = new VisualElement().WithClass("shop-item-detail");
+                    var image = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("shop-item-detail-art");
+                    image.style.backgroundImage = tile.style.backgroundImage;
+                    row.Add(image);
+                    var effects = new VisualElement().WithClass("shop-item-detail-effects");
+                    if (tile.userData is ItemDetail detail)
+                    {
+                        image.AddToClassList("equipment-tier-" + detail.Tier);
+                        foreach (var line in description.Split('\n'))
+                        {
+                            var stat = new VisualElement().WithClass("shop-item-stat");
+                            string statIcon = line.StartsWith("生命") ? "hp" : line.StartsWith("防禦") ? "stat_def" : line.StartsWith("智力") ? "stat_int" : line.StartsWith("閃避") ? "role_archer" : line.StartsWith("爆擊") ? "status_critup" : "stat_atk";
+                            stat.Add(UiKit.ItemTile(statIcon).WithClass("shop-item-stat-icon"));
+                            stat.Add(UiKit.Text(line, "ui-help-text shop-item-stat-value"));
+                            if (detail.Slot == EquipSlot.Weapon && !detail.Role.HasValue)
+                            {
+                                var weaponRoles = line.StartsWith("智力") ? new[] { Role.Mage, Role.Strategist, Role.Healer } : new[] { Role.Tank, Role.Warrior, Role.Ranger };
+                                foreach (var weaponRole in weaponRoles)
+                                {
+                                    string iconName = weaponRole == Role.Ranger ? "archer" : weaponRole.ToString().ToLowerInvariant();
+                                    var badge = UiKit.ItemTile("role_" + iconName).WithClass("shop-item-weapon-role");
+                                    badge.tooltip = CardText.RoleName(weaponRole);
+                                    badge.pickingMode = PickingMode.Position;
+                                    stat.Add(badge);
+                                }
+                            }
+                            effects.Add(stat);
+                        }
+                        if (detail.Slot == EquipSlot.Accessory)
+                        {
+                            var roles = new VisualElement().WithClass("shop-item-roles");
+                            var allowed = Equipment.UsesCritAccessory(detail.Role ?? Role.Warrior) ? new[] { Role.Warrior, Role.Ranger } : new[] { Role.Tank, Role.Mage, Role.Strategist, Role.Healer };
+                            foreach (var role in allowed)
+                            {
+                                string roleIcon = role == Role.Ranger ? "archer" : role.ToString().ToLowerInvariant();
+                                var badge = UiKit.ItemTile("role_" + roleIcon).WithClass("shop-item-role");
+                                badge.tooltip = CardText.RoleName(role);
+                                badge.pickingMode = PickingMode.Position;
+                                roles.Add(badge);
+                            }
+                            effects.Add(roles);
+                        }
+                    }
+                    else effects.Add(UiKit.Text(description, "ui-help-text"));
+                    row.Add(effects);
+                    body.Add(row);
+                });
+                overlay.AddToClassList("shop-item-overlay");
+                if (tile.userData is ItemDetail info) overlay.Q<Label>(className: "ui-help-title").AddToClassList("shop-quality-" + info.Tier);
+            }
             tile.RegisterCallback<ClickEvent>(e => { Show(); e.StopPropagation(); });
             tile.RegisterCallback<KeyDownEvent>(e =>
             {
@@ -345,12 +415,17 @@ namespace SanGuo.Client
 
         private VisualElement Material(string key, int amount)
         {
-            if (Equipment.TryParseKey(key, out var slot, out int tier))
+            if (Equipment.TryParseKey(key, out var slot, out int tier, out var role))
             {
-                var tile = Item("item_chest", Equipment.Name(slot, tier), EquipmentEffect(slot, tier), amount);
+                string name = Equipment.Name(slot, tier, role);
+                if (name.StartsWith(Equipment.TierLabel(tier))) name = name.Substring(Equipment.TierLabel(tier).Length);
+                var tile = Item("item_chest", name, EquipmentEffect(slot, tier, role), amount);
+                tile.userData = new ItemDetail { Slot = slot, Tier = tier, Role = role };
                 tile.AddToClassList("shop-equipment-item");
-                string icon = slot == EquipSlot.Weapon ? "weapon_warrior" : slot == EquipSlot.Armor ? "armor" : "accessory";
-                var tex = UnityEngine.Resources.Load<UnityEngine.Texture2D>("EquipmentArt/" + icon);
+                tile.AddToClassList("equipment-tier-" + tier);
+                string icon = slot == EquipSlot.Weapon ? "weapon_" + (role ?? Role.Warrior).ToString().ToLowerInvariant() : slot == EquipSlot.Armor ? "armor" : "accessory";
+                if (slot == EquipSlot.Accessory && Equipment.UsesCritAccessory(role ?? Role.Warrior)) icon = "accessory_crit";
+                var tex = slot == EquipSlot.Weapon && !role.HasValue ? null : UnityEngine.Resources.Load<UnityEngine.Texture2D>("EquipmentArt/" + icon);
                 if (tex != null) tile.style.backgroundImage = new StyleBackground(tex);
                 return tile;
             }
@@ -358,20 +433,19 @@ namespace SanGuo.Client
                 key == HeroGrowth.HeroExp ? "用於提升武將等級。" : "用於將魂商店兌換商品。", amount);
         }
 
-        private static string EquipmentEffect(EquipSlot slot, int tier)
+        private static string EquipmentEffect(EquipSlot slot, int tier, Role? role)
         {
             var equipment = new Dictionary<string, int> { [slot.ToString()] = tier };
-            var physical = Equipment.Mods(Role.Warrior, equipment);
-            var other = Equipment.Mods(Role.Tank, equipment);
+            var mods = Equipment.Mods(role ?? Role.Warrior, equipment);
             int percent = Equipment.PercentOf(tier);
             string effect;
             if (slot == EquipSlot.Weapon)
-                effect = $"坦克／戰士／射手：攻擊 +{percent}%\n法師／謀士／醫者：智力 +{percent}%\n自選匣配戴時依武將職業轉為對應武器。";
+                effect = role.HasValue ? $"{(Equipment.WeaponBoostsInt(role.Value) ? "智力" : "攻擊")} +{percent}%" : $"攻擊 +{percent}%\n智力 +{percent}%";
             else if (slot == EquipSlot.Armor)
                 effect = $"生命 +{percent}%\n防禦 +{percent}%";
             else
-                effect = $"戰士／射手：爆擊率 +{physical.Crit} 個百分點\n坦克／法師／謀士／醫者：閃避率 +{other.Dodge} 個百分點";
-            return $"{Equipment.TierLabel(tier)} · {Equipment.SlotName(slot)}\n{effect}\n可在裝備頁配戴；同部位替換，不與原裝備疊加。";
+                effect = Equipment.UsesCritAccessory(role ?? Role.Warrior) ? $"爆擊率 +{mods.Crit}%" : $"閃避率 +{mods.Dodge}%";
+            return effect;
         }
 
         private static void EnableHorizontalScroll(ScrollView scroll)
@@ -429,7 +503,7 @@ namespace SanGuo.Client
         {
             var row = new VisualElement().WithClass("reward-tiles");
             if (reward.Yuanbao > 0) row.Add(Item("item_yuanbao", "元寶", "用於招募武將與遊戲內消費。", reward.Yuanbao));
-            if (reward.Gold > 0) row.Add(Item("item_gold", "金幣", "用於武將養成與裝備強化。", reward.Gold));
+            if (reward.Gold > 0) row.Add(Item("item_gold", "金幣", "用於武將升級與突破。", reward.Gold));
             if (reward.Stamina > 0) row.Add(Item("item_stamina", "體力", "用於出征與副本。", reward.Stamina));
             foreach (var material in reward.Materials) row.Add(Material(material.Key, material.Value));
             return row;
