@@ -43,16 +43,21 @@ namespace SanGuo.Client
             bool sevenReady = book.Quests.Any(q => q.Kind == QuestKind.SevenDay && q.Day <= Math.Max(day, 1) && Claimable(p, q))
                 || book.Milestones.Any(m => Quests.SevenDayPoints(p) >= m.Points && !p.SevenDayClaimed.Contains("milestone:" + m.Points));
 
+            var frame = new VisualElement().WithClass("quest-frame");
+            body.Add(frame);
             var side = new VisualElement();
             side.AddToClassList("quest-side");
+            var beginner = SideTab("七日目標", QuestKind.SevenDay, sevenReady);
+            beginner.AddToClassList("quest-beginner-tab");
+            beginner.Add(UiKit.Text("新手！", "quest-beginner"));
+            side.Add(beginner);
             side.Add(SideTab("每日任務", QuestKind.Daily, dailyReady));
             side.Add(SideTab("每週任務", QuestKind.Weekly, weeklyReady));
-            side.Add(SideTab("七日目標", QuestKind.SevenDay, sevenReady));
-            body.Add(side);
+            frame.Add(side);
 
             var main = new VisualElement();
             main.AddToClassList("quest-main");
-            body.Add(main);
+            frame.Add(main);
 
             if (_sevenDayTab)
             {
@@ -60,15 +65,8 @@ namespace SanGuo.Client
                 main.Add(UiKit.Text($"第 {Math.Min(day, Quests.SevenDays)} 天　/　共 {Quests.SevenDays} 天", "quest-day"));
                 main.Add(BuildMilestones(p, _reviewMilestonePoints ?? points));
             }
-            var toolbar = UiKit.Row("quest-toolbar");
             bool any = book.Quests.Any(q => q.Kind == _tab && (!_sevenDayTab || q.Day <= Math.Max(day, 1)) && Claimable(p, q))
                 || (_sevenDayTab && book.Milestones.Any(m => Quests.SevenDayPoints(p) >= m.Points && !p.SevenDayClaimed.Contains("milestone:" + m.Points)));
-            toolbar.Add(UiKit.Text(_tab == QuestKind.Daily ? "每日任務" : _tab == QuestKind.Weekly ? "每週任務" : "七日目標", "quest-toolbar-title"));
-            var claim = UiKit.Btn("一鍵領取", () => _ = ClaimAll(), primary: true).WithClass("quest-claim-all");
-            claim.SetEnabled(any && !_claiming);
-            toolbar.Add(claim);
-            main.Add(toolbar);
-
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("grow");
             scroll.contentContainer.AddToClassList("quest-grid");
@@ -83,6 +81,11 @@ namespace SanGuo.Client
                 int later = book.Quests.Count(x => x.Kind == QuestKind.SevenDay && x.Day > day);
                 if (later > 0) scroll.Add(UiKit.Text($"另有 {later} 項任務將於之後開放", "quest-more"));
             }
+            var footer = UiKit.Row("quest-footer");
+            var claim = UiKit.Btn("一鍵領取", () => _ = ClaimAll(), primary: true).WithClass("quest-claim-all");
+            claim.SetEnabled(any && !_claiming);
+            footer.Add(claim);
+            main.Add(footer);
         }
 
         private VisualElement BuildMilestones(PlayerProfile p, int points)

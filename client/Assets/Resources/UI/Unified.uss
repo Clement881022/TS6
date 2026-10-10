@@ -1,6 +1,27 @@
 .unified-ui { background-color: rgb(29, 29, 33); color: rgb(245, 235, 217); }
 .unified-ui .hdr { background-color: rgba(29, 29, 33, 0.96); border-bottom-color: rgb(145, 122, 83); }
 .unified-ui .hdr-title { color: rgb(245, 235, 217); font-size: 44px; }
+.unified-ui.bg-quests .hdr { height: 112px; padding-top: 12px; padding-bottom: 12px; align-items: center; }
+.unified-ui.bg-quests .hdr-res { align-self: center; flex-shrink: 0; }
+.unified-ui.bg-quests .res-pill { height: 60px; flex-shrink: 0; }
+.unified-ui.bg-quests .page-content { padding: 24px 28px 28px; }
+.unified-ui .quest-frame {
+    flex-direction: row; flex-grow: 1; min-width: 0; min-height: 0;
+    padding: 24px; background-color: rgba(29, 29, 33, 0.88);
+    border-width: 2px; border-color: rgb(145, 122, 83); border-radius: 18px;
+}
+.unified-ui .quest-side { width: 280px; padding: 12px 0 0; margin-right: 24px; }
+.unified-ui .quest-side .side-tab { height: 100px; min-height: 100px; font-size: 34px; margin-bottom: 18px; }
+.unified-ui .quest-side .quest-beginner-tab { margin-top: 14px; }
+.unified-ui .quest-beginner {
+    position: absolute; top: -14px; left: 14px; padding: 2px 12px;
+    background-color: rgb(154, 57, 43); color: rgb(255, 233, 180);
+    border-width: 1px; border-color: rgb(214, 170, 88); border-radius: 8px;
+    font-size: 22px; -unity-font-style: bold;
+}
+.unified-ui .quest-main { min-width: 0; min-height: 0; padding: 0; }
+.unified-ui .quest-footer { justify-content: flex-end; align-items: center; flex-shrink: 0; padding-top: 20px; }
+.unified-ui .quest-footer .quest-claim-all { width: 260px; height: 76px; margin: 0; }
 .unified-ui .hdr-back, .unified-ui .hdr-close, .unified-ui .popup-close,
 .unified-ui .ui-help-button, .unified-ui .ui-help-close {
     background-image: none; background-color: rgb(40, 40, 44); border-width: 1px;
