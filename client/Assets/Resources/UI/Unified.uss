@@ -340,9 +340,9 @@
 .unified-ui .shop-pass-card { width: 296px; flex-shrink: 0; margin: 0 8px; padding: 14px 8px; background-color: rgba(35,35,39,0.96); border-width: 1px; border-color: rgb(145,122,83); border-radius: 12px; }
 .unified-ui .shop-pass-level { align-items: center; }
 .unified-ui .shop-pass-level > .txt-gold, .unified-ui .shop-pass-level > .card-row-name { font-size: 28px; -unity-text-align: middle-center; }
-.unified-ui .shop-pass-cell { width: 100%; padding: 10px 0; margin-top: 10px; border-top-width: 1px; border-top-color: rgb(92,82,65); }
+.unified-ui .shop-pass-cell { width: 100%; padding: 8px 0; margin-top: 8px; border-top-width: 1px; border-top-color: rgb(92,82,65); }
 .unified-ui .shop-pass-cell .line-sub { font-size: 24px; }
-.unified-ui .shop-pass-cell .reward-tiles { min-height: 106px; justify-content: center; align-content: center; margin: 6px 0; }
+.unified-ui .shop-pass-cell .reward-tiles { min-height: 86px; justify-content: center; align-content: center; margin: 4px 0; }
 .unified-ui .shop-pass-cell .item-tile { width: 72px; height: 72px; margin: 4px; }
 .unified-ui .shop-pass-cell .item-count { font-size: 22px; }
 .unified-ui .shop-pass-cell .btn { width: 220px; min-width: 0; font-size: 26px; }
@@ -360,3 +360,16 @@
 .unified-ui .shop-recharge-grid .shop-icon { width: 100px; height: 100px; }
 .unified-ui .shop-recharge-grid .card-body { min-height: 40px; padding: 6px 12px; }
 .unified-ui .shop-exchange-column { flex-direction: column; flex-shrink: 0; }
+.unified-ui .shop-pass-footer { flex-direction: row; justify-content: flex-end; flex-shrink: 0; padding-top: 10px; }
+.unified-ui .shop-pass-claim-all { width: 240px; min-width: 0; height: 64px; margin: 0 0 8px; font-size: 28px; }
+.unified-ui .shop-frame .shop-soul-cost { flex-direction: row; align-items: center; justify-content: center; }
+.unified-ui .shop-frame .shop-soul-cost-icon { width: 36px; height: 36px; margin: 0 8px 0 0; border-width: 0; background-color: transparent; }
+.unified-ui .shop-soul-cost-value { font-size: 26px; -unity-text-align: middle-center; }
+.unified-ui .shop-frame .unity-scroller--horizontal { height: 22px; min-height: 22px; flex-shrink: 0; flex-direction: row; background-color: rgb(26,26,30); border-radius: 8px; }
+.unified-ui .shop-frame .unity-scroller--horizontal .unity-button { display: none; }
+.unified-ui .shop-frame .unity-scroller--horizontal .unity-base-slider { flex-grow: 1; min-width: 0; flex-direction: row; }
+.unified-ui .shop-frame .unity-scroller--horizontal .unity-base-field__input { flex-grow: 1; min-width: 0; align-self: stretch; }
+.unified-ui .shop-frame .unity-scroller--horizontal .unity-base-slider__drag-container { position: relative; flex-grow: 1; min-width: 0; border-radius: 8px; }
+.unified-ui .shop-frame .unity-scroller--horizontal .unity-base-slider__dragger { position: absolute; top: 2px; bottom: 2px; min-width: 36px; background-color: rgb(155,128,76); border-radius: 6px; }
+.unified-ui .shop-frame .unity-scroller--horizontal .unity-base-slider__dragger:hover { background-color: rgb(214,170,88); }
+.unified-ui .shop-frame .unity-scroller--horizontal .unity-base-slider__dragger-border { display: none; }

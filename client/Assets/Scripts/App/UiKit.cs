@@ -282,6 +282,7 @@ namespace SanGuo.Client
             res.Add(ResPill("item_stamina", $"{v.Stamina}/{v.StaminaCap}"));
             res.Add(ResPill("item_gold", v.Gold.ToString("N0")));
             res.Add(ResPill("item_yuanbao", v.Yuanbao.ToString("N0")));
+            if (page == Page.Shop) res.Add(ResPill("item_shard", v.Material(HeroGrowth.Soul).ToString("N0")).WithClass("shop-soul-resource"));
             bar.Add(res);
 
             if (page != Page.Login) bar.Add(UiHelp.Button(host, page));

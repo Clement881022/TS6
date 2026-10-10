@@ -59,6 +59,7 @@ namespace SanGuo.Client
                     using (var click = ClickEvent.GetPooled()) { click.target = equipmentTile; equipmentTile.SendEvent(click); }
                     yield return new WaitForSecondsRealtime(.3f);
                     if (root.Q(className: "ui-help-overlay") == null) throw new InvalidOperationException("Shop item click did not open details");
+                    if (!root.Q<Label>(className: "ui-help-text").text.Contains("攻擊 +11%")) throw new InvalidOperationException("Shop weapon effect missing");
                     yield return CommercialUiCapture.Capture(directory, "shop-equipment-detail");
                     root.Q(className: "ui-help-overlay").RemoveFromHierarchy();
                     for (int tab = 1; tab <= 3; tab++)
@@ -67,9 +68,21 @@ namespace SanGuo.Client
                         yield return new WaitForSecondsRealtime(.5f);
                         Validate(root, page);
                         yield return CommercialUiCapture.Capture(directory, "shop-tab-" + tab);
+                        if (tab == 1)
+                        {
+                            var accessory = root.Query(className: "shop-equipment-item").ToList().Find(tile => tile.tooltip.Contains("飾品"));
+                            if (accessory == null) throw new InvalidOperationException("Shop accessory missing");
+                            using (var click = ClickEvent.GetPooled()) { click.target = accessory; accessory.SendEvent(click); }
+                            yield return new WaitForSecondsRealtime(.3f);
+                            var text = root.Q<Label>(className: "ui-help-text").text;
+                            if (!text.Contains("爆擊率 +7 個百分點") || !text.Contains("閃避率 +4 個百分點")) throw new InvalidOperationException("Shop accessory effects missing");
+                            yield return CommercialUiCapture.Capture(directory, "shop-accessory-detail");
+                            root.Q(className: "ui-help-overlay").RemoveFromHierarchy();
+                        }
                         if (tab == 2)
                         {
                             var scroll = root.Q<ScrollView>(className: "shop-pass-scroll");
+                            yield return ValidateShopScroll(root, scroll);
                             scroll.horizontalScroller.value = scroll.horizontalScroller.highValue;
                             yield return new WaitForSecondsRealtime(.5f);
                             Validate(root, page);
@@ -117,6 +130,78 @@ namespace SanGuo.Client
             File.WriteAllText(Path.Combine(directory, "verification.txt"),
                 "Thirteen pages, roster/growth tabs, four shop tabs, recruitment rates/results, stage detail, seven-day quests and help captured. Header resource margins, panel colors and layout bounds passed. Battle commercial-art structure passed. Visual quality requires screenshot review; account is offline mode.");
             Application.Quit();
+        }
+
+        private static IEnumerator ValidateShopScroll(VisualElement root, ScrollView scroll)
+        {
+            var viewport = scroll.contentViewport;
+            var tile = scroll.Q(className: "item-tile");
+            if (scroll.Q(className: "shop-pass-card").worldBound.yMax > viewport.worldBound.yMax + 1)
+                throw new InvalidOperationException("Pass reward card is clipped vertically");
+            using (var wheel = WheelEvent.GetPooled(new Event { type = EventType.ScrollWheel, delta = new Vector2(0, 3), mousePosition = tile.worldBound.center }))
+            {
+                wheel.target = tile;
+                tile.SendEvent(wheel);
+            }
+            yield return new WaitForSecondsRealtime(.2f);
+            if (scroll.scrollOffset.x < 100) throw new InvalidOperationException("Shop vertical wheel did not scroll horizontally");
+            scroll.scrollOffset = Vector2.zero;
+            yield return new WaitForSecondsRealtime(.2f);
+            var card = scroll.Q(className: "shop-pass-card");
+            var from = card.worldBound.center;
+            Drag(card, viewport, from, from - new Vector2(120, 0));
+            if (scroll.scrollOffset.x < 119) throw new InvalidOperationException("Shop card drag did not scroll");
+            float released = scroll.scrollOffset.x;
+            using (var move = PointerMoveEvent.GetPooled(new Event { type = EventType.MouseMove, mousePosition = from }))
+            {
+                move.target = viewport;
+                viewport.SendEvent(move);
+            }
+            if (Mathf.Abs(scroll.scrollOffset.x - released) > 1) throw new InvalidOperationException("Shop drag continued after release");
+            scroll.scrollOffset = Vector2.zero;
+            yield return new WaitForSecondsRealtime(.2f);
+            from = tile.worldBound.center;
+            Drag(tile, viewport, from, from - new Vector2(100, 0));
+            if (scroll.scrollOffset.x < 99) throw new InvalidOperationException("Shop item drag did not scroll");
+            using (var click = ClickEvent.GetPooled()) { click.target = tile; tile.SendEvent(click); }
+            if (root.Q(className: "ui-help-overlay") != null) throw new InvalidOperationException("Dragging shop item opened details");
+            scroll.scrollOffset = Vector2.zero;
+            yield return new WaitForSecondsRealtime(.2f);
+            var thumb = scroll.horizontalScroller.Q(className: "unity-base-slider__dragger");
+            var track = scroll.horizontalScroller.Q(className: "unity-base-slider__drag-container");
+            if (thumb.worldBound.height < 12 || track.worldBound.width < viewport.worldBound.width - 4)
+                throw new InvalidOperationException("Shop scrollbar geometry");
+            from = thumb.worldBound.center;
+            Drag(thumb, thumb, from, from + new Vector2(180, 0));
+            yield return new WaitForSecondsRealtime(.2f);
+            if (scroll.scrollOffset.x < 100) throw new InvalidOperationException("Shop scrollbar thumb drag did not scroll");
+            scroll.scrollOffset = Vector2.zero;
+            yield return new WaitForSecondsRealtime(.2f);
+            from = tile.worldBound.center;
+            Drag(tile, tile, from, from);
+            using (var click = ClickEvent.GetPooled()) { click.target = tile; tile.SendEvent(click); }
+            if (root.Q(className: "ui-help-overlay") == null) throw new InvalidOperationException("Normal item click after dragging did not open details");
+            root.Q(className: "ui-help-overlay").RemoveFromHierarchy();
+            Debug.Log("[shop] horizontal wheel, card drag, item drag, release, click suppression and thumb drag passed");
+        }
+
+        private static void Drag(VisualElement target, VisualElement receiver, Vector2 from, Vector2 to)
+        {
+            using (var down = PointerDownEvent.GetPooled(new Event { type = EventType.MouseDown, button = 0, mousePosition = from }))
+            {
+                down.target = target;
+                target.SendEvent(down);
+            }
+            using (var move = PointerMoveEvent.GetPooled(new Event { type = EventType.MouseDrag, button = 0, mousePosition = to }))
+            {
+                move.target = receiver;
+                receiver.SendEvent(move);
+            }
+            using (var up = PointerUpEvent.GetPooled(new Event { type = EventType.MouseUp, button = 0, mousePosition = to }))
+            {
+                up.target = receiver;
+                receiver.SendEvent(up);
+            }
         }
 
         private static IEnumerator ValidateQuestDrag(VisualElement root)
@@ -201,6 +286,15 @@ namespace SanGuo.Client
                 var tabs = host.Q(className: "shop-tabs");
                 if (frame == null || tabs == null || frame.worldBound.yMax > root.worldBound.yMax - 8)
                     throw new InvalidOperationException("Shop frame or bottom margin missing");
+                if (host.Q(className: "shop-soul-resource")?.Q(className: "res-pill-icon").resolvedStyle.backgroundImage.texture == null || host.Q(className: "shop-soul-note") != null)
+                    throw new InvalidOperationException("Shop soul resource icon or header placement missing");
+                foreach (var name in host.Query<Label>(className: "card-row-name").ToList())
+                    if (name.text.Contains("重複份")) throw new InvalidOperationException("Shop token naming");
+                foreach (var cost in host.Query<Button>(className: "shop-soul-cost").ToList())
+                    if (cost.Q(className: "shop-soul-cost-icon") == null) throw new InvalidOperationException("Shop soul cost icon missing");
+                var claim = host.Q<Button>(className: "shop-pass-claim-all");
+                if (claim != null && (claim.worldBound.xMax < frame.worldBound.xMax - 40 || claim.worldBound.yMax < frame.worldBound.yMax - 90))
+                    throw new InvalidOperationException("Pass claim all is not at bottom right");
                 foreach (var scroll in host.Query<ScrollView>().ToList())
                     if (tabs.worldBound.yMax > scroll.worldBound.yMin + 1)
                         throw new InvalidOperationException("Shop tabs overlap scrolling products");

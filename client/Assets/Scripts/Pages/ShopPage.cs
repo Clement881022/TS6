@@ -1,5 +1,6 @@
 #nullable enable
 using System.Linq;
+using System.Collections.Generic;
 using SanGuo.Core;
 using SanGuo.Core.Meta;
 using UnityEngine.UIElements;
@@ -191,7 +192,6 @@ namespace SanGuo.Client
             info.Add(UiKit.Text(level >= BattlePass.MaxLevel ? "已滿級" : $"{points % BattlePass.PointsPerLevel} / {BattlePass.PointsPerLevel}", "line-sub"));
             info.tooltip = "消耗 1 點體力獲得 1 點通行證經驗";
             top.Add(info);
-            top.Add(UiKit.Btn("一鍵領取", () => _ = Act(() => GameSession.Backend.ClaimPassAll(), "已領取"), primary: true).WithClass("btn-sm"));
             if (tier == "")
             {
                 foreach (var id in new[] { Shop.PassBasic })
@@ -208,6 +208,8 @@ namespace SanGuo.Client
             var scroll = new ScrollView(ScrollViewMode.Horizontal);
             scroll.AddToClassList("grow");
             scroll.AddToClassList("shop-pass-scroll");
+            scroll.verticalScrollerVisibility = ScrollerVisibility.Hidden;
+            EnableHorizontalScroll(scroll);
             for (int lv = 1; lv <= BattlePass.MaxLevel; lv++)
             {
                 int l = lv;
@@ -228,6 +230,9 @@ namespace SanGuo.Client
                 scroll.Add(row);
             }
             body.Add(scroll);
+            var footer = new VisualElement().WithClass("shop-pass-footer");
+            footer.Add(UiKit.Btn("一鍵領取", () => _ = Act(() => GameSession.Backend.ClaimPassAll(), "已領取"), primary: true).WithClass("shop-pass-claim-all"));
+            body.Add(footer);
             body.Add(UiKit.Text("測試環境：購買不會實際扣款", "foot-note"));
         }
 
@@ -263,11 +268,12 @@ namespace SanGuo.Client
             var v = GameSession.View;
             long now = v.Now;
             int souls = v.Material(HeroGrowth.Soul);
-            body.Add(UiKit.Text($"將魂 {souls}", "line-title shop-soul-note"));
 
             var scroll = new ScrollView(ScrollViewMode.Horizontal);
             scroll.AddToClassList("grow");
             scroll.AddToClassList("shop-exchange-scroll");
+            scroll.verticalScrollerVisibility = ScrollerVisibility.Hidden;
+            EnableHorizontalScroll(scroll);
             VisualElement? column = null;
             int visible = 0;
             foreach (var item in SoulShop.Items())
@@ -285,10 +291,11 @@ namespace SanGuo.Client
                 row.AddToClassList("shop-exchange-card");
                 var head = new VisualElement();
                 head.AddToClassList("shop-exchange-head");
-                head.Add(UiKit.Text(it.Name, "card-row-name"));
+                string name = it.Kind == SoulItemKind.HeroShard ? (HeroRoster.Find(it.HeroId)?.Name ?? it.HeroId) + " 信物" : it.Name;
+                head.Add(UiKit.Text(name, "card-row-name"));
                 if (it.Kind == SoulItemKind.HeroShard)
                 {
-                    var portrait = Item("item_shard", it.Name, "武將專屬信物，用於突破。", 1);
+                    var portrait = Item("item_shard", name, "武將專屬信物，用於突破。", 1);
                     var face = HeroArt.Face(it.HeroId);
                     if (face != null) portrait.style.backgroundImage = new StyleBackground(face);
                     head.Add(portrait.WithClass("shop-exchange-icon"));
@@ -300,7 +307,12 @@ namespace SanGuo.Client
                         it.Kind == SoulItemKind.Gold ? "用於武將養成與裝備強化。" : "用於提升武將等級。", it.Amount).WithClass("shop-exchange-icon"));
                 var purchase = soldOut
                     ? UiKit.DoneBtn("本月已兌完").WithClass("btn-sm")
-                    : UiKit.Btn($"{it.Cost} 將魂", () => _ = Act(() => GameSession.Backend.BuySoulItem(it.Id), "兌換成功"), primary: souls >= it.Cost).WithClass("btn-sm");
+                    : UiKit.Btn("", () => _ = Act(() => GameSession.Backend.BuySoulItem(it.Id), "兌換成功"), primary: souls >= it.Cost).WithClass("btn-sm shop-soul-cost");
+                if (!soldOut)
+                {
+                    purchase.Add(UiKit.ItemTile("item_shard").WithClass("shop-soul-cost-icon"));
+                    purchase.Add(UiKit.Text(it.Cost.ToString(), "shop-soul-cost-value"));
+                }
                 purchase.SetEnabled(!soldOut && souls >= it.Cost);
                 purchase.tooltip = souls >= it.Cost ? "兌換此項目" : $"將魂不足，需要 {it.Cost} 將魂";
                 head.Add(purchase);
@@ -335,7 +347,8 @@ namespace SanGuo.Client
         {
             if (Equipment.TryParseKey(key, out var slot, out int tier))
             {
-                var tile = Item("item_chest", Equipment.Name(slot, tier), $"{Equipment.SlotName(slot)}，可在裝備頁配戴。", amount);
+                var tile = Item("item_chest", Equipment.Name(slot, tier), EquipmentEffect(slot, tier), amount);
+                tile.AddToClassList("shop-equipment-item");
                 string icon = slot == EquipSlot.Weapon ? "weapon_warrior" : slot == EquipSlot.Armor ? "armor" : "accessory";
                 var tex = UnityEngine.Resources.Load<UnityEngine.Texture2D>("EquipmentArt/" + icon);
                 if (tex != null) tile.style.backgroundImage = new StyleBackground(tex);
@@ -343,6 +356,73 @@ namespace SanGuo.Client
             }
             return Item(key == HeroGrowth.HeroExp ? "item_expbook" : "item_shard", UiText.MaterialName(key),
                 key == HeroGrowth.HeroExp ? "用於提升武將等級。" : "用於將魂商店兌換商品。", amount);
+        }
+
+        private static string EquipmentEffect(EquipSlot slot, int tier)
+        {
+            var equipment = new Dictionary<string, int> { [slot.ToString()] = tier };
+            var physical = Equipment.Mods(Role.Warrior, equipment);
+            var other = Equipment.Mods(Role.Tank, equipment);
+            int percent = Equipment.PercentOf(tier);
+            string effect;
+            if (slot == EquipSlot.Weapon)
+                effect = $"坦克／戰士／射手：攻擊 +{percent}%\n法師／謀士／醫者：智力 +{percent}%\n自選匣配戴時依武將職業轉為對應武器。";
+            else if (slot == EquipSlot.Armor)
+                effect = $"生命 +{percent}%\n防禦 +{percent}%";
+            else
+                effect = $"戰士／射手：爆擊率 +{physical.Crit} 個百分點\n坦克／法師／謀士／醫者：閃避率 +{other.Dodge} 個百分點";
+            return $"{Equipment.TierLabel(tier)} · {Equipment.SlotName(slot)}\n{effect}\n可在裝備頁配戴；同部位替換，不與原裝備疊加。";
+        }
+
+        private static void EnableHorizontalScroll(ScrollView scroll)
+        {
+            var viewport = scroll.contentViewport;
+            int pointer = -1;
+            float startX = 0;
+            float startOffset = 0;
+            bool dragging = false;
+            bool suppressClick = false;
+            viewport.RegisterCallback<WheelEvent>(evt =>
+            {
+                if (scroll.horizontalScroller.highValue <= 0) return;
+                float delta = UnityEngine.Mathf.Abs(evt.delta.x) > UnityEngine.Mathf.Abs(evt.delta.y) ? evt.delta.x : evt.delta.y;
+                scroll.scrollOffset = new UnityEngine.Vector2(UnityEngine.Mathf.Clamp(scroll.scrollOffset.x + delta * 48, 0, scroll.horizontalScroller.highValue), 0);
+                evt.StopImmediatePropagation();
+            }, TrickleDown.TrickleDown);
+            viewport.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                suppressClick = false;
+                if (evt.button != 0 || evt.pointerType != PointerType.mouse || pointer >= 0 || scroll.horizontalScroller.highValue <= 0) return;
+                for (var target = evt.target as VisualElement; target != null && target != viewport; target = target.parent)
+                    if (target is Button) return;
+                pointer = evt.pointerId;
+                startX = evt.position.x;
+                startOffset = scroll.scrollOffset.x;
+                dragging = false;
+            }, TrickleDown.TrickleDown);
+            viewport.RegisterCallback<PointerMoveEvent>(evt =>
+            {
+                if (evt.pointerId != pointer) return;
+                if (!dragging && UnityEngine.Mathf.Abs(startX - evt.position.x) < 6) return;
+                if (!dragging) { dragging = true; suppressClick = true; viewport.CapturePointer(pointer); }
+                scroll.scrollOffset = new UnityEngine.Vector2(UnityEngine.Mathf.Clamp(startOffset + startX - evt.position.x, 0, scroll.horizontalScroller.highValue), 0);
+                evt.StopPropagation();
+            }, TrickleDown.TrickleDown);
+            viewport.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                if (evt.pointerId != pointer || evt.button != 0) return;
+                pointer = -1;
+                if (!dragging) return;
+                dragging = false;
+                viewport.ReleasePointer(evt.pointerId);
+                evt.StopPropagation();
+            }, TrickleDown.TrickleDown);
+            viewport.RegisterCallback<ClickEvent>(evt =>
+            {
+                if (!suppressClick) return;
+                evt.StopImmediatePropagation();
+            }, TrickleDown.TrickleDown);
+            viewport.RegisterCallback<PointerCaptureOutEvent>(evt => { if (evt.pointerId == pointer) { pointer = -1; dragging = false; } });
         }
 
         private VisualElement Rewards(Reward reward)
