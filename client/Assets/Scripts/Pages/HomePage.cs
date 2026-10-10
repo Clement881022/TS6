@@ -51,7 +51,7 @@ namespace SanGuo.Client
 
             _scene = new VisualElement();
             _scene.AddToClassList("home-scene");
-            var tex = Resources.Load<Texture2D>("ChibiSkin/home");
+            var tex = Resources.Load<Texture2D>("ChibiSkin/hall");
             if (tex != null) _scene.style.backgroundImage = new StyleBackground(tex);
             root.Add(_scene);
             if (!_geometryHooked)
@@ -208,7 +208,9 @@ namespace SanGuo.Client
             b.AddToClassList("home-fn");
             b.name = "home-" + target.ToString().ToLowerInvariant();
             int index = target == Page.Heroes ? 0 : target == Page.HeroGrowth ? 1 : target == Page.Gacha ? 2 : target == Page.Dungeons ? 3 : target == Page.Quests ? 4 : 5;
-            b.Add(target == Page.Equipment ? UiIcons.Icon("armor", "home-fn-icon") : HomeArtwork.Icon(index));
+            var art = target == Page.Equipment ? UiIcons.Icon("armor", "home-fn-icon") : HomeArtwork.Icon(index);
+            if (target == Page.Equipment) art.AddToClassList("home-equipment-icon");
+            b.Add(art);
             if (target != Page.Heroes) b.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-divider"));
             var text = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-nav-text");
             text.Add(UiKit.Text(label, "home-fn-label"));

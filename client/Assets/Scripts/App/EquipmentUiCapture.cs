@@ -45,6 +45,10 @@ namespace SanGuo.Client
             var expected = new[] { "home-heroes", "home-equipment", "home-herogrowth", "home-quests", "home-dungeons", "home-gacha", "home-shop" };
             if (!buttons.Select(b => b.name).SequenceEqual(expected)) throw new InvalidOperationException("Home button order");
             foreach (var button in buttons) CheckBounds(root, button);
+            var homeHero = root.Q(className: "home-hero").worldBound;
+            if (Mathf.Abs(homeHero.center.x - root.worldBound.center.x) > 1) throw new InvalidOperationException("Home hero centering");
+            var resources = root.Q(className: "home-res").worldBound;
+            if (root.worldBound.xMax - resources.xMax < 20) throw new InvalidOperationException("Home resources right padding");
             yield return CommercialUiCapture.Capture(directory, "01-home-seven-buttons");
             Submit(root.Q<Button>("home-equipment"));
             yield return new WaitForSecondsRealtime(.8f);
@@ -111,7 +115,9 @@ namespace SanGuo.Client
             var growth = (HeroesPage)PageHost.Current.ActivePage!;
             growth.DebugSelectHero("xiahoudun");
             yield return new WaitForSecondsRealtime(.3f);
-            Submit(root.Query<Button>(className: "seg-tab").ToList().First(b => b.text == "裝備"));
+            if (root.Query<Button>(className: "seg-tab").ToList().Any(b => b.text == "裝備"))
+                throw new InvalidOperationException("Growth equipment tab remains");
+            EquipmentPage.OpenFrom(Page.HeroGrowth, "xiahoudun");
             yield return new WaitForSecondsRealtime(.5f);
             if (!(PageHost.Current.ActivePage is EquipmentPage) || HeroesPage.LastSelectedHeroId != "xiahoudun")
                 throw new InvalidOperationException("Growth equipment route");

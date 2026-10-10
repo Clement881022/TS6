@@ -1,10 +1,13 @@
-.meta-page.bg-home .strategy-home-top { left: 0; right: 0; top: 14px; justify-content: space-between; }
+.meta-page.bg-home .strategy-home-top { left: 0; right: 48px; top: 20px; height: 96px; justify-content: space-between; }
 .meta-page.bg-home .home-player { border-left-width: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .meta-page.bg-home .res-pill:last-child { border-right-width: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .meta-page.bg-home .home-hero-layer { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
-.meta-page.bg-home .home-res .res-pill { height: 82px; padding: 6px 20px; }
-.meta-page.bg-home .home-hero { position: absolute; left: 74px; bottom: 166px; width: 648px; height: 792px; background-position: center bottom; background-repeat: no-repeat; background-size: contain; }
-.meta-page.bg-home .home-hero-switch { position: absolute; left: 664px; bottom: 212px; width: 68px; height: 68px; min-height: 68px; margin: 0; padding: 0; align-items: center; justify-content: center; background-image: none; background-color: rgba(35, 35, 39, 0.94); border-width: 2px; border-color: rgb(189, 153, 87); border-radius: 34px; scale: 1 1; translate: 0 0; }
+.meta-page.bg-home .home-res .res-pill { height: 72px; min-width: 204px; padding: 6px 16px; }
+.meta-page.bg-home .home-res .res-pill-icon { width: 48px; height: 48px; }
+.meta-page.bg-home .home-res .res-pill-text { font-size: 32px; }
+.meta-page.bg-home .home-equipment-icon { width: 124px; height: 124px; margin-top: -11px; margin-bottom: -11px; }
+.meta-page.bg-home .home-hero { position: absolute; left: 50%; translate: -50% 0; bottom: 210px; width: 620px; height: 720px; background-position: center bottom; background-repeat: no-repeat; background-size: contain; }
+.meta-page.bg-home .home-hero-switch { position: absolute; left: 50%; margin-left: 276px; bottom: 230px; width: 68px; height: 68px; min-height: 68px; margin-top: 0; margin-right: 0; margin-bottom: 0; padding: 0; align-items: center; justify-content: center; background-image: none; background-color: rgba(35, 35, 39, 0.94); border-width: 2px; border-color: rgb(189, 153, 87); border-radius: 34px; scale: 1 1; }
 .meta-page.bg-home .home-hero-switch-icon { margin: 0; padding: 0; font-size: 46px; color: rgb(241, 208, 139); -unity-text-align: middle-center; scale: 1 1;  }
 .meta-page.bg-home .home-hero-switch:hover .home-hero-switch-icon { scale: 1 1; }
 .meta-page.bg-home .home-featured { position: absolute; right: 24px; top: 140px; width: 520px; height: 220px; background-color: rgba(20, 24, 40, 0.92); background-size: cover; border-width: 2px; border-color: rgb(214, 170, 88); border-radius: 12px; overflow: hidden; }

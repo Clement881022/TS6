@@ -32,7 +32,7 @@ namespace SanGuo.Client
 
         public void DebugSetTab(int tab)
         {
-            _tab = (Tab)tab;
+            _tab = GrowthMode && tab > 1 ? Tab.Level : (Tab)tab;
             Rebuild();
         }
 
@@ -276,7 +276,7 @@ namespace SanGuo.Client
             seg.AddToClassList("seg");
             seg.Add(SegTab(GrowthMode ? "升級" : "狀態", Tab.Level));
             seg.Add(SegTab(GrowthMode ? "突破" : "牌組", Tab.Break));
-            seg.Add(SegTab("裝備", Tab.Equip));
+            if (!GrowthMode) seg.Add(SegTab("裝備", Tab.Equip));
             right.Add(seg);
 
             var panel = new VisualElement();
@@ -292,7 +292,7 @@ namespace SanGuo.Client
             {
                 case Tab.Level: BuildLevel(content, footer, def, hero, v); break;
                 case Tab.Break: BuildBreak(content, footer, def, hero, v); break;
-                default: content.Add(UiKit.Btn("開啟裝備頁", () => EquipmentPage.OpenFrom(Page.HeroGrowth, def.Id), primary: true)); break;
+                default: BuildLevel(content, footer, def, hero, v); break;
             }
             panel.Add(content);
             if (footer.childCount > 0) panel.Add(footer);
