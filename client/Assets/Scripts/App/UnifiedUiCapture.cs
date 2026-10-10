@@ -85,6 +85,7 @@ namespace SanGuo.Client
                 }
                 else if (active is QuestsPage quests)
                 {
+                    yield return ValidateQuestDrag(root);
                     quests.DebugShowSevenDay();
                     yield return new WaitForSecondsRealtime(.5f);
                     Validate(root, page);
@@ -109,6 +110,47 @@ namespace SanGuo.Client
             File.WriteAllText(Path.Combine(directory, "verification.txt"),
                 "Twelve pages, roster/growth tabs, four shop tabs, recruitment rates/results, stage detail, seven-day quests and help captured. Header/panel colors and layout bounds passed. Battle commercial-art structure passed. Visual quality requires screenshot review; account is offline mode.");
             Application.Quit();
+        }
+
+        private static IEnumerator ValidateQuestDrag(VisualElement root)
+        {
+            var scroll = root.Q<ScrollView>(className: "quest-scroll");
+            scroll.style.height = 160;
+            scroll.style.flexGrow = 0;
+            yield return new WaitForSecondsRealtime(.3f);
+            if (scroll.verticalScroller.highValue <= 0) throw new InvalidOperationException("Quest drag review requires overflow");
+            var viewport = scroll.contentViewport;
+            var card = scroll.Q(className: "quest-card2");
+            var from = card.worldBound.center;
+            var destination = from - new Vector2(0, 80);
+            using (var down = PointerDownEvent.GetPooled(new Event { type = EventType.MouseDown, button = 0, mousePosition = from }))
+            {
+                down.target = card;
+                card.SendEvent(down);
+            }
+            using (var move = PointerMoveEvent.GetPooled(new Event { type = EventType.MouseDrag, button = 0, mousePosition = destination }))
+            {
+                move.target = viewport;
+                viewport.SendEvent(move);
+            }
+            using (var up = PointerUpEvent.GetPooled(new Event { type = EventType.MouseUp, button = 0, mousePosition = destination }))
+            {
+                up.target = viewport;
+                viewport.SendEvent(up);
+            }
+            if (scroll.scrollOffset.y < 79) throw new InvalidOperationException("Quest card mouse drag did not scroll");
+            float releasedOffset = scroll.scrollOffset.y;
+            using (var move = PointerMoveEvent.GetPooled(new Event { type = EventType.MouseMove, mousePosition = from }))
+            {
+                move.target = viewport;
+                viewport.SendEvent(move);
+            }
+            if (Mathf.Abs(scroll.scrollOffset.y - releasedOffset) > 1) throw new InvalidOperationException("Quest drag continued after release");
+            scroll.style.height = StyleKeyword.Null;
+            scroll.style.flexGrow = StyleKeyword.Null;
+            scroll.scrollOffset = Vector2.zero;
+            yield return new WaitForSecondsRealtime(.3f);
+            Debug.Log("[quests] mouse card drag and release passed");
         }
 
         private static void Validate(VisualElement root, Page page)

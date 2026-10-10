@@ -68,8 +68,10 @@ namespace SanGuo.Client
             bool any = book.Quests.Any(q => q.Kind == _tab && (!_sevenDayTab || q.Day <= Math.Max(day, 1)) && Claimable(p, q))
                 || (_sevenDayTab && book.Milestones.Any(m => Quests.SevenDayPoints(p) >= m.Points && !p.SevenDayClaimed.Contains("milestone:" + m.Points)));
             var scroll = new ScrollView(ScrollViewMode.Vertical);
+            scroll.AddToClassList("quest-scroll");
             scroll.AddToClassList("grow");
             scroll.contentContainer.AddToClassList("quest-grid");
+            EnableMouseDrag(scroll);
             main.Add(scroll);
 
             IEnumerable<QuestDef> list = _sevenDayTab
@@ -86,6 +88,44 @@ namespace SanGuo.Client
             claim.SetEnabled(any && !_claiming);
             footer.Add(claim);
             main.Add(footer);
+        }
+
+        private static void EnableMouseDrag(ScrollView scroll)
+        {
+            var viewport = scroll.contentViewport;
+            int pointer = -1;
+            float startY = 0;
+            float startOffset = 0;
+            viewport.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                if (evt.button != 0 || evt.pointerType != PointerType.mouse || pointer >= 0) return;
+                for (var target = evt.target as VisualElement; target != null && target != viewport; target = target.parent)
+                    if (target is Button) return;
+                if (scroll.verticalScroller.highValue <= 0) return;
+                pointer = evt.pointerId;
+                startY = evt.position.y;
+                startOffset = scroll.scrollOffset.y;
+                viewport.CapturePointer(pointer);
+                evt.StopPropagation();
+            }, TrickleDown.TrickleDown);
+            viewport.RegisterCallback<PointerMoveEvent>(evt =>
+            {
+                if (evt.pointerId != pointer) return;
+                scroll.scrollOffset = new UnityEngine.Vector2(0, UnityEngine.Mathf.Clamp(
+                    startOffset + startY - evt.position.y, 0, scroll.verticalScroller.highValue));
+                evt.StopPropagation();
+            });
+            viewport.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                if (evt.pointerId != pointer || evt.button != 0) return;
+                pointer = -1;
+                viewport.ReleasePointer(evt.pointerId);
+                evt.StopPropagation();
+            });
+            viewport.RegisterCallback<PointerCaptureOutEvent>(evt =>
+            {
+                if (evt.pointerId == pointer) pointer = -1;
+            });
         }
 
         private VisualElement BuildMilestones(PlayerProfile p, int points)
