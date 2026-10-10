@@ -10,7 +10,7 @@ namespace SanGuo.Client
     {
         private static UnityEngine.TextCore.Text.FontAsset? DisplayFont;
         private static readonly string[] DisplayClasses = { "strategy-brand-title", "strategy-expedition-title", "hdr-title", "home-fn-label", "home-chapter-title",
-            "hero-namebar-name", "strategy-summary-name", "bpanel-title", "popup-title", "dun-name", "shop-name", "btn", "tab", "header-title", "bl-end", "bl-d-name", "sts-card-name", "home-campaign-title", "home-primary-title", "account-heading", "stage-title", "recruit-title", "recruit-pool-name", "quest-toolbar-title", "challenge-tab", "ui-help-title" };
+            "hero-namebar-name", "strategy-summary-name", "bpanel-title", "popup-title", "dun-name", "shop-name", "btn", "tab", "header-title", "bl-end", "bl-d-name", "sts-card-name", "home-campaign-title", "home-primary-title", "account-heading", "stage-title", "recruit-title", "recruit-pool-name", "quest-toolbar-title", "challenge-tab", "ui-help-title", "stamina-button-label" };
 
         public static void ApplyDisplayFont(VisualElement element)
         {
@@ -52,6 +52,34 @@ namespace SanGuo.Client
             ApplyDisplayFont(b);
             return b;
         }
+
+        public static Button WithStaminaCost(this Button button, int need, int have)
+        {
+            var previous = button.Q(className: "stamina-button-row");
+            if (previous != null)
+            {
+                button.text = previous.Q<Label>(className: "stamina-button-label").text;
+                previous.RemoveFromHierarchy();
+            }
+            button.RemoveFromClassList("stamina-button");
+            button.RemoveFromClassList("stamina-button-short");
+            if (need <= 0) return button;
+            var row = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("stamina-button-row");
+            row.Add(new Label(button.text) { pickingMode = PickingMode.Ignore }.WithClass("stamina-button-label"));
+            var icon = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("stamina-button-icon");
+            icon.style.backgroundImage = UiIcons.Get("item_stamina");
+            row.Add(icon);
+            row.Add(new Label(need.ToString("N0")) { pickingMode = PickingMode.Ignore }.WithClass("stamina-button-amount"));
+            button.text = "";
+            button.AddToClassList("stamina-button");
+            button.EnableInClassList("stamina-button-short", have < need);
+            button.tooltip = have < need ? $"體力不足，需要 {need} 點" : $"消耗 {need} 點體力";
+            button.Add(row);
+            return button;
+        }
+
+        public static Button WithBattleCost(this Button button, string stageId) => button.WithStaminaCost(
+            DemoMeta.FindDungeon(stageId)?.StaminaCost ?? DemoMeta.FindStage(stageId)?.StaminaCost ?? 0, GameSession.View.Stamina);
 
         public static Button DoneBtn(string text)
         {

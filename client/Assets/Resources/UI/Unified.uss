@@ -442,3 +442,15 @@
 .unified-ui .campaign-enemies { margin-left: 20px; }
 .unified-ui .stage-cost { margin: 20px 0 0; }
 .unified-ui .stage-buttons { margin-top: 20px; }
+.stamina-button-row { flex-direction: row; align-items: center; justify-content: center; }
+.stamina-button .stamina-button-label {
+    background-image: none; background-color: rgba(0,0,0,0); border-width: 0;
+    min-width: 0; min-height: 0; height: auto; margin: 0; padding: 0;
+    font-size: 28px; color: rgb(245,235,217);
+}
+.stamina-button-icon { width: 32px; height: 32px; flex-shrink: 0; margin: 0 6px 0 12px; }
+.stamina-button-amount { margin: 0; padding: 0; font-size: 28px; -unity-font-style: bold; color: rgb(245,235,217); }
+.unified-ui .btn-primary .stamina-button-label, .unified-ui .btn-primary .stamina-button-amount { color: rgb(48,32,16); }
+.stamina-button.btn-lg .stamina-button-label, .stamina-button.btn-lg .stamina-button-amount { font-size: 32px; }
+.stamina-button-short .stamina-button-amount { color: rgb(255,150,130); }
+.unified-ui .btn-primary.stamina-button-short .stamina-button-amount { color: rgb(153,42,30); }

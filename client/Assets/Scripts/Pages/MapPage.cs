@@ -203,10 +203,6 @@ namespace SanGuo.Client
             cols.Add(foes);
             panel.Add(cols);
 
-            var cost = UiKit.Cost("item_stamina", stage.StaminaCost, v.Stamina);
-            cost.AddToClassList("stage-cost");
-            panel.Add(cost);
-
             var row = new VisualElement();
             row.AddToClassList("stage-buttons");
             var sweeps = new VisualElement();
@@ -217,7 +213,7 @@ namespace SanGuo.Client
                 sweeps.Add(UiKit.Btn($"掃蕩 ×{PlayerProfile.MaxSweepCount}", () => _ = Sweep(chapter, level, PlayerProfile.MaxSweepCount)).WithClass("btn-sm"));
             }
             row.Add(sweeps);
-            row.Add(UiKit.Btn("戰鬥", () => EnterLevel(chapter, level), primary: true).WithClass("btn-lg"));
+            row.Add(UiKit.Btn("戰鬥", () => EnterLevel(chapter, level), primary: true).WithClass("btn-lg").WithStaminaCost(stage.StaminaCost, v.Stamina));
             panel.Add(row);
 
             overlay.Add(panel);

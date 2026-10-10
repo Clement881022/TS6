@@ -71,12 +71,6 @@ namespace SanGuo.Client
                     : Campaign.TryParse(d.UnlockStageId, out int chapter, out int unlockLevel)
                     ? $"需通關 {chapter}-{unlockLevel}" : "需推進主線", "dun-lock"));
                 else body2.Add(UiKit.Text(cleared ? "可掃蕩" : "", "line-sub").WithClass("dun-center"));
-                var stamina = new VisualElement().WithClass("dun-stamina");
-                stamina.Add(UiKit.Text("體力", "dun-resource-name"));
-                var cost = UiKit.Cost("item_stamina", d.StaminaCost, v.Stamina);
-                cost.AddToClassList("dun-cost");
-                stamina.Add(cost);
-                body2.Add(stamina);
                 card.Add(body2);
 
                 var btns = new VisualElement();
@@ -84,7 +78,7 @@ namespace SanGuo.Client
                 if (!unlocked) btns.Add(UiKit.DoneBtn("尚未解鎖"));
                 else
                 {
-                    btns.Add(UiKit.Btn("挑戰", () => EnterDungeon(dungeon.Id), primary: true));
+                    btns.Add(UiKit.Btn("戰鬥", () => EnterDungeon(dungeon.Id), primary: true).WithBattleCost(dungeon.Id));
                     if (cleared)
                     {
                         btns.Add(UiKit.Btn("掃蕩 ×1", () => _ = Act(() => GameSession.Backend.SweepDungeon(dungeon.Id, 1), "掃蕩完成")).WithClass("btn-sm"));

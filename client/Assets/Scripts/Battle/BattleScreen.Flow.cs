@@ -94,15 +94,15 @@ namespace SanGuo.Client
 
             if (dungeon != null)
             {
-                btnRow.Add(MakeButton("再打一次", () => _ = BeginStageId(stageId), primary: true));
+                btnRow.Add(MakeButton("再打一次", () => _ = BeginStageId(stageId), primary: true).WithBattleCost(stageId));
                 btnRow.Add(MakeButton("回副本", () => Nav.Go(Page.Dungeons)));
                 card.Add(btnRow);
                 return;
             }
             int chapter = _chapter, level = _level;
             bool hasNext = Campaign.Next(chapter, level, out int nextChapter, out int nextLevel) && result.Won;
-            if (hasNext) btnRow.Add(MakeButton(nextChapter != chapter ? "下一章" : "下一關", () => EnterLevel(nextChapter, nextLevel), primary: true));
-            btnRow.Add(MakeButton("再打一次", () => EnterLevel(chapter, level), primary: !hasNext));
+            if (hasNext) btnRow.Add(MakeButton(nextChapter != chapter ? "下一章" : "下一關", () => EnterLevel(nextChapter, nextLevel), primary: true).WithBattleCost(GameSession.StageIdOf(nextChapter, nextLevel)));
+            btnRow.Add(MakeButton("再打一次", () => EnterLevel(chapter, level), primary: !hasNext).WithBattleCost(GameSession.StageIdOf(chapter, level)));
             btnRow.Add(MakeButton("回地圖", () => Nav.Go(Page.Map)));
             card.Add(btnRow);
         }

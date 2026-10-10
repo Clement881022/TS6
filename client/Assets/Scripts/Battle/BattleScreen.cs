@@ -77,6 +77,7 @@ namespace SanGuo.Client
         private Label _logLabel = null!;
         private VisualElement _logBox = null!;
         private Button _autoButton = null!;
+        private Button _restartButton = null!;
         private VisualElement? _overlay;
 
         public BattleScreen(VisualElement root, BattleStage stage)
@@ -119,7 +120,7 @@ namespace SanGuo.Client
             var buttons = new VisualElement();
             var menuPanel = new VisualElement().WithClass("battle-menu-panel");
             menuPanel.style.display = DisplayStyle.None;
-            var menu = MakeButton("選單", () => { menuPanel.style.display = menuPanel.resolvedStyle.display == DisplayStyle.None ? DisplayStyle.Flex : DisplayStyle.None; menuPanel.BringToFront(); });
+            var menu = MakeButton("選單", () => { _restartButton.WithBattleCost(_stageId); menuPanel.style.display = menuPanel.resolvedStyle.display == DisplayStyle.None ? DisplayStyle.Flex : DisplayStyle.None; menuPanel.BringToFront(); });
             menu.AddToClassList("battle-menu");
             buttons.Add(menu);
             _autoButton = MakeButton("自動", ToggleAuto);
@@ -128,7 +129,8 @@ namespace SanGuo.Client
             _objectiveButton = MakeButton("勝利目標", () => { menuPanel.style.display = DisplayStyle.None; ShowObjective(); });
             menuPanel.Add(_objectiveButton);
             menuPanel.Add(MakeButton("撤退", Leave));
-            menuPanel.Add(MakeButton("重來", () => { _ = BeginStageId(_stageId); }));
+            _restartButton = MakeButton("重來", () => { _ = BeginStageId(_stageId); });
+            menuPanel.Add(_restartButton);
             _content.Add(menuPanel);
             header.Add(buttons);
             _content.Add(header);

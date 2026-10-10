@@ -143,7 +143,7 @@ namespace SanGuo.Client
             {
                 if (formation.Count == 0) { _message = "至少要有 1 名武將上場"; Rebuild(); return; }
                 _ = StartBattle(stageId);
-            }, primary: true).WithClass("btn-lg"));
+            }, primary: true).WithClass("btn-lg").WithBattleCost(stageId));
             body.Add(footer);
         }
 
