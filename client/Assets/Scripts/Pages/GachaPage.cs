@@ -140,7 +140,7 @@ namespace SanGuo.Client
                 if (r.Rarity == Rarity.UR) tile.AddToClassList("pull-ur");
                 if (r.IsNew) tile.Add(new Label("NEW") { pickingMode = PickingMode.Ignore }.WithClass("pull-tag"));
                 else if (r.Souls > 0) tile.Add(new Label($"將魂+{r.Souls}") { pickingMode = PickingMode.Ignore }.WithClass("pull-tag").WithClass("pull-tag-shard"));
-                else if (r.Shards > 0) tile.Add(new Label($"重複+{r.Shards}") { pickingMode = PickingMode.Ignore }.WithClass("pull-tag").WithClass("pull-tag-shard"));
+                else if (r.Shards > 0) tile.Add(new Label($"信物+{r.Shards}") { pickingMode = PickingMode.Ignore }.WithClass("pull-tag").WithClass("pull-tag-shard"));
                 line!.Add(tile);
                 tile.schedule.Execute(() => tile.RemoveFromClassList("pop-hidden")).StartingIn(150 + i * 130);
             }

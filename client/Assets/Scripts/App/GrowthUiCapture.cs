@@ -84,8 +84,27 @@ namespace SanGuo.Client
             Validate(root);
             yield return CommercialUiCapture.Capture(directory, "06-character");
             page.DebugToggleModel();
+            RenderModels();
             yield return new WaitForSecondsRealtime(1);
+            RenderModels();
             if (root.Q(className: "hero-model") == null) throw new InvalidOperationException("Model route");
+            Validate(root);
+            var model = root.Q(className: "hero-model").worldBound;
+            var center = root.Q(className: "hero-center").worldBound;
+            if (Mathf.Abs(model.center.x - center.center.x) > 1)
+                throw new InvalidOperationException("Model frame must be centered");
+            var texture = root.Q(className: "hero-model").resolvedStyle.backgroundImage.renderTexture;
+            if (texture == null) throw new InvalidOperationException("Missing model render texture");
+            var previous = RenderTexture.active;
+            RenderTexture.active = texture;
+            var rendered = new Texture2D(texture.width, texture.height, TextureFormat.RGBA32, false);
+            rendered.ReadPixels(new Rect(0, 0, texture.width, texture.height), 0, 0);
+            rendered.Apply();
+            RenderTexture.active = previous;
+            File.WriteAllBytes(Path.Combine(directory, "model-render.png"), rendered.EncodeToPNG());
+            int painted = rendered.GetPixels32().Count(p => p.a > 32);
+            Destroy(rendered);
+            if (painted < 100) throw new InvalidOperationException("Model render is empty");
             yield return CommercialUiCapture.Capture(directory, "07-model");
             page.DebugSetAttributes(true);
             page.DebugSetTab(0);
@@ -96,13 +115,13 @@ namespace SanGuo.Client
             yield return new WaitForSecondsRealtime(.5f);
             yield return CommercialUiCapture.Capture(directory, "09-roster-end");
             File.WriteAllText(Path.Combine(directory, "verification.txt"),
-                "Default attributes, character/model routes, roster name fit, panel containment, horizontal framed costs, compact actions, empty equipment, current armor bonuses and five rarity tiers passed. Disposable profile only. Visual quality reviewed separately.");
+                "Default attributes, character/model routes and centered model frame, roster name fit, panel containment, vertically stacked framed costs, compact actions, empty equipment, current armor bonuses and five rarity tiers passed. Disposable profile only. Visual quality reviewed separately.");
             Application.Quit();
         }
 
         private static void Validate(VisualElement root)
         {
-            foreach (string cls in new[] { "hero-left", "hero-center", "hero-right", "growth-attributes", "growth-action", "growth-equipment-card" })
+            foreach (string cls in new[] { "hero-left", "hero-center", "hero-right", "hero-model", "growth-attributes", "growth-action", "growth-equipment-card" })
                 foreach (var element in root.Query(className: cls).ToList())
                 {
                     var b = element.worldBound;
@@ -116,12 +135,22 @@ namespace SanGuo.Client
                 if (measured.x > label.contentRect.width + 1) throw new InvalidOperationException($"Roster name clipped: {label.text}, needs {measured.x}, available {label.contentRect.width}");
             }
             var costs = root.Query(className: "cost-chip").ToList();
-            if (costs.Count == 2 && (Mathf.Abs(costs[0].worldBound.yMin - costs[1].worldBound.yMin) > 1 || costs[0].worldBound.xMax > costs[1].worldBound.xMin))
-                throw new InvalidOperationException("Costs must be side by side");
+            if (costs.Count == 2 && (Mathf.Abs(costs[0].worldBound.xMin - costs[1].worldBound.xMin) > 1 || costs[0].worldBound.yMax > costs[1].worldBound.yMin))
+                throw new InvalidOperationException("Costs must be vertically stacked");
             if (root.Query<Label>().ToList().Any(l => l.text.Contains("重複武將") || l.text.Contains("庫存沒有") || l.text.Contains("只能配戴")))
                 throw new InvalidOperationException("Redundant growth text");
             foreach (var art in root.Query(className: "growth-equipment-art").ToList())
                 if (art.resolvedStyle.backgroundImage.texture == null) throw new InvalidOperationException("Missing equipment image");
+        }
+
+        private static void RenderModels()
+        {
+            foreach (var stage in FindObjectsByType<ModelStage>(FindObjectsSortMode.None))
+            {
+                var camera = stage.GetComponentInChildren<Camera>();
+                UnityEngine.Rendering.RenderPipeline.SubmitRenderRequest(camera,
+                    new UnityEngine.Rendering.RenderPipeline.StandardRequest { destination = stage.Texture });
+            }
         }
     }
 }

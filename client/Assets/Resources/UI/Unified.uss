@@ -194,8 +194,8 @@
 .unified-ui .growth-attributes .hero-stats-col { flex-grow: 0; flex-basis: auto; margin: 0; }
 .unified-ui .growth-attributes .stat-line { min-height: 56px; margin: 0; padding: 10px 0; border-bottom-width: 1px; border-bottom-color: rgba(184, 169, 145, 0.16); }
 .unified-ui .growth-center .strategy-hero-art { top: 192px; }
-.unified-ui .growth-center .hero-model { position: absolute; left: 0; right: 0; top: 192px; bottom: 0; width: auto; height: auto; }
-.unified-ui.bg-herogrowth .cost-line { flex-direction: row; flex-wrap: wrap; flex-shrink: 0; margin: 18px 0; }
+.unified-ui .growth-center .hero-model { position: absolute; left: 0; right: 0; top: 192px; bottom: 0; width: auto; height: auto; translate: 0 0; }
+.unified-ui.bg-herogrowth .cost-line { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; flex-shrink: 0; margin: 18px 0; }
 .unified-ui.bg-herogrowth .cost-chip { flex-direction: row; align-items: center; padding: 10px 14px; margin: 0 12px 10px 0; border-width: 1px; border-color: rgb(122, 105, 77); border-radius: 8px; background-color: rgba(29, 29, 33, 0.85); }
 .unified-ui.bg-herogrowth .side-footer { align-items: center; }
 .unified-ui .growth-action { width: 260px; min-width: 260px; align-self: center; }
@@ -217,3 +217,4 @@
 .unified-ui .equipment-tier-5 { border-color: rgb(235, 185, 77); }
 .unified-ui .growth-stock-entry { margin-top: 14px; }
 .unified-ui .growth-stock-actions { flex-direction: row; flex-wrap: wrap; margin-top: 8px; }
+.unified-ui .growth-cost-name { font-size: 26px; color: rgb(245, 235, 217); margin-right: 16px; }

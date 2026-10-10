@@ -23,11 +23,11 @@ $game = Start-Process (Join-Path $outRoot 'SanGuo.exe') -ArgumentList $playerArg
 if (-not $game.WaitForExit(120000)) { $game.Kill(); throw "Capture timed out: $playerLog" }
 if ($game.ExitCode -ne 0) { throw "Capture failed: $playerLog" }
 $shots = @(Get-ChildItem -LiteralPath $shotsRoot -Filter '*.png' | Where-Object { $_.LastWriteTime -ge $started })
-if ($shots.Count -ne 13) { throw "Expected 13 captures, got $($shots.Count): $playerLog" }
+if ($shots.Count -ne 14) { throw "Expected 14 captures, got $($shots.Count): $playerLog" }
 Add-Type -AssemblyName System.Drawing
 foreach ($shot in $shots) {
     $image = [Drawing.Image]::FromFile($shot.FullName)
-    try { if ($image.Width -ne $Width -or $image.Height -ne $Height) { throw "Capture dimensions: $($shot.Name)" } }
+    try { if ($shot.Name -ne 'model-render.png' -and ($image.Width -ne $Width -or $image.Height -ne $Height)) { throw "Capture dimensions: $($shot.Name)" } }
     finally { $image.Dispose() }
 }
 $errors = @(Select-String -LiteralPath $playerLog -Pattern 'Exception:|error CS|Failed to parse|USS parsing|Unknown property|Unknown pseudo|warning:' | Where-Object { $_.Line -ne 'Unknown pseudo class "last-child" in StyleSheet HomeLayout' })

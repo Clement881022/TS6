@@ -363,7 +363,10 @@ namespace SanGuo.Client
                 int gold = HeroGrowth.BreakthroughGold(def.Rarity, hero.Stars + 1);
                 var cost = new VisualElement();
                 cost.AddToClassList("cost-line");
-                cost.Add(UiKit.Cost("item_shard", 1, shards));
+                var token = UiKit.Cost("item_shard", 1, shards);
+                token.Insert(1, UiKit.Text(def.Name.Split('．').Last() + "信物", "growth-cost-name"));
+                token.tooltip = "抽到重複武將可獲得該武將信物";
+                cost.Add(token);
                 cost.Add(UiKit.Cost("item_gold", gold, v.Gold));
                 content.Add(cost);
             }
