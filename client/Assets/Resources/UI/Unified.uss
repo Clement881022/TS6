@@ -154,7 +154,9 @@
 }
 .unified-ui .pass-reward-tiles .item-tile { width: 64px; height: 64px; margin-right: 4px; }
 .unified-ui .pass-reward-tiles .item-count { font-size: 26px; }
-.unified-ui .hero-left { padding: 12px 10px; }
+.unified-ui .hero-left { width: 480px; min-width: 480px; flex-shrink: 0; padding: 12px 10px; }
+.unified-ui .strategy-roster-text { min-width: 0; }
+.unified-ui .strategy-roster-name { font-size: 22px; white-space: nowrap; }
 .unified-ui .roster-scroll { flex-grow: 1; flex-shrink: 1; min-height: 0; min-width: 0; }
 .unified-ui .roster-scroll .hero-grid { padding: 0 8px 0 0; }
 .unified-ui .roster-scroll .unity-scroller--vertical { width: 16px; min-width: 16px; align-self: stretch; border-radius: 8px; background-color: rgb(26, 26, 30); }

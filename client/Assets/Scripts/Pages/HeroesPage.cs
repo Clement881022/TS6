@@ -16,6 +16,7 @@ namespace SanGuo.Client
         private ModelStage? _stage;
         private string? _stageHero;
         private bool _showModel;
+        private float _rosterScrollOffset;
 
         protected virtual bool GrowthMode => false;
         protected override Page Id => Page.Heroes;
@@ -77,10 +78,14 @@ namespace SanGuo.Client
             var left = new VisualElement();
             left.AddToClassList("hero-left");
             var scroll = new ScrollView(ScrollViewMode.Vertical);
+            float savedScrollOffset = _rosterScrollOffset;
             scroll.AddToClassList("roster-scroll");
             scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
             scroll.verticalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
             scroll.contentContainer.AddToClassList("hero-grid");
+            scroll.verticalScroller.valueChanged += value => _rosterScrollOffset = value;
+            scroll.RegisterCallbackOnce<GeometryChangedEvent>(_ =>
+                scroll.schedule.Execute(() => scroll.scrollOffset = new Vector2(0, savedScrollOffset)));
             foreach (var d in owned)
             {
                 string id = d.Id;

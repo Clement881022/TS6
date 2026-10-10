@@ -60,14 +60,34 @@ namespace SanGuo.Client
                 scroll.verticalScroller.value = scroll.verticalScroller.highValue / 2;
                 yield return new WaitForSecondsRealtime(.5f);
                 yield return CommercialUiCapture.Capture(directory, page + "-scroll-middle");
+                float middleOffset = scroll.scrollOffset.y;
+                var middleViewport = scroll.Q(className: "unity-scroll-view__content-viewport");
+                var middleRow = scroll.contentContainer.Children().OfType<Button>().First(r => r.worldBound.yMin >= middleViewport.worldBound.yMin && r.worldBound.yMax <= middleViewport.worldBound.yMax);
+                string middleId = middleRow.name.Substring("roster-".Length);
+                Submit(middleRow);
+                yield return new WaitForSecondsRealtime(.5f);
+                scroll = root.Q<ScrollView>(className: "roster-scroll");
+                if (Mathf.Abs(scroll.scrollOffset.y - middleOffset) > 1) throw new InvalidOperationException("Hero selection resets middle scroll");
+                Validate(root, middleId, profile.Heroes[middleId].Stars);
+                yield return CommercialUiCapture.Capture(directory, page + "-middle-selected");
                 heroes.DebugScrollRosterEnd();
                 yield return new WaitForSecondsRealtime(.5f);
+                thumb = scroll.verticalScroller.Q(className: "unity-base-slider__dragger");
                 var last = scroll.contentContainer.Children().Last();
                 var viewport = scroll.Q(className: "unity-scroll-view__content-viewport");
                 if (thumb.worldBound.yMin <= top + 10 || last.worldBound.yMax > viewport.worldBound.yMax + 1
                     || last.worldBound.yMin < viewport.worldBound.yMin)
                     throw new InvalidOperationException("Roster scroll cannot reach last hero");
                 yield return CommercialUiCapture.Capture(directory, page + "-scroll-end");
+                float endOffset = scroll.scrollOffset.y;
+                Submit((Button)last);
+                yield return new WaitForSecondsRealtime(.5f);
+                scroll = root.Q<ScrollView>(className: "roster-scroll");
+                if (Mathf.Abs(scroll.scrollOffset.y - endOffset) > 1) throw new InvalidOperationException("Hero selection resets end scroll");
+                Validate(root, last.name.Substring("roster-".Length), 0);
+                yield return CommercialUiCapture.Capture(directory, page + "-end-selected");
+                Submit(root.Q<Button>("roster-" + first.Id));
+                yield return new WaitForSecondsRealtime(.5f);
                 Submit(root.Q<Button>(className: "strategy-hero-view"));
                 yield return new WaitForSecondsRealtime(.6f);
                 if (root.Q(className: "hero-model") == null) throw new InvalidOperationException("Model icon route failed");
@@ -105,7 +125,11 @@ namespace SanGuo.Client
                     throw new InvalidOperationException("Rarity border color");
                 if (rows[i].Q<Label>(className: "strategy-roster-level").text != "Lv.1")
                     throw new InvalidOperationException("Redundant rarity text");
-                CheckStars(rows[i], expected[i].Id == selected ? stars : 0);
+                CheckStars(rows[i], GameSession.View.Heroes[expected[i].Id].Stars);
+                var name = rows[i].Q<Label>(className: "strategy-roster-name");
+                var measured = name.MeasureTextSize(name.text, 0, VisualElement.MeasureMode.Undefined, 0, VisualElement.MeasureMode.Undefined);
+                if (name.resolvedStyle.whiteSpace != WhiteSpace.NoWrap || measured.x > name.contentRect.width + 1)
+                    throw new InvalidOperationException($"Hero name cannot fit one line: {name.text}, required {measured.x}, available {name.contentRect.width}");
                 if (rows[i].Q(className: "strategy-roster-stars").worldBound.yMax > rows[i].Q(className: "strategy-roster-name").worldBound.yMin + 1)
                     throw new InvalidOperationException("Breakthrough stars must be above hero name");
             }
