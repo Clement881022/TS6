@@ -56,7 +56,8 @@ namespace SanGuo.Client
             Show(GameSession.Accounts is { HasSession: false } ? Page.Login : startPage);
             if (GameSession.ShotDir != null && ShotRunner.Instance == null)
             {
-                if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sanguoUnifiedShot") >= 0) UnifiedUiCapture.Begin(GameSession.ShotDir);
+                if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sanguoRosterShot") >= 0) RosterUiCapture.Begin(GameSession.ShotDir);
+                else if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sanguoUnifiedShot") >= 0) UnifiedUiCapture.Begin(GameSession.ShotDir);
                 else if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sanguoCommercialShot") >= 0) CommercialUiCapture.Begin(GameSession.ShotDir);
                 else ShotRunner.Begin(GameSession.ShotDir);
             }

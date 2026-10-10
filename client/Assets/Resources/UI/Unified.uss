@@ -154,3 +154,30 @@
 }
 .unified-ui .pass-reward-tiles .item-tile { width: 64px; height: 64px; margin-right: 4px; }
 .unified-ui .pass-reward-tiles .item-count { font-size: 26px; }
+.unified-ui .hero-left { padding: 12px 10px; }
+.unified-ui .roster-scroll { flex-grow: 1; flex-shrink: 1; min-height: 0; min-width: 0; }
+.unified-ui .roster-scroll .hero-grid { padding: 0 8px 0 0; }
+.unified-ui .roster-scroll .unity-scroller--vertical { width: 16px; min-width: 16px; align-self: stretch; border-radius: 8px; background-color: rgb(26, 26, 30); }
+.unified-ui .roster-scroll .unity-scroller .unity-button { display: none; }
+.unified-ui .roster-scroll .unity-base-slider { flex-grow: 1; flex-shrink: 1; min-height: 0; flex-direction: column; }
+.unified-ui .roster-scroll .unity-base-slider .unity-base-field__input { flex-grow: 1; min-height: 0; align-self: stretch; }
+.unified-ui .roster-scroll .unity-base-slider__drag-container { position: relative; flex-grow: 1; min-height: 0; background-color: rgb(26, 26, 30); border-radius: 8px; }
+.unified-ui .roster-scroll .unity-base-slider__dragger { position: absolute; left: 2px; right: 2px; min-width: 12px; min-height: 36px; background-color: rgb(155, 128, 76); border-radius: 6px; }
+.unified-ui .roster-scroll .unity-base-slider__dragger:hover { background-color: rgb(214, 170, 88); }
+.unified-ui .roster-scroll .unity-base-slider__dragger-border { display: none; }
+.unified-ui .strategy-roster-face { border-width: 0; border-radius: 6px; }
+.unified-ui .strategy-roster-face.roster-rarity-ur { border-width: 3px; border-color: rgb(214, 58, 48); }
+.unified-ui .strategy-roster-face.roster-rarity-sr { border-width: 3px; border-color: rgb(234, 187, 72); }
+.unified-ui .strategy-roster-face.roster-rarity-r { border-width: 0; }
+.unified-ui .hero-breakthrough-stars { flex-direction: row; align-items: center; }
+.unified-ui .hero-breakthrough-star { width: 34px; height: 38px; margin: 0 4px 0 0; padding: 0; font-size: 34px; -unity-text-align: middle-center; }
+.unified-ui .hero-breakthrough-stars .hero-breakthrough-star-off { color: rgb(8, 8, 10); -unity-text-outline-width: 0.7px; -unity-text-outline-color: rgb(140, 132, 115); }
+.unified-ui .hero-breakthrough-stars .hero-breakthrough-star-on { color: rgb(241, 208, 139); -unity-text-outline-width: 0; }
+.unified-ui .strategy-roster-stars { margin-top: 0; margin-bottom: 4px; }
+.unified-ui .strategy-roster-stars .hero-breakthrough-star { width: 24px; height: 28px; margin-right: 2px; font-size: 25px; }
+.unified-ui .strategy-hero-view, .unified-ui .strategy-hero-view:hover, .unified-ui .strategy-hero-view:active {
+    width: 68px; min-width: 68px; height: 68px; min-height: 68px; padding: 0; margin: 0;
+    border-radius: 34px; border-width: 2px; border-color: rgb(189, 153, 87);
+    align-items: center; justify-content: center;
+}
+.unified-ui .hero-view-icon { width: 100%; height: 100%; margin: 0; padding: 0; color: rgb(241, 208, 139); font-size: 46px; -unity-text-align: middle-center; }

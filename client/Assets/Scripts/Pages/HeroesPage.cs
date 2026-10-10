@@ -56,7 +56,8 @@ namespace SanGuo.Client
         protected override void BuildBody(VisualElement body)
         {
             var v = GameSession.View;
-            var owned = GameSession.Roster.Where(d => v.Heroes.ContainsKey(d.Id)).ToList();
+            var owned = GameSession.Roster.Where(d => v.Heroes.ContainsKey(d.Id))
+                .OrderByDescending(d => d.Rarity).ThenBy(d => d.Id, System.StringComparer.Ordinal).ToList();
             if (owned.Count == 0)
             {
                 var empty = new VisualElement();
@@ -69,16 +70,15 @@ namespace SanGuo.Client
                 return;
             }
             if (_heroId == null || !v.Heroes.ContainsKey(_heroId))
-                _heroId = owned.OrderByDescending(d => HeroArt.Full(d.Id) != null).ThenByDescending(d => d.Rarity).First().Id;
+                _heroId = owned[0].Id;
             var def = GameSession.DefOf(_heroId)!;
             var hero = v.Heroes[_heroId];
 
             var left = new VisualElement();
             left.AddToClassList("hero-left");
-            left.Add(UiKit.Text("麾下武將", "strategy-roster-title"));
-            left.Add(UiKit.Text($"已擁有 {owned.Count} 位", "strategy-roster-count"));
             var scroll = new ScrollView(ScrollViewMode.Vertical);
-            scroll.AddToClassList("grow");
+            scroll.AddToClassList("roster-scroll");
+            scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
             scroll.verticalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
             scroll.contentContainer.AddToClassList("hero-grid");
             foreach (var d in owned)
@@ -137,7 +137,10 @@ namespace SanGuo.Client
 
             if (full != null)
             {
-                center.Add(UiKit.Btn(_showModel ? "切換立繪" : "切換模型", () => { _showModel = !_showModel; Rebuild(); }).WithClass("strategy-hero-view"));
+                var toggle = UiKit.Btn("", () => { _showModel = !_showModel; Rebuild(); }).WithClass("strategy-hero-view");
+                toggle.tooltip = _showModel ? "切換立繪" : "切換模型";
+                toggle.Add(UiKit.Text("⇄", "hero-view-icon"));
+                center.Add(toggle);
             }
 
             return center;
@@ -146,14 +149,26 @@ namespace SanGuo.Client
         private static Button RosterEntry(HeroDef def, HeroState hero, System.Action choose, bool selected)
         {
             var row = new Button(choose).WithClass("strategy-roster-entry");
+            row.name = "roster-" + def.Id;
+            row.tooltip = $"{def.Name} · {def.Rarity} · Lv.{hero.Level} · {hero.Stars} 突";
             if (selected) row.AddToClassList("strategy-roster-selected");
             var face = PortraitArt.Create(def.Id, "strategy-roster-face");
+            face.AddToClassList("roster-rarity-" + UiKit.RarityClass(def.Rarity));
             row.Add(face);
             var text = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("strategy-roster-text");
+            text.Add(BreakthroughStars(hero.Stars, "strategy-roster-stars"));
             text.Add(UiKit.Text(def.Name, "strategy-roster-name"));
-            text.Add(UiKit.Text($"{def.Rarity}  ·  Lv.{hero.Level}", "strategy-roster-level"));
-            text.Add(UiKit.StarsRow(hero.Stars, HeroGrowth.MaxStars, "strategy-roster-stars"));
+            text.Add(UiKit.Text($"Lv.{hero.Level}", "strategy-roster-level"));
             row.Add(text);
+            return row;
+        }
+
+        private static VisualElement BreakthroughStars(int stars, string cls)
+        {
+            var row = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("hero-breakthrough-stars " + cls);
+            row.tooltip = $"突破 {stars}/{HeroGrowth.MaxStars}";
+            for (int i = 0; i < HeroGrowth.MaxStars; i++)
+                row.Add(UiKit.Text(i < stars ? "★" : "☆", "hero-breakthrough-star " + (i < stars ? "hero-breakthrough-star-on" : "hero-breakthrough-star-off")));
             return row;
         }
 
@@ -184,7 +199,7 @@ namespace SanGuo.Client
 
             var grade = new VisualElement { pickingMode = PickingMode.Ignore };
             grade.AddToClassList("hero-grade");
-            grade.Add(UiKit.StarsRow(hero.Stars, HeroGrowth.MaxStars, "stars-lg"));
+            grade.Add(BreakthroughStars(hero.Stars, "stars-lg"));
             grade.Add(new Label($"突破 {hero.Stars}/{HeroGrowth.MaxStars}") { pickingMode = PickingMode.Ignore }.WithClass("hero-grade-text"));
             summary.Add(grade);
             return summary;
