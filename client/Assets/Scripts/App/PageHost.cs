@@ -57,6 +57,7 @@ namespace SanGuo.Client
             if (GameSession.ShotDir != null && ShotRunner.Instance == null)
             {
                 if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sanguoRosterShot") >= 0) RosterUiCapture.Begin(GameSession.ShotDir);
+                else if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sanguoGrowthShot") >= 0) GrowthUiCapture.Begin(GameSession.ShotDir);
                 else if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sanguoUnifiedShot") >= 0) UnifiedUiCapture.Begin(GameSession.ShotDir);
                 else if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sanguoCommercialShot") >= 0) CommercialUiCapture.Begin(GameSession.ShotDir);
                 else ShotRunner.Begin(GameSession.ShotDir);

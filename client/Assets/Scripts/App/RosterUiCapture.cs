@@ -88,6 +88,11 @@ namespace SanGuo.Client
                 yield return CommercialUiCapture.Capture(directory, page + "-end-selected");
                 Submit(root.Q<Button>("roster-" + first.Id));
                 yield return new WaitForSecondsRealtime(.5f);
+                if (page == Page.HeroGrowth)
+                {
+                    heroes.DebugSetAttributes(false);
+                    yield return new WaitForSecondsRealtime(.5f);
+                }
                 Submit(root.Q<Button>(className: "strategy-hero-view"));
                 yield return new WaitForSecondsRealtime(.6f);
                 if (root.Q(className: "hero-model") == null) throw new InvalidOperationException("Model icon route failed");
@@ -133,11 +138,12 @@ namespace SanGuo.Client
                 if (rows[i].Q(className: "strategy-roster-stars").worldBound.yMax > rows[i].Q(className: "strategy-roster-name").worldBound.yMin + 1)
                     throw new InvalidOperationException("Breakthrough stars must be above hero name");
             }
-            CheckStars(root.Q(className: "hero-grade"), stars);
+            var grade = root.Q(className: "hero-grade");
+            if (grade != null) CheckStars(grade, stars);
             if (!root.Q<Button>("roster-" + selected).ClassListContains("strategy-roster-selected"))
                 throw new InvalidOperationException("Default hero selection");
             var toggle = root.Q<Button>(className: "strategy-hero-view");
-            if (toggle.text.Length != 0 || toggle.Q(className: "hero-view-icon") == null || toggle.tooltip.Length == 0)
+            if (root.Q(className: "growth-attributes") == null && (toggle == null || toggle.text.Length != 0 || toggle.Q(className: "hero-view-icon") == null || toggle.tooltip.Length == 0))
                 throw new InvalidOperationException("Model switch icon");
             var scroll = root.Q<ScrollView>(className: "roster-scroll");
             var track = scroll.verticalScroller.Q(className: "unity-base-slider__drag-container");

@@ -154,9 +154,9 @@
 }
 .unified-ui .pass-reward-tiles .item-tile { width: 64px; height: 64px; margin-right: 4px; }
 .unified-ui .pass-reward-tiles .item-count { font-size: 26px; }
-.unified-ui .hero-left { width: 480px; min-width: 480px; flex-shrink: 0; padding: 12px 10px; }
+.unified-ui .hero-left { width: 400px; min-width: 400px; flex-shrink: 0; padding: 12px 10px; }
 .unified-ui .strategy-roster-text { min-width: 0; }
-.unified-ui .strategy-roster-name { font-size: 22px; white-space: nowrap; }
+.unified-ui .strategy-roster-name { font-size: 24px; white-space: nowrap; }
 .unified-ui .roster-scroll { flex-grow: 1; flex-shrink: 1; min-height: 0; min-width: 0; }
 .unified-ui .roster-scroll .hero-grid { padding: 0 8px 0 0; }
 .unified-ui .roster-scroll .unity-scroller--vertical { width: 16px; min-width: 16px; align-self: stretch; border-radius: 8px; background-color: rgb(26, 26, 30); }
@@ -183,3 +183,37 @@
     align-items: center; justify-content: center;
 }
 .unified-ui .hero-view-icon { width: 100%; height: 100%; margin: 0; padding: 0; color: rgb(241, 208, 139); font-size: 46px; -unity-text-align: middle-center; }
+.unified-ui.bg-herogrowth .hero-right { width: 620px; }
+.unified-ui .growth-center { align-items: stretch; justify-content: flex-start; min-width: 0; background-color: rgba(29, 29, 33, 0.78); }
+.unified-ui .growth-view-tabs { margin: 0 0 16px; flex-shrink: 0; }
+.unified-ui .growth-identity { flex-direction: row; flex-wrap: wrap; align-items: center; padding: 18px 20px; margin: 0 18px 18px; background-color: rgba(35, 35, 39, 0.96); border-radius: 8px; flex-shrink: 0; }
+.unified-ui .growth-identity-name { font-size: 34px; color: rgb(245, 235, 217); margin: 0 12px; white-space: normal; }
+.unified-ui .growth-identity .hero-namebar-level { margin: 0 0 0 12px; }
+.unified-ui .growth-attributes { margin: 0 18px 18px; padding: 22px; flex-grow: 1; min-height: 0; border-radius: 8px; }
+.unified-ui .growth-attributes .hero-stats { flex-direction: column; padding: 0; border-width: 0; }
+.unified-ui .growth-attributes .hero-stats-col { flex-grow: 0; flex-basis: auto; margin: 0; }
+.unified-ui .growth-attributes .stat-line { min-height: 56px; margin: 0; padding: 10px 0; border-bottom-width: 1px; border-bottom-color: rgba(184, 169, 145, 0.16); }
+.unified-ui .growth-center .strategy-hero-art { top: 192px; }
+.unified-ui .growth-center .hero-model { position: absolute; left: 0; right: 0; top: 192px; bottom: 0; width: auto; height: auto; }
+.unified-ui.bg-herogrowth .cost-line { flex-direction: row; flex-wrap: wrap; flex-shrink: 0; margin: 18px 0; }
+.unified-ui.bg-herogrowth .cost-chip { flex-direction: row; align-items: center; padding: 10px 14px; margin: 0 12px 10px 0; border-width: 1px; border-color: rgb(122, 105, 77); border-radius: 8px; background-color: rgba(29, 29, 33, 0.85); }
+.unified-ui.bg-herogrowth .side-footer { align-items: center; }
+.unified-ui .growth-action { width: 260px; min-width: 260px; align-self: center; }
+.unified-ui .growth-break-stars { margin: 0 0 12px; flex-shrink: 0; }
+.unified-ui .growth-equipment-row { padding: 0 8px 18px 0; margin-bottom: 18px; border-bottom-width: 1px; border-bottom-color: rgba(184, 169, 145, 0.24); }
+.unified-ui .growth-equipment-row .card-row-head { align-items: center; }
+.unified-ui .growth-equipment-card { flex-direction: row; align-items: center; min-height: 146px; flex-grow: 1; padding: 12px; border-width: 2px; border-radius: 10px; background-color: rgb(29, 29, 33); }
+.unified-ui .growth-equipment-art { width: 112px; height: 112px; flex-shrink: 0; margin-right: 18px; -unity-background-scale-mode: scale-to-fit; }
+.unified-ui .growth-equipment-details { flex-grow: 1; min-width: 0; }
+.unified-ui .growth-equipment-type { font-size: 26px; color: rgb(245, 235, 217); margin-bottom: 8px; }
+.unified-ui .growth-equipment-effect { font-size: 26px; color: rgb(241, 208, 139); white-space: normal; }
+.unified-ui .growth-equipment-empty { font-size: 26px; color: rgb(155, 149, 138); }
+.unified-ui .equipment-tier-0 { border-color: rgb(94, 90, 80); }
+.unified-ui .equipment-tier-0 .growth-equipment-art { opacity: 0.4; }
+.unified-ui .equipment-tier-1 { border-color: rgb(163, 160, 146); }
+.unified-ui .equipment-tier-2 { border-color: rgb(105, 172, 120); }
+.unified-ui .equipment-tier-3 { border-color: rgb(96, 161, 219); }
+.unified-ui .equipment-tier-4 { border-color: rgb(172, 119, 217); }
+.unified-ui .equipment-tier-5 { border-color: rgb(235, 185, 77); }
+.unified-ui .growth-stock-entry { margin-top: 14px; }
+.unified-ui .growth-stock-actions { flex-direction: row; flex-wrap: wrap; margin-top: 8px; }
