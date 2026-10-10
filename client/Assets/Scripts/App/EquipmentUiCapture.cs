@@ -51,6 +51,7 @@ namespace SanGuo.Client
             if (!(PageHost.Current.ActivePage is EquipmentPage)) throw new InvalidOperationException("Home equipment route");
             Validate(root);
             yield return CommercialUiCapture.Capture(directory, "02-equipment-inventory");
+            yield return CheckHover(root, directory);
             Submit(root.Q<Button>("equipment-stock-Weapon-1"));
             yield return new WaitForSecondsRealtime(.4f);
             Validate(root);
@@ -135,6 +136,26 @@ namespace SanGuo.Client
         {
             foreach (string cls in new[] { "equipment-worn-panel", "equipment-inventory-panel", "equipment-detail-panel", "equipment-stock-tile", "equipment-detail-actions" })
                 foreach (var element in root.Query(className: cls).ToList()) CheckBounds(root, element);
+        }
+
+        private static IEnumerator CheckHover(VisualElement root, string directory)
+        {
+            var property = typeof(VisualElement).GetProperty("pseudoStates", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!;
+            var hover = Enum.Parse(property.PropertyType, "Hover");
+            foreach (var button in root.Query<Button>().ToList())
+            {
+                var original = property.GetValue(button);
+                var bounds = button.worldBound;
+                float font = button.resolvedStyle.fontSize;
+                property.SetValue(button, Enum.ToObject(property.PropertyType, Convert.ToInt32(original) | Convert.ToInt32(hover)));
+                yield return new WaitForSecondsRealtime(.2f);
+                if (Mathf.Abs(button.worldBound.width - bounds.width) > .1f || Mathf.Abs(button.worldBound.height - bounds.height) > .1f || Mathf.Abs(button.resolvedStyle.fontSize - font) > .1f)
+                    throw new InvalidOperationException("Hover changes button dimensions: " + button.name + " " + button.text);
+                if (button.name == "equipment-hero-selector")
+                    yield return CommercialUiCapture.Capture(directory, "10-hero-selector-hover");
+                property.SetValue(button, original);
+                yield return new WaitForSecondsRealtime(.2f);
+            }
         }
 
         private static void CheckBounds(VisualElement root, VisualElement element)

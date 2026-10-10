@@ -56,8 +56,7 @@
 .banner-title { color: white; }
 .bar-bg { background-color: rgb(8, 16, 42); border-color: rgb(60, 92, 170); }
 
-.page-host .btn, .page-host .btn-primary, .page-host .btn-on, .page-host .btn-done,
-.page-host .btn:hover, .page-host .btn-primary:hover, .page-host .btn-on:hover, .page-host .btn-done:hover {
+.page-host .btn, .page-host .btn-primary, .page-host .btn-on, .page-host .btn-done {
     min-height: 76px;
     min-width: 150px;
     margin: 4px 8px 4px 0;
@@ -80,7 +79,7 @@
 .page-host .btn:active, .page-host .btn-primary:active { -unity-background-image-tint-color: rgb(170, 182, 214); }
 .page-host .btn-wide { padding: 10px 70px; font-size: 32px; min-height: 84px; }
 
-.page-host .tab, .page-host .tab:hover, .page-host .tab-on, .page-host .tab-on:hover {
+.page-host .tab, .page-host .tab-on {
     min-height: 76px;
     margin: 0 8px;
     padding: 8px 44px;
@@ -188,15 +187,14 @@
 .pull-card { height: 270px; }
 .pull-card-name { margin-top: 2px; }
 
-.page-host .btn, .page-host .btn-primary, .page-host .btn-on, .page-host .btn-done,
-.page-host .btn:hover, .page-host .btn-primary:hover, .page-host .btn-on:hover, .page-host .btn-done:hover {
+.page-host .btn, .page-host .btn-primary, .page-host .btn-on, .page-host .btn-done {
     min-width: 150px;
     min-height: 84px;
     padding: 10px 22px;
     white-space: normal;
 }
 .page-host .btn-wide { padding: 12px 40px; min-width: 230px; min-height: 96px; }
-.page-host .tab, .page-host .tab:hover, .page-host .tab-on, .page-host .tab-on:hover { min-height: 84px; padding: 8px 32px; }
+.page-host .tab, .page-host .tab-on { min-height: 84px; padding: 8px 32px; }
 
 .banner { padding-right: 320px; }
 .tile {

@@ -1,6 +1,5 @@
 
-.meta-page .btn, .meta-page .btn-primary, .meta-page .btn-on, .meta-page .btn-done,
-.meta-page .btn:hover, .meta-page .btn-primary:hover, .meta-page .btn-on:hover, .meta-page .btn-done:hover {
+.meta-page .btn, .meta-page .btn-primary, .meta-page .btn-on, .meta-page .btn-done {
     min-width: 240px;
     min-height: 84px;
     margin: 0;
@@ -9,12 +8,11 @@
     white-space: nowrap;
     -unity-text-align: middle-center;
 }
-.meta-page .btn.btn-sm, .meta-page .btn.btn-sm:hover { min-width: 168px; min-height: 64px; padding: 4px 18px; font-size: 26px; }
-.meta-page .btn.btn-lg, .meta-page .btn.btn-lg:hover,
-.meta-page .btn.btn-wide, .meta-page .btn.btn-wide:hover { min-width: 320px; min-height: 100px; padding: 8px 30px; font-size: 36px; }
-.meta-page .btn.btn-block, .meta-page .btn.btn-block:hover { min-width: 0; align-self: stretch; }
+.meta-page .btn.btn-sm { min-width: 168px; min-height: 64px; padding: 4px 18px; font-size: 26px; }
+.meta-page .btn.btn-lg, .meta-page .btn.btn-wide { min-width: 320px; min-height: 100px; padding: 8px 30px; font-size: 36px; }
+.meta-page .btn.btn-block { min-width: 0; align-self: stretch; }
 
-.meta-page .tab, .meta-page .tab:hover, .meta-page .tab-on, .meta-page .tab-on:hover {
+.meta-page .tab, .meta-page .tab-on {
     min-width: 200px;
     min-height: 76px;
     margin: 0 8px;
@@ -23,7 +21,7 @@
     white-space: nowrap;
     -unity-text-align: middle-center;
 }
-.meta-page .tab.seg-tab, .meta-page .tab.seg-tab:hover {
+.meta-page .tab.seg-tab {
     flex-grow: 1; flex-basis: 0;
     min-width: 0;
     min-height: 72px;
@@ -31,7 +29,7 @@
     padding: 0 4px;
     font-size: 27px;
 }
-.meta-page .tab.side-tab, .meta-page .tab.side-tab:hover {
+.meta-page .tab.side-tab {
     min-width: 0;
     min-height: 84px;
     margin: 0 0 12px 0;
@@ -187,8 +185,8 @@
 .stage-sweeps .btn { margin-right: 12px; }
 
 .gacha-tabs { margin: 16px 0 6px 0; }
-.meta-page .gacha-actions .btn, .meta-page .gacha-actions .btn:hover { min-width: 320px; min-height: 100px; margin: 0 16px; font-size: 34px; }
-.meta-page .pull-buttons .btn, .meta-page .pull-buttons .btn:hover { min-width: 280px; min-height: 96px; margin: 0 16px; font-size: 32px; }
+.meta-page .gacha-actions .btn { min-width: 320px; min-height: 100px; margin: 0 16px; font-size: 34px; }
+.meta-page .pull-buttons .btn { min-width: 280px; min-height: 96px; margin: 0 16px; font-size: 32px; }
 .gacha-actions { margin: 0 0 24px 0; }
 .gacha-info { width: 560px; }
 .rate-chip { margin-right: 26px; }
@@ -272,7 +270,7 @@
     border-radius: 16px;
     background-color: rgb(35, 30, 31);
 }
-.meta-page .btn, .meta-page .btn:hover {
+.meta-page .btn {
     border-width: 1px;
     border-color: rgb(111, 88, 65);
     border-radius: 11px;
@@ -300,7 +298,7 @@
     border-color: rgb(68, 59, 53);
     color: rgb(148, 137, 123);
 }
-.meta-page .tab, .meta-page .tab:hover {
+.meta-page .tab {
     border-width: 1px;
     border-color: rgb(91, 73, 57);
     background-color: rgb(39, 33, 34);

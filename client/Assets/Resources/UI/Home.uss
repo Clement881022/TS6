@@ -31,7 +31,7 @@
 .meta-page.bg-home .home-nav-divider {
     border-top-width: 1px; border-top-color: rgb(67, 80, 72); padding-top: 16px; margin-top: 8px;
 }
-.meta-page.bg-home .home-fn, .meta-page.bg-home .home-fn:hover {
+.meta-page.bg-home .home-fn {
     height: 78px; margin: 0; padding: 0 12px; background-image: none;
     background-color: rgba(0, 0, 0, 0); border-width: 0; border-radius: 3px;
     flex-direction: row; align-items: center; scale: 1 1; translate: 0 0;
@@ -61,7 +61,7 @@
 .meta-page.bg-home .home-campaign-progress.bar-bg { margin: 8px 0 0; background-color: rgb(54, 73, 63); height: 4px; min-height: 4px; }
 .meta-page.bg-home .home-campaign-progress .bar-fill { height: 4px; min-height: 4px; background-color: rgb(196, 164, 96); }
 .meta-page.bg-home .home-campaign-hint { font-size: 18px; color: rgb(182, 198, 177); margin-top: 15px; white-space: normal; }
-.meta-page.bg-home .home-primary, .meta-page.bg-home .home-primary:hover {
+.meta-page.bg-home .home-primary {
     height: 78px; min-height: 78px; width: 100%; min-width: 0;
     margin: 22px 0 0; padding: 0 24px; flex-direction: row; align-items: center; justify-content: space-between;
     border-width: 0; border-radius: 0; scale: 1 1;
@@ -72,7 +72,7 @@
 .meta-page.bg-home .home-primary-title { font-size: 34px; color: rgb(52, 34, 15); }
 .meta-page.bg-home .home-primary-arrow { font-size: 38px; color: rgb(91, 65, 23); }
 .meta-page.bg-home .home-preparation { flex-direction: row; justify-content: space-between; align-items: center; margin-top: 10px; }
-.meta-page.bg-home .home-formation, .meta-page.bg-home .home-formation:hover, .meta-page.bg-home .home-formation:disabled {
+.meta-page.bg-home .home-formation, .meta-page.bg-home .home-formation:disabled {
     min-width: 0; min-height: 42px; margin: 0; padding: 0 4px; font-size: 20px;
     background-image: none; background-color: rgba(0, 0, 0, 0); border-width: 0;
     color: rgb(228, 210, 165); scale: 1 1;

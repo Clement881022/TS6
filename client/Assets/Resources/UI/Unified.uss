@@ -30,8 +30,7 @@
 .unified-ui .quest-toolbar-title { color: rgb(241, 208, 139); }
 .unified-ui .txt-good, .unified-ui .break-row-on .break-row-text { color: rgb(137, 220, 169); }
 .unified-ui .section-line { background-color: rgba(184, 169, 145, 0.34); }
-.unified-ui .btn, .unified-ui .btn:hover, .unified-ui .btn-done, .unified-ui .btn-done:hover,
-.unified-ui .tab, .unified-ui .tab:hover, .unified-ui .challenge-tab {
+.unified-ui .btn, .unified-ui .btn-done, .unified-ui .tab, .unified-ui .challenge-tab {
     background-image: none; background-color: rgb(40, 40, 44); color: rgb(245, 235, 217);
     border-width: 1px; border-color: rgb(145, 122, 83); border-radius: 12px;
     -unity-text-outline-width: 0; scale: 1 1; translate: 0 0;
@@ -46,8 +45,7 @@
     border-color: rgb(214, 170, 88); border-bottom-width: 3px;
 }
 .unified-ui .challenge-tab { -unity-text-align: middle-center; }
-.unified-ui .btn-primary, .unified-ui .btn-primary:hover,
-.unified-ui .btn-on, .unified-ui .btn-on:hover {
+.unified-ui .btn-primary, .unified-ui .btn-on {
     background-image: url("../ChibiSkin/gold.png"); background-color: rgb(205, 165, 78);
     border-width: 0; border-radius: 14px; color: rgb(48, 32, 16);
     -unity-slice-left: 100; -unity-slice-right: 100; -unity-slice-top: 60; -unity-slice-bottom: 60;
@@ -56,8 +54,7 @@
 .unified-ui .btn-primary:hover, .unified-ui .btn-on:hover { -unity-background-image-tint-color: rgb(255, 242, 210); }
 .unified-ui .btn-primary .cost-chip-text, .unified-ui .btn-on .cost-chip-text,
 .unified-ui .btn-primary .btn-tag, .unified-ui .btn-on .btn-tag { color: rgb(48, 32, 16); }
-.unified-ui .btn-done, .unified-ui .btn-done:hover, .unified-ui .btn:disabled,
-.unified-ui .btn-primary:disabled, .unified-ui .btn-on:disabled {
+.unified-ui .btn-done, .unified-ui .btn:disabled, .unified-ui .btn-primary:disabled, .unified-ui .btn-on:disabled {
     background-image: none; background-color: rgb(39, 39, 43); border-width: 1px;
     border-color: rgb(88, 83, 73); color: rgb(164, 157, 142);
 }
@@ -147,7 +144,7 @@
 .unified-ui .quest-toolbar { padding: 12px 20px; background-color: rgba(35, 35, 39, 0.96); border-width: 1px; border-color: rgb(145, 122, 83); border-radius: 12px; }
 .unified-ui .challenge-tabs { justify-content: center; }
 .unified-ui .challenge-tabs-floating { top: 20px; }
-.unified-ui .milestone-node, .unified-ui .milestone-node:hover, .unified-ui .milestone-node:active {
+.unified-ui .milestone-node {
     width: 104px; min-width: 104px; height: 160px; min-height: 160px; padding: 0;
     background-image: none; background-color: rgba(0, 0, 0, 0); border-width: 0; border-radius: 0;
     translate: -50% 0;
@@ -177,7 +174,7 @@
 .unified-ui .hero-breakthrough-stars .hero-breakthrough-star-on { color: rgb(241, 208, 139); -unity-text-outline-width: 0; }
 .unified-ui .strategy-roster-stars { margin-top: 0; margin-bottom: 4px; }
 .unified-ui .strategy-roster-stars .hero-breakthrough-star { width: 24px; height: 28px; margin-right: 2px; font-size: 25px; }
-.unified-ui .strategy-hero-view, .unified-ui .strategy-hero-view:hover, .unified-ui .strategy-hero-view:active {
+.unified-ui .strategy-hero-view {
     width: 68px; min-width: 68px; height: 68px; min-height: 68px; padding: 0; margin: 0;
     border-radius: 34px; border-width: 2px; border-color: rgb(189, 153, 87);
     align-items: center; justify-content: center;

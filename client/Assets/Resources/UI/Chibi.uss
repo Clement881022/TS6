@@ -45,8 +45,7 @@
     -unity-slice-scale: 0.18px;
     padding: 28px;
 }
-.meta-page .btn, .meta-page .btn:hover, .meta-page .btn-done, .meta-page .btn-done:hover,
-.meta-page .tab, .meta-page .tab:hover {
+.meta-page .btn, .meta-page .btn-done, .meta-page .tab {
     border-radius: 3px; border-width: 1px; border-color: rgb(134, 111, 70);
     background-image: none; background-color: rgb(27, 42, 43);
     color: rgb(234, 223, 194); -unity-text-outline-width: 0;
@@ -54,7 +53,7 @@
     transition: background-color 100ms ease-out, border-color 100ms ease-out;
 }
 .meta-page .btn:hover, .meta-page .tab:hover { background-color: rgb(47, 58, 51); border-color: rgb(215, 182, 112); }
-.meta-page .btn-primary, .meta-page .btn-primary:hover, .meta-page .btn-on, .meta-page .btn-on:hover {
+.meta-page .btn-primary, .meta-page .btn-on {
     background-image: url("../ChibiSkin/gold.png"); background-color: rgba(0, 0, 0, 0);
     -unity-slice-left: 220; -unity-slice-right: 220; -unity-slice-top: 200; -unity-slice-bottom: 200;
     -unity-slice-scale: 0.15px;
@@ -62,11 +61,11 @@
 }
 .meta-page .btn-primary:hover, .meta-page .btn-on:hover { -unity-background-image-tint-color: rgb(255, 242, 210); }
 .meta-page .btn:active { scale: 1 1; }
-.meta-page .btn-done, .meta-page .btn-done:hover, .meta-page .btn:disabled {
+.meta-page .btn-done, .meta-page .btn:disabled {
     background-image: none; background-color: rgb(27, 34, 33); border-width: 1px;
     border-color: rgb(78, 79, 64); color: rgb(147, 150, 133);
 }
-.meta-page .tab-on, .meta-page .tab-on:hover {
+.meta-page .tab-on {
     background-image: none; background-color: rgb(73, 67, 42); color: rgb(251, 225, 158);
     border-width: 1px; border-color: rgb(206, 169, 90); border-bottom-width: 3px;
 }
@@ -110,7 +109,7 @@
 .strategy-expedition-sub { font-size: 22px; color: rgb(203, 190, 153); margin-top: 0; }
 .strategy-home-footer { position: absolute; left: 0; right: 0; bottom: 0; height: 92px; background-color: rgba(10, 20, 23, 0.96); border-top-width: 1px; border-top-color: rgb(101, 90, 63); flex-direction: row; align-items: center; justify-content: space-between; padding: 0 32px; }
 .strategy-home-hint { font-size: 25px; color: rgb(204, 208, 188); }
-.meta-page .strategy-formation-link, .meta-page .strategy-formation-link:hover { min-height: 60px; min-width: 200px; font-size: 26px; }
+.meta-page .strategy-formation-link { min-height: 60px; min-width: 200px; font-size: 26px; }
 
 .tile-ico-heroes, .nav-icon-heroes { background-image: url("../ChibiSkin/nav_heroes.png"); }
 .tile-ico-gacha, .nav-icon-gacha { background-image: url("../ChibiSkin/nav_gacha.png"); }
@@ -142,7 +141,7 @@
 .meta-page .hero-namebar-name { font-size: 48px; color: rgb(247, 223, 169); margin: 10px 0; }
 .meta-page .hero-namebar-level { color: rgb(214, 187, 125); font-size: 26px; margin-left: 12px; }
 .meta-page .hero-namebar .hero-namebar-level { margin: 12px 0 0 0; }
-.meta-page .strategy-hero-view, .meta-page .strategy-hero-view:hover { position: absolute; right: 22px; bottom: 24px; min-width: 170px; min-height: 62px; font-size: 25px; }
+.meta-page .strategy-hero-view { position: absolute; right: 22px; bottom: 24px; min-width: 170px; min-height: 62px; font-size: 25px; }
 .strategy-hero-caption { position: absolute; bottom: 30px; left: 24px; font-size: 23px; color: rgb(239, 221, 181); background-color: rgba(11, 23, 26, 0.92); padding: 10px 14px; }
 .meta-page .hero-right { width: 710px; padding: 0; flex-shrink: 0; }
 .strategy-hero-summary { background-color: rgba(14, 27, 30, 0.98); border-width: 1px; border-color: rgb(130, 111, 72); padding: 22px 22px 10px 22px; margin-bottom: 18px; }
@@ -157,7 +156,7 @@
 .meta-page .hero-grade .star { width: 28px; height: 28px; }
 .meta-page .hero-grade-text { color: rgb(182, 190, 169); font-size: 21px; }
 .meta-page .seg { margin: 0 0 16px 0; }
-.meta-page .tab.seg-tab, .meta-page .tab.seg-tab:hover { min-height: 76px; font-size: 29px; }
+.meta-page .tab.seg-tab { min-height: 76px; font-size: 29px; }
 .meta-page .side-panel { flex-grow: 1; padding: 30px; }
 .meta-page .side-body { flex-grow: 1; min-height: 0; }
 .meta-page .side-footer { margin-top: 14px; padding-top: 12px; }
@@ -206,12 +205,12 @@
 
 .root .header { height: 68px; background-color: rgba(10, 21, 24, 0.97); border-bottom-width: 1px; border-bottom-color: rgb(169, 136, 74); }
 .root .header-title { color: rgb(234, 209, 150); font-size: 34px; }
-.root .btn, .root .btn:hover { background-image: none; background-color: rgb(28, 43, 44); border-width: 1px; border-color: rgb(119, 103, 64); border-radius: 3px; color: rgb(234, 221, 186); }
+.root .btn { background-image: none; background-color: rgb(28, 43, 44); border-width: 1px; border-color: rgb(119, 103, 64); border-radius: 3px; color: rgb(234, 221, 186); }
 .root .btn-on { background-color: rgb(86, 76, 43); border-color: rgb(206, 168, 91); }
 .root .bl-left { left: 18px; top: 86px; width: 348px; padding: 14px; background-color: rgba(11, 24, 27, 0.95); border-width: 1px; border-color: rgb(119, 102, 64); }
-.root .bl-end, .root .bl-end:hover { background-image: url("../ChibiSkin/gold.png"); -unity-slice-left: 220; -unity-slice-right: 220; -unity-slice-top: 200; -unity-slice-bottom: 200; background-color: rgba(0, 0, 0, 0); color: rgb(36, 29, 16); border-width: 0; border-radius: 0; font-size: 28px; }
+.root .bl-end { background-image: url("../ChibiSkin/gold.png"); -unity-slice-left: 220; -unity-slice-right: 220; -unity-slice-top: 200; -unity-slice-bottom: 200; background-color: rgba(0, 0, 0, 0); color: rgb(36, 29, 16); border-width: 0; border-radius: 0; font-size: 28px; }
 .root .bl-cost-cap, .root .bl-pile-text { color: rgb(176, 187, 164); }
-.root .bl-row, .root .bl-row:hover { background-color: rgb(24, 40, 43); border-width: 1px; border-radius: 2px; border-color: rgb(99, 107, 78); height: 72px; margin-bottom: 7px; }
+.root .bl-row { background-color: rgb(24, 40, 43); border-width: 1px; border-radius: 2px; border-color: rgb(99, 107, 78); height: 72px; margin-bottom: 7px; }
 .root .bl-row:hover { background-color: rgb(44, 54, 44); border-color: rgb(193, 158, 87); }
 .root .bl-row-selected { background-color: rgb(77, 67, 33); border-color: rgb(225, 187, 105); }
 .root .bl-row-index { color: rgb(169, 178, 147); }
@@ -268,7 +267,7 @@
 .root .bl-left { left: auto; right: 18px; top: auto; bottom: 22px; width: 202px; padding: 8px; border-width: 0; background-color: rgba(10, 24, 27, 0.94); }
 .root .bl-top { flex-direction: column-reverse; margin-bottom: 6px; }
 .root .bl-cost { align-self: center; margin-bottom: 14px; }
-.root .bl-end, .root .bl-end:hover { width: 186px; height: 78px; margin: 0; font-size: 26px; background-image: none; background-color: rgb(113, 84, 34); border-width: 1px; border-color: rgb(235, 191, 99); border-radius: 5px; color: rgb(255, 235, 188); }
+.root .bl-end { width: 186px; height: 78px; margin: 0; font-size: 26px; background-image: none; background-color: rgb(113, 84, 34); border-width: 1px; border-color: rgb(235, 191, 99); border-radius: 5px; color: rgb(255, 235, 188); }
 .root .bl-piles { flex-direction: column; margin: 0; }
 .root .bl-pile-btn { min-height: 45px; margin: 3px 0; }
 .root .bl-bar { left: 14px; right: auto; top: 86px; bottom: auto; width: 272px; height: auto; padding: 4px; flex-direction: column; border-width: 0; background-color: rgba(10, 24, 27, 0.85); }
@@ -291,7 +290,7 @@
 .meta-page .hdr { flex-shrink: 0; }
 .meta-page .hdr-back, .meta-page .hdr-close { font-size: 46px; color: rgb(238, 216, 166); -unity-text-align: middle-center; background-image: none; }
 .meta-page .hdr-title { flex-shrink: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.meta-page .btn-primary, .meta-page .btn-primary:hover, .meta-page .btn-on, .meta-page .btn-on:hover {
+.meta-page .btn-primary, .meta-page .btn-on {
     background-image: none; background-color: rgb(155, 119, 53); border-width: 1px; border-color: rgb(233, 193, 113); color: rgb(255, 245, 220);
 }
 .meta-page .btn-primary:hover, .meta-page .btn-on:hover { background-color: rgb(179, 141, 64); }
@@ -300,14 +299,14 @@
 .meta-page .bar-fill.bar-gold { background-color: rgb(197, 157, 80); }
 .meta-page .bar-bg.bar-slim, .meta-page .bar-fill.bar-slim { height: 8px; min-height: 8px; border-radius: 1px; }
 .meta-page .home-player .bar-bg { margin: 8px 0 5px; }
-.meta-page .home-fn, .meta-page .home-fn:hover { background-image: none; border-width: 1px; border-color: rgb(123, 104, 68); background-color: rgb(22, 37, 39); height: 92px; margin-bottom: 12px; }
+.meta-page .home-fn { background-image: none; border-width: 1px; border-color: rgb(123, 104, 68); background-color: rgb(22, 37, 39); height: 92px; margin-bottom: 12px; }
 .meta-page .home-fn:hover { background-color: rgb(49, 57, 46); border-color: rgb(218, 181, 107); }
 .meta-page .home-fn-bar { width: 250px; padding: 14px 10px 2px; background-color: rgba(10, 21, 23, 0.88); }
 .meta-page .home-fn-label { font-size: 30px; margin-left: 10px; }
 .meta-page .home-fn-circle { width: 64px; height: 64px; }
 .meta-page .home-fn-icon { width: 58px; height: 58px; }
 .meta-page .home-chapter { width: 462px; padding: 24px; }
-.meta-page .home-orb, .meta-page .home-orb:hover { width: 360px; height: 132px; right: 38px; bottom: 128px; padding: 12px 28px 18px 0; background-image: none; background-color: rgb(74, 59, 32); border-width: 1px; border-color: rgb(224, 183, 98); border-radius: 4px; scale: 1 1; }
+.meta-page .home-orb { width: 360px; height: 132px; right: 38px; bottom: 128px; padding: 12px 28px 18px 0; background-image: none; background-color: rgb(74, 59, 32); border-width: 1px; border-color: rgb(224, 183, 98); border-radius: 4px; scale: 1 1; }
 .meta-page .home-orb:hover { background-color: rgb(96, 75, 36); }
 .strategy-expedition-emblem { position: absolute; left: 24px; top: 27px; width: 78px; height: 78px; background-image: url("../ChibiSkin/nav_map.png"); -unity-background-scale-mode: scale-to-fit; }
 .strategy-expedition-title { font-size: 44px; -unity-text-outline-width: 0; }
@@ -369,7 +368,7 @@
 .meta-page .res-pill { background-color: rgba(9, 22, 25, 0.88); border-color: rgb(149, 119, 62); }
 .meta-page .res-pill-text { color: rgb(251, 237, 197); }
 .meta-page .home-fn-bar { top: 130px; left: 26px; width: 238px; padding: 12px 10px 0; background-color: rgba(10, 23, 26, 0.92); }
-.meta-page .home-fn, .meta-page .home-fn:hover {
+.meta-page .home-fn {
     height: 86px; margin-bottom: 12px; border-width: 0; background-color: rgba(0, 0, 0, 0);
     background-image: url("../ChibiSkin/panel.png");
     -unity-slice-left: 96; -unity-slice-right: 96; -unity-slice-top: 96; -unity-slice-bottom: 96; -unity-slice-scale: 0.16px;
@@ -377,13 +376,13 @@
 .meta-page .home-fn:hover { -unity-background-image-tint-color: rgb(255, 229, 171); }
 .meta-page .home-fn-label { font-size: 30px; color: rgb(251, 225, 166); }
 .meta-page .home-chapter { top: 138px; right: 28px; width: 456px; min-height: 186px; }
-.meta-page .home-chapter, .meta-page .home-chapter:hover {
+.meta-page .home-chapter {
     background-color: rgba(0, 0, 0, 0); border-width: 0; background-image: url("../ChibiSkin/panel.png");
     -unity-slice-left: 96; -unity-slice-right: 96; -unity-slice-top: 96; -unity-slice-bottom: 96; -unity-slice-scale: 0.22px;
 }
 .meta-page .home-chapter-title { color: rgb(249, 222, 154); font-size: 30px; }
 .meta-page .home-chapter-sub, .strategy-chapter-count { color: rgb(238, 229, 201); }
-.meta-page .home-orb, .meta-page .home-orb:hover {
+.meta-page .home-orb {
     width: 450px; height: 170px; right: 26px; bottom: 110px; border-width: 0; padding: 42px 38px 32px 0;
     background-image: url("../ChibiSkin/expedition.png"); background-color: rgba(0, 0, 0, 0); -unity-background-scale-mode: stretch-to-fill;
 }
@@ -397,7 +396,7 @@
 .meta-page .bpanel, .meta-page .panel, .meta-page .popup, .meta-page .gacha-info, .meta-page .quest-ms, .meta-page .tier {
     -unity-slice-left: 96; -unity-slice-right: 96; -unity-slice-top: 96; -unity-slice-bottom: 96; -unity-slice-scale: 0.24px;
 }
-.meta-page .btn-primary, .meta-page .btn-primary:hover, .meta-page .btn-on, .meta-page .btn-on:hover {
+.meta-page .btn-primary, .meta-page .btn-on {
     background-image: url("../ChibiSkin/gold.png"); background-color: rgb(204, 165, 78); border-width: 0;
     -unity-slice-left: 100; -unity-slice-right: 100; -unity-slice-top: 60; -unity-slice-bottom: 60; -unity-slice-scale: 0.18px;
     color: rgb(52, 34, 15);
