@@ -27,7 +27,7 @@ namespace SanGuo.Core.Meta
             string season = SeasonOf(now);
             if (p.Pass.Season == season)
             {
-                if (p.Pass.Tier != "") p.Pass.Tier = Basic;
+                if (p.Pass.Tier == "luxury") p.Pass.Tier = Basic;
                 return;
             }
             p.Pass = new PassState { Season = season };

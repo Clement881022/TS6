@@ -20,15 +20,25 @@ namespace SanGuo.Client
             body.style.flexDirection = FlexDirection.Column;
             body.AddToClassList("page-centered");
             body.AddToClassList("shop-page");
+            var frame = new VisualElement().WithClass("shop-frame");
+            body.Add(frame);
+            body = frame;
 
             var seg = new VisualElement();
             seg.AddToClassList("seg");
             seg.AddToClassList("shop-tabs");
-            seg.Add(UiKit.Tab("儲值", () => { _tab = Tab.Pay; Rebuild(); }, _tab == Tab.Pay).WithClass("seg-tab"));
+            seg.Add(UiKit.Tab("禮包", () => { _tab = Tab.Pay; Rebuild(); }, _tab == Tab.Pay).WithClass("seg-tab"));
             seg.Add(UiKit.Tab("元寶", () => { _tab = Tab.Recharge; Rebuild(); }, _tab == Tab.Recharge).WithClass("seg-tab"));
             seg.Add(UiKit.Tab("通行證", () => { _tab = Tab.Pass; Rebuild(); }, _tab == Tab.Pass).WithClass("seg-tab"));
             seg.Add(UiKit.Tab("將魂商店", () => { _tab = Tab.Soul; Rebuild(); }, _tab == Tab.Soul).WithClass("seg-tab"));
             body.Add(seg);
+
+            if (_tab == Tab.Pay || _tab == Tab.Recharge)
+            {
+                var scroll = new ScrollView(ScrollViewMode.Vertical).WithClass("shop-products-scroll");
+                body.Add(scroll);
+                body = scroll.contentContainer;
+            }
 
             if (_tab == Tab.Pay) BuildPay(body);
             else if (_tab == Tab.Recharge) BuildRecharge(body);
@@ -44,6 +54,7 @@ namespace SanGuo.Client
             var p = v.Raw;
             var recharge = new VisualElement();
             recharge.AddToClassList("dun-row");
+            recharge.AddToClassList("shop-recharge-grid");
             recharge.style.flexWrap = Wrap.Wrap;
             recharge.style.justifyContent = Justify.Center;
             body.Add(recharge);
@@ -59,9 +70,9 @@ namespace SanGuo.Client
                 head.AddToClassList("shop-head");
                 head.Add(UiKit.Text(pr.Name, "shop-name"));
                 card.Add(head);
-                var art = new VisualElement { pickingMode = PickingMode.Ignore };
+                var art = new VisualElement();
                 art.AddToClassList("shop-art");
-                art.Add(UiKit.ItemTile("item_yuanbao", (doubled ? pr.ImmediateYuanbao * 2 : pr.ImmediateYuanbao).ToString(), "shop-icon"));
+                art.Add(Item("item_yuanbao", "元寶", "用於招募武將與遊戲內消費。", doubled ? pr.ImmediateYuanbao * 2 : pr.ImmediateYuanbao).WithClass("shop-icon"));
                 card.Add(art);
                 var text = new VisualElement { pickingMode = PickingMode.Ignore };
                 text.AddToClassList("card-body");
@@ -93,9 +104,9 @@ namespace SanGuo.Client
                 head.AddToClassList("shop-head");
                 head.Add(UiKit.Text(first.Name, "shop-name"));
                 card.Add(head);
-                var art = new VisualElement { pickingMode = PickingMode.Ignore };
+                var art = new VisualElement();
                 art.AddToClassList("shop-art");
-                art.Add(UiKit.RewardTiles(Shop.FirstPackReward()));
+                art.Add(Rewards(Shop.FirstPackReward()));
                 card.Add(art);
                 var text = new VisualElement { pickingMode = PickingMode.Ignore };
                 text.AddToClassList("card-body");
@@ -121,9 +132,18 @@ namespace SanGuo.Client
                 head.Add(UiKit.Text(pr.Name, "shop-name"));
                 card.Add(head);
 
-                var art = new VisualElement { pickingMode = PickingMode.Ignore };
+                var art = new VisualElement();
                 art.AddToClassList("shop-art");
-                art.Add(UiKit.ItemTile("item_yuanbao", pr.ImmediateYuanbao.ToString(), "shop-icon"));
+                var formula = new VisualElement().WithClass("shop-formula");
+                formula.Add(Item("item_yuanbao", "元寶", "購買月卡立即取得。", pr.ImmediateYuanbao));
+                formula.Add(UiKit.Text("＋", "shop-operator"));
+                formula.Add(Item("item_yuanbao", "每日元寶", $"每天可領取一次，持續 {pr.Days} 天。", pr.DailyYuanbao));
+                formula.Add(UiKit.Text($"× {pr.Days}", "shop-operator"));
+                art.Add(formula);
+                var stamina = new VisualElement().WithClass("shop-formula");
+                stamina.Add(Item("item_stamina", "每日體力", $"每天可領取一次，持續 {pr.Days} 天。", pr.DailyStamina));
+                stamina.Add(UiKit.Text($"× {pr.Days}", "shop-operator"));
+                art.Add(stamina);
                 card.Add(art);
 
                 var text = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -132,8 +152,6 @@ namespace SanGuo.Client
                 btns.AddToClassList("card-footer");
                 int left = Shop.MonthCardDaysLeft(p, pr.Id, v.Now);
                 bool claimed = Shop.MonthCardClaimedToday(p, pr.Id, v.Now);
-                text.Add(UiKit.Text($"購買即得 {pr.ImmediateYuanbao} 元寶", "line-title").WithClass("dun-center"));
-                text.Add(UiKit.Text($"每日領 {pr.DailyYuanbao} 元寶、{pr.DailyStamina} 體力（{pr.Days} 天）", "line-sub").WithClass("dun-center"));
                 text.Add(UiKit.Text(left > 0 ? $"剩餘 {left} 天" : "未持有", left > 0 ? "txt-good" : "line-sub").WithClass("dun-center"));
                 if (left > 0)
                 {
@@ -166,43 +184,45 @@ namespace SanGuo.Client
             top.style.marginBottom = 8;
             var info = new VisualElement();
             info.style.flexGrow = 1;
-            info.Add(UiKit.Text($"{WorldBoss.SeasonName(BattlePass.SeasonOf(v.Now))}通行證　Lv.{level} / {BattlePass.MaxLevel}　" +
-                (tier == BattlePass.Luxury ? "（豪華）" : tier == BattlePass.Basic ? "（已購買）" : "（免費）"), "line-title"));
+            top.AddToClassList("shop-pass-top");
+            info.Add(UiKit.Text($"{WorldBoss.SeasonName(BattlePass.SeasonOf(v.Now))}　Lv.{level} / {BattlePass.MaxLevel}　" +
+                (tier != "" ? "（已購買）" : "（免費）"), "line-title"));
             info.Add(UiKit.Bar(level >= BattlePass.MaxLevel ? 100f : 100f * (points % BattlePass.PointsPerLevel) / BattlePass.PointsPerLevel, "bar-gold bar-slim"));
-            info.Add(UiKit.Text(level >= BattlePass.MaxLevel ? "已滿級" : $"下一級 {points % BattlePass.PointsPerLevel} / {BattlePass.PointsPerLevel}　｜　消耗 1 點體力 = 1 點通行證經驗", "line-sub"));
+            info.Add(UiKit.Text(level >= BattlePass.MaxLevel ? "已滿級" : $"{points % BattlePass.PointsPerLevel} / {BattlePass.PointsPerLevel}", "line-sub"));
+            info.tooltip = "消耗 1 點體力獲得 1 點通行證經驗";
             top.Add(info);
             top.Add(UiKit.Btn("一鍵領取", () => _ = Act(() => GameSession.Backend.ClaimPassAll(), "已領取"), primary: true).WithClass("btn-sm"));
             if (tier == "")
             {
-                foreach (var id in new[] { Shop.PassBasic, Shop.PassLuxury })
+                foreach (var id in new[] { Shop.PassBasic })
                 {
                     var pr = Shop.Find(id)!;
                     var buy = UiKit.Btn($"{pr.Name}　¥{pr.PriceCny}", () => _ = Act(() => GameSession.Backend.BuyWithTestPayment(pr.Id), "購買成功")).WithClass("btn-sm");
-                    buy.tooltip = id == Shop.PassLuxury ? $"解鎖付費獎勵，立即 +{BattlePass.LuxuryBonusLevels} 級並送 {pr.ImmediateYuanbao} 元寶" : "解鎖付費獎勵";
+                    buy.tooltip = "解鎖付費獎勵";
                     buy.style.marginLeft = 8;
                     top.Add(buy);
                 }
             }
             body.Add(top);
 
-            var scroll = new ScrollView(ScrollViewMode.Vertical);
+            var scroll = new ScrollView(ScrollViewMode.Horizontal);
             scroll.AddToClassList("grow");
-            scroll.AddToClassList("shop-soul-scroll");
+            scroll.AddToClassList("shop-pass-scroll");
             for (int lv = 1; lv <= BattlePass.MaxLevel; lv++)
             {
                 int l = lv;
                 var row = new VisualElement();
-                row.AddToClassList("card-row");
+                row.AddToClassList("shop-pass-card");
                 var head = new VisualElement();
-                head.AddToClassList("card-row-head");
+                head.AddToClassList("shop-pass-level");
                 var lvText = UiKit.Text($"Lv.{l}", level >= l ? "txt-gold" : "card-row-name");
                 lvText.style.width = 80;
                 lvText.style.flexShrink = 0;
                 lvText.style.whiteSpace = WhiteSpace.NoWrap;
                 head.Add(lvText);
-                head.Add(PassCell(UiKit.RewardTiles(BattlePass.FreeReward(l)), "免費", level >= l, !stale && p.Pass.ClaimedFree.Contains(l), true,
+                head.Add(PassCell(Rewards(BattlePass.FreeReward(l)), "免費", level >= l, !stale && p.Pass.ClaimedFree.Contains(l), true,
                     () => _ = Act(() => GameSession.Backend.ClaimPass(l, false), "已領取")));
-                head.Add(PassCell(UiKit.RewardTiles(BattlePass.PaidReward(l)), "付費", level >= l, !stale && p.Pass.ClaimedPaid.Contains(l), tier != "",
+                head.Add(PassCell(Rewards(BattlePass.PaidReward(l)), "付費", level >= l, !stale && p.Pass.ClaimedPaid.Contains(l), tier != "",
                     () => _ = Act(() => GameSession.Backend.ClaimPass(l, true), "已領取")));
                 row.Add(head);
                 scroll.Add(row);
@@ -214,10 +234,11 @@ namespace SanGuo.Client
         private static VisualElement PassCell(VisualElement tiles, string label, bool reached, bool claimed, bool owned, System.Action claim)
         {
             var cell = new VisualElement();
-            cell.style.flexDirection = FlexDirection.Row;
+            cell.AddToClassList("shop-pass-cell");
+            cell.style.flexDirection = FlexDirection.Column;
             cell.style.alignItems = Align.Center;
             cell.style.flexGrow = 1;
-            cell.style.marginLeft = 32;
+            cell.style.marginLeft = 0;
             var tag = UiKit.Text(label, "line-sub");
             tag.style.flexShrink = 0;
             tag.style.whiteSpace = WhiteSpace.NoWrap;
@@ -225,9 +246,9 @@ namespace SanGuo.Client
             tiles.style.marginLeft = 8;
             tiles.style.marginRight = 8;
             tiles.style.flexDirection = FlexDirection.Row;
-            tiles.style.flexWrap = Wrap.NoWrap;
+            tiles.style.flexWrap = Wrap.Wrap;
             tiles.AddToClassList("pass-reward-tiles");
-            tiles.style.width = 212;
+            tiles.style.width = 252;
             tiles.style.flexShrink = 0;
             cell.Add(tiles);
             Button btn = claimed ? UiKit.DoneBtn("已領取") : !owned ? UiKit.DoneBtn("未購買") : !reached ? UiKit.DoneBtn("未達成") : UiKit.Btn("領取", claim, primary: true);
@@ -242,11 +263,13 @@ namespace SanGuo.Client
             var v = GameSession.View;
             long now = v.Now;
             int souls = v.Material(HeroGrowth.Soul);
-            body.Add(UiKit.Text($"將魂 {souls}　｜　滿突武將的重複份轉為將魂，每月 1 日重置限購", "line-title shop-soul-note"));
+            body.Add(UiKit.Text($"將魂 {souls}", "line-title shop-soul-note"));
 
-            var scroll = new ScrollView(ScrollViewMode.Vertical);
+            var scroll = new ScrollView(ScrollViewMode.Horizontal);
             scroll.AddToClassList("grow");
-            scroll.AddToClassList("shop-soul-scroll");
+            scroll.AddToClassList("shop-exchange-scroll");
+            VisualElement? column = null;
+            int visible = 0;
             foreach (var item in SoulShop.Items())
             {
                 var it = item;
@@ -259,10 +282,22 @@ namespace SanGuo.Client
                 bool soldOut = bought >= it.MonthlyLimit;
 
                 var row = new VisualElement();
-                row.AddToClassList("card-row");
+                row.AddToClassList("shop-exchange-card");
                 var head = new VisualElement();
-                head.AddToClassList("card-row-head");
+                head.AddToClassList("shop-exchange-head");
                 head.Add(UiKit.Text(it.Name, "card-row-name"));
+                if (it.Kind == SoulItemKind.HeroShard)
+                {
+                    var portrait = Item("item_shard", it.Name, "武將專屬信物，用於突破。", 1);
+                    var face = HeroArt.Face(it.HeroId);
+                    if (face != null) portrait.style.backgroundImage = new StyleBackground(face);
+                    head.Add(portrait.WithClass("shop-exchange-icon"));
+                }
+                else if (it.Kind == SoulItemKind.Equipment)
+                    head.Add(Material(Equipment.ItemKey(it.Slot, it.Tier), 1).WithClass("shop-exchange-icon"));
+                else
+                    head.Add(Item(it.Kind == SoulItemKind.Gold ? "item_gold" : "item_expbook", it.Name,
+                        it.Kind == SoulItemKind.Gold ? "用於武將養成與裝備強化。" : "用於提升武將等級。", it.Amount).WithClass("shop-exchange-icon"));
                 var purchase = soldOut
                     ? UiKit.DoneBtn("本月已兌完").WithClass("btn-sm")
                     : UiKit.Btn($"{it.Cost} 將魂", () => _ = Act(() => GameSession.Backend.BuySoulItem(it.Id), "兌換成功"), primary: souls >= it.Cost).WithClass("btn-sm");
@@ -271,9 +306,53 @@ namespace SanGuo.Client
                 head.Add(purchase);
                 row.Add(head);
                 row.Add(UiKit.Text($"本月 {bought}/{it.MonthlyLimit}", "card-row-desc"));
-                scroll.Add(row);
+                if (visible++ % 2 == 0)
+                {
+                    column = new VisualElement().WithClass("shop-exchange-column");
+                    scroll.Add(column);
+                }
+                column!.Add(row);
             }
             body.Add(scroll);
+        }
+
+        private VisualElement Item(string icon, string name, string description, int count)
+        {
+            var tile = UiKit.ItemTile(icon, count.ToString());
+            tile.pickingMode = PickingMode.Position;
+            tile.focusable = true;
+            tile.tooltip = $"{name} ×{count}\n{description}";
+            void Show() => UiHelp.Show(Host, name, $"數量：{count}\n{description}");
+            tile.RegisterCallback<ClickEvent>(e => { Show(); e.StopPropagation(); });
+            tile.RegisterCallback<KeyDownEvent>(e =>
+            {
+                if (e.keyCode == UnityEngine.KeyCode.Return || e.keyCode == UnityEngine.KeyCode.Space) { Show(); e.StopPropagation(); }
+            });
+            return tile;
+        }
+
+        private VisualElement Material(string key, int amount)
+        {
+            if (Equipment.TryParseKey(key, out var slot, out int tier))
+            {
+                var tile = Item("item_chest", Equipment.Name(slot, tier), $"{Equipment.SlotName(slot)}，可在裝備頁配戴。", amount);
+                string icon = slot == EquipSlot.Weapon ? "weapon_warrior" : slot == EquipSlot.Armor ? "armor" : "accessory";
+                var tex = UnityEngine.Resources.Load<UnityEngine.Texture2D>("EquipmentArt/" + icon);
+                if (tex != null) tile.style.backgroundImage = new StyleBackground(tex);
+                return tile;
+            }
+            return Item(key == HeroGrowth.HeroExp ? "item_expbook" : "item_shard", UiText.MaterialName(key),
+                key == HeroGrowth.HeroExp ? "用於提升武將等級。" : "用於將魂商店兌換商品。", amount);
+        }
+
+        private VisualElement Rewards(Reward reward)
+        {
+            var row = new VisualElement().WithClass("reward-tiles");
+            if (reward.Yuanbao > 0) row.Add(Item("item_yuanbao", "元寶", "用於招募武將與遊戲內消費。", reward.Yuanbao));
+            if (reward.Gold > 0) row.Add(Item("item_gold", "金幣", "用於武將養成與裝備強化。", reward.Gold));
+            if (reward.Stamina > 0) row.Add(Item("item_stamina", "體力", "用於出征與副本。", reward.Stamina));
+            foreach (var material in reward.Materials) row.Add(Material(material.Key, material.Value));
+            return row;
         }
     }
 }

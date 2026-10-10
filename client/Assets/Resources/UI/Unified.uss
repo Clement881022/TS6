@@ -311,3 +311,52 @@
 .unified-ui .dungeon-frame .dun-stamina .dun-resource-name { margin: 0 10px 0 0; }
 .unified-ui .dungeon-frame .card-footer { padding: 6px 8px 0; }
 .unified-ui .dungeon-frame .card-footer .btn { min-width: 0; width: 264px; margin: 4px 0; }
+.unified-ui .shop-frame { width: 100%; flex-grow: 1; flex-basis: 0; min-height: 0; padding: 18px 20px 24px; background-color: rgba(29,29,33,0.84); border-width: 2px; border-color: rgb(145,122,83); border-radius: 18px; }
+.unified-ui .shop-frame .shop-tabs { margin-bottom: 18px; flex-shrink: 0; height: 76px; }
+.unified-ui .shop-products-scroll { flex-grow: 1; flex-basis: 0; min-height: 0; width: 100%; }
+.unified-ui .shop-products-scroll .unity-scroll-view__content-container { padding: 8px 0 26px; }
+.unified-ui .shop-frame .dun-row { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: stretch; margin: 0; }
+.unified-ui .shop-frame .shop-card { width: 440px; flex-shrink: 0; margin: 0 12px 28px; padding-bottom: 18px; border-width: 1px; }
+.unified-ui .shop-frame .shop-head { height: 78px; justify-content: center; flex-shrink: 0; }
+.unified-ui .shop-frame .shop-name { font-size: 32px; }
+.unified-ui .shop-frame .shop-art { height: 228px; flex-shrink: 0; padding: 12px; }
+.unified-ui .shop-frame .shop-art .reward-tiles { justify-content: center; flex-wrap: wrap; max-width: 360px; }
+.unified-ui .shop-frame .item-tile { width: 92px; height: 92px; margin: 4px; border-width: 1px; background-size: contain; background-repeat: no-repeat; background-position: center center; }
+.unified-ui .shop-frame .item-count { font-size: 24px; }
+.unified-ui .shop-frame .shop-icon { width: 128px; height: 128px; }
+.unified-ui .shop-frame .card-body { padding: 8px 12px; min-height: 48px; }
+.unified-ui .shop-frame .dun-center { font-size: 24px; margin: 0; }
+.unified-ui .shop-frame .card-footer { padding: 0 12px; align-items: center; }
+.unified-ui .shop-frame .card-footer .btn { width: 260px; min-width: 0; margin: 6px 0; font-size: 28px; }
+.unified-ui .shop-formula { flex-direction: row; align-items: center; justify-content: center; }
+.unified-ui .shop-operator { font-size: 28px; color: rgb(241,208,139); margin: 0 4px; white-space: nowrap; }
+.unified-ui .shop-frame .foot-note { margin: 0; font-size: 20px; flex-shrink: 0; }
+.unified-ui .shop-pass-top { width: 100%; flex-shrink: 0; padding: 16px 18px; }
+.unified-ui .shop-pass-top .line-title { font-size: 26px; }
+.unified-ui .shop-pass-top .line-sub { font-size: 22px; }
+.unified-ui .shop-pass-top .btn { min-width: 180px; font-size: 26px; margin-left: 12px; }
+.unified-ui .shop-pass-scroll, .unified-ui .shop-exchange-scroll { width: 100%; flex-grow: 1; flex-basis: 0; min-height: 0; }
+.unified-ui .shop-pass-scroll .unity-scroll-view__content-container { flex-direction: row; align-items: stretch; padding: 8px 4px 24px; }
+.unified-ui .shop-pass-card { width: 296px; flex-shrink: 0; margin: 0 8px; padding: 14px 8px; background-color: rgba(35,35,39,0.96); border-width: 1px; border-color: rgb(145,122,83); border-radius: 12px; }
+.unified-ui .shop-pass-level { align-items: center; }
+.unified-ui .shop-pass-level > .txt-gold, .unified-ui .shop-pass-level > .card-row-name { font-size: 28px; -unity-text-align: middle-center; }
+.unified-ui .shop-pass-cell { width: 100%; padding: 10px 0; margin-top: 10px; border-top-width: 1px; border-top-color: rgb(92,82,65); }
+.unified-ui .shop-pass-cell .line-sub { font-size: 24px; }
+.unified-ui .shop-pass-cell .reward-tiles { min-height: 106px; justify-content: center; align-content: center; margin: 6px 0; }
+.unified-ui .shop-pass-cell .item-tile { width: 72px; height: 72px; margin: 4px; }
+.unified-ui .shop-pass-cell .item-count { font-size: 22px; }
+.unified-ui .shop-pass-cell .btn { width: 220px; min-width: 0; font-size: 26px; }
+.unified-ui .shop-frame .shop-soul-note { width: 100%; margin: 0 0 10px; padding: 10px 18px; font-size: 26px; flex-shrink: 0; }
+.unified-ui .shop-exchange-scroll .unity-scroll-view__content-container { flex-direction: row; flex-wrap: nowrap; align-items: flex-start; padding: 8px 4px 24px; }
+.unified-ui .shop-exchange-card { width: 320px; height: 254px; flex-shrink: 0; margin: 0 10px 18px; padding: 14px 12px; align-items: center; background-color: rgba(35,35,39,0.96); border-width: 1px; border-color: rgb(145,122,83); border-radius: 12px; }
+.unified-ui .shop-exchange-head { align-items: center; width: 100%; }
+.unified-ui .shop-exchange-head .card-row-name { font-size: 23px; height: 34px; -unity-text-align: middle-center; white-space: nowrap; }
+.unified-ui .shop-frame .shop-exchange-icon { width: 88px; height: 88px; margin: 6px 0; }
+.unified-ui .shop-exchange-head .btn { width: 240px; min-width: 0; font-size: 26px; height: 58px; min-height: 58px; margin: 2px 0; }
+.unified-ui .shop-exchange-card .card-row-desc { font-size: 22px; margin: 6px 0 0; }
+.unified-ui .shop-recharge-grid .shop-card { padding-bottom: 12px; }
+.unified-ui .shop-recharge-grid .shop-head { height: 70px; }
+.unified-ui .shop-recharge-grid .shop-art { height: 128px; }
+.unified-ui .shop-recharge-grid .shop-icon { width: 100px; height: 100px; }
+.unified-ui .shop-recharge-grid .card-body { min-height: 40px; padding: 6px 12px; }
+.unified-ui .shop-exchange-column { flex-direction: column; flex-shrink: 0; }

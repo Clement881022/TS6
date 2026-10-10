@@ -113,7 +113,7 @@ public sealed class PlayerSim
         if (_pe.Tier >= 2 && Shop.MonthCardDaysLeft(p, Shop.MonthBig, now) <= 1) await Buy(Shop.MonthBig, 68);
         p = await P();
         BattlePass.Roll(p, now);
-        if (p.Pass.Tier == "") await Buy(_pe.Tier >= 2 ? Shop.PassLuxury : Shop.PassBasic, _pe.Tier >= 2 ? 98 : 30);
+        if (p.Pass.Tier == "") await Buy(Shop.PassBasic, 30);
         string month = DailyClock.MonthKey(now);
         if (_pe.Tier >= 2 && _lastMonthInjected != month)
         {

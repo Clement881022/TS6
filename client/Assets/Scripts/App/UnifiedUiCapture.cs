@@ -54,6 +54,13 @@ namespace SanGuo.Client
                 }
                 else if (active is ShopPage shop)
                 {
+                    var equipmentTile = root.Query(className: "item-tile").ToList().Find(tile => tile.tooltip.Contains("可在裝備頁配戴"));
+                    if (equipmentTile == null) throw new InvalidOperationException("Shop equipment details missing");
+                    using (var click = ClickEvent.GetPooled()) { click.target = equipmentTile; equipmentTile.SendEvent(click); }
+                    yield return new WaitForSecondsRealtime(.3f);
+                    if (root.Q(className: "ui-help-overlay") == null) throw new InvalidOperationException("Shop item click did not open details");
+                    yield return CommercialUiCapture.Capture(directory, "shop-equipment-detail");
+                    root.Q(className: "ui-help-overlay").RemoveFromHierarchy();
                     for (int tab = 1; tab <= 3; tab++)
                     {
                         shop.DebugSetTab(tab);
@@ -62,8 +69,8 @@ namespace SanGuo.Client
                         yield return CommercialUiCapture.Capture(directory, "shop-tab-" + tab);
                         if (tab == 2)
                         {
-                            var scroll = root.Q<ScrollView>(className: "shop-soul-scroll");
-                            scroll.verticalScroller.value = scroll.verticalScroller.highValue;
+                            var scroll = root.Q<ScrollView>(className: "shop-pass-scroll");
+                            scroll.horizontalScroller.value = scroll.horizontalScroller.highValue;
                             yield return new WaitForSecondsRealtime(.5f);
                             Validate(root, page);
                             yield return CommercialUiCapture.Capture(directory, "shop-pass-end");
@@ -188,9 +195,27 @@ namespace SanGuo.Client
             foreach (var node in host.Query<Button>(className: "milestone-node").ToList())
                 if (node.worldBound.xMin < root.worldBound.xMin || node.worldBound.xMax > root.worldBound.xMax)
                     throw new InvalidOperationException("Milestone outside viewport");
-            var passScroll = host.Q<ScrollView>(className: "shop-soul-scroll");
-            if (passScroll != null && passScroll.horizontalScroller.highValue > 1)
-                throw new InvalidOperationException("Shop rewards require horizontal scrolling");
+            if (page == Page.Shop)
+            {
+                var frame = host.Q(className: "shop-frame");
+                var tabs = host.Q(className: "shop-tabs");
+                if (frame == null || tabs == null || frame.worldBound.yMax > root.worldBound.yMax - 8)
+                    throw new InvalidOperationException("Shop frame or bottom margin missing");
+                foreach (var scroll in host.Query<ScrollView>().ToList())
+                    if (tabs.worldBound.yMax > scroll.worldBound.yMin + 1)
+                        throw new InvalidOperationException("Shop tabs overlap scrolling products");
+                foreach (string cls in new[] { "shop-pass-scroll", "shop-exchange-scroll" })
+                {
+                    var track = host.Q<ScrollView>(className: cls);
+                    if (track != null && (track.mode != ScrollViewMode.Horizontal || (cls == "shop-pass-scroll" && track.horizontalScroller.highValue <= 0)))
+                        throw new InvalidOperationException("Shop horizontal track missing: " + cls);
+                }
+                var cards = host.Query(className: "shop-card").ToList();
+                if (cards.Count == 6)
+                    for (int i = 3; i < 6; i++)
+                        if (cards[i].worldBound.yMin - cards[i - 3].worldBound.yMax < 20)
+                            throw new InvalidOperationException("Recharge rows lack spacing");
+            }
         }
 
         private static void CheckColor(VisualElement element, Color expected, Page page)
