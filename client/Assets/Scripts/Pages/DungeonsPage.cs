@@ -25,13 +25,16 @@ namespace SanGuo.Client
             var v = GameSession.View;
             body.style.flexDirection = FlexDirection.Column;
             body.AddToClassList("page-centered");
+            var frame = new VisualElement().WithClass("dungeon-frame");
+            frame.Add(HomeArtwork.ChallengeTabs(Page.Dungeons));
+            body.Add(frame);
 
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("grow");
             scroll.AddToClassList("dungeon-scroll");
             var row = scroll.contentContainer;
             row.AddToClassList("dun-row");
-            body.Add(scroll);
+            frame.Add(scroll);
 
             foreach (var d in _dungeons)
             {
@@ -47,27 +50,33 @@ namespace SanGuo.Client
                 var head = new VisualElement { pickingMode = PickingMode.Ignore };
                 head.AddToClassList("dun-head");
                 head.Add(UiKit.Text(d.Name, "dun-name"));
-                head.Add(UiKit.Text($"產出{Equipment.TierLabel(d.Tier)}裝備", "dun-sub"));
+                head.Add(UiKit.Text(Equipment.UsesShards(d.Tier)
+                    ? $"{Equipment.TierLabel(d.Tier)}碎片 · {Equipment.ShardCostOf(d.Tier)}片合成"
+                    : $"{Equipment.TierLabel(d.Tier)}裝備 · 掉率 {Equipment.DropChanceOf(d.Tier) * 100:0}%", "dun-sub"));
                 card.Add(head);
 
                 var art = new VisualElement { pickingMode = PickingMode.Ignore };
                 art.AddToClassList("dun-art");
-                art.Add(UiKit.RewardTiles(d.Reward).WithClass("dun-reward"));
+                var rewards = new VisualElement().WithClass("dun-reward");
+                rewards.Add(Reward("item_yuanbao", "元寶", d.Reward.Yuanbao));
+                rewards.Add(Reward("item_gold", "銅錢", d.Reward.Gold));
+                rewards.Add(Reward("item_expbook", "武將經驗", d.Reward.Materials[HeroGrowth.HeroExp]));
+                art.Add(rewards);
                 card.Add(art);
 
                 var body2 = new VisualElement { pickingMode = PickingMode.Ignore };
                 body2.AddToClassList("card-body");
                 var prev = DemoMeta.FindDungeon(d.UnlockStageId);
-                if (!unlocked) body2.Add(UiKit.Text(prev != null ? $"打贏「{prev.Name}」後解鎖"
+                if (!unlocked) body2.Add(UiKit.Text(prev != null ? $"需通關第{"零一二三四五"[prev.Tier]}階"
                     : Campaign.TryParse(d.UnlockStageId, out int chapter, out int unlockLevel)
-                    ? $"通關第 {chapter} 章第 {unlockLevel} 關後解鎖" : "推進主線後解鎖", "dun-lock"));
-                else body2.Add(UiKit.Text(cleared ? "已通關，可掃蕩" : "尚未通關", "line-sub").WithClass("dun-center"));
-                body2.Add(UiKit.Text(Equipment.UsesShards(d.Tier)
-                    ? $"掉落{Equipment.TierLabel(d.Tier)}裝備碎片（集滿 {Equipment.ShardCostOf(d.Tier)} 個合成）"
-                    : $"{Equipment.TierLabel(d.Tier)}裝備掉率 {Equipment.DropChanceOf(d.Tier) * 100:0}%", "line-sub").WithClass("dun-center"));
+                    ? $"需通關 {chapter}-{unlockLevel}" : "需推進主線", "dun-lock"));
+                else body2.Add(UiKit.Text(cleared ? "可掃蕩" : "", "line-sub").WithClass("dun-center"));
+                var stamina = new VisualElement().WithClass("dun-stamina");
+                stamina.Add(UiKit.Text("體力", "dun-resource-name"));
                 var cost = UiKit.Cost("item_stamina", d.StaminaCost, v.Stamina);
                 cost.AddToClassList("dun-cost");
-                body2.Add(cost);
+                stamina.Add(cost);
+                body2.Add(stamina);
                 card.Add(body2);
 
                 var btns = new VisualElement();
@@ -88,6 +97,14 @@ namespace SanGuo.Client
                 card.Add(btns);
                 row.Add(card);
             }
+        }
+
+        private static VisualElement Reward(string icon, string name, int amount)
+        {
+            var reward = new VisualElement().WithClass("dun-resource");
+            reward.Add(UiKit.ItemTile(icon, amount.ToString()));
+            reward.Add(UiKit.Text(name, "dun-resource-name"));
+            return reward;
         }
     }
 }
