@@ -16,7 +16,7 @@ foreach ($name in $icons.Keys) {
     $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><g stroke="#493b2c" stroke-width="2" stroke-linejoin="round">' + $icons[$name] + '</g></svg>'
     [IO.File]::WriteAllText($path, $svg, [Text.UTF8Encoding]::new($false))
     if (-not (Test-Path -LiteralPath ($path + '.meta'))) {
-        $meta = $template -replace 'guid: [a-f0-9]{32}', ('guid: ' + [Guid]::NewGuid().ToString('N'))
+        $meta = $template -replace '(?m)^guid: [a-f0-9]{32}', ('guid: ' + [Guid]::NewGuid().ToString('N'))
         [IO.File]::WriteAllText($path + '.meta', $meta, [Text.UTF8Encoding]::new($false))
     }
 }

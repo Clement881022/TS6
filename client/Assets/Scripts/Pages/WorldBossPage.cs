@@ -40,6 +40,10 @@ namespace SanGuo.Client
 
         protected override void BuildBody(VisualElement body)
         {
+            var tabs = HomeArtwork.ChallengeTabs(Page.WorldBoss);
+            tabs.AddToClassList("challenge-tabs-floating");
+            body.Add(tabs);
+            body.style.paddingTop = 90;
             body.style.flexDirection = FlexDirection.Row;
             body.AddToClassList("page-centered");
             string season = _view?.Season is { Length: > 0 } s ? s : WorldBoss.SeasonOf(GameSession.View.Now);
