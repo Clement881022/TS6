@@ -61,7 +61,7 @@
     border-width: 0; color: rgb(42, 30, 17); -unity-background-image-tint-color: white;
 }
 .meta-page .btn-primary:hover, .meta-page .btn-on:hover { -unity-background-image-tint-color: rgb(255, 242, 210); }
-.meta-page .btn:active { scale: 0.99 0.99; }
+.meta-page .btn:active { scale: 1 1; }
 .meta-page .btn-done, .meta-page .btn-done:hover, .meta-page .btn:disabled {
     background-image: none; background-color: rgb(27, 34, 33); border-width: 1px;
     border-color: rgb(78, 79, 64); color: rgb(147, 150, 133);
@@ -105,7 +105,7 @@
 .strategy-chapter-count { font-size: 22px; color: rgb(178, 185, 165); margin-top: 16px; }
 .meta-page .home-chapter-progress { height: 8px; margin-top: 10px; }
 .meta-page .home-orb { width: 492px; height: 246px; right: 26px; bottom: 120px; background-image: url("../ChibiSkin/expedition.png"); background-color: rgba(0, 0, 0, 0); align-items: flex-end; justify-content: flex-end; padding: 0 65px 54px 0; }
-.meta-page .home-orb:hover { scale: 1.03 1.03; }
+.meta-page .home-orb:hover { scale: 1 1; }
 .strategy-expedition-title { font-size: 66px; -unity-font-style: bold; color: rgb(248, 224, 166); -unity-text-outline-width: 1px; -unity-text-outline-color: rgb(44, 26, 10); }
 .strategy-expedition-sub { font-size: 22px; color: rgb(203, 190, 153); margin-top: 0; }
 .strategy-home-footer { position: absolute; left: 0; right: 0; bottom: 0; height: 92px; background-color: rgba(10, 20, 23, 0.96); border-top-width: 1px; border-top-color: rgb(101, 90, 63); flex-direction: row; align-items: center; justify-content: space-between; padding: 0 32px; }
@@ -251,13 +251,13 @@
 .root .bl-end { -unity-slice-scale: 0.15px; }
 
 .root .sts-hand { position: absolute; left: 230px; right: 230px; bottom: 8px; height: 366px; overflow: visible; }
-.root .sts-card { position: absolute; width: 204px; height: 286px; padding: 10px; border-width: 2px; border-radius: 12px; border-color: rgb(153, 129, 77); background-color: rgb(19, 35, 38); transition-property: top, rotate, scale, border-color; transition-duration: 120ms; }
+.root .sts-card { position: absolute; width: 204px; height: 286px; padding: 10px; border-width: 2px; border-radius: 12px; border-color: rgb(153, 129, 77); background-color: rgb(19, 35, 38); transition-property: top, rotate, border-color; transition-duration: 120ms; }
 .root .sts-card-move { border-color: rgb(100, 150, 121); }
 .root .sts-card-skill { border-color: rgb(214, 176, 91); }
 .root .sts-card-disabled { background-color: rgb(29, 33, 34); }
 .root .sts-card-disabled .sts-card-art { opacity: 0.5; }
 .root .sts-card-disabled .sts-card-name { color: rgb(155, 163, 156); }
-.root .sts-card-hover, .root .sts-card-selected { border-width: 3px; border-color: rgb(252, 213, 126); background-color: rgb(35, 48, 43); scale: 1.12 1.12; }
+.root .sts-card-hover, .root .sts-card-selected { border-width: 3px; border-color: rgb(252, 213, 126); background-color: rgb(35, 48, 43); scale: 1 1; }
 .root .sts-card-cost { position: absolute; left: -13px; top: -12px; width: 43px; height: 43px; border-radius: 24px; border-width: 2px; border-color: rgb(229, 192, 109); background-color: rgb(24, 73, 76); color: rgb(255, 239, 191); font-size: 29px; -unity-font-style: bold; -unity-text-align: middle-center; }
 .root .sts-card-name { margin-left: 18px; height: 32px; flex-shrink: 0; font-size: 24px; -unity-font-style: bold; color: rgb(246, 223, 170); -unity-text-align: middle-center; }
 .root .sts-card-art { height: 112px; flex-shrink: 0; margin-top: 3px; border-radius: 5px; background-color: rgb(11, 24, 26); -unity-background-scale-mode: scale-and-crop; }

@@ -333,8 +333,8 @@
 .map-card { padding: 10px; border-top-width: 4px; }
 .page-host .map-field { width: 1700px; max-width: 100%; height: 540px; margin-top: 4px; }
 .page-host .map-dot { width: 12px; height: 12px; border-radius: 6px; background-color: rgba(226, 190, 120, 0.5); }
-.page-host .map-node { border-width: 5px; border-color: rgb(255, 238, 200); transition: scale 120ms ease-out, background-color 120ms ease-out; }
-.page-host .map-node:hover { scale: 1.1 1.1; }
+.page-host .map-node { border-width: 5px; border-color: rgb(255, 238, 200); transition: background-color 120ms ease-out; }
+.page-host .map-node:hover { scale: 1 1; }
 .page-host .map-node-open { background-color: rgb(190, 66, 54); }
 .page-host .map-node-open:hover { background-color: rgb(220, 84, 66); }
 .page-host .map-node-clear { background-color: rgb(56, 138, 96); border-color: rgb(190, 240, 210); }

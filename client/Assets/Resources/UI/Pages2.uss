@@ -22,7 +22,7 @@
     background-image: url("../UiSkin/circle_cyan.png");
     -unity-background-scale-mode: scale-to-fit;
 }
-.hdr-back:hover { background-color: rgba(0, 0, 0, 0); scale: 1.08 1.08; }
+.hdr-back:hover { background-color: rgba(0, 0, 0, 0); scale: 1 1; }
 .hdr-title {
     font-size: 50px; -unity-font-style: bold;
     color: rgb(255, 238, 190);
@@ -35,7 +35,7 @@
     background-image: url("../UiSkin/btn_close.png");
     -unity-background-scale-mode: scale-to-fit;
 }
-.hdr-close:hover { background-color: rgba(0, 0, 0, 0); scale: 1.1 1.1; }
+.hdr-close:hover { background-color: rgba(0, 0, 0, 0); scale: 1 1; }
 
 .res-pill {
     flex-direction: row; align-items: center;
@@ -69,9 +69,9 @@
     border-color: rgb(76, 140, 226);
     background-color: rgb(14, 30, 72);
     overflow: hidden;
-    transition: scale 120ms ease-out;
+
 }
-.htile:hover { scale: 1.05 1.05; background-color: rgb(14, 30, 72); }
+.htile:hover { scale: 1 1; background-color: rgb(14, 30, 72); }
 .htile-sr { border-color: rgb(176, 108, 244); }
 .htile-ur { border-color: rgb(255, 196, 70); }
 .htile-on { border-color: white; }
@@ -180,9 +180,9 @@
     width: 92px; height: 92px; margin: 0; padding: 0;
     border-radius: 46px; border-width: 5px;
     align-items: center; justify-content: center;
-    transition: scale 120ms ease-out;
+
 }
-.mnode:hover { scale: 1.1 1.1; }
+.mnode:hover { scale: 1 1; }
 .mnode-open { background-color: rgb(206, 72, 56); border-color: rgb(255, 232, 170); }
 .mnode-open:hover { background-color: rgb(228, 92, 70); }
 .mnode-current { border-color: rgb(255, 255, 255); }

@@ -72,9 +72,9 @@
     color: white;
     -unity-text-align: middle-center;
     -unity-text-outline-width: 1px; -unity-text-outline-color: rgba(70, 20, 0, 0.6);
-    transition: background-color 120ms ease-out, scale 120ms ease-out;
+    transition: background-color 120ms ease-out;
 }
-.end-turn:hover { background-color: rgb(232, 104, 52); scale: 1.06 1.06; }
+.end-turn:hover { background-color: rgb(232, 104, 52); scale: 1 1; }
 .end-turn:active { background-color: rgb(170, 66, 30); }
 
 .log {
@@ -208,9 +208,9 @@
     transform-origin: 50% 100%;
     scale: 0.78 0.78;
     translate: 0 4px;
-    transition: scale 160ms ease-out, translate 160ms ease-out;
+    transition: translate 160ms ease-out;
 }
-.hand:hover { scale: 1.2 1.2; translate: 0 -10px; }
+.hand:hover { scale: 0.78 0.78; translate: 0 -10px; }
 .card { width: 168px; height: 266px; }
 .card-art { height: 108px; }
 .card-name { font-size: 27px; }

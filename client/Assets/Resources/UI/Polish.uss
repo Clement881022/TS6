@@ -174,7 +174,7 @@
     background-image: url("../UiSkin/btn_close.png");
     -unity-background-scale-mode: scale-to-fit;
 }
-.popup-close:hover { background-color: rgba(0, 0, 0, 0); scale: 1.1 1.1; }
+.popup-close:hover { background-color: rgba(0, 0, 0, 0); scale: 1 1; }
 .stage-head { margin: 0 56px 6px 0; }
 .stage-cols { margin-top: 6px; }
 .star-cond { flex-direction: row; align-items: center; margin: 3px 0; }
@@ -249,7 +249,7 @@
     border-width: 1px;
     border-color: rgba(132, 104, 70, 0.55);
     background-color: rgba(48, 40, 38, 0.72);
-    transition: background-color 140ms ease-out, border-color 140ms ease-out, scale 140ms ease-out;
+    transition: background-color 140ms ease-out, border-color 140ms ease-out;
 }
 .nav-tab:hover {
     background-color: rgb(66, 50, 43);
@@ -278,13 +278,13 @@
     border-radius: 11px;
     background-color: rgb(57, 47, 45);
     color: rgb(246, 237, 219);
-    transition: background-color 140ms ease-out, border-color 140ms ease-out, scale 100ms ease-out;
+    transition: background-color 140ms ease-out, border-color 140ms ease-out;
 }
 .meta-page .btn:hover {
     background-color: rgb(76, 59, 51);
     border-color: rgb(181, 137, 71);
 }
-.meta-page .btn:active { scale: 0.98 0.98; }
+.meta-page .btn:active { scale: 1 1; }
 .meta-page .btn-primary, .meta-page .btn-primary:hover {
     background-color: rgb(151, 57, 45);
     border-color: rgb(226, 183, 99);
@@ -328,7 +328,7 @@
 .home-spot {
     border-width: 1px;
     border-radius: 9px;
-    transition: scale 140ms ease-out, background-color 140ms ease-out;
+    transition: background-color 140ms ease-out;
 }
 .home-spot-icon {
     width: 30px;

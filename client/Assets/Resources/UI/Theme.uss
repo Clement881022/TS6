@@ -177,9 +177,9 @@
     background-color: rgba(0, 0, 0, 0);
     background-image: url("../UiSkin/orb_battle.png");
     -unity-background-scale-mode: scale-to-fit;
-    transition: scale 120ms ease-out;
+
 }
-.orb-battle:hover { background-color: rgba(0, 0, 0, 0); scale: 1.08 1.08; }
+.orb-battle:hover { background-color: rgba(0, 0, 0, 0); scale: 1 1; }
 
 .panel-dim { opacity: 0.75; }
 
@@ -264,9 +264,9 @@
     border-radius: 12px;
     border-color: rgb(190, 214, 255);
     background-color: rgba(26, 62, 150, 0.94);
-    transition: scale 120ms ease-out, background-color 120ms ease-out;
+    transition: background-color 120ms ease-out;
 }
-.home-spot:hover { scale: 1.1 1.1; background-color: rgba(52, 100, 210, 0.98); }
+.home-spot:hover { scale: 1 1; background-color: rgba(52, 100, 210, 0.98); }
 .home-spot-text { font-size: 34px; -unity-font-style: bold; color: white; margin: 0 12px; }
 .home-diamond { width: 22px; height: 22px; background-image: url("../UiSkin/diamond.png"); -unity-background-scale-mode: scale-to-fit; }
 
@@ -299,9 +299,9 @@
     border-radius: 12px;
     border-color: rgb(255, 214, 120);
     background-color: rgba(26, 62, 150, 0.94);
-    transition: scale 120ms ease-out;
+
 }
-.home-chapter:hover { scale: 1.04 1.04; }
+.home-chapter:hover { scale: 1 1; }
 .home-chapter-text { margin: 0 14px; align-items: center; }
 .home-chapter-title { font-size: 28px; -unity-font-style: bold; color: rgb(255, 230, 160); }
 .home-chapter-sub { font-size: 22px; color: white; }
@@ -333,9 +333,9 @@
     background-color: rgba(0, 0, 0, 0);
     background-image: url("../UiSkin/orb_battle.png");
     -unity-background-scale-mode: scale-to-fit;
-    transition: scale 120ms ease-out;
+
 }
-.home-orb:hover { scale: 1.07 1.07; background-color: rgba(0, 0, 0, 0); }
+.home-orb:hover { scale: 1 1; background-color: rgba(0, 0, 0, 0); }
 
 .home-mascot-box { position: absolute; left: 10px; bottom: 6px; width: 330px; height: 470px; }
 .home-mascot {
