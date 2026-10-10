@@ -137,15 +137,15 @@ namespace SanGuo.Client
                     return center;
                 }
             }
-            var full = HeroArt.Bust(def.Id) ?? HeroArt.Full(def.Id) ?? HeroArt.Face(def.Id);
+            var full = HeroArt.Full(def.Id) ?? HeroArt.Bust(def.Id) ?? HeroArt.Face(def.Id);
             if (full != null && !_showModel)
             {
                 _stage?.Dispose();
                 _stage = null;
                 _stageHero = null;
-                var art = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("strategy-hero-art");
+                VisualElement art = HeroArt.Full(def.Id) != null ? new HeroFigure(def.Id, "strategy-hero-art") : new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("strategy-hero-art");
                 if (HeroArt.Full(def.Id) == null) art.AddToClassList("strategy-hero-portrait");
-                art.style.backgroundImage = new StyleBackground(full);
+                if (!(art is HeroFigure)) art.style.backgroundImage = new StyleBackground(full);
                 center.Add(art);
             }
 

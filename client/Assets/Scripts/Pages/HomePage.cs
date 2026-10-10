@@ -89,6 +89,7 @@ namespace SanGuo.Client
 
         private static void ApplyHeroArt(VisualElement art, string id)
         {
+            if (art is HeroFigure figure) { figure.SetHero(id); return; }
             var image = HeroArt.Full(id) ?? HeroArt.Bust(id) ?? HeroArt.Face(id);
             art.style.backgroundImage = image != null ? new StyleBackground(image) : new StyleBackground();
         }
@@ -96,7 +97,7 @@ namespace SanGuo.Client
         private VisualElement BuildHero()
         {
             var layer = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-hero-layer");
-            _heroArt = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-hero");
+            _heroArt = new HeroFigure(CurrentHomeHero(), "home-hero");
             ApplyHeroArt(_heroArt, CurrentHomeHero());
             layer.Add(_heroArt);
             var switchButton = new Button(SwitchHero).WithClass("home-hero-switch");
@@ -129,7 +130,7 @@ namespace SanGuo.Client
             var heroIds = pool.UpUrs.Count > 0 ? pool.UpUrs : pool.UrHeroes.Take(1).ToList();
             foreach (string heroId in heroIds)
             {
-                var art = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-featured-art");
+                var art = new HeroFigure(heroId, "home-featured-art");
                 art.name = "home-featured-" + heroId;
                 ApplyHeroArt(art, heroId);
                 featured.Add(art);

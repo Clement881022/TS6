@@ -193,6 +193,49 @@ namespace SanGuo.Client
             yield return new WaitForSecondsRealtime(.3f);
             if (HeroesPage.LastSelectedHeroId != lastHero.Id || root.Q("equipment-hero-picker") != null)
                 throw new InvalidOperationException("Long roster selection");
+            var figures = System.Text.RegularExpressions.Regex.Matches(Resources.Load<TextAsset>("ChibiSkin/body-framing").text, "\"id\": \"([^\"]+)\"")
+                .Cast<System.Text.RegularExpressions.Match>().Select(m => m.Groups[1].Value).ToArray();
+            for (int batch = 0; batch < 6; batch++)
+            {
+                var gallery = new VisualElement();
+                gallery.style.position = Position.Absolute;
+                gallery.style.left = 0; gallery.style.right = 0; gallery.style.top = 0; gallery.style.bottom = 0;
+                gallery.style.backgroundColor = (Color)new Color32(40, 40, 44, 255);
+                gallery.style.flexDirection = FlexDirection.Row;
+                gallery.style.flexWrap = Wrap.Wrap;
+                float cellWidth = root.worldBound.width / 3;
+                float cellHeight = root.worldBound.height / 2;
+                foreach (string id in figures.Skip(batch * 6).Take(6))
+                {
+                    var cell = new VisualElement();
+                    cell.style.width = cellWidth; cell.style.height = cellHeight;
+                    var figure = new HeroFigure(id, "figure-review");
+                    figure.style.width = cellWidth; figure.style.height = cellHeight - 40;
+                    foreach (float line in new[] { .3f, .9f })
+                    {
+                        var guide = new VisualElement { pickingMode = PickingMode.Ignore };
+                        guide.style.position = Position.Absolute;
+                        guide.style.left = 0; guide.style.right = 0;
+                        guide.style.top = (cellHeight - 40) * line;
+                        guide.style.height = 1;
+                        guide.style.backgroundColor = (Color)new Color32(214, 170, 88, 180);
+                        figure.Add(guide);
+                    }
+                    cell.Add(figure);
+                    cell.Add(UiKit.Text(id, "txt-sub"));
+                    gallery.Add(cell);
+                }
+                root.Add(gallery);
+                yield return new WaitForSecondsRealtime(.3f);
+                foreach (var figure in gallery.Query<HeroFigure>().ToList())
+                {
+                    var image = figure.Q(className: "hero-figure-image");
+                    if (image.resolvedStyle.backgroundImage.texture == null || image.worldBound.width <= 0 || image.worldBound.height <= 0)
+                        throw new InvalidOperationException("Missing framed figure: " + figure.HeroId);
+                }
+                yield return CommercialUiCapture.Capture(directory, "14-figure-framing-" + batch);
+                gallery.RemoveFromHierarchy();
+            }
             File.WriteAllText(Path.Combine(directory, "verification.txt"), "Seven home buttons and order; equipment entry; selectable inventory; equip, replace with old item return, unequip, dismantle; hero picker opening, dismissal, selection and unchanged page bounds; growth entry and return preserving hero; empty inventory; panel containment passed. Disposable local profile only. Visual quality reviewed separately.");
             Application.Quit();
         }
