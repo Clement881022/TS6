@@ -124,13 +124,13 @@ namespace SanGuo.Client
             yield return Wait(0.8f);
             Shot(dir, "shop-pay");
             yield return Wait(0.3f);
-            var buy = GameSession.Backend.BuyWithTestPayment(SanGuo.Core.Meta.Shop.PassLuxury);
+            var buy = GameSession.Backend.BuyWithTestPayment(SanGuo.Core.Meta.Shop.PassBasic);
             while (!buy.IsCompleted) yield return null;
             var refresh = GameSession.Refresh();
             while (!refresh.IsCompleted) yield return null;
             if (PageHost.Current?.ActivePage is ShopPage shopPage) shopPage.DebugShowPass();
             yield return Wait(0.8f);
-            Shot(dir, "shop-pass-luxury");
+            Shot(dir, "shop-pass-paid");
             yield return Wait(0.4f);
             Application.Quit();
         }

@@ -17,17 +17,19 @@ namespace SanGuo.Core.Meta
     public static class BattlePass
     {
         public const string Basic = "basic";
-        public const string Luxury = "luxury";
         public const int MaxLevel = 30;
         public const int PointsPerLevel = 150;
-        public const int LuxuryBonusLevels = 10;
 
         public static string SeasonOf(long now) => DailyClock.MonthKey(now);
 
         public static void Roll(PlayerProfile p, long now)
         {
             string season = SeasonOf(now);
-            if (p.Pass.Season == season) return;
+            if (p.Pass.Season == season)
+            {
+                if (p.Pass.Tier != "") p.Pass.Tier = Basic;
+                return;
+            }
             p.Pass = new PassState { Season = season };
         }
 
@@ -88,8 +90,7 @@ namespace SanGuo.Core.Meta
         internal static void Activate(PlayerProfile p, string tier, long now)
         {
             Roll(p, now);
-            p.Pass.Tier = tier;
-            if (tier == Luxury) AddPoints(p, LuxuryBonusLevels * PointsPerLevel, now);
+            p.Pass.Tier = Basic;
         }
     }
 }

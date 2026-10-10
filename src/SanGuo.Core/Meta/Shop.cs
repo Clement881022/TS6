@@ -33,7 +33,6 @@ namespace SanGuo.Core.Meta
         public const string MonthSmall = "month_small";
         public const string MonthBig = "month_big";
         public const string PassBasic = "pass_basic";
-        public const string PassLuxury = "pass_luxury";
         public const string FirstPack = "first_pack";
         public static readonly int[] RechargeTiers = { 6, 30, 98, 198, 328, 648 };
         public static string RechargeId(int cny) => "recharge_" + cny;
@@ -59,7 +58,6 @@ namespace SanGuo.Core.Meta
             new ProductDef { Id = MonthSmall, Name = "小月卡", Kind = ProductKind.MonthCard, PriceCny = 30, ImmediateYuanbao = 300, DailyYuanbao = 100, DailyStamina = 60 },
             new ProductDef { Id = MonthBig, Name = "大月卡", Kind = ProductKind.MonthCard, PriceCny = 68, ImmediateYuanbao = 680, DailyYuanbao = 200, DailyStamina = 120 },
             new ProductDef { Id = PassBasic, Name = "通行證", Kind = ProductKind.Pass, PriceCny = 30, PassTier = BattlePass.Basic },
-            new ProductDef { Id = PassLuxury, Name = "豪華通行證", Kind = ProductKind.Pass, PriceCny = 98, ImmediateYuanbao = 980, PassTier = BattlePass.Luxury },
             new ProductDef { Id = FirstPack, Name = "首儲禮包", Kind = ProductKind.FirstPack, PriceCny = 6 },
         };
 

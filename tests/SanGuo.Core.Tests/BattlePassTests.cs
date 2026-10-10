@@ -61,16 +61,34 @@ namespace SanGuo.Core.Tests
         }
 
         [Fact]
-        public void Luxury_GivesTenLevelsAndYuanbao_OnePassPerSeason()
+        public void OnlyBasicPassIsSold_WithoutBonusLevelsOrYuanbao()
         {
             var p = Fresh();
             int yuanbao = p.Yuanbao;
-            Assert.True(Buy(p, Shop.PassLuxury, Oct));
-            Assert.Equal(BattlePass.Luxury, p.Pass.Tier);
-            Assert.Equal(BattlePass.LuxuryBonusLevels, BattlePass.Level(p));
-            Assert.Equal(yuanbao + 980, p.Yuanbao);
+            Assert.Null(Shop.Find("pass_luxury"));
+            Assert.Equal(ShopResult.UnknownProduct, Shop.CreateOrder(p, "pass_luxury", "removed", Oct));
+            p.Orders["legacy"] = "pending:pass_luxury";
+            Assert.Equal(ShopResult.UnknownProduct, Shop.Fulfill(p, "legacy", Oct));
+            Assert.True(Buy(p, Shop.PassBasic, Oct));
+            Assert.Equal(BattlePass.Basic, p.Pass.Tier);
+            Assert.Equal(0, BattlePass.Level(p));
+            Assert.Equal(yuanbao, p.Yuanbao);
             Assert.Equal(ShopResult.AlreadyPurchased, Shop.CreateOrder(p, Shop.PassBasic, "x", Oct));
-            Assert.Equal(BattlePass.LuxuryBonusLevels * 2, BattlePass.ClaimAll(p, Oct));
+            Assert.Equal(0, BattlePass.ClaimAll(p, Oct));
+        }
+
+        [Fact]
+        public void LegacyPaidPass_RetainsProgressAndClaimsAsBasic()
+        {
+            var p = Fresh();
+            BattlePass.AddPoints(p, 1500, Oct);
+            p.Pass.Tier = "luxury";
+            p.Pass.ClaimedPaid.Add(1);
+            BattlePass.Roll(p, Oct);
+            Assert.Equal(BattlePass.Basic, p.Pass.Tier);
+            Assert.Equal(1500, p.Pass.Points);
+            Assert.Contains(1, p.Pass.ClaimedPaid);
+            Assert.Equal(PassClaimResult.Ok, BattlePass.Claim(p, 2, true, Oct));
         }
 
         [Fact]
