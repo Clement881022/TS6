@@ -257,8 +257,8 @@ namespace SanGuo.Client
 
         public Task<BackendResult> Dismantle(string slot, int tier, int count)
         {
-            if (!Enum.TryParse<EquipSlot>(slot, true, out var s)) return Task.FromResult(new BackendResult { Code = "invalid_slot" });
-            var r = Equipment.Dismantle(_profile, s, tier, count);
+            if (!Equipment.TryParseStockSlot(slot, out var s, out var role)) return Task.FromResult(new BackendResult { Code = "invalid_slot" });
+            var r = Equipment.Dismantle(_profile, s, tier, count, role);
             return Claimed(r == EquipResult.Ok, r.ToString());
         }
 

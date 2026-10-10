@@ -142,8 +142,8 @@ public sealed class GameService
 
     public Task<ApiResult> Dismantle(string accountId, string slot, int tier, int count) => Run(accountId, (p, now) =>
     {
-        if (!Enum.TryParse<EquipSlot>(slot, true, out var s)) return ApiResult.Fail("invalid_slot");
-        var r = Equipment.Dismantle(p, s, tier, count);
+        if (!Equipment.TryParseStockSlot(slot, out var s, out var role)) return ApiResult.Fail("invalid_slot");
+        var r = Equipment.Dismantle(p, s, tier, count, role);
         return r == EquipResult.Ok ? ApiResult.Success(new { gold = p.Gold }) : ApiResult.Fail(r.ToString());
     });
 

@@ -16,6 +16,7 @@ namespace SanGuo.Core.Meta
         public int Amount;
         public EquipSlot Slot;
         public int Tier;
+        public Role? EquipmentRole;
     }
 
     public enum SoulShopResult
@@ -37,7 +38,7 @@ namespace SanGuo.Core.Meta
             {
                 items.Add(new SoulShopItem
                 {
-                    Id = "shard:" + h.Id, Name = h.Name + "　重複份", Kind = SoulItemKind.HeroShard, HeroId = h.Id,
+                    Id = "shard:" + h.Id, Name = h.Name + "　信物", Kind = SoulItemKind.HeroShard, HeroId = h.Id,
                     Cost = h.Rarity == Rarity.UR ? 300 : 100, MonthlyLimit = h.Rarity == Rarity.UR ? 1 : 3,
                 });
             }
@@ -45,6 +46,16 @@ namespace SanGuo.Core.Meta
             items.Add(new SoulShopItem { Id = "gold", Name = "金幣 ×5000", Kind = SoulItemKind.Gold, Amount = 5000, Cost = 30, MonthlyLimit = 5 });
             foreach (var slot in Equipment.Slots)
             {
+                if (slot == EquipSlot.Accessory)
+                {
+                    foreach (bool crit in new[] { true, false })
+                    {
+                        var role = crit ? Role.Warrior : Role.Tank;
+                        items.Add(new SoulShopItem { Id = Equipment.AccessoryKey(crit, 3), Name = Equipment.Name(slot, 3, role), Kind = SoulItemKind.Equipment,
+                            Slot = slot, Tier = 3, EquipmentRole = role, Cost = 80, MonthlyLimit = 2 });
+                    }
+                    continue;
+                }
                 items.Add(new SoulShopItem
                 {
                     Id = "eq:" + slot.ToString().ToLowerInvariant() + ":3", Name = Equipment.Name(slot, 3), Kind = SoulItemKind.Equipment,
@@ -59,7 +70,18 @@ namespace SanGuo.Core.Meta
         public static void EnsureMonth(PlayerProfile p, long now)
         {
             string key = DailyClock.MonthKey(now);
-            if (p.SoulShopMonth == key) return;
+            if (p.SoulShopMonth == key)
+            {
+                if (p.SoulShopBought.TryGetValue("eq:accessory:3", out int old))
+                {
+                    p.SoulShopBought.Remove("eq:accessory:3");
+                    string crit = Equipment.AccessoryKey(true, 3);
+                    string dodge = Equipment.AccessoryKey(false, 3);
+                    p.SoulShopBought[crit] = (p.SoulShopBought.TryGetValue(crit, out int a) ? a : 0) + old / 2 + old % 2;
+                    p.SoulShopBought[dodge] = (p.SoulShopBought.TryGetValue(dodge, out int b) ? b : 0) + old / 2;
+                }
+                return;
+            }
             p.SoulShopMonth = key;
             p.SoulShopBought.Clear();
         }
@@ -92,7 +114,7 @@ namespace SanGuo.Core.Meta
                     p.Gold += item.Amount;
                     break;
                 case SoulItemKind.Equipment:
-                    p.AddMaterial(Equipment.ItemKey(item.Slot, item.Tier), 1);
+                    p.AddMaterial(item.Id, 1);
                     break;
             }
             p.AddMaterial(HeroGrowth.Soul, -item.Cost);

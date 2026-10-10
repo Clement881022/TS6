@@ -57,7 +57,7 @@ namespace SanGuo.Core.Meta
             {
                 var slot = Equipment.Slots[(level / 5 - 1) % Equipment.Slots.Length];
                 int tier = level < 15 ? 2 : 3;
-                r.With(Equipment.ItemKey(slot, tier), 1);
+                r.With(slot == EquipSlot.Accessory ? Equipment.AccessoryKey(level == 15, tier) : Equipment.ItemKey(slot, tier), 1);
             }
             if (level % 10 == 0) r.With(HeroGrowth.Soul, 30);
             return r;

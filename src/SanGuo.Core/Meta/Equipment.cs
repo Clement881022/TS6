@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SanGuo.Core.Meta
 {
@@ -24,12 +25,16 @@ namespace SanGuo.Core.Meta
 
         public static int PercentOf(int tier) => Percents[Math.Max(1, Math.Min(MaxTier, tier))];
 
-        public static string ItemKey(EquipSlot slot, int tier) => $"eq:{slot.ToString().ToLowerInvariant()}:{tier}";
+        public static string ItemKey(EquipSlot slot, int tier) => slot == EquipSlot.Accessory ? AccessoryKey(true, tier) : $"eq:{slot.ToString().ToLowerInvariant()}:{tier}";
+
+        public static bool UsesCritAccessory(Role role) => role == Role.Warrior || role == Role.Ranger;
+        public static string AccessoryKey(bool crit, int tier) => $"eq:accessory:{(crit ? "crit" : "dodge")}:{tier}";
+        public static string AccessoryShardKey(bool crit, int tier) => $"eqs:accessory:{(crit ? "crit" : "dodge")}:{tier}";
 
         public static string WeaponKey(Role role, int tier) => $"eq:weapon:{role.ToString().ToLowerInvariant()}:{tier}";
 
         public static string ShardKey(EquipSlot slot, int tier, Role? role = null) =>
-            slot == EquipSlot.Weapon && role.HasValue
+            slot == EquipSlot.Accessory ? AccessoryShardKey(!role.HasValue || UsesCritAccessory(role.Value), tier) : slot == EquipSlot.Weapon && role.HasValue
                 ? $"eqs:weapon:{role.Value.ToString().ToLowerInvariant()}:{tier}"
                 : $"eqs:{slot.ToString().ToLowerInvariant()}:{tier}";
 
@@ -45,8 +50,12 @@ namespace SanGuo.Core.Meta
             if (!Enum.TryParse(parts[1], true, out slot)) return false;
             if (parts.Length == 4)
             {
-                if (slot != EquipSlot.Weapon || !Enum.TryParse<Role>(parts[2], true, out var r)) return false;
-                role = r;
+                if (slot == EquipSlot.Accessory && (parts[2] == "crit" || parts[2] == "dodge")) role = parts[2] == "crit" ? Role.Warrior : Role.Tank;
+                else
+                {
+                    if (slot != EquipSlot.Weapon || !Enum.TryParse<Role>(parts[2], true, out var r)) return false;
+                    role = r;
+                }
             }
             return int.TryParse(parts[parts.Length - 1], out tier) && tier >= 1 && tier <= MaxTier;
         }
@@ -63,8 +72,12 @@ namespace SanGuo.Core.Meta
             if (!Enum.TryParse(parts[1], true, out slot)) return false;
             if (parts.Length == 4)
             {
-                if (slot != EquipSlot.Weapon || !Enum.TryParse<Role>(parts[2], true, out var r)) return false;
-                role = r;
+                if (slot == EquipSlot.Accessory && (parts[2] == "crit" || parts[2] == "dodge")) role = parts[2] == "crit" ? Role.Warrior : Role.Tank;
+                else
+                {
+                    if (slot != EquipSlot.Weapon || !Enum.TryParse<Role>(parts[2], true, out var r)) return false;
+                    role = r;
+                }
             }
             return int.TryParse(parts[parts.Length - 1], out tier) && tier >= 1 && tier <= MaxTier;
         }
@@ -101,6 +114,7 @@ namespace SanGuo.Core.Meta
         private static readonly string[] BlankNames = { "凡品武器自選匣", "良品武器自選匣", "上品武器自選匣", "極品武器自選匣", "神品武器自選匣" };
         private static readonly string[] ArmorNames = { "麻布戰袍", "硬皮甲", "鐵札甲", "明光鎧", "龍鱗寶甲" };
         private static readonly string[] AccessoryNames = { "麻繩護符", "銅虎符", "青玉環", "金絲玉珮", "麒麟玄玉" };
+        private static readonly string[] CritAccessoryNames = { "赤繩虎符", "銅戰印", "赤玉虎符", "鎏金虎符", "麒麟戰印" };
 
         public static string Name(EquipSlot slot, int tier, Role? role = null)
         {
@@ -109,12 +123,12 @@ namespace SanGuo.Core.Meta
             {
                 case EquipSlot.Weapon: return role.HasValue ? WeaponNames[(int)role.Value][i] : BlankNames[i];
                 case EquipSlot.Armor: return ArmorNames[i];
-                default: return AccessoryNames[i];
+                default: return !role.HasValue || UsesCritAccessory(role.Value) ? CritAccessoryNames[i] : AccessoryNames[i];
             }
         }
 
         public static string ShardName(EquipSlot slot, int tier, Role? role = null) =>
-            TierLabel(tier) + (slot == EquipSlot.Weapon ? (role.HasValue ? WeaponTypeName(role.Value) : "武器") : SlotName(slot)) + "碎片";
+            slot == EquipSlot.Accessory ? Name(slot, tier, role) + "碎片" : TierLabel(tier) + (slot == EquipSlot.Weapon ? (role.HasValue ? WeaponTypeName(role.Value) : "武器") : SlotName(slot)) + "碎片";
 
         public static int DismantleGold(int tier) => 300 * tier;
 
@@ -150,6 +164,8 @@ namespace SanGuo.Core.Meta
 
         public static int Count(PlayerProfile p, EquipSlot slot, int tier)
         {
+            NormalizeLegacyAccessories(p);
+            if (slot == EquipSlot.Accessory) return p.GetMaterial(AccessoryKey(true, tier)) + p.GetMaterial(AccessoryKey(false, tier));
             int n = p.GetMaterial(ItemKey(slot, tier));
             if (slot == EquipSlot.Weapon)
                 foreach (Role r in Enum.GetValues(typeof(Role))) n += p.GetMaterial(WeaponKey(r, tier));
@@ -158,6 +174,8 @@ namespace SanGuo.Core.Meta
 
         public static int CountFor(PlayerProfile p, Role role, EquipSlot slot, int tier)
         {
+            NormalizeLegacyAccessories(p);
+            if (slot == EquipSlot.Accessory) return p.GetMaterial(AccessoryKey(UsesCritAccessory(role), tier));
             int n = p.GetMaterial(ItemKey(slot, tier));
             if (slot == EquipSlot.Weapon) n += p.GetMaterial(WeaponKey(role, tier));
             return n;
@@ -169,7 +187,9 @@ namespace SanGuo.Core.Meta
             var def = HeroRoster.Find(heroId);
             if (def == null) return EquipResult.UnknownHero;
             if (tier < 1 || tier > MaxTier) return EquipResult.InvalidTier;
+            NormalizeLegacyAccessories(p);
             string key = ItemKey(slot, tier);
+            if (slot == EquipSlot.Accessory) key = AccessoryKey(UsesCritAccessory(def.Role), tier);
             if (slot == EquipSlot.Weapon && p.GetMaterial(WeaponKey(def.Role, tier)) > 0) key = WeaponKey(def.Role, tier);
             if (p.GetMaterial(key) < 1) return EquipResult.NotOwned;
             p.AddMaterial(key, -1);
@@ -192,14 +212,16 @@ namespace SanGuo.Core.Meta
         }
 
         private static string StockKeyOf(Role role, EquipSlot slot, int tier) =>
-            slot == EquipSlot.Weapon ? WeaponKey(role, tier) : ItemKey(slot, tier);
+            slot == EquipSlot.Weapon ? WeaponKey(role, tier) : slot == EquipSlot.Accessory ? AccessoryKey(UsesCritAccessory(role), tier) : ItemKey(slot, tier);
 
-        public static EquipResult Dismantle(PlayerProfile p, EquipSlot slot, int tier, int count)
+        public static EquipResult Dismantle(PlayerProfile p, EquipSlot slot, int tier, int count, Role? accessoryRole = null)
         {
             if (tier < 1 || tier > MaxTier || count < 1) return EquipResult.InvalidTier;
-            if (Count(p, slot, tier) < count) return EquipResult.NotOwned;
+            if ((slot == EquipSlot.Accessory && accessoryRole.HasValue ? CountFor(p, accessoryRole.Value, slot, tier) : Count(p, slot, tier)) < count) return EquipResult.NotOwned;
             int left = count;
             var keys = new List<string> { ItemKey(slot, tier) };
+            if (slot == EquipSlot.Accessory)
+                keys = accessoryRole.HasValue ? new List<string> { AccessoryKey(UsesCritAccessory(accessoryRole.Value), tier) } : new List<string> { AccessoryKey(true, tier), AccessoryKey(false, tier) };
             if (slot == EquipSlot.Weapon) foreach (Role r in Enum.GetValues(typeof(Role))) keys.Add(WeaponKey(r, tier));
             foreach (var key in keys)
             {
@@ -232,8 +254,8 @@ namespace SanGuo.Core.Meta
             {
                 if (!shards && rng.Next(10000) >= (int)Math.Round(DropChanceOf(tier) * 10000)) continue;
                 var slot = Slots[rng.Next(Slots.Length)];
-                Role? role = slot == EquipSlot.Weapon ? roles[rng.Next(roles.Length)] : (Role?)null;
-                string key = shards ? ShardKey(slot, tier, role) : role.HasValue ? WeaponKey(role.Value, tier) : ItemKey(slot, tier);
+                Role? role = slot == EquipSlot.Weapon ? roles[rng.Next(roles.Length)] : slot == EquipSlot.Accessory ? (rng.Next(2) == 0 ? Role.Warrior : Role.Tank) : (Role?)null;
+                string key = shards ? ShardKey(slot, tier, role) : slot == EquipSlot.Accessory ? AccessoryKey(UsesCritAccessory(role!.Value), tier) : role.HasValue ? WeaponKey(role.Value, tier) : ItemKey(slot, tier);
                 drops[key] = drops.TryGetValue(key, out int n) ? n + 1 : 1;
             }
             return drops;
@@ -241,6 +263,7 @@ namespace SanGuo.Core.Meta
 
         public static int AutoForge(PlayerProfile p)
         {
+            NormalizeLegacyAccessories(p);
             int made = 0;
             var roles = (Role[])Enum.GetValues(typeof(Role));
             for (int tier = 1; tier <= MaxTier; tier++)
@@ -253,10 +276,42 @@ namespace SanGuo.Core.Meta
                     {
                         foreach (var role in roles) made += Forge(p, ShardKey(slot, tier, role), WeaponKey(role, tier), cost);
                     }
+                    else if (slot == EquipSlot.Accessory)
+                    {
+                        made += Forge(p, AccessoryShardKey(true, tier), AccessoryKey(true, tier), cost);
+                        made += Forge(p, AccessoryShardKey(false, tier), AccessoryKey(false, tier), cost);
+                    }
                     else made += Forge(p, ShardKey(slot, tier), ItemKey(slot, tier), cost);
                 }
             }
             return made;
+        }
+
+        public static bool TryParseStockSlot(string value, out EquipSlot slot, out Role? accessoryRole)
+        {
+            accessoryRole = null;
+            if (value == "Accessory:crit" || value == "Accessory:dodge")
+            {
+                slot = EquipSlot.Accessory;
+                accessoryRole = value.EndsWith(":crit") ? Role.Warrior : Role.Tank;
+                return true;
+            }
+            return Enum.TryParse(value, true, out slot) && Slots.Contains(slot);
+        }
+
+        public static void NormalizeLegacyAccessories(PlayerProfile p)
+        {
+            foreach (var entry in p.Materials.ToArray())
+            {
+                var parts = entry.Key.Split(':');
+                if (parts.Length != 3 || parts[1] != "accessory" || (parts[0] != "eq" && parts[0] != "eqs") || !int.TryParse(parts[2], out int tier) || tier < 1 || tier > MaxTier) continue;
+                p.Materials.Remove(entry.Key);
+                if (entry.Value <= 0) continue;
+                bool shards = parts[0] == "eqs";
+                int crit = entry.Value / 2 + entry.Value % 2;
+                p.AddMaterial(shards ? AccessoryShardKey(true, tier) : AccessoryKey(true, tier), crit);
+                p.AddMaterial(shards ? AccessoryShardKey(false, tier) : AccessoryKey(false, tier), entry.Value - crit);
+            }
         }
 
         private static int Forge(PlayerProfile p, string shardKey, string itemKey, int cost)

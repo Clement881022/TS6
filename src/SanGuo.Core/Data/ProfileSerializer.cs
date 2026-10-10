@@ -225,6 +225,7 @@ namespace SanGuo.Core.Data
                     if (kv.Value is string os) p.Orders[kv.Key] = os;
 
             if (version < 3) MigrateChapterZeroIds(p);
+            Equipment.NormalizeLegacyAccessories(p);
             return p;
         }
 
