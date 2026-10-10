@@ -60,6 +60,14 @@ namespace SanGuo.Client
                         yield return new WaitForSecondsRealtime(.5f);
                         Validate(root, page);
                         yield return CommercialUiCapture.Capture(directory, "shop-tab-" + tab);
+                        if (tab == 2)
+                        {
+                            var scroll = root.Q<ScrollView>(className: "shop-soul-scroll");
+                            scroll.verticalScroller.value = scroll.verticalScroller.highValue;
+                            yield return new WaitForSecondsRealtime(.5f);
+                            Validate(root, page);
+                            yield return CommercialUiCapture.Capture(directory, "shop-pass-end");
+                        }
                     }
                 }
                 else if (active is GachaPage gacha)
@@ -79,6 +87,7 @@ namespace SanGuo.Client
                 {
                     quests.DebugShowSevenDay();
                     yield return new WaitForSecondsRealtime(.5f);
+                    Validate(root, page);
                     yield return CommercialUiCapture.Capture(directory, "quests-seven-day");
                 }
                 if (page == Page.Account)
@@ -125,6 +134,12 @@ namespace SanGuo.Client
             }
             var panel = host.Q(className: "panel") ?? host.Q(className: "account-panel");
             if (panel != null) CheckColor(panel, new Color(35 / 255f, 35 / 255f, 39 / 255f, .96f), page);
+            foreach (var node in host.Query<Button>(className: "milestone-node").ToList())
+                if (node.worldBound.xMin < root.worldBound.xMin || node.worldBound.xMax > root.worldBound.xMax)
+                    throw new InvalidOperationException("Milestone outside viewport");
+            var passScroll = host.Q<ScrollView>(className: "shop-soul-scroll");
+            if (passScroll != null && passScroll.horizontalScroller.highValue > 1)
+                throw new InvalidOperationException("Shop rewards require horizontal scrolling");
         }
 
         private static void CheckColor(VisualElement element, Color expected, Page page)

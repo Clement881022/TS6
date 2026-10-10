@@ -226,7 +226,8 @@ namespace SanGuo.Client
             tiles.style.marginRight = 8;
             tiles.style.flexDirection = FlexDirection.Row;
             tiles.style.flexWrap = Wrap.NoWrap;
-            tiles.style.width = 240;
+            tiles.AddToClassList("pass-reward-tiles");
+            tiles.style.width = 212;
             tiles.style.flexShrink = 0;
             cell.Add(tiles);
             Button btn = claimed ? UiKit.DoneBtn("已領取") : !owned ? UiKit.DoneBtn("未購買") : !reached ? UiKit.DoneBtn("未達成") : UiKit.Btn("領取", claim, primary: true);

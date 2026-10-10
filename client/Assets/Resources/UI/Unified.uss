@@ -147,3 +147,10 @@
 .unified-ui .quest-toolbar { padding: 12px 20px; background-color: rgba(35, 35, 39, 0.96); border-width: 1px; border-color: rgb(145, 122, 83); border-radius: 12px; }
 .unified-ui .challenge-tabs { justify-content: center; }
 .unified-ui .challenge-tabs-floating { top: 20px; }
+.unified-ui .milestone-node, .unified-ui .milestone-node:hover, .unified-ui .milestone-node:active {
+    width: 104px; min-width: 104px; height: 160px; min-height: 160px; padding: 0;
+    background-image: none; background-color: rgba(0, 0, 0, 0); border-width: 0; border-radius: 0;
+    translate: -50% 0;
+}
+.unified-ui .pass-reward-tiles .item-tile { width: 64px; height: 64px; margin-right: 4px; }
+.unified-ui .pass-reward-tiles .item-count { font-size: 26px; }
