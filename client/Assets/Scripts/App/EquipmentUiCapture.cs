@@ -128,6 +128,65 @@ namespace SanGuo.Client
             if (root.Query<Button>(className: "equipment-stock-tile").ToList().Count != 0) throw new InvalidOperationException("Empty inventory");
             Validate(root);
             yield return CommercialUiCapture.Capture(directory, "08-empty-inventory");
+            foreach (var def in GameSession.Roster) profile.Heroes[def.Id] = new HeroState { HeroId = def.Id };
+            refresh = GameSession.Refresh();
+            while (!refresh.IsCompleted) yield return null;
+            EquipmentPage.OpenFrom(Page.Home, "xiahoudun");
+            yield return new WaitForSecondsRealtime(.5f);
+            Submit(root.Q<Button>("equipment-filter-Armor"));
+            yield return new WaitForSecondsRealtime(.3f);
+            if (root.Q<Button>("equipment-filter-Armor").resolvedStyle.backgroundImage.texture != null)
+                throw new InvalidOperationException("Equipment selected filter inherits image skin");
+            yield return CommercialUiCapture.Capture(directory, "11-equipment-filter-states");
+            Submit(root.Q<Button>("equipment-hero-selector"));
+            yield return new WaitForSecondsRealtime(.4f);
+            var longScroll = root.Q("equipment-hero-picker").Q<ScrollView>();
+            var dragger = longScroll.verticalScroller.Q(className: "unity-base-slider__dragger");
+            var track = longScroll.verticalScroller.Q(className: "unity-base-slider__drag-container");
+            var viewport = longScroll.contentViewport.worldBound;
+            if (longScroll.verticalScroller.highValue <= 0 || track.worldBound.height < viewport.height - 2 || dragger.worldBound.height >= track.worldBound.height || dragger.worldBound.width > 18)
+                throw new InvalidOperationException("Long roster scrollbar geometry");
+            var heading = root.Q("equipment-hero-picker").Q(className: "ui-help-heading").worldBound;
+            if (viewport.yMin < heading.yMax) throw new InvalidOperationException("Roster viewport overlaps heading");
+            yield return CommercialUiCapture.Capture(directory, "12-long-roster-top");
+            using (var wheel = WheelEvent.GetPooled(new Event { type = EventType.ScrollWheel, delta = new Vector2(0, 6), mousePosition = viewport.center }))
+            {
+                wheel.target = longScroll.contentViewport;
+                longScroll.contentViewport.SendEvent(wheel);
+            }
+            yield return new WaitForSecondsRealtime(.3f);
+            if (longScroll.scrollOffset.y <= 0) throw new InvalidOperationException("Roster wheel scrolling");
+            var from = dragger.worldBound.center;
+            using (var down = PointerDownEvent.GetPooled(new Event { type = EventType.MouseDown, button = 0, mousePosition = from }))
+            {
+                down.target = dragger;
+                dragger.SendEvent(down);
+            }
+            float beforeDrag = longScroll.verticalScroller.value;
+            var destination = from + new Vector2(0, track.worldBound.height * .25f);
+            using (var move = PointerMoveEvent.GetPooled(new Event { type = EventType.MouseDrag, button = 0, mousePosition = destination }))
+            {
+                move.target = dragger;
+                dragger.SendEvent(move);
+            }
+            using (var up = PointerUpEvent.GetPooled(new Event { type = EventType.MouseUp, button = 0, mousePosition = destination }))
+            {
+                up.target = dragger;
+                dragger.SendEvent(up);
+            }
+            yield return new WaitForSecondsRealtime(.3f);
+            if (longScroll.verticalScroller.value <= beforeDrag) throw new InvalidOperationException("Roster thumb dragging");
+            longScroll.verticalScroller.value = longScroll.verticalScroller.highValue;
+            yield return new WaitForSecondsRealtime(.3f);
+            var lastHero = GameSession.OwnedHeroes().Last();
+            var lastChoice = root.Q<Button>("equipment-choose-" + lastHero.Id);
+            if (lastChoice.worldBound.yMax > viewport.yMax + 2 || lastChoice.worldBound.yMin < viewport.yMin)
+                throw new InvalidOperationException("Roster final hero visibility");
+            yield return CommercialUiCapture.Capture(directory, "13-long-roster-bottom");
+            Submit(lastChoice);
+            yield return new WaitForSecondsRealtime(.3f);
+            if (HeroesPage.LastSelectedHeroId != lastHero.Id || root.Q("equipment-hero-picker") != null)
+                throw new InvalidOperationException("Long roster selection");
             File.WriteAllText(Path.Combine(directory, "verification.txt"), "Seven home buttons and order; equipment entry; selectable inventory; equip, replace with old item return, unequip, dismantle; hero picker opening, dismissal, selection and unchanged page bounds; growth entry and return preserving hero; empty inventory; panel containment passed. Disposable local profile only. Visual quality reviewed separately.");
             Application.Quit();
         }

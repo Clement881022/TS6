@@ -126,6 +126,7 @@ namespace SanGuo.Client
                 }
             });
             overlay.name = "equipment-hero-picker";
+            overlay.AddToClassList("equipment-hero-picker");
             overlay.Q<Button>(className: "ui-help-close").name = "equipment-hero-picker-close";
         }
 
