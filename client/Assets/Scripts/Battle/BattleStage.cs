@@ -42,7 +42,8 @@ namespace SanGuo.Client
             public Renderer[]? Bodies;
         }
 
-        private const float DefaultZoom = 1.3f, MinZoom = 0.7f, MaxZoom = 3.2f;
+        private const float DefaultZoom = 1.55f, MinZoom = 0.7f, MaxZoom = 3.2f;
+        private const float DefaultViewLift = 0.15f;
         private float _zoom = DefaultZoom;
         private Vector2 _panScreenPx;
 
@@ -486,6 +487,7 @@ namespace SanGuo.Client
             float fieldW = fb.width * sx, fieldH = fb.height * sy;
             var fieldCenter = new Vector2((fb.x + fb.width * 0.5f) * sx, Screen.height - (fb.y + fb.height * 0.5f) * sy);
             fieldCenter.x -= fieldW * BoardLeftBias;
+            fieldCenter.y += fieldH * DefaultViewLift;
 
             var rot = Quaternion.Euler(CameraPitchDegrees, CameraYawDegrees, 0f);
             var inv = Quaternion.Inverse(rot);
