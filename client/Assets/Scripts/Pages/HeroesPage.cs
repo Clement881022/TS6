@@ -10,6 +10,7 @@ namespace SanGuo.Client
     public class HeroesPage : PageBase
     {
         private enum Tab { Level, Break, Equip }
+        public static string? LastSelectedHeroId { get; set; }
 
         private string? _heroId;
         private Tab _tab = Tab.Level;
@@ -78,7 +79,8 @@ namespace SanGuo.Client
                 return;
             }
             if (_heroId == null || !v.Heroes.ContainsKey(_heroId))
-                _heroId = owned[0].Id;
+                _heroId = owned.FirstOrDefault(d => d.Id == LastSelectedHeroId)?.Id ?? owned[0].Id;
+            LastSelectedHeroId = _heroId;
             var def = GameSession.DefOf(_heroId)!;
             var hero = v.Heroes[_heroId];
 
@@ -290,7 +292,7 @@ namespace SanGuo.Client
             {
                 case Tab.Level: BuildLevel(content, footer, def, hero, v); break;
                 case Tab.Break: BuildBreak(content, footer, def, hero, v); break;
-                default: BuildEquip(content, def, hero, v); break;
+                default: content.Add(UiKit.Btn("開啟裝備頁", () => EquipmentPage.OpenFrom(Page.HeroGrowth, def.Id), primary: true)); break;
             }
             panel.Add(content);
             if (footer.childCount > 0) panel.Add(footer);
@@ -331,7 +333,7 @@ namespace SanGuo.Client
         }
 
         private Button SegTab(string text, Tab tab) =>
-            UiKit.Tab(text, () => { _tab = tab; Rebuild(); }, _tab == tab).WithClass("seg-tab");
+            UiKit.Tab(text, () => { if (GrowthMode && tab == Tab.Equip) EquipmentPage.OpenFrom(Page.HeroGrowth, _heroId); else { _tab = tab; Rebuild(); } }, _tab == tab).WithClass("seg-tab");
 
         private void BuildLevel(VisualElement content, VisualElement footer, HeroDef def, HeroState hero, ProfileView v)
         {
@@ -395,42 +397,7 @@ namespace SanGuo.Client
             else footer.Add(UiKit.DoneBtn("已滿突").WithClass("btn-lg growth-action"));
         }
 
-        private void BuildEquip(VisualElement content, HeroDef def, HeroState hero, ProfileView v)
-        {
-            var scroll = new ScrollView(ScrollViewMode.Vertical).WithClass("grow");
-            foreach (var slot in Equipment.Slots)
-            {
-                var sl = slot;
-                hero.Equipment.TryGetValue(sl.ToString(), out int worn);
-                var row = new VisualElement().WithClass("growth-equipment-row");
-                var head = new VisualElement().WithClass("card-row-head");
-                head.Add(EquipmentCard(def, sl, worn));
-                if (worn > 0) head.Add(UiKit.Btn("卸下", () => _ = Act(() => GameSession.Backend.Unequip(def.Id, sl.ToString()))).WithClass("btn-sm"));
-                row.Add(head);
-                for (int tier = 1; tier <= Equipment.MaxTier; tier++)
-                {
-                    int have = v.Material(Equipment.ItemKey(sl, tier)) + (sl == EquipSlot.Weapon ? v.Material(Equipment.WeaponKey(def.Role, tier)) : 0);
-                    if (have > 0)
-                    {
-                        int t = tier;
-                        var available = new VisualElement().WithClass("growth-stock-entry");
-                        available.Add(EquipmentCard(def, sl, t));
-                        var actions = new VisualElement().WithClass("growth-stock-actions");
-                        actions.Add(UiKit.Btn($"配戴 ×{have}", () => _ = Act(() => GameSession.Backend.Equip(def.Id, sl.ToString(), t)), primary: t > worn).WithClass("btn-sm"));
-                        actions.Add(UiKit.Btn($"分解 +{Equipment.DismantleGold(t)}", () => _ = Act(() => GameSession.Backend.Dismantle(sl.ToString(), t, 1))).WithClass("btn-sm"));
-                        available.Add(actions);
-                        row.Add(available);
-                    }
-                    if (!Equipment.UsesShards(tier)) continue;
-                    int shards = v.Material(Equipment.ShardKey(sl, tier, def.Role));
-                    if (shards > 0) row.Add(UiKit.Text($"{Equipment.ShardName(sl, tier, def.Role)} {shards}/{Equipment.ShardCostOf(tier)}", "card-row-desc"));
-                }
-                scroll.Add(row);
-            }
-            content.Add(scroll);
-        }
-
-        private static VisualElement EquipmentCard(HeroDef def, EquipSlot slot, int tier)
+        internal static VisualElement EquipmentCard(HeroDef def, EquipSlot slot, int tier)
         {
             var card = new VisualElement().WithClass("growth-equipment-card equipment-tier-" + tier);
             string icon = slot == EquipSlot.Weapon ? "weapon_" + def.Role.ToString().ToLowerInvariant() : slot.ToString().ToLowerInvariant();

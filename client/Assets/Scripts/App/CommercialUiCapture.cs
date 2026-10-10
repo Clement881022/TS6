@@ -23,9 +23,9 @@ namespace SanGuo.Client
             Nav.Go(Page.Home);
             yield return new WaitForSecondsRealtime(1);
             var root = PageHost.Current!.GetComponent<UIDocument>().rootVisualElement;
-            if (root.Query<Button>(className:"home-fn").ToList().Count != 6 || root.Q(className:"ui-help-button") != null) throw new InvalidOperationException("Home navigation or help");
+            if (root.Query<Button>(className:"home-fn").ToList().Count != 7 || root.Q(className:"ui-help-button") != null) throw new InvalidOperationException("Home navigation or help");
             yield return Capture(directory,"01-home");
-            foreach (var item in new[] { ("home-heroes",Page.Heroes),("home-herogrowth",Page.HeroGrowth),("home-gacha",Page.Gacha),("home-dungeons",Page.Dungeons),("home-quests",Page.Quests),("home-shop",Page.Shop) })
+            foreach (var item in new[] { ("home-heroes",Page.Heroes),("home-equipment",Page.Equipment),("home-herogrowth",Page.HeroGrowth),("home-quests",Page.Quests),("home-dungeons",Page.Dungeons),("home-gacha",Page.Gacha),("home-shop",Page.Shop) })
             {
                 Submit(root.Q<Button>(item.Item1));
                 yield return new WaitForSecondsRealtime(.8f);
@@ -61,7 +61,7 @@ namespace SanGuo.Client
             battle.DebugReviewScenario(8);yield return new WaitForSecondsRealtime(.8f);
             battle.DebugValidateCommercialArt();
             yield return Capture(directory,"06-crowded");
-            File.WriteAllText(Path.Combine(directory,"verification.txt"),"Home six routes, challenge tabs, expedition route, grid picking, head HUD, intent order and compact card fields passed. No commercial art quality claim.");
+            File.WriteAllText(Path.Combine(directory,"verification.txt"),"Home seven routes, challenge tabs, expedition route, grid picking, head HUD, intent order and compact card fields passed. No commercial art quality claim.");
             Application.Quit();
         }
         internal static IEnumerator Capture(string directory,string name)

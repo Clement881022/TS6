@@ -1,9 +1,9 @@
-param([switch]$SkipBuild, [int]$Width = 1600, [int]$Height = 900, [int]$ProfileLevel = 2)
+param([switch]$SkipBuild, [int]$Width = 1600, [int]$Height = 900)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $copyRoot = Join-Path $projectRoot 'build/growth-layout-client-copy'
 $outRoot = Join-Path $projectRoot 'build/growth-layout-win'
-$shotsRoot = Join-Path $projectRoot "build/growth-ui-review/${Width}x${Height}"
+$shotsRoot = Join-Path $projectRoot "build/equipment-ui-review/${Width}x${Height}"
 if (-not $SkipBuild) {
     foreach ($folder in @('Assets', 'Packages', 'ProjectSettings')) {
         & robocopy (Join-Path "$projectRoot/client" $folder) (Join-Path $copyRoot $folder) /E /NFL /NDL /NJH /NJS /NP | Out-Null
@@ -17,7 +17,7 @@ if (-not $SkipBuild) {
 }
 New-Item -ItemType Directory -Force -Path $shotsRoot | Out-Null
 $playerLog = Join-Path $shotsRoot 'player.log'
-$playerArgs = @('-screen-width', $Width, '-screen-height', $Height, '-screen-fullscreen', '0', '-sanguoLevel', '1', '-sanguoReviewProfileLevel', $ProfileLevel, '-sanguoGrowthShot', '-sanguoShot', ('"' + $shotsRoot + '"'), '-logFile', ('"' + $playerLog + '"'))
+$playerArgs = @('-screen-width', $Width, '-screen-height', $Height, '-screen-fullscreen', '0', '-sanguoLevel', '1', '-sanguoEquipmentShot', '-sanguoShot', ('"' + $shotsRoot + '"'), '-logFile', ('"' + $playerLog + '"'))
 $started = Get-Date
 $game = Start-Process (Join-Path $outRoot 'SanGuo.exe') -ArgumentList $playerArgs -WindowStyle Hidden -PassThru
 if (-not $game.WaitForExit(120000)) { $game.Kill(); throw "Capture timed out: $playerLog" }
@@ -27,7 +27,7 @@ if ($shots.Count -ne 8) { throw "Expected 8 captures, got $($shots.Count): $play
 Add-Type -AssemblyName System.Drawing
 foreach ($shot in $shots) {
     $image = [Drawing.Image]::FromFile($shot.FullName)
-    try { if ($shot.Name -ne 'model-render.png' -and ($image.Width -ne $Width -or $image.Height -ne $Height)) { throw "Capture dimensions: $($shot.Name)" } }
+    try { if ($image.Width -ne $Width -or $image.Height -ne $Height) { throw "Capture dimensions: $($shot.Name)" } }
     finally { $image.Dispose() }
 }
 $errors = @(Select-String -LiteralPath $playerLog -Pattern 'Exception:|error CS|Failed to parse|USS parsing|Unknown property|Unknown pseudo|warning:' | Where-Object { $_.Line -ne 'Unknown pseudo class "last-child" in StyleSheet HomeLayout' })

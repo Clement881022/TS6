@@ -218,3 +218,35 @@
 .unified-ui .growth-stock-entry { margin-top: 14px; }
 .unified-ui .growth-stock-actions { flex-direction: row; flex-wrap: wrap; margin-top: 8px; }
 .unified-ui .growth-cost-name { font-size: 26px; color: rgb(245, 235, 217); margin-right: 16px; }
+.bg-equipment { background-image: url("../ChibiSkin/hall.png"); }
+.unified-ui .equipment-page { flex-direction: row; min-height: 0; }
+.unified-ui .equipment-worn-panel { width: 430px; flex-shrink: 0; margin-right: 20px; padding: 20px; }
+.unified-ui .equipment-inventory-panel { flex-grow: 1; flex-basis: 0; min-width: 0; padding: 24px; margin-right: 20px; }
+.unified-ui .equipment-detail-panel { width: 410px; flex-shrink: 0; padding: 24px; }
+.unified-ui .equipment-section-title { font-size: 32px; color: rgb(241, 208, 139); margin-bottom: 20px; flex-shrink: 0; }
+.unified-ui .equipment-hero-selector { margin-bottom: 16px; flex-shrink: 0; }
+.unified-ui .equipment-hero-selector .unity-base-field__label { min-width: 62px; font-size: 26px; color: rgb(245, 235, 217); }
+.unified-ui .equipment-hero-selector .unity-base-field__input { min-height: 58px; background-color: rgb(29,29,33); border-color: rgb(145,122,83); border-width: 1px; }
+.unified-ui .equipment-hero-selector .unity-base-popup-field__text { font-size: 24px; color: rgb(245,235,217); }
+.unified-ui .equipment-hero-identity { flex-direction: row; align-items: center; margin-bottom: 24px; }
+.unified-ui .equipment-hero-face { width: 84px; height: 100px; flex-shrink: 0; margin-right: 16px; }
+.unified-ui .equipment-hero-name { font-size: 26px; color: rgb(245,235,217); white-space: normal; }
+.unified-ui .equipment-slot-button { padding: 0; margin: 0 0 18px; background-color: rgba(0,0,0,0); border-width: 0; flex-shrink: 0; }
+.unified-ui .equipment-page .growth-equipment-card { min-height: 132px; flex-grow: 0; }
+.unified-ui .equipment-page .growth-equipment-art { width: 88px; height: 88px; margin-right: 14px; }
+.unified-ui .equipment-page .growth-equipment-type, .unified-ui .equipment-page .growth-equipment-effect { font-size: 24px; }
+.unified-ui .equipment-filters { flex-shrink: 0; }
+.unified-ui .equipment-inventory-scroll { min-height: 0; }
+.unified-ui .equipment-grid { flex-direction: row; flex-wrap: wrap; align-content: flex-start; }
+.unified-ui .equipment-stock-tile { width: 186px; height: 216px; margin: 0 14px 14px 0; padding: 12px; border-width: 2px; border-radius: 10px; background-color: rgb(29,29,33); align-items: center; flex-shrink: 0; }
+.unified-ui .equipment-stock-tile .growth-equipment-art { width: 96px; height: 96px; margin: 0 0 8px; }
+.unified-ui .equipment-item-name { font-size: 24px; color: rgb(245,235,217); white-space: normal; -unity-text-align: middle-center; }
+.unified-ui .equipment-item-count { font-size: 24px; color: rgb(184,169,145); margin-top: 8px; }
+.unified-ui .equipment-stock-tile.equipment-selected { border-width: 4px; background-color: rgb(57,51,40); }
+.unified-ui .equipment-slot-button.equipment-selected .growth-equipment-card { border-width: 4px; }
+.unified-ui .equipment-detail-name { font-size: 34px; color: rgb(245,235,217); white-space: normal; }
+.unified-ui .equipment-detail-panel .growth-equipment-card { margin-top: 24px; }
+.unified-ui .equipment-detail-actions { margin-top: auto; flex-shrink: 0; }
+.unified-ui .equipment-detail-actions .btn { margin-top: 16px; width: 100%; }
+.unified-ui .equipment-empty { font-size: 26px; color: rgb(184,169,145); white-space: normal; margin-top: 24px; }
+.unified-ui .equipment-current, .unified-ui .equipment-shards { font-size: 24px; color: rgb(184,169,145); white-space: normal; margin-top: 20px; }

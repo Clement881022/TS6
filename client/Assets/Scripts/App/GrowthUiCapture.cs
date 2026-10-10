@@ -59,24 +59,6 @@ namespace SanGuo.Client
             if (root.Q(className: "growth-break-stars").Query<Label>().ToList().Count(s => s.text == "★") != 3)
                 throw new InvalidOperationException("Breakthrough progress");
             yield return CommercialUiCapture.Capture(directory, "03-three-stars");
-            page.DebugSetTab(2);
-            yield return new WaitForSecondsRealtime(.5f);
-            Validate(root);
-            if (root.Query(className: "growth-equipment-empty").ToList().Count != 3)
-                throw new InvalidOperationException("Three empty equipment slots");
-            yield return CommercialUiCapture.Capture(directory, "04-empty-equipment");
-            for (int tier = 1; tier <= Equipment.MaxTier; tier++)
-            {
-                foreach (var slot in Equipment.Slots) profile.Heroes["xiahoudun"].Equipment[slot.ToString()] = tier;
-                page.Rebuild();
-                yield return new WaitForSecondsRealtime(.4f);
-                Validate(root);
-                var effects = root.Query<Label>(className: "growth-equipment-effect").ToList();
-                if (!effects.Any(e => e.text == $"生命 +{Equipment.PercentOf(tier)}%")
-                    || !effects.Any(e => e.text == $"防禦 +{Equipment.PercentOf(tier)}%"))
-                    throw new InvalidOperationException("Current equipment bonuses");
-                yield return CommercialUiCapture.Capture(directory, "05-equipment-tier-" + tier);
-            }
             page.DebugSetAttributes(false);
             yield return new WaitForSecondsRealtime(.5f);
             if (root.Q(className: "strategy-hero-art") == null || root.Q(className: "growth-attributes") != null)
@@ -115,7 +97,7 @@ namespace SanGuo.Client
             yield return new WaitForSecondsRealtime(.5f);
             yield return CommercialUiCapture.Capture(directory, "09-roster-end");
             File.WriteAllText(Path.Combine(directory, "verification.txt"),
-                "Default attributes, character/model routes and centered model frame, roster name fit, panel containment, vertically stacked framed costs, compact actions, empty equipment, current armor bonuses and five rarity tiers passed. Disposable profile only. Visual quality reviewed separately.");
+                "Default attributes, character/model routes and centered model frame, roster name fit, panel containment, vertically stacked framed costs and compact actions passed. Equipment moved to independent page. Disposable profile only. Visual quality reviewed separately.");
             Application.Quit();
         }
 

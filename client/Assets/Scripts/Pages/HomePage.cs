@@ -35,7 +35,7 @@ namespace SanGuo.Client
             Tutorial.Show(Host, "home", "主城功能", new[]
             {
                 "嗨嗨，主公！我是巴豆妖，負責教你遊戲怎麼玩。下方功能列可以管理你的隊伍。",
-                "「征戰」推進主線關卡；「招募」抽取新武將；「武將」查看狀態與牌組；「養成」升級、突破與換裝；「副本」和「任務」能取得養成素材。",
+                "「征戰」推進主線關卡；「招募」抽取新武將；「武將」查看狀態與牌組；「裝備」配戴與管理裝備；「養成」升級與突破；「挑戰」和「任務」能取得養成素材。",
                 "先從第一關開始，戰鬥裡我會再教你出牌。",
             }, "前往征戰", () => Nav.Go(Page.Map), speaker: "巴豆妖", model: "badou");
         }
@@ -193,22 +193,22 @@ namespace SanGuo.Client
             bar.AddToClassList("home-fn-bar");
 
             bar.Add(FunctionButton("武將", "查看武將", "heroes", Page.Heroes));
-            bar.Add(FunctionButton("養成", "升級、突破與裝備", "shop", Page.HeroGrowth));
-            bar.Add(FunctionButton("招募", "招募新將", "gacha", Page.Gacha));
-
-            bar.Add(FunctionButton("挑戰", "素材副本與世界 Boss", "dungeons", Page.Dungeons));
+            bar.Add(FunctionButton("裝備", "配戴與管理裝備", "armor", Page.Equipment));
+            bar.Add(FunctionButton("養成", "升級與突破", "shop", Page.HeroGrowth));
             bar.Add(FunctionButton("任務", "領取目標獎勵", "quests", Page.Quests));
+            bar.Add(FunctionButton("挑戰", "素材副本與世界 Boss", "dungeons", Page.Dungeons));
+            bar.Add(FunctionButton("招募", "招募新將", "gacha", Page.Gacha));
             bar.Add(FunctionButton("商店", "補給與將魂", "shop", Page.Shop));
             return bar;
         }
 
         private static VisualElement FunctionButton(string label, string description, string icon, Page target)
         {
-            var b = new Button(() => Nav.Go(target));
+            var b = new Button(() => { if (target == Page.Equipment) EquipmentPage.OpenFrom(Page.Home); else Nav.Go(target); });
             b.AddToClassList("home-fn");
             b.name = "home-" + target.ToString().ToLowerInvariant();
             int index = target == Page.Heroes ? 0 : target == Page.HeroGrowth ? 1 : target == Page.Gacha ? 2 : target == Page.Dungeons ? 3 : target == Page.Quests ? 4 : 5;
-            b.Add(HomeArtwork.Icon(index));
+            b.Add(target == Page.Equipment ? UiIcons.Icon("armor", "home-fn-icon") : HomeArtwork.Icon(index));
             if (target != Page.Heroes) b.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-divider"));
             var text = new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("home-nav-text");
             text.Add(UiKit.Text(label, "home-fn-label"));
