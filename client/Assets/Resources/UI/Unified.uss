@@ -401,31 +401,21 @@
     border-width: 1px; border-color: rgb(145,122,83); border-radius: 18px;
 }
 .unified-ui .campaign-frame .map-area { min-height: 0; margin: 0 16px 16px; }
-.unified-ui .mnode-holder { width: 150px; margin-left: -75px; margin-top: -38px; }
+.unified-ui .mnode-holder { width: 150px; margin-left: -75px; margin-top: -68px; }
 .unified-ui .mnode {
     width: 104px; height: 100px; min-width: 104px; min-height: 100px;
-    background-image: none; background-color: rgb(35,35,39);
-    border-width: 1px; border-color: rgb(145,122,83); border-radius: 12px;
+    background-image: none; background-color: rgba(0,0,0,0);
+    border-width: 0; border-radius: 12px;
 }
-.unified-ui .mnode-art { position: absolute; top: 2px; left: 8px; width: 84px; height: 78px; -unity-background-scale-mode: scale-to-fit; }
-.unified-ui .mnode-art-village { background-image: url("../MapArt/village.svg"); }
-.unified-ui .mnode-art-fortress { background-image: url("../MapArt/fortress.svg"); }
-.unified-ui .mnode-art-escort { background-image: url("../MapArt/escort.svg"); }
-.unified-ui .mnode-art-battle { background-image: url("../MapArt/battle.svg"); }
-.unified-ui .mnode-num { position: absolute; bottom: 2px; left: 0; right: 0; margin: 0; padding: 0; font-size: 24px; color: rgb(245,235,217); -unity-text-align: middle-center; -unity-text-outline-width: 0; }
-.unified-ui .mnode-clear { background-color: rgb(35,35,39); border-color: rgb(145,122,83); }
-.unified-ui .mnode-clear .mnode-num { color: rgb(137,220,169); }
-.unified-ui .mnode-open, .unified-ui .mnode-current {
-    background-color: rgb(205,165,78); border-width: 2px; border-color: rgb(248,220,163);
-}
-.unified-ui .mnode-open .mnode-num { color: rgb(48,32,16); }
-.unified-ui .mnode-clear:hover { background-color: rgb(58,53,46); border-color: rgb(214,170,88); }
-.unified-ui .mnode-open:hover { background-color: rgb(226,188,105); border-color: rgb(255,235,188); }
-.unified-ui .mnode-lock { background-color: rgb(29,29,33); border-color: rgb(88,83,73); }
-.unified-ui .mnode-lock .mnode-art { opacity: 0.3; }
-.unified-ui .mnode-lock .mnode-num { color: rgb(164,157,142); }
-.unified-ui .mnode-lockicon { position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; opacity: 0.85; }
-.unified-ui .mnode-boss { width: 104px; height: 100px; border-radius: 12px; border-top-width: 4px; }
+.unified-ui .mnode-art { width: 100px; height: 96px; background-image: url("../MapArt/crossed_swords.png"); -unity-background-scale-mode: scale-to-fit; }
+.unified-ui .mnode-num { height: 30px; min-height: 30px; margin: 0 0 4px; padding: 0 8px; font-size: 24px; color: rgb(245,235,217); -unity-text-align: middle-center; -unity-text-outline-width: 1px; -unity-text-outline-color: rgb(29,29,33); }
+.unified-ui .mnode-num-clear { color: rgb(137,220,169); }
+.unified-ui .mnode-num-open { color: rgb(255,222,150); }
+.unified-ui .mnode-num-lock { color: rgb(185,178,162); }
+.unified-ui .mnode-clear, .unified-ui .mnode-open, .unified-ui .mnode-current, .unified-ui .mnode-lock { background-color: rgba(0,0,0,0); border-width: 0; }
+.unified-ui .mnode-clear:hover, .unified-ui .mnode-open:hover { background-color: rgba(235,196,112,0.12); }
+.unified-ui .mnode-lockicon { width: 100px; height: 96px; background-image: url("../MapArt/stage_locked.png"); -unity-background-scale-mode: scale-to-fit; opacity: 0.8; }
+.unified-ui .mnode-boss { width: 104px; height: 100px; border-top-width: 0; }
 .unified-ui .mnode-stars { height: 24px; margin: 6px 0 0; align-items: center; }
 .unified-ui .mnode-stars .star { width: 22px; height: 22px; margin: 0 2px; }
 .unified-ui .mnode-plate {

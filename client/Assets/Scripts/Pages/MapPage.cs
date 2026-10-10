@@ -68,6 +68,8 @@ namespace SanGuo.Client
                 holder.AddToClassList("mnode-holder");
                 holder.style.left = Length.Percent(centers[i].x);
                 holder.style.top = Length.Percent(centers[i].y);
+                holder.Add(new Label($"{Chapter}-{level}") { pickingMode = PickingMode.Ignore }
+                    .WithClass("mnode-num " + (isCleared ? "mnode-num-clear" : open ? "mnode-num-open" : "mnode-num-lock")));
 
                 int lv = level;
                 var node = new Button(() => { if (open) OpenStageDetail(lv); });
@@ -75,13 +77,7 @@ namespace SanGuo.Client
                 node.AddToClassList(isCleared ? "mnode-clear" : open ? "mnode-open" : "mnode-lock");
                 if (boss) node.AddToClassList("mnode-boss");
                 if (open && !isCleared) node.AddToClassList("mnode-current");
-                var setup = Campaign.Setup(Chapter, level, 1);
-                string icon = boss ? "fortress" : setup.Objective == Objective.Escort ? "escort"
-                    : setup.Objective == Objective.Defend || levelNames[i].Contains("寨") || levelNames[i].Contains("城") ? "fortress"
-                    : levelNames[i].Contains("村") ? "village" : "battle";
-                node.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("mnode-art mnode-art-" + icon));
-                node.Add(new Label($"{Chapter}-{level}") { pickingMode = PickingMode.Ignore }.WithClass("mnode-num"));
-                if (!open) node.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("mnode-lockicon"));
+                node.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass(open ? "mnode-art" : "mnode-lockicon"));
                 holder.Add(node);
 
                 var rating = UiKit.StarsRow(stars, 3, "mnode-stars");
