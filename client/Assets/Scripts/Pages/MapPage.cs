@@ -29,10 +29,13 @@ namespace SanGuo.Client
             var levelNames = Campaign.LevelNames(Chapter);
             int total = levelNames.Length;
             body.style.flexDirection = FlexDirection.Column;
+            body.AddToClassList("campaign-body");
+            var frame = new VisualElement().WithClass("campaign-frame");
+            body.Add(frame);
 
             var area = new VisualElement();
             area.AddToClassList("map-area");
-            body.Add(area);
+            frame.Add(area);
 
             var centers = new Vector2[total];
             for (int i = 0; i < total; i++)
@@ -76,7 +79,9 @@ namespace SanGuo.Client
                 else node.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("mnode-lockicon"));
                 holder.Add(node);
 
-                if (isCleared) holder.Add(UiKit.StarsRow(stars, 3, "mnode-stars"));
+                var rating = UiKit.StarsRow(stars, 3, "mnode-stars");
+                if (!open) rating.style.visibility = Visibility.Hidden;
+                holder.Add(rating);
                 var plate = new Label(levelNames[i]) { pickingMode = PickingMode.Ignore };
                 plate.AddToClassList("mnode-plate");
                 if (!open) plate.AddToClassList("mnode-plate-dim");
@@ -89,25 +94,26 @@ namespace SanGuo.Client
             info.style.flexDirection = FlexDirection.Row;
             info.style.alignItems = Align.Center;
             int prev = Chapter - 1, next = Chapter + 1;
-            var prevBtn = UiKit.Btn("◀ 上一章", () => SwitchChapter(prev)).WithClass("btn-sm");
+            var prevBtn = UiKit.Btn("‹ 上一章", () => SwitchChapter(prev)).WithClass("btn-sm");
             prevBtn.SetEnabled(prev >= (GameSession.HardMode ? HardStages.FirstChapter : Campaign.FirstChapter));
             info.Add(prevBtn);
             var progress = new VisualElement { pickingMode = PickingMode.Ignore };
             progress.style.flexGrow = 1;
             progress.style.marginLeft = progress.style.marginRight = 12;
-            progress.Add(UiKit.Text($"章節進度  {cleared}/{total}", "txt-gold"));
+            progress.AddToClassList("campaign-progress");
+            progress.Add(UiKit.Text($"章節進度  {cleared} / {total}", "txt-gold"));
             progress.Add(UiKit.Bar(100f * cleared / total, "bar-gold bar-slim"));
             info.Add(progress);
-            var nextBtn = UiKit.Btn("下一章 ▶", () => SwitchChapter(next)).WithClass("btn-sm");
+            var nextBtn = UiKit.Btn("下一章 ›", () => SwitchChapter(next)).WithClass("btn-sm");
             nextBtn.SetEnabled(next <= Campaign.LastChapter && GameSession.IsUnlocked(next, 1));
             info.Add(nextBtn);
             if (GameSession.HardModeOpen || GameSession.HardMode)
             {
-                var mode = UiKit.Btn(GameSession.HardMode ? "切換：普通" : "切換：困難", ToggleHard).WithClass("btn-sm");
+                var mode = UiKit.Btn(GameSession.HardMode ? "普通" : "困難", ToggleHard).WithClass("btn-sm");
                 mode.style.marginLeft = 12;
                 info.Add(mode);
             }
-            body.Add(info);
+            frame.Add(info);
         }
 
         private void ToggleHard()
@@ -186,6 +192,7 @@ namespace SanGuo.Client
 
             var foes = new VisualElement();
             foes.AddToClassList("stage-col");
+            foes.AddToClassList("campaign-enemies");
             foes.Add(UiKit.Section("敵方"));
             var objective = ObjectiveText(setup);
             if (objective != null) foes.Add(UiKit.Text(objective, "txt-gold"));
